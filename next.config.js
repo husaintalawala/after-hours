@@ -4,8 +4,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: process.env.NODE_ENV === 'production' ? '/sabbatical-globe' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/sabbatical-globe/' : '',
+  basePath: '/after-hours',
+  assetPrefix: '/after-hours/',
 }
-
 module.exports = nextConfig
