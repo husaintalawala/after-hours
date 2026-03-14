@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { journey } from '@/data/journey'
 import ChapterCard from '@/components/ChapterCard'
-import { useScrollProgress, useActiveChapter } from '@/hooks/useScrollProgress'
+import TimelineScrubber from '@/components/TimelineScrubber'
+import { useActiveChapter } from '@/hooks/useScrollProgress'
 
-// Dynamic import for Globe (client-side only, no SSR for Three.js)
 const Globe = dynamic(() => import('@/components/Globe'), {
   ssr: false,
   loading: () => (
@@ -19,13 +19,22 @@ const Globe = dynamic(() => import('@/components/Globe'), {
 })
 
 export default function Home() {
-  const { progress, activeIndex } = useActiveChapter(journey.chapters.length)
+  const { progress, activeIndex, seekToChapter } = useActiveChapter(journey.chapters.length)
   const [mounted, setMounted] = useState(false)
-  
+  const [heroVisible, setHeroVisible] = useState(false)
+  const heroRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     setMounted(true)
+    // Stagger hero entrance
+    const timer = setTimeout(() => setHeroVisible(true), 100)
+    return () => clearTimeout(timer)
   }, [])
-  
+
+  const handleSeek = useCallback((index: number) => {
+    seekToChapter(index)
+  }, [seekToChapter])
+
   if (!mounted) {
     return (
       <div className="min-h-screen bg-midnight flex items-center justify-center">
@@ -35,43 +44,46 @@ export default function Home() {
       </div>
     )
   }
-  
+
   return (
     <main className="relative">
       {/* Fixed 3D Globe Background */}
-      <Globe scrollProgress={progress} />
-      
-      {/* Scroll Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 h-[2px] bg-white/10 z-50">
-        <div 
-          className="h-full bg-gold transition-all duration-100"
+      <Globe scrollProgress={progress} activeIndex={Math.max(activeIndex, 0)} />
+
+      {/* Scroll Progress Bar — top */}
+      <div className="fixed top-0 left-0 right-0 h-[2px] bg-white/5 z-50">
+        <div
+          className="h-full bg-gradient-to-r from-gold/80 to-copper/60 transition-all duration-100"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
-      
+
       {/* Content Overlay */}
       <div className="content-overlay relative z-10">
-        
+
         {/* ═══════════════════════════════════════════════════════════════
             HERO SECTION
         ═══════════════════════════════════════════════════════════════ */}
-        <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-          <div className="stagger-children visible">
+        <section
+          ref={heroRef}
+          className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
+        >
+          <div className={`stagger-children ${heroVisible ? 'visible' : ''}`}>
             {/* Dates */}
             <p className="font-mono text-xs tracking-[0.4em] text-cream/40 uppercase mb-8">
               {journey.dateRange}
             </p>
-            
+
             {/* Title */}
             <h1 className="text-7xl md:text-9xl font-display font-light text-cream text-glow mb-2">
               {journey.title}
             </h1>
-            
+
             {/* Subtitle */}
             <p className="text-4xl md:text-6xl font-display italic text-gold">
               {journey.subtitle}
             </p>
-            
+
             {/* Stats */}
             <div className="flex justify-center gap-8 md:gap-12 mt-12">
               {journey.stats.map((stat, i) => (
@@ -85,24 +97,25 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            
+
             {/* Scroll hint */}
-            <div className="mt-16 flex flex-col items-center gap-3 animate-bounce">
-              <div className="w-px h-12 bg-gradient-to-b from-gold to-transparent" />
-              <span className="font-mono text-xs tracking-[0.3em] text-cream/30 uppercase">
+            <div className="mt-16 flex flex-col items-center gap-3">
+              <div className="scroll-indicator w-px h-16 bg-gradient-to-b from-gold to-transparent" />
+              <span className="font-mono text-[10px] tracking-[0.4em] text-cream/25 uppercase">
                 Scroll to explore
               </span>
             </div>
           </div>
         </section>
-        
+
         {/* ═══════════════════════════════════════════════════════════════
             CHAPTER SECTIONS
         ═══════════════════════════════════════════════════════════════ */}
         {journey.chapters.map((chapter, index) => (
           <section
             key={chapter.id}
-            className="min-h-screen flex items-center justify-center px-6 py-24"
+            data-chapter-section={index}
+            className="min-h-screen flex items-center px-4 md:px-6 py-24"
           >
             <ChapterCard
               chapter={chapter}
@@ -111,26 +124,26 @@ export default function Home() {
             />
           </section>
         ))}
-        
+
         {/* ═══════════════════════════════════════════════════════════════
             OUTRO SECTION
         ═══════════════════════════════════════════════════════════════ */}
         <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
           {/* Route summary */}
           <div className="max-w-2xl mx-auto mb-12">
-            <p className="font-mono text-xs tracking-wider text-cream/30 leading-loose">
-              NYC → London → Kathmandu → <span className="text-gold">EBC</span> → Mumbai → 
-              HK → Tokyo → Kyoto → <span className="text-gold">Hakuba</span> → Bangkok → 
-              Phuket → KL → Bali → Madrid → Sevilla → Ronda → Granada → Naples → 
-              <span className="text-gold">Positano</span> → Roma → London → NYC
+            <p className="font-mono text-[11px] tracking-wider text-cream/25 leading-loose">
+              NYC → London → Kathmandu → <span className="text-gold">EBC</span> → Mumbai →
+              HK → Tokyo → Kyoto → <span className="text-gold">Hakuba</span> → Bangkok →
+              Phuket → KL → Bali → Madrid → Sevilla → Ronda → Granada → Naples →
+              <span className="text-gold"> Positano</span> → Roma → London → NYC
             </p>
           </div>
-          
+
           {/* End title */}
           <h2 className="text-6xl md:text-8xl font-display italic text-gold text-glow">
             home.
           </h2>
-          
+
           {/* Final stats */}
           <div className="flex justify-center gap-8 mt-12">
             {journey.stats.map((stat, i) => (
@@ -142,16 +155,22 @@ export default function Home() {
               </div>
             ))}
           </div>
-          
-          {/* Date */}
+
           <p className="font-mono text-xs tracking-[0.3em] text-cream/30 uppercase mt-12">
             {journey.dateRange}
           </p>
         </section>
-        
-        {/* Footer spacer */}
-        <div className="h-24" />
+
+        {/* Footer spacer for timeline */}
+        <div className="h-20" />
       </div>
+
+      {/* Timeline Scrubber */}
+      <TimelineScrubber
+        progress={progress}
+        activeIndex={Math.max(activeIndex, 0)}
+        onSeek={handleSeek}
+      />
     </main>
   )
 }
