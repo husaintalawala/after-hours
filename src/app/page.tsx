@@ -66,44 +66,17 @@ export default function Home() {
         ═══════════════════════════════════════════════════════════════ */}
         <section
           ref={heroRef}
-          className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
+          className="min-h-screen flex flex-col items-center justify-end px-6 pb-24 text-center"
         >
           <div className={`stagger-children ${heroVisible ? 'visible' : ''}`}>
-            {/* Dates */}
-            <p className="font-mono text-xs tracking-[0.4em] text-cream/40 uppercase mb-8">
+            <p className="font-mono text-sm tracking-[0.4em] text-cream/50 uppercase mb-3">
+              {journey.title}
+            </p>
+            <p className="font-mono text-xs tracking-[0.3em] text-cream/30 uppercase">
               {journey.dateRange}
             </p>
-
-            {/* Title */}
-            <h1 className="text-7xl md:text-9xl font-display font-light text-cream text-glow mb-2">
-              {journey.title}
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-4xl md:text-6xl font-display italic text-gold">
-              {journey.subtitle}
-            </p>
-
-            {/* Stats */}
-            <div className="flex justify-center gap-8 md:gap-12 mt-12">
-              {journey.stats.map((stat, i) => (
-                <div key={i} className="text-center">
-                  <div className="text-3xl md:text-4xl font-display text-cream">
-                    {stat.value}
-                  </div>
-                  <div className="font-mono text-xs tracking-wider text-cream/40 uppercase mt-1">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Scroll hint */}
-            <div className="mt-16 flex flex-col items-center gap-3">
-              <div className="scroll-indicator w-px h-16 bg-gradient-to-b from-gold to-transparent" />
-              <span className="font-mono text-[10px] tracking-[0.4em] text-cream/25 uppercase">
-                Scroll to explore
-              </span>
+            <div className="mt-16 flex flex-col items-center gap-2">
+              <div className="scroll-indicator w-px h-12 bg-gradient-to-b from-cream/20 to-transparent" />
             </div>
           </div>
         </section>

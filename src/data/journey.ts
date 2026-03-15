@@ -75,28 +75,6 @@ export const journey: JourneyConfig = {
       dates: "OCT 31 – NOV 6",
       coordinates: { lat: 51.4942, lng: -0.1880 },
       photos: [
-        "london/halloween_night.jpg",
-        "london/london_bridge.jpg",
-        "london/hp_hogwarts.jpg",
-        "london/hp_gringotts.jpg",
-        "london/hp_pub.jpg",
-        "london/bus_musuem.jpg",
-        "london/pink_bus.jpg",
-        "london/wimbledon_score.jpg",
-        "london/wimbledon_trophy.jpg",
-        "london/wimbledon_jump.jpg",
-        "london/cahoots_cheers.jpg",
-        "london/cahoots_drink.jpg",
-        "london/cahoots_paper.jpg",
-        "london/cahoots_rashu_paper.jpg",
-        "london/husain_azaan.jpg",
-        "london/husain_bolton.jpg",
-        "london/husain_postcard.jpg",
-        "london/rashu_bigben_stand.jpg",
-        "london/rashu_bigben.jpg",
-        "london/rashida_noor.jpg",
-        "london/rashida_umbrella.jpg",
-        "london/rashu_phonebooth.jpg",
       ],
       videos: [
         { src: "london/bigben_bagpipe.mp4", caption: "Big Ben · bagpipes" },
@@ -286,7 +264,7 @@ export const journey: JourneyConfig = {
     // ── CHAPTER 11: MUMBAI ──
     {
       id: 11,
-      title: "Mumbai",
+      title: "Mumbai II",
       subtitle: "Fort · Kala Ghoda · Lonavala",
       dates: "DEC 16–31",
       coordinates: { lat: 18.9388, lng: 72.8354 },
@@ -341,7 +319,7 @@ export const journey: JourneyConfig = {
     // ── CHAPTER 14: ESPAÑA ──
     {
       id: 14,
-      title: "España",
+      title: "Spain",
       subtitle: "Madrid · Sevilla · Málaga · Ronda · Granada",
       dates: "JAN 8–16",
       coordinates: { lat: 40.4169, lng: -3.7035 },

@@ -3,199 +3,215 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { MEDIA_BASE } from '@/data/journey'
 
-interface MediaItem {
-  src: string
-  type: 'photo' | 'video'
-  caption?: string
-}
+const API_BASE = 'https://after-hours-api.after-hours-media.workers.dev'
 
-interface FilmstripProps {
-  photos: string[]
-  videos: { src: string; start?: number; end?: number; caption?: string }[]
-  chapterTitle: string
-}
+interface MediaItem { src: string; type: 'photo' | 'video'; caption?: string }
+interface FilmstripProps { photos: string[]; videos: { src: string; start?: number; end?: number; caption?: string }[]; chapterTitle: string }
 
 export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [focusIndex, setFocusIndex] = useState(0)
-  const [mutedMap, setMutedMap] = useState<Record<number, boolean>>({})
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [rotation, setRotation] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [startX, setStartX] = useState(0)
-  const [scrollLeft, setScrollLeft] = useState(0)
+  const [dragStartX, setDragStartX] = useState(0)
+  const [dragStartRotation, setDragStartRotation] = useState(0)
+  const [velocity, setVelocity] = useState(0)
+  const [lastX, setLastX] = useState(0)
+  const [lastTime, setLastTime] = useState(0)
+  const [unmuted, setUnmuted] = useState<Set<number>>(new Set())
+  const [dynamicMedia, setDynamicMedia] = useState<MediaItem[] | null>(null)
+  const animFrame = useRef<number>(0)
 
-  const media: MediaItem[] = [
+  useEffect(() => {
+    const folder = chapterTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    fetch(`${API_BASE}/api/media?prefix=${encodeURIComponent(folder)}/`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.files && data.files.length > 0) {
+          const items = data.files.filter((f: any) => f.size > 0).map((f: any) => ({
+            src: `${MEDIA_BASE}/${f.key}`,
+            type: f.type,
+            caption: f.type === 'video' ? f.key.split('/').pop()?.replace(/\.\w+$/, '').replace(/[_-]/g, ' ') : undefined,
+          }))
+          if (items.length > 0) setDynamicMedia(items)
+        }
+      })
+      .catch(() => {})
+  }, [chapterTitle])
+
+  const staticMedia: MediaItem[] = [
     ...photos.map(src => ({ src: `${MEDIA_BASE}/${src}`, type: 'photo' as const })),
     ...videos.map(v => ({ src: `${MEDIA_BASE}/${v.src}`, type: 'video' as const, caption: v.caption })),
   ]
-
+  const media = dynamicMedia && dynamicMedia.length > 0 ? dynamicMedia : staticMedia
   if (media.length === 0) return null
 
-  const CARD_W = 160
-  const CARD_GAP = 14
-  const CARD_STEP = CARD_W + CARD_GAP
-  const PAD = 24
+  const count = media.length
+  const angleStep = 360 / count
+  const RADIUS = Math.max(160, count * 12)
 
-  const updateFocus = useCallback(() => {
-    if (!scrollRef.current) return
-    const centerX = scrollRef.current.scrollLeft + scrollRef.current.clientWidth / 2
-    const idx = Math.round((centerX - PAD - CARD_W / 2) / CARD_STEP)
-    setFocusIndex(Math.max(0, Math.min(idx, media.length - 1)))
-  }, [media.length])
+  const getFocusedIndex = () => {
+    const normalized = ((rotation % 360) + 360) % 360
+    return Math.round(normalized / angleStep) % count
+  }
 
+  // Inertia animation
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.addEventListener('scroll', updateFocus, { passive: true })
-    updateFocus()
-    return () => el.removeEventListener('scroll', updateFocus)
-  }, [updateFocus])
+    if (isDragging) return
+    if (Math.abs(velocity) < 0.1) return
+    let vel = velocity
+    const animate = () => {
+      vel *= 0.95
+      if (Math.abs(vel) < 0.1) return
+      setRotation(prev => prev + vel)
+      animFrame.current = requestAnimationFrame(animate)
+    }
+    animFrame.current = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animFrame.current)
+  }, [isDragging, velocity])
 
-  const scrollToIndex = useCallback((idx: number) => {
-    if (!scrollRef.current) return
-    const target = PAD + idx * CARD_STEP - (scrollRef.current.clientWidth / 2 - CARD_W / 2)
-    scrollRef.current.scrollTo({ left: target, behavior: 'smooth' })
-  }, [])
-
-  const toggleMute = useCallback((idx: number) => {
-    setMutedMap(prev => ({ ...prev, [idx]: !prev[idx] }))
-  }, [])
-
+  // Mouse drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!scrollRef.current) return
     setIsDragging(true)
-    setStartX(e.pageX - scrollRef.current.offsetLeft)
-    setScrollLeft(scrollRef.current.scrollLeft)
-  }, [])
-  const handleMouseUp = useCallback(() => setIsDragging(false), [])
-  const handleMouseLeave = useCallback(() => setIsDragging(false), [])
+    setDragStartX(e.clientX)
+    setDragStartRotation(rotation)
+    setLastX(e.clientX)
+    setLastTime(Date.now())
+    setVelocity(0)
+  }, [rotation])
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging || !scrollRef.current) return
-    e.preventDefault()
-    scrollRef.current.scrollLeft = scrollLeft - (e.pageX - scrollRef.current.offsetLeft - startX) * 1.5
-  }, [isDragging, startX, scrollLeft])
+    if (!isDragging) return
+    const dx = e.clientX - dragStartX
+    const now = Date.now()
+    const dt = now - lastTime
+    if (dt > 0) setVelocity((e.clientX - lastX) / dt * 8)
+    setLastX(e.clientX)
+    setLastTime(now)
+    setRotation(dragStartRotation + dx * 0.3)
+  }, [isDragging, dragStartX, dragStartRotation, lastX, lastTime])
+
+  const handleMouseUp = useCallback(() => { setIsDragging(false) }, [])
+
+  // Touch drag
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    setIsDragging(true)
+    setDragStartX(e.touches[0].clientX)
+    setDragStartRotation(rotation)
+    setLastX(e.touches[0].clientX)
+    setLastTime(Date.now())
+    setVelocity(0)
+  }, [rotation])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return
+    const dx = e.touches[0].clientX - dragStartX
+    const now = Date.now()
+    const dt = now - lastTime
+    if (dt > 0) setVelocity((e.touches[0].clientX - lastX) / dt * 8)
+    setLastX(e.touches[0].clientX)
+    setLastTime(now)
+    setRotation(dragStartRotation + dx * 0.3)
+  }, [isDragging, dragStartX, dragStartRotation, lastX, lastTime])
+
+  const handleTouchEnd = useCallback(() => { setIsDragging(false) }, [])
+
+
+  const handleWheel = useCallback((e: React.WheelEvent) => { e.preventDefault(); setRotation(prev => prev + e.deltaX * 0.3 + e.deltaY * 0.3) }, [])
+
+  // Click to snap
+  const snapTo = useCallback((idx: number) => {
+    setVelocity(0)
+    setRotation(idx * angleStep)
+  }, [angleStep])
+
+  const focusedIndex = getFocusedIndex()
 
   return (
-    <div className="filmstrip-container mt-5 -mx-6 md:-mx-8">
-      <div className="flex items-center gap-3 px-6 md:px-8 mb-3">
+    <div className="mt-5 -mx-6 md:-mx-8">
+      <div className="flex items-center gap-3 px-6 md:px-8 mb-2">
         <span className="text-[10px] font-mono tracking-[0.2em] text-cream/25 uppercase">Gallery</span>
         <span className="flex-1 h-px bg-white/[0.06]" />
-        <span className="text-[10px] font-mono text-cream/20">{media.length}</span>
+        <span className="text-[10px] font-mono text-cream/20">{count}</span>
       </div>
-
       <div
-        ref={scrollRef}
-        className="filmstrip-scroll flex overflow-x-auto px-6 md:px-8 pb-4 cursor-grab active:cursor-grabbing"
+        ref={containerRef}
+        className="relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        style={{ height: '280px', perspective: '1000px' }}
         onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
-        style={{
-          gap: `${CARD_GAP}px`,
-          scrollSnapType: 'x mandatory',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          perspective: '800px',
-        }}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd} onWheel={handleWheel}
       >
-        {media.map((item, i) => {
-          const isFocused = i === focusIndex
-          const distance = Math.abs(i - focusIndex)
-          const scale = distance === 0 ? 1.2 : distance === 1 ? 0.88 : 0.75
-          const opacity = distance === 0 ? 1.0 : distance === 1 ? 0.6 : 0.35
-          const rotateY = distance === 0 ? 0 : (i < focusIndex ? 8 : -8)
-          const isMuted = mutedMap[i] === undefined ? true : mutedMap[i]
+        <div className="absolute inset-0 flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
+          {media.map((item, i) => {
+            const angle = (i * angleStep - rotation) * (Math.PI / 180)
+            const x = Math.sin(angle) * RADIUS
+            const z = Math.cos(angle) * RADIUS
+            const scale = 0.6 + 0.4 * ((z + RADIUS) / (2 * RADIUS))
+            const opacity = 0.2 + 0.8 * ((z + RADIUS) / (2 * RADIUS))
+            const isFront = i === focusedIndex
+            const isVideo = item.type === 'video'
+            const loud = isFront
 
-          return (
-            <div
-              key={i}
-              className="flex-shrink-0 relative overflow-hidden cursor-pointer"
-              onClick={() => isFocused && item.type === 'video' ? toggleMute(i) : scrollToIndex(i)}
-              style={{
-                width: `${CARD_W}px`,
-                height: isFocused ? '280px' : '220px',
-                scrollSnapAlign: 'center',
-                transform: `scale(${scale}) rotateY(${rotateY}deg) translateZ(${isFocused ? '20px' : '0px'})`,
-                opacity,
-                transition: 'all 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
-                transformOrigin: 'center center',
-                zIndex: isFocused ? 10 : 5 - distance,
-                borderRadius: '6px',
-              }}
-            >
-              {item.type === 'photo' ? (
-                <img
-                  src={item.src}
-                  alt={`${chapterTitle} ${i + 1}`}
-                  className="w-full h-full object-cover"
-                  draggable={false}
-                  loading="lazy"
-                />
-              ) : (
-                <video
-                  src={item.src}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  muted={isMuted}
-                  loop
-                  playsInline
-                  draggable={false}
-                />
-              )}
-
-              {item.caption && isFocused && (
-                <div className="absolute bottom-0 left-0 right-0 p-3"
-                  style={{ background: 'linear-gradient(transparent, rgba(10, 10, 15, 0.9))' }}>
-                  <p className="text-[11px] font-mono text-cream/80 leading-tight">{item.caption}</p>
-                </div>
-              )}
-
-              <div className="absolute top-2 right-2 text-[9px] font-mono"
-                style={{ color: isFocused ? 'rgba(201, 162, 39, 0.7)' : 'rgba(245, 243, 239, 0.12)' }}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-
-              {item.type === 'video' && isFocused && (
-                <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-sm"
-                  style={{ background: 'rgba(0,0,0,0.5)' }}>
-                  <span className="text-[10px]">{isMuted ? '🔇' : '🔊'}</span>
-                  <span className="text-[8px] font-mono text-cream/50">{isMuted ? 'tap for sound' : 'playing'}</span>
-                </div>
-              )}
-
-              {item.type === 'video' && !isFocused && (
-                <div className="absolute top-2 left-2 flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                </div>
-              )}
-
-              <div className="absolute inset-0 pointer-events-none transition-all duration-300"
-                style={{
-                  borderRadius: '6px',
-                  border: isFocused ? '1.5px solid rgba(201, 162, 39, 0.5)' : '1px solid rgba(255, 255, 255, 0.04)',
-                  boxShadow: isFocused ? '0 12px 40px rgba(0,0,0,0.6), 0 0 24px rgba(201, 162, 39, 0.12)' : 'none',
+            return (
+              <div
+                key={i}
+                className="absolute overflow-hidden"
+                onClick={(e) => {
+                  if (isFront && isVideo) { e.stopPropagation(); setUnmuted(prev => { const n = new Set(prev); if (n.has(i)) n.delete(i); else n.add(i); return n }) }
+                  else snapTo(i)
                 }}
-              />
-            </div>
-          )
-        })}
-        <div className="flex-shrink-0 w-8" />
+                style={{
+                  width: '120px',
+                  height: '170px',
+                  borderRadius: '8px',
+                  transform: `translateX(${x}px) translateZ(${z}px) scale(${isFront ? 1.2 : scale * 0.85})`,
+                  opacity: isFront ? 1 : opacity,
+                  zIndex: Math.round(z + RADIUS),
+                  transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.25,1,0.5,1), opacity 0.3s ease',
+                  border: isFront ? '2px solid rgba(201,162,39,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: isFront ? '0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(201,162,39,0.15)' : '0 4px 12px rgba(0,0,0,0.3)',
+                  cursor: isFront ? (isVideo ? 'pointer' : 'default') : 'pointer',
+                }}
+              >
+                {isVideo ? (
+                  <video src={item.src} className="w-full h-full object-cover" autoPlay muted={!loud} loop playsInline />
+                ) : (
+                  <img src={item.src} alt={`${chapterTitle} ${i+1}`} className="w-full h-full object-cover" draggable={false} loading="lazy" />
+                )}
+
+                {item.caption && isFront && (
+                  <div className="absolute bottom-0 left-0 right-0 p-2" style={{background:'linear-gradient(transparent,rgba(10,10,15,0.9))'}}>
+                    <p className="text-[10px] font-mono text-cream/80">{item.caption}</p>
+                  </div>
+                )}
+
+                <div className="absolute top-1.5 right-2 text-[8px] font-mono" style={{color: isFront ? 'rgba(201,162,39,0.7)' : 'rgba(255,255,255,0.1)'}}>
+                  {String(i+1).padStart(2,'0')}
+                </div>
+
+                {isVideo && isFront && (
+                  <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[8px] font-mono text-cream/50" style={{background:'rgba(0,0,0,0.6)'}}>
+                    {loud ? '\u{1F50A}' : '\u{1F507} tap'}
+                  </div>
+                )}
+
+                {isVideo && !isFront && (
+                  <div className="absolute top-1.5 left-1.5"><div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" /></div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {media.length > 1 && (
-        <div className="flex justify-center gap-1 mt-2 px-6">
-          {media.map((_, i) => (
-            <button key={i} onClick={() => scrollToIndex(i)} className="transition-all duration-300"
-              style={{
-                width: i === focusIndex ? '18px' : '4px',
-                height: '4px',
-                borderRadius: '2px',
-                background: i === focusIndex ? '#c9a227' : 'rgba(255,255,255,0.12)',
-              }}
-            />
-          ))}
-        </div>
-      )}
+      <div className="flex justify-center gap-2 mt-1 px-6">
+        <span className="text-[9px] font-mono text-cream/20">{String(focusedIndex + 1).padStart(2,'0')} / {String(count).padStart(2,'0')}</span>
+        <span className="text-[9px] font-mono text-cream/12">drag to spin</span>
+      </div>
     </div>
   )
 }
