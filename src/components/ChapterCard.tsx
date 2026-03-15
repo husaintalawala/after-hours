@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import type { Chapter, TagCategory, DayEntry } from '@/data/journey'
+import Filmstrip from './Filmstrip'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TAG COLORS
@@ -311,6 +312,15 @@ export default function ChapterCard({ chapter, index, isActive }: ChapterCardPro
             </span>
           ))}
         </div>
+      )}
+
+      {/* Photo/Video filmstrip */}
+      {(chapter.photos.length > 0 || chapter.videos.length > 0) && (
+        <Filmstrip
+          photos={chapter.photos}
+          videos={chapter.videos}
+          chapterTitle={chapter.title}
+        />
       )}
 
       {/* Day-by-day itinerary */}

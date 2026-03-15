@@ -1,8 +1,8 @@
 // @ts-nocheck
 'use client'
 
-import { useRef, useMemo } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useRef, useMemo, useEffect, useState } from 'react'
+import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber'
 import { Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import { journey, origin } from '@/data/journey'
@@ -24,14 +24,19 @@ function dampV(current: number, target: number, lambda: number, dt: number): num
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SHADERS
+// DARK LUXURY EARTH SHADERS
+// Procedural black marble with gold foil continent edges, city lights on
+// night side, specular ocean, volumetric atmosphere
 // ═══════════════════════════════════════════════════════════════════════════
+
 const earthVertexShader = `
   varying vec3 vNormal;
   varying vec3 vPosition;
   varying vec2 vUv;
+  varying vec3 vWorldNormal;
   void main() {
     vNormal = normalize(normalMatrix * normal);
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
     vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
     vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -43,7 +48,9 @@ const earthFragmentShader = `
   varying vec3 vNormal;
   varying vec3 vPosition;
   varying vec2 vUv;
+  varying vec3 vWorldNormal;
 
+  // ── Simplex noise ──
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
@@ -52,7 +59,7 @@ const earthFragmentShader = `
     const vec4 C = vec4(0.211324865405187, 0.366025403784439,
                        -0.577350269189626, 0.024390243902439);
     vec2 i  = floor(v + dot(v, C.yy));
-    vec2 x0 = v -   i + dot(i, C.xx);
+    vec2 x0 = v - i + dot(i, C.xx);
     vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
     vec4 x12 = x0.xyxy + C.xxzz;
     x12.xy -= i1;
@@ -71,55 +78,108 @@ const earthFragmentShader = `
     return 130.0 * dot(m, g);
   }
 
+  // ── Hash for city lights ──
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
   void main() {
     vec2 sphereUv = vUv * vec2(4.0, 2.0);
+
+    // ── Continent shape (multi-octave noise) ──
     float n1 = snoise(sphereUv * 1.5 + 0.5) * 0.5;
     float n2 = snoise(sphereUv * 3.0 + 1.2) * 0.25;
     float n3 = snoise(sphereUv * 6.0 + 2.7) * 0.125;
-    float continent = n1 + n2 + n3;
-
-    vec3 oceanDeep = vec3(0.02, 0.04, 0.10);
-    vec3 oceanShallow = vec3(0.04, 0.08, 0.18);
-    vec3 landLow = vec3(0.08, 0.10, 0.06);
-    vec3 landMid = vec3(0.10, 0.12, 0.08);
-    vec3 landHigh = vec3(0.14, 0.13, 0.10);
-
-    vec3 ocean = mix(oceanDeep, oceanShallow, snoise(sphereUv * 8.0) * 0.5 + 0.5);
-    float elev = smoothstep(0.0, 0.5, continent);
-    vec3 land = mix(landLow, mix(landMid, landHigh, elev), elev);
+    float n4 = snoise(sphereUv * 12.0 + 4.1) * 0.0625;
+    float continent = n1 + n2 + n3 + n4;
     float isLand = smoothstep(-0.02, 0.05, continent);
+
+    // ── BLACK MARBLE palette ──
+    // Deep ocean — near-black with subtle blue
+    vec3 oceanDeep = vec3(0.01, 0.015, 0.04);
+    vec3 oceanMid  = vec3(0.015, 0.025, 0.06);
+    float oceanVar = snoise(sphereUv * 8.0) * 0.5 + 0.5;
+    vec3 ocean = mix(oceanDeep, oceanMid, oceanVar);
+
+    // Dark land — charcoal marble with subtle veining
+    vec3 landBase   = vec3(0.04, 0.04, 0.038);
+    vec3 landVein   = vec3(0.06, 0.055, 0.05);
+    float vein = snoise(sphereUv * 10.0 + 3.3) * 0.5 + 0.5;
+    vein = smoothstep(0.3, 0.7, vein);
+    vec3 land = mix(landBase, landVein, vein * 0.4);
+
+    // Marble surface
     vec3 surface = mix(ocean, land, isLand);
 
-    float latLine = smoothstep(0.98, 1.0, abs(sin(vUv.y * 3.14159 * 12.0)));
-    float lngLine = smoothstep(0.98, 1.0, abs(sin(vUv.x * 3.14159 * 24.0)));
-    float grid = max(latLine, lngLine) * 0.04;
-    surface += vec3(grid) * vec3(0.8, 0.7, 0.4);
+    // ── GOLD FOIL continent edges ──
+    float edgeDist = smoothstep(0.0, 0.04, continent) - smoothstep(0.04, 0.12, continent);
+    vec3 goldFoil = vec3(0.78, 0.63, 0.15);
+    vec3 goldDark = vec3(0.55, 0.42, 0.10);
+    float goldShimmer = snoise(sphereUv * 30.0 + uTime * 0.1) * 0.5 + 0.5;
+    vec3 gold = mix(goldDark, goldFoil, goldShimmer);
+    surface = mix(surface, gold, edgeDist * 0.85);
 
-    // Scan line
-    float scanY = fract(uTime * 0.03);
-    float scanLine = smoothstep(0.0, 0.003, abs(vUv.y - scanY));
-    surface += (1.0 - scanLine) * vec3(0.15, 0.25, 0.4) * 0.08;
+    // ── Subtle gold grid lines ──
+    float latLine = smoothstep(0.985, 1.0, abs(sin(vUv.y * 3.14159 * 12.0)));
+    float lngLine = smoothstep(0.985, 1.0, abs(sin(vUv.x * 3.14159 * 24.0)));
+    float grid = max(latLine, lngLine) * 0.025;
+    surface += vec3(grid) * goldFoil * 0.3;
 
-    vec3 lightDir = normalize(vec3(0.5, 0.3, 1.0));
+    // ── Lighting (cinematic, dramatic) ──
+    vec3 lightDir = normalize(vec3(0.6, 0.35, 0.8));
     float diffuse = max(dot(vNormal, lightDir), 0.0);
-    float ambient = 0.15;
-    vec3 viewDir = normalize(cameraPosition - vPosition);
-    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 3.0);
-    vec3 halfDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(vNormal, halfDir), 0.0), 40.0) * (1.0 - isLand) * 0.3;
+    float ambient = 0.08;
 
-    vec3 color = surface * (ambient + diffuse * 0.85);
-    color += vec3(spec);
-    color += fresnel * vec3(0.15, 0.20, 0.35) * 0.5;
+    // ── Night side ──
+    float dayFactor = dot(vWorldNormal, lightDir);
+    float nightMask = smoothstep(0.0, -0.15, dayFactor);
+
+    // ── City lights on night side (scattered dots on land) ──
+    vec2 cellUv = vUv * vec2(200.0, 100.0);
+    vec2 cellId = floor(cellUv);
+    float cityHash = hash(cellId);
+    float isCity = step(0.92, cityHash) * isLand;
+    float cityFlicker = 0.7 + 0.3 * sin(uTime * 2.0 + cityHash * 100.0);
+    vec3 cityLight = vec3(1.0, 0.85, 0.5) * isCity * cityFlicker * 0.6;
+    surface += cityLight * nightMask;
+
+    // ── Specular on ocean (gold-tinted) ──
+    vec3 viewDir = normalize(cameraPosition - vPosition);
+    vec3 halfDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(vNormal, halfDir), 0.0), 80.0) * (1.0 - isLand);
+    vec3 specColor = goldFoil * spec * 0.4;
+
+    // ── Fresnel rim (warm gold on lit side, cool blue on dark) ──
+    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 3.5);
+    vec3 rimLit  = goldFoil * 0.15;
+    vec3 rimDark = vec3(0.08, 0.12, 0.25);
+    vec3 rim = mix(rimLit, rimDark, nightMask) * fresnel;
+
+    // ── Scan line (subtle) ──
+    float scanY = fract(uTime * 0.02);
+    float scanLine = 1.0 - (1.0 - smoothstep(0.0, 0.002, abs(vUv.y - scanY))) * 0.06;
+
+    // ── Compose ──
+    vec3 color = surface * (ambient + diffuse * 0.9) * scanLine;
+    color += specColor;
+    color += rim;
+
+    // ── Subtle vignette darkening toward edges ──
+    float edgeDarken = pow(max(dot(viewDir, vNormal), 0.0), 0.5);
+    color *= mix(0.3, 1.0, edgeDarken);
+
     gl_FragColor = vec4(color, 1.0);
   }
 `
 
+// ── Atmosphere: warm gold glow on lit side, cool blue on dark ──
 const atmosphereVertexShader = `
   varying vec3 vNormal;
   varying vec3 vPosition;
+  varying vec3 vWorldNormal;
   void main() {
     vNormal = normalize(normalMatrix * normal);
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
     vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
@@ -128,11 +188,33 @@ const atmosphereVertexShader = `
 const atmosphereFragmentShader = `
   varying vec3 vNormal;
   varying vec3 vPosition;
+  varying vec3 vWorldNormal;
   void main() {
     vec3 viewDir = normalize(cameraPosition - vPosition);
-    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.5);
-    vec3 atmColor = mix(vec3(0.1, 0.15, 0.4), vec3(0.15, 0.25, 0.6), fresnel);
-    gl_FragColor = vec4(atmColor, fresnel * 0.6);
+    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.0);
+
+    // Day/night gradient
+    vec3 lightDir = normalize(vec3(0.6, 0.35, 0.8));
+    float dayFactor = dot(vWorldNormal, lightDir);
+
+    vec3 warmGlow = vec3(0.45, 0.32, 0.08); // gold atmosphere
+    vec3 coolGlow = vec3(0.06, 0.10, 0.25);  // deep blue night
+    vec3 atmColor = mix(coolGlow, warmGlow, smoothstep(-0.2, 0.3, dayFactor));
+
+    float alpha = fresnel * 0.55;
+    gl_FragColor = vec4(atmColor, alpha);
+  }
+`
+
+// ── Outer halo: soft gold bloom ──
+const haloFragmentShader = `
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  void main() {
+    vec3 viewDir = normalize(cameraPosition - vPosition);
+    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 1.5);
+    vec3 haloColor = vec3(0.35, 0.25, 0.05);
+    gl_FragColor = vec4(haloColor, fresnel * 0.12);
   }
 `
 
@@ -154,26 +236,36 @@ function Earth() {
     depthWrite: false,
   }), [])
 
+  const haloMaterial = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: atmosphereVertexShader, // reuse vertex
+    fragmentShader: haloFragmentShader,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+  }), [])
+
   useFrame((_, delta) => { earthMaterial.uniforms.uTime.value += delta })
 
   return (
     <group>
+      {/* Earth sphere */}
       <mesh material={earthMaterial}>
         <sphereGeometry args={[2, 128, 128]} />
       </mesh>
+      {/* Inner atmosphere */}
       <mesh material={atmosphereMaterial}>
-        <sphereGeometry args={[2.08, 64, 64]} />
+        <sphereGeometry args={[2.06, 64, 64]} />
       </mesh>
-      <mesh>
-        <sphereGeometry args={[2.2, 64, 64]} />
-        <meshBasicMaterial color="#1a2a5a" transparent opacity={0.04} side={THREE.BackSide} />
+      {/* Outer gold halo */}
+      <mesh material={haloMaterial}>
+        <sphereGeometry args={[2.25, 64, 64]} />
       </mesh>
     </group>
   )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ROUTE LINES
+// ROUTE LINES — gold with animated glow
 // ═══════════════════════════════════════════════════════════════════════════
 function RouteLine({ from, to, progress = 1, color = '#c9a227' }: {
   from: { lat: number; lng: number }; to: { lat: number; lng: number }
@@ -184,12 +276,12 @@ function RouteLine({ from, to, progress = 1, color = '#c9a227' }: {
     const end = latLngToVector3(to.lat, to.lng, 2.01)
     const mid = start.clone().add(end).multiplyScalar(0.5)
     const distance = start.distanceTo(end)
-    mid.normalize().multiplyScalar(2.01 + distance * 0.2)
+    mid.normalize().multiplyScalar(2.01 + distance * 0.22)
     return new THREE.QuadraticBezierCurve3(start, mid, end)
   }, [from, to])
 
   const geometry = useMemo(() => {
-    const pts = curve.getPoints(80)
+    const pts = curve.getPoints(100)
     const count = Math.max(2, Math.floor(pts.length * Math.min(progress, 1)))
     return new THREE.BufferGeometry().setFromPoints(pts.slice(0, count))
   }, [curve, progress])
@@ -197,11 +289,13 @@ function RouteLine({ from, to, progress = 1, color = '#c9a227' }: {
   if (progress <= 0) return null
   return (
     <group>
+      {/* Core line */}
       <line geometry={geometry}>
-        <lineBasicMaterial color={color} transparent opacity={Math.min(progress * 2, 0.9)} />
+        <lineBasicMaterial color="#c9a227" transparent opacity={Math.min(progress * 2, 0.95)} />
       </line>
+      {/* Glow line */}
       <line geometry={geometry}>
-        <lineBasicMaterial color={color} transparent opacity={Math.min(progress * 1.5, 0.3)} />
+        <lineBasicMaterial color="#e8d48a" transparent opacity={Math.min(progress * 1.2, 0.2)} />
       </line>
     </group>
   )
@@ -233,7 +327,7 @@ function JourneyRoutes({ scrollProgress }: { scrollProgress: number }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CITY MARKERS with radar pulse
+// CITY MARKERS — gold diamond with radar pulse
 // ═══════════════════════════════════════════════════════════════════════════
 function CityMarker({ lat, lng, isPeak = false, isOrigin = false, isActive = false }: {
   lat: number; lng: number; isPeak?: boolean; isOrigin?: boolean; isActive?: boolean
@@ -242,41 +336,63 @@ function CityMarker({ lat, lng, isPeak = false, isOrigin = false, isActive = fal
   const pulseRef = useRef<THREE.Mesh>(null)
   const pulse2Ref = useRef<THREE.Mesh>(null)
   const position = useMemo(() => latLngToVector3(lat, lng, 2.02), [lat, lng])
-  const color = isOrigin ? '#ffffff' : isPeak ? '#c9a227' : '#b87333'
-  const size = isOrigin ? 0.035 : isPeak ? 0.04 : 0.025
+  const color = isOrigin ? '#f5f3ef' : isPeak ? '#c9a227' : '#b87333'
+  const size = isOrigin ? 0.03 : isPeak ? 0.035 : 0.02
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
-    if (markerRef.current && (isActive || isPeak)) {
-      markerRef.current.scale.setScalar(1 + Math.sin(t * 2) * 0.2)
+    if (markerRef.current) {
+      // Orient marker to face outward from globe center
+      markerRef.current.lookAt(0, 0, 0)
+      if (isActive || isPeak) {
+        markerRef.current.scale.setScalar(1 + Math.sin(t * 2.5) * 0.25)
+      }
     }
     if (pulseRef.current && isActive) {
-      const c = (t * 0.8) % 1
-      pulseRef.current.scale.setScalar(1 + c * 4);
-      (pulseRef.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.4
+      const c = (t * 0.7) % 1
+      pulseRef.current.scale.setScalar(1 + c * 5);
+      (pulseRef.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.5
     }
     if (pulse2Ref.current && isActive) {
-      const c = ((t * 0.8) + 0.5) % 1
-      pulse2Ref.current.scale.setScalar(1 + c * 4);
-      (pulse2Ref.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.3
+      const c = ((t * 0.7) + 0.5) % 1
+      pulse2Ref.current.scale.setScalar(1 + c * 5);
+      (pulse2Ref.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.35
     }
   })
 
   return (
     <group position={position}>
-      <mesh ref={markerRef}>
-        <sphereGeometry args={[size, 16, 16]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={isActive ? 1.5 : isPeak ? 0.6 : 0.2} />
+      {/* Diamond marker */}
+      <mesh ref={markerRef} rotation={[0, 0, Math.PI / 4]}>
+        <planeGeometry args={[size, size]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={isActive ? 1.0 : isPeak ? 0.8 : 0.5}
+          side={THREE.DoubleSide}
+        />
       </mesh>
+      {/* Inner glow */}
+      <mesh>
+        <sphereGeometry args={[size * 0.4, 12, 12]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={isActive ? 2.0 : isPeak ? 0.8 : 0.3}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      {/* Radar pulse rings */}
       {isActive && (
         <>
           <mesh ref={pulseRef}>
-            <ringGeometry args={[size * 1.5, size * 2, 32]} />
-            <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+            <ringGeometry args={[size * 1.5, size * 2.2, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.5} side={THREE.DoubleSide} />
           </mesh>
           <mesh ref={pulse2Ref}>
-            <ringGeometry args={[size * 1.5, size * 2, 32]} />
-            <meshBasicMaterial color={color} transparent opacity={0.3} side={THREE.DoubleSide} />
+            <ringGeometry args={[size * 1.5, size * 2.2, 32]} />
+            <meshBasicMaterial color={color} transparent opacity={0.35} side={THREE.DoubleSide} />
           </mesh>
         </>
       )}
@@ -285,7 +401,7 @@ function CityMarker({ lat, lng, isPeak = false, isOrigin = false, isActive = fal
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SCROLL-DRIVEN CAMERA
+// SCROLL-DRIVEN CAMERA — cinematic flight
 // ═══════════════════════════════════════════════════════════════════════════
 function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
   const { camera } = useThree()
@@ -295,8 +411,8 @@ function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
     const allCoords = [origin, ...chapters.map(c => c.coordinates)]
     return allCoords.map((coord) => {
       const surface = latLngToVector3(coord.lat, coord.lng, 2.02)
-      const camPos = surface.clone().normalize().multiplyScalar(4.8)
-      camPos.y += 0.6
+      const camPos = surface.clone().normalize().multiplyScalar(4.6)
+      camPos.y += 0.5
       return camPos
     })
   }, [chapters])
@@ -313,7 +429,7 @@ function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
     const eased = t * t * (3 - 2 * t)
     const target = from.clone().lerp(to, eased)
 
-    const lambda = 3.0
+    const lambda = 2.5
     currentPos.current.x = dampV(currentPos.current.x, target.x, lambda, delta)
     currentPos.current.y = dampV(currentPos.current.y, target.y, lambda, delta)
     currentPos.current.z = dampV(currentPos.current.z, target.z, lambda, delta)
@@ -326,23 +442,79 @@ function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DUST PARTICLES — floating gold motes
+// ═══════════════════════════════════════════════════════════════════════════
+function GoldDust() {
+  const count = 600
+  const positions = useMemo(() => {
+    const pos = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      const r = 3 + Math.random() * 6
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta)
+      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
+      pos[i * 3 + 2] = r * Math.cos(phi)
+    }
+    return pos
+  }, [])
+
+  const ref = useRef<THREE.Points>(null)
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y = state.clock.elapsedTime * 0.008
+      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.005) * 0.05
+    }
+  })
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.008} color="#c9a227" transparent opacity={0.3} sizeAttenuation />
+    </points>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SCENE
 // ═══════════════════════════════════════════════════════════════════════════
 function Scene({ scrollProgress, activeIndex }: { scrollProgress: number; activeIndex: number }) {
   const chapters = journey.chapters
   return (
     <>
-      <ambientLight intensity={0.2} />
-      <directionalLight position={[5, 3, 5]} intensity={0.8} color="#e8e0d0" />
-      <pointLight position={[-8, -5, -8]} intensity={0.15} color="#4a6aaa" />
-      <pointLight position={[3, 8, -3]} intensity={0.1} color="#c9a227" />
-      <Stars radius={200} depth={80} count={4000} factor={3} fade speed={0.5} />
+      {/* Cinematic lighting */}
+      <ambientLight intensity={0.08} color="#1a1520" />
+      <directionalLight position={[6, 3.5, 8]} intensity={1.0} color="#f0e6d0" />
+      <pointLight position={[-8, -5, -8]} intensity={0.08} color="#3a5a8a" />
+      <pointLight position={[3, 8, -3]} intensity={0.06} color="#c9a227" />
+
+      {/* Background stars — fewer, subtler */}
+      <Stars radius={300} depth={100} count={2500} factor={2} fade speed={0.3} />
+
+      {/* Gold dust particles */}
+      <GoldDust />
+
+      {/* The Globe */}
       <Earth />
+
+      {/* Routes */}
       <JourneyRoutes scrollProgress={scrollProgress} />
+
+      {/* Markers */}
       <CityMarker lat={origin.lat} lng={origin.lng} isOrigin />
       {chapters.map((ch, i) => (
-        <CityMarker key={ch.id} lat={ch.coordinates.lat} lng={ch.coordinates.lng} isPeak={ch.isPeak} isActive={i === activeIndex} />
+        <CityMarker
+          key={ch.id}
+          lat={ch.coordinates.lat}
+          lng={ch.coordinates.lng}
+          isPeak={ch.isPeak}
+          isActive={i === activeIndex}
+        />
       ))}
+
+      {/* Camera */}
       <ScrollCamera scrollProgress={scrollProgress} />
     </>
   )
@@ -356,7 +528,13 @@ export default function Globe({ scrollProgress = 0, activeIndex = 0 }: { scrollP
     <div className="globe-canvas">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 45 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.2,
+        }}
         dpr={[1, 2]}
       >
         <Scene scrollProgress={scrollProgress} activeIndex={activeIndex} />

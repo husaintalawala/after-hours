@@ -253,6 +253,36 @@ body::after {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   FILMSTRIP
+═══════════════════════════════════════════════════════════════════════════ */
+.filmstrip-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filmstrip-card {
+  background: rgba(20, 20, 25, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s ease;
+}
+
+.filmstrip-card:hover {
+  border-color: rgba(201, 162, 39, 0.25);
+}
+
+/* Placeholder shimmer for empty photos */
+.filmstrip-card img[src=""],
+.filmstrip-card img:not([src]) {
+  background: linear-gradient(110deg, rgba(20,20,25,1) 40%, rgba(40,40,50,1) 50%, rgba(20,20,25,1) 60%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
