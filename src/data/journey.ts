@@ -55,7 +55,7 @@ export interface JourneyConfig {
 export const MEDIA_BASE = 'https://media.after-hours.app'
 
 export const journey: JourneyConfig = {
-  title: "SABBATICAL",
+  title: "SIDE QUEST",
   subtitle: "'25–26",
   dateRange: "October 31, 2025 — January 27, 2026",
   

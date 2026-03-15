@@ -22,10 +22,11 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Sabbatical '25–26 | 89 Days Around the World",
+  title: "Side Quest '25–26 | 89 Days Around the World",
   description: '89 days, 10 countries, 40,000+ miles. An interactive journey from New York to Everest Base Camp to Positano and back.',
+  icons: { icon: '/favicon.svg' },
   openGraph: {
-    title: "Sabbatical '25–26",
+    title: "Side Quest '25–26",
     description: '89 days, 10 countries, 40,000+ miles.',
     type: 'website',
   },
