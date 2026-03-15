@@ -1,9 +1,8 @@
 // @ts-nocheck
 'use client'
 
-import { useRef, useMemo, useEffect, useState } from 'react'
-import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber'
-import { Stars } from '@react-three/drei'
+import { useRef, useMemo, useCallback } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { journey, origin } from '@/data/journey'
 
@@ -19,283 +18,285 @@ function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector
   return new THREE.Vector3(x, y, z)
 }
 
-function dampV(current: number, target: number, lambda: number, dt: number): number {
-  return THREE.MathUtils.lerp(current, target, 1 - Math.exp(-lambda * dt))
+function dampV(a: number, b: number, lambda: number, dt: number): number {
+  return THREE.MathUtils.lerp(a, b, 1 - Math.exp(-lambda * dt))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DARK LUXURY EARTH SHADERS
-// Procedural black marble with gold foil continent edges, city lights on
-// night side, specular ocean, volumetric atmosphere
+// CONTINENT DATA — Real geographic polygons encoded as [lat, lng] pairs
+// Used to determine where dots should appear on the sphere
 // ═══════════════════════════════════════════════════════════════════════════
+const CONTINENTS: number[][][] = [
+  // North America
+  [[70,-165],[72,-130],[70,-100],[65,-85],[60,-80],[55,-65],[48,-55],[45,-65],[42,-70],[30,-80],[25,-80],[20,-90],[15,-85],[10,-75],[8,-77],[10,-85],[15,-92],[20,-105],[25,-110],[30,-115],[35,-120],[40,-124],[48,-125],[55,-130],[60,-140],[65,-168]],
+  // Central America
+  [[20,-90],[18,-88],[16,-88],[14,-87],[10,-84],[8,-80],[8,-77],[10,-75],[15,-85],[20,-90]],
+  // South America
+  [[12,-72],[10,-65],[7,-55],[2,-50],[-5,-35],[-10,-37],[-15,-39],[-20,-40],[-25,-48],[-30,-50],[-35,-57],[-40,-62],[-45,-65],[-50,-68],[-55,-68],[-55,-64],[-50,-60],[-40,-57],[-35,-55],[-30,-48],[-25,-42],[-20,-42],[-15,-47],[-10,-50],[-5,-52],[0,-50],[2,-55],[5,-60],[8,-63],[10,-67]],
+  // Europe
+  [[72,-25],[71,30],[70,40],[65,30],[60,30],[58,25],[55,20],[50,15],[48,5],[45,-1],[43,-8],[37,-8],[36,-5],[38,0],[40,2],[42,3],[43,5],[44,8],[42,12],[40,15],[38,20],[35,25],[40,28],[42,30],[45,30],[48,18],[50,20],[52,22],[55,25],[58,30],[60,32],[65,35],[70,40],[72,35]],
+  // Africa
+  [[37,-8],[35,-5],[35,0],[33,10],[30,32],[25,35],[20,38],[15,42],[12,44],[8,50],[5,42],[0,42],[-5,40],[-10,40],[-15,35],[-20,35],[-25,33],[-30,30],[-35,20],[-35,18],[-30,17],[-25,15],[-20,12],[-15,12],[-10,14],[-5,10],[0,10],[5,5],[5,0],[3,-5],[5,-8],[10,-15],[15,-17],[20,-17],[25,-15],[30,-10],[35,-5]],
+  // Asia (main)
+  [[72,40],[75,60],[75,90],[73,120],[70,140],[65,140],[60,135],[55,135],[50,130],[45,135],[40,140],[35,140],[30,130],[25,120],[22,115],[20,110],[15,108],[10,105],[5,100],[0,100],[-5,105],[-8,115],[-5,120],[0,118],[5,115],[10,110],[15,110],[20,107],[22,100],[20,95],[15,80],[10,78],[5,78],[8,75],[15,72],[22,70],[25,62],[30,50],[32,45],[35,38],[38,35],[40,40],[42,50],[45,55],[50,55],[55,60],[60,60],[65,55],[70,45]],
+  // India
+  [[32,72],[30,78],[28,82],[26,85],[23,88],[22,90],[20,87],[15,80],[10,78],[8,77],[8,75],[10,73],[15,72],[20,70],[22,68],[25,67],[28,68],[30,70]],
+  // Japan
+  [[45,140],[43,145],[40,141],[37,140],[35,136],[33,131],[31,131],[33,133],[35,135],[37,137],[39,140],[42,143],[45,145]],
+  // Australia
+  [[-12,130],[-12,135],[-15,140],[-18,145],[-23,150],[-28,153],[-33,152],[-37,150],[-38,145],[-37,140],[-35,137],[-32,134],[-30,130],[-25,128],[-22,114],[-20,115],[-18,122],[-15,130]],
+  // Indonesia
+  [[-2,100],[-5,105],[-7,110],[-8,115],[-8,120],[-5,120],[-3,115],[-2,110],[-1,105]],
+  // UK/Ireland
+  [[58,-6],[57,-2],[55,0],[53,1],[51,1],[50,-5],[51,-5],[52,-4],[54,-5],[56,-5]],
+  // Greenland
+  [[84,-30],[82,-20],[78,-18],[72,-22],[70,-25],[68,-30],[65,-45],[68,-55],[72,-58],[76,-60],[80,-50],[83,-40]],
+  // Middle East
+  [[38,35],[35,38],[30,48],[25,55],[20,45],[15,42],[15,50],[20,55],[25,56],[28,50],[30,48],[32,36]],
+  // New Zealand
+  [[-35,173],[-38,175],[-42,174],[-46,168],[-44,168],[-42,172],[-38,176],[-35,173]],
+  // Sri Lanka
+  [[10,80],[8,82],[7,80],[8,78],[10,80]],
+  // Madagascar
+  [[-12,49],[-16,47],[-20,44],[-24,44],[-25,47],[-20,49],[-16,50],[-12,49]],
+]
 
-const earthVertexShader = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  varying vec2 vUv;
-  varying vec3 vWorldNormal;
-  void main() {
-    vNormal = normalize(normalMatrix * normal);
-    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
-    vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+// Point-in-polygon test (ray casting)
+function pointInPolygon(lat: number, lng: number, polygon: number[][]): boolean {
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const yi = polygon[i][0], xi = polygon[i][1]
+    const yj = polygon[j][0], xj = polygon[j][1]
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+      inside = !inside
+    }
   }
-`
+  return inside
+}
 
-const earthFragmentShader = `
-  uniform float uTime;
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  varying vec2 vUv;
-  varying vec3 vWorldNormal;
-
-  // ── Simplex noise ──
-  vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-  vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
-
-  float snoise(vec2 v) {
-    const vec4 C = vec4(0.211324865405187, 0.366025403784439,
-                       -0.577350269189626, 0.024390243902439);
-    vec2 i  = floor(v + dot(v, C.yy));
-    vec2 x0 = v - i + dot(i, C.xx);
-    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-    vec4 x12 = x0.xyxy + C.xxzz;
-    x12.xy -= i1;
-    i = mod289(i);
-    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
-    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-    m = m*m; m = m*m;
-    vec3 x = 2.0 * fract(p * C.www) - 1.0;
-    vec3 h = abs(x) - 0.5;
-    vec3 ox = floor(x + 0.5);
-    vec3 a0 = x - ox;
-    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
-    vec3 g;
-    g.x  = a0.x  * x0.x  + h.x  * x0.y;
-    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-    return 130.0 * dot(m, g);
+function isLand(lat: number, lng: number): boolean {
+  for (const poly of CONTINENTS) {
+    if (pointInPolygon(lat, lng, poly)) return true
   }
-
-  // ── Hash for city lights ──
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-  }
-
-  void main() {
-    vec2 sphereUv = vUv * vec2(4.0, 2.0);
-
-    // ── Continent shape (multi-octave noise) ──
-    float n1 = snoise(sphereUv * 1.5 + 0.5) * 0.5;
-    float n2 = snoise(sphereUv * 3.0 + 1.2) * 0.25;
-    float n3 = snoise(sphereUv * 6.0 + 2.7) * 0.125;
-    float n4 = snoise(sphereUv * 12.0 + 4.1) * 0.0625;
-    float continent = n1 + n2 + n3 + n4;
-    float isLand = smoothstep(-0.02, 0.05, continent);
-
-    // ── BLACK MARBLE palette ──
-    // Deep ocean — near-black with subtle blue
-    vec3 oceanDeep = vec3(0.01, 0.015, 0.04);
-    vec3 oceanMid  = vec3(0.015, 0.025, 0.06);
-    float oceanVar = snoise(sphereUv * 8.0) * 0.5 + 0.5;
-    vec3 ocean = mix(oceanDeep, oceanMid, oceanVar);
-
-    // Dark land — charcoal marble with subtle veining
-    vec3 landBase   = vec3(0.04, 0.04, 0.038);
-    vec3 landVein   = vec3(0.06, 0.055, 0.05);
-    float vein = snoise(sphereUv * 10.0 + 3.3) * 0.5 + 0.5;
-    vein = smoothstep(0.3, 0.7, vein);
-    vec3 land = mix(landBase, landVein, vein * 0.4);
-
-    // Marble surface
-    vec3 surface = mix(ocean, land, isLand);
-
-    // ── GOLD FOIL continent edges ──
-    float edgeDist = smoothstep(0.0, 0.04, continent) - smoothstep(0.04, 0.12, continent);
-    vec3 goldFoil = vec3(0.78, 0.63, 0.15);
-    vec3 goldDark = vec3(0.55, 0.42, 0.10);
-    float goldShimmer = snoise(sphereUv * 30.0 + uTime * 0.1) * 0.5 + 0.5;
-    vec3 gold = mix(goldDark, goldFoil, goldShimmer);
-    surface = mix(surface, gold, edgeDist * 0.85);
-
-    // ── Subtle gold grid lines ──
-    float latLine = smoothstep(0.985, 1.0, abs(sin(vUv.y * 3.14159 * 12.0)));
-    float lngLine = smoothstep(0.985, 1.0, abs(sin(vUv.x * 3.14159 * 24.0)));
-    float grid = max(latLine, lngLine) * 0.025;
-    surface += vec3(grid) * goldFoil * 0.3;
-
-    // ── Lighting (cinematic, dramatic) ──
-    vec3 lightDir = normalize(vec3(0.6, 0.35, 0.8));
-    float diffuse = max(dot(vNormal, lightDir), 0.0);
-    float ambient = 0.08;
-
-    // ── Night side ──
-    float dayFactor = dot(vWorldNormal, lightDir);
-    float nightMask = smoothstep(0.0, -0.15, dayFactor);
-
-    // ── City lights on night side (scattered dots on land) ──
-    vec2 cellUv = vUv * vec2(200.0, 100.0);
-    vec2 cellId = floor(cellUv);
-    float cityHash = hash(cellId);
-    float isCity = step(0.92, cityHash) * isLand;
-    float cityFlicker = 0.7 + 0.3 * sin(uTime * 2.0 + cityHash * 100.0);
-    vec3 cityLight = vec3(1.0, 0.85, 0.5) * isCity * cityFlicker * 0.6;
-    surface += cityLight * nightMask;
-
-    // ── Specular on ocean (gold-tinted) ──
-    vec3 viewDir = normalize(cameraPosition - vPosition);
-    vec3 halfDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(vNormal, halfDir), 0.0), 80.0) * (1.0 - isLand);
-    vec3 specColor = goldFoil * spec * 0.4;
-
-    // ── Fresnel rim (warm gold on lit side, cool blue on dark) ──
-    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 3.5);
-    vec3 rimLit  = goldFoil * 0.15;
-    vec3 rimDark = vec3(0.08, 0.12, 0.25);
-    vec3 rim = mix(rimLit, rimDark, nightMask) * fresnel;
-
-    // ── Scan line (subtle) ──
-    float scanY = fract(uTime * 0.02);
-    float scanLine = 1.0 - (1.0 - smoothstep(0.0, 0.002, abs(vUv.y - scanY))) * 0.06;
-
-    // ── Compose ──
-    vec3 color = surface * (ambient + diffuse * 0.9) * scanLine;
-    color += specColor;
-    color += rim;
-
-    // ── Subtle vignette darkening toward edges ──
-    float edgeDarken = pow(max(dot(viewDir, vNormal), 0.0), 0.5);
-    color *= mix(0.3, 1.0, edgeDarken);
-
-    gl_FragColor = vec4(color, 1.0);
-  }
-`
-
-// ── Atmosphere: warm gold glow on lit side, cool blue on dark ──
-const atmosphereVertexShader = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  varying vec3 vWorldNormal;
-  void main() {
-    vNormal = normalize(normalMatrix * normal);
-    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
-    vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`
-
-const atmosphereFragmentShader = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  varying vec3 vWorldNormal;
-  void main() {
-    vec3 viewDir = normalize(cameraPosition - vPosition);
-    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.0);
-
-    // Day/night gradient
-    vec3 lightDir = normalize(vec3(0.6, 0.35, 0.8));
-    float dayFactor = dot(vWorldNormal, lightDir);
-
-    vec3 warmGlow = vec3(0.45, 0.32, 0.08); // gold atmosphere
-    vec3 coolGlow = vec3(0.06, 0.10, 0.25);  // deep blue night
-    vec3 atmColor = mix(coolGlow, warmGlow, smoothstep(-0.2, 0.3, dayFactor));
-
-    float alpha = fresnel * 0.55;
-    gl_FragColor = vec4(atmColor, alpha);
-  }
-`
-
-// ── Outer halo: soft gold bloom ──
-const haloFragmentShader = `
-  varying vec3 vNormal;
-  varying vec3 vPosition;
-  void main() {
-    vec3 viewDir = normalize(cameraPosition - vPosition);
-    float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 1.5);
-    vec3 haloColor = vec3(0.35, 0.25, 0.05);
-    gl_FragColor = vec4(haloColor, fresnel * 0.12);
-  }
-`
+  return false
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// EARTH MESH
+// DOT MATRIX EARTH — Stripe-style twinkling dots
 // ═══════════════════════════════════════════════════════════════════════════
-function Earth() {
-  const earthMaterial = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: earthVertexShader,
-    fragmentShader: earthFragmentShader,
-    uniforms: { uTime: { value: 0 } },
-  }), [])
+function DotEarth() {
+  const { positions, colors, phases, count } = useMemo(() => {
+    const DOT_DENSITY = 28000 // total candidate dots
+    const pos: number[] = []
+    const col: number[] = []
+    const ph: number[] = []
 
-  const atmosphereMaterial = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: atmosphereVertexShader,
-    fragmentShader: atmosphereFragmentShader,
-    side: THREE.BackSide,
+    // Use Fibonacci sphere distribution for even spacing
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+    
+    for (let i = 0; i < DOT_DENSITY; i++) {
+      const y = 1 - (i / (DOT_DENSITY - 1)) * 2 // -1 to 1
+      const radius = Math.sqrt(1 - y * y)
+      const theta = goldenAngle * i
+      
+      const lat = Math.asin(y) * (180 / Math.PI)
+      const lng = ((theta * 180 / Math.PI) % 360) - 180
+      
+      if (isLand(lat, lng)) {
+        const v = latLngToVector3(lat, lng, 2.0)
+        pos.push(v.x, v.y, v.z)
+        
+        // Warm white/cream color with slight variation
+        const brightness = 0.6 + Math.random() * 0.4
+        col.push(
+          brightness * (0.9 + Math.random() * 0.1),
+          brightness * (0.85 + Math.random() * 0.1),
+          brightness * (0.7 + Math.random() * 0.15)
+        )
+        
+        // Random phase for twinkling
+        ph.push(Math.random() * Math.PI * 2)
+      }
+    }
+    
+    return {
+      positions: new Float32Array(pos),
+      colors: new Float32Array(col),
+      phases: new Float32Array(ph),
+      count: pos.length / 3,
+    }
+  }, [])
+
+  const pointsRef = useRef<THREE.Points>(null)
+  const baseColors = useRef(colors)
+  
+  // Custom shader for twinkling
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uSize: { value: 2.5 },
+    },
+    vertexShader: `
+      attribute float phase;
+      attribute vec3 aColor;
+      uniform float uTime;
+      uniform float uSize;
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main() {
+        vColor = aColor;
+        // Twinkle: gentle brightness oscillation per dot
+        float twinkle = 0.7 + 0.3 * sin(uTime * 1.5 + phase * 6.28);
+        vAlpha = twinkle;
+        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = uSize * (200.0 / -mvPos.z);
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vAlpha;
+      void main() {
+        // Circular dot with soft edge
+        float d = length(gl_PointCoord - vec2(0.5));
+        if (d > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.2, d) * vAlpha;
+        gl_FragColor = vec4(vColor, alpha);
+      }
+    `,
     transparent: true,
     depthWrite: false,
+    blending: THREE.AdditiveBlending,
   }), [])
 
-  const haloMaterial = useMemo(() => new THREE.ShaderMaterial({
-    vertexShader: atmosphereVertexShader, // reuse vertex
-    fragmentShader: haloFragmentShader,
-    side: THREE.BackSide,
-    transparent: true,
-    depthWrite: false,
-  }), [])
-
-  useFrame((_, delta) => { earthMaterial.uniforms.uTime.value += delta })
+  useFrame((_, delta) => {
+    material.uniforms.uTime.value += delta
+  })
 
   return (
-    <group>
-      {/* Earth sphere */}
-      <mesh material={earthMaterial}>
-        <sphereGeometry args={[2, 128, 128]} />
-      </mesh>
-      {/* Inner atmosphere */}
-      <mesh material={atmosphereMaterial}>
-        <sphereGeometry args={[2.06, 64, 64]} />
-      </mesh>
-      {/* Outer gold halo */}
-      <mesh material={haloMaterial}>
-        <sphereGeometry args={[2.25, 64, 64]} />
-      </mesh>
-    </group>
+    <points ref={pointsRef} material={material}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-aColor" count={count} array={colors} itemSize={3} />
+        <bufferAttribute attach="attributes-phase" count={count} array={phases} itemSize={1} />
+      </bufferGeometry>
+    </points>
   )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ROUTE LINES — gold with animated glow
+// OCEAN SPHERE — Dark base with subtle grid
 // ═══════════════════════════════════════════════════════════════════════════
-function RouteLine({ from, to, progress = 1, color = '#c9a227' }: {
-  from: { lat: number; lng: number }; to: { lat: number; lng: number }
-  progress?: number; color?: string
+function OceanSphere() {
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vUv = uv;
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        // Near-black ocean with very subtle blue
+        vec3 ocean = vec3(0.008, 0.012, 0.025);
+        
+        // Faint grid
+        float latLine = smoothstep(0.988, 1.0, abs(sin(vUv.y * 3.14159 * 18.0)));
+        float lngLine = smoothstep(0.988, 1.0, abs(sin(vUv.x * 3.14159 * 36.0)));
+        float grid = max(latLine, lngLine) * 0.03;
+        ocean += vec3(grid * 0.4, grid * 0.35, grid * 0.2);
+        
+        // Fresnel rim
+        vec3 viewDir = normalize(cameraPosition - vPosition);
+        float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 4.0);
+        ocean += vec3(0.02, 0.03, 0.06) * fresnel;
+        
+        // Edge darkening
+        float edgeDarken = pow(max(dot(viewDir, vNormal), 0.0), 0.6);
+        ocean *= mix(0.4, 1.0, edgeDarken);
+        
+        gl_FragColor = vec4(ocean, 1.0);
+      }
+    `,
+  }), [])
+
+  return (
+    <mesh material={material}>
+      <sphereGeometry args={[1.99, 64, 64]} />
+    </mesh>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ATMOSPHERE — Subtle warm glow
+// ═══════════════════════════════════════════════════════════════════════════
+function Atmosphere() {
+  const material = useMemo(() => new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vec3 viewDir = normalize(cameraPosition - vPosition);
+        float fresnel = pow(1.0 - max(dot(viewDir, vNormal), 0.0), 2.5);
+        vec3 color = mix(vec3(0.04, 0.06, 0.15), vec3(0.2, 0.15, 0.05), fresnel);
+        gl_FragColor = vec4(color, fresnel * 0.35);
+      }
+    `,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+  }), [])
+
+  return (
+    <mesh material={material}>
+      <sphereGeometry args={[2.12, 48, 48]} />
+    </mesh>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROUTE LINES — Gold arcs
+// ═══════════════════════════════════════════════════════════════════════════
+function RouteLine({ from, to, progress = 1 }: {
+  from: { lat: number; lng: number }; to: { lat: number; lng: number }; progress?: number
 }) {
-  const curve = useMemo(() => {
+  const geometry = useMemo(() => {
     const start = latLngToVector3(from.lat, from.lng, 2.01)
     const end = latLngToVector3(to.lat, to.lng, 2.01)
     const mid = start.clone().add(end).multiplyScalar(0.5)
     const distance = start.distanceTo(end)
-    mid.normalize().multiplyScalar(2.01 + distance * 0.22)
-    return new THREE.QuadraticBezierCurve3(start, mid, end)
-  }, [from, to])
-
-  const geometry = useMemo(() => {
-    const pts = curve.getPoints(100)
+    mid.normalize().multiplyScalar(2.01 + distance * 0.2)
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end)
+    const pts = curve.getPoints(80)
     const count = Math.max(2, Math.floor(pts.length * Math.min(progress, 1)))
     return new THREE.BufferGeometry().setFromPoints(pts.slice(0, count))
-  }, [curve, progress])
+  }, [from, to, progress])
 
   if (progress <= 0) return null
   return (
     <group>
-      {/* Core line */}
       <line geometry={geometry}>
-        <lineBasicMaterial color="#c9a227" transparent opacity={Math.min(progress * 2, 0.95)} />
+        <lineBasicMaterial color="#c9a227" transparent opacity={Math.min(progress * 2, 0.85)} />
       </line>
-      {/* Glow line */}
       <line geometry={geometry}>
-        <lineBasicMaterial color="#e8d48a" transparent opacity={Math.min(progress * 1.2, 0.2)} />
+        <lineBasicMaterial color="#e8d48a" transparent opacity={Math.min(progress, 0.15)} />
       </line>
     </group>
   )
@@ -320,88 +321,52 @@ function JourneyRoutes({ scrollProgress }: { scrollProgress: number }) {
   }, [routes, scrollProgress])
 
   return (
-    <group>
-      {visibleRoutes.map((r, i) => <RouteLine key={i} from={r.from} to={r.to} progress={r.progress} />)}
-    </group>
+    <group>{visibleRoutes.map((r, i) => <RouteLine key={i} from={r.from} to={r.to} progress={r.progress} />)}</group>
   )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CITY MARKERS — gold diamond with radar pulse
+// CITY MARKERS — Clean dots with pulse
 // ═══════════════════════════════════════════════════════════════════════════
 function CityMarker({ lat, lng, isPeak = false, isOrigin = false, isActive = false }: {
   lat: number; lng: number; isPeak?: boolean; isOrigin?: boolean; isActive?: boolean
 }) {
-  const markerRef = useRef<THREE.Mesh>(null)
+  const glowRef = useRef<THREE.Mesh>(null)
   const pulseRef = useRef<THREE.Mesh>(null)
-  const pulse2Ref = useRef<THREE.Mesh>(null)
   const position = useMemo(() => latLngToVector3(lat, lng, 2.02), [lat, lng])
   const color = isOrigin ? '#f5f3ef' : isPeak ? '#c9a227' : '#b87333'
-  const size = isOrigin ? 0.03 : isPeak ? 0.035 : 0.02
+  const size = isOrigin ? 0.025 : isPeak ? 0.03 : 0.018
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
-    if (markerRef.current) {
-      // Orient marker to face outward from globe center
-      markerRef.current.lookAt(0, 0, 0)
-      if (isActive || isPeak) {
-        markerRef.current.scale.setScalar(1 + Math.sin(t * 2.5) * 0.25)
-      }
+    if (glowRef.current && (isActive || isPeak)) {
+      glowRef.current.scale.setScalar(1 + Math.sin(t * 3) * 0.3)
     }
     if (pulseRef.current && isActive) {
-      const c = (t * 0.7) % 1
-      pulseRef.current.scale.setScalar(1 + c * 5);
-      (pulseRef.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.5
-    }
-    if (pulse2Ref.current && isActive) {
-      const c = ((t * 0.7) + 0.5) % 1
-      pulse2Ref.current.scale.setScalar(1 + c * 5);
-      (pulse2Ref.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.35
+      const c = (t * 0.6) % 1
+      pulseRef.current.scale.setScalar(1 + c * 6);
+      (pulseRef.current.material as THREE.MeshBasicMaterial).opacity = (1 - c) * 0.4
     }
   })
 
   return (
     <group position={position}>
-      {/* Diamond marker */}
-      <mesh ref={markerRef} rotation={[0, 0, Math.PI / 4]}>
-        <planeGeometry args={[size, size]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={isActive ? 1.0 : isPeak ? 0.8 : 0.5}
-          side={THREE.DoubleSide}
-        />
+      <mesh ref={glowRef}>
+        <sphereGeometry args={[size, 12, 12]} />
+        <meshBasicMaterial color={color} transparent opacity={isActive ? 1 : 0.7} />
       </mesh>
-      {/* Inner glow */}
-      <mesh>
-        <sphereGeometry args={[size * 0.4, 12, 12]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={isActive ? 2.0 : isPeak ? 0.8 : 0.3}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-      {/* Radar pulse rings */}
       {isActive && (
-        <>
-          <mesh ref={pulseRef}>
-            <ringGeometry args={[size * 1.5, size * 2.2, 32]} />
-            <meshBasicMaterial color={color} transparent opacity={0.5} side={THREE.DoubleSide} />
-          </mesh>
-          <mesh ref={pulse2Ref}>
-            <ringGeometry args={[size * 1.5, size * 2.2, 32]} />
-            <meshBasicMaterial color={color} transparent opacity={0.35} side={THREE.DoubleSide} />
-          </mesh>
-        </>
+        <mesh ref={pulseRef}>
+          <ringGeometry args={[size * 2, size * 3, 32]} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+        </mesh>
       )}
     </group>
   )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SCROLL-DRIVEN CAMERA — cinematic flight
+// SCROLL-DRIVEN CAMERA — FAST transitions (leads the cards)
 // ═══════════════════════════════════════════════════════════════════════════
 function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
   const { camera } = useThree()
@@ -410,9 +375,9 @@ function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
   const targets = useMemo(() => {
     const allCoords = [origin, ...chapters.map(c => c.coordinates)]
     return allCoords.map((coord) => {
-      const surface = latLngToVector3(coord.lat, coord.lng, 2.02)
-      const camPos = surface.clone().normalize().multiplyScalar(4.6)
-      camPos.y += 0.5
+      const surface = latLngToVector3(coord.lat, coord.lng, 2.0)
+      const camPos = surface.clone().normalize().multiplyScalar(4.5)
+      camPos.y += 0.4
       return camPos
     })
   }, [chapters])
@@ -429,7 +394,8 @@ function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
     const eased = t * t * (3 - 2 * t)
     const target = from.clone().lerp(to, eased)
 
-    const lambda = 2.5
+    // FAST damping — globe leads the cards
+    const lambda = 6.0
     currentPos.current.x = dampV(currentPos.current.x, target.x, lambda, delta)
     currentPos.current.y = dampV(currentPos.current.y, target.y, lambda, delta)
     currentPos.current.z = dampV(currentPos.current.z, target.z, lambda, delta)
@@ -442,79 +408,21 @@ function ScrollCamera({ scrollProgress }: { scrollProgress: number }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DUST PARTICLES — floating gold motes
-// ═══════════════════════════════════════════════════════════════════════════
-function GoldDust() {
-  const count = 600
-  const positions = useMemo(() => {
-    const pos = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      const r = 3 + Math.random() * 6
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta)
-      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
-      pos[i * 3 + 2] = r * Math.cos(phi)
-    }
-    return pos
-  }, [])
-
-  const ref = useRef<THREE.Points>(null)
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.008
-      ref.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.005) * 0.05
-    }
-  })
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-      </bufferGeometry>
-      <pointsMaterial size={0.008} color="#c9a227" transparent opacity={0.3} sizeAttenuation />
-    </points>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // SCENE
 // ═══════════════════════════════════════════════════════════════════════════
 function Scene({ scrollProgress, activeIndex }: { scrollProgress: number; activeIndex: number }) {
   const chapters = journey.chapters
   return (
     <>
-      {/* Cinematic lighting */}
-      <ambientLight intensity={0.08} color="#1a1520" />
-      <directionalLight position={[6, 3.5, 8]} intensity={1.0} color="#f0e6d0" />
-      <pointLight position={[-8, -5, -8]} intensity={0.08} color="#3a5a8a" />
-      <pointLight position={[3, 8, -3]} intensity={0.06} color="#c9a227" />
-
-      {/* Background stars — fewer, subtler */}
-      <Stars radius={300} depth={100} count={2500} factor={2} fade speed={0.3} />
-
-      {/* Gold dust particles */}
-      <GoldDust />
-
-      {/* The Globe */}
-      <Earth />
-
-      {/* Routes */}
+      <ambientLight intensity={0.05} />
+      <OceanSphere />
+      <DotEarth />
+      <Atmosphere />
       <JourneyRoutes scrollProgress={scrollProgress} />
-
-      {/* Markers */}
       <CityMarker lat={origin.lat} lng={origin.lng} isOrigin />
       {chapters.map((ch, i) => (
-        <CityMarker
-          key={ch.id}
-          lat={ch.coordinates.lat}
-          lng={ch.coordinates.lng}
-          isPeak={ch.isPeak}
-          isActive={i === activeIndex}
-        />
+        <CityMarker key={ch.id} lat={ch.coordinates.lat} lng={ch.coordinates.lng} isPeak={ch.isPeak} isActive={i === activeIndex} />
       ))}
-
-      {/* Camera */}
       <ScrollCamera scrollProgress={scrollProgress} />
     </>
   )
@@ -528,14 +436,8 @@ export default function Globe({ scrollProgress = 0, activeIndex = 0 }: { scrollP
     <div className="globe-canvas">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 45 }}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: 'high-performance',
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2,
-        }}
-        dpr={[1, 2]}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        dpr={[1, 1.5]}
       >
         <Scene scrollProgress={scrollProgress} activeIndex={activeIndex} />
       </Canvas>
