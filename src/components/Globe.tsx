@@ -436,9 +436,11 @@ export default function Globe({ scrollProgress = 0, activeIndex = 0 }: { scrollP
     <div className="globe-canvas">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 45 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         dpr={[1, 1.5]}
+        style={{ background: '#0a0a0f' }}
       >
+        <color attach="background" args={['#0a0a0f']} />
         <Scene scrollProgress={scrollProgress} activeIndex={activeIndex} />
       </Canvas>
     </div>

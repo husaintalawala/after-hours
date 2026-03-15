@@ -34,10 +34,9 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
     if (!scrollRef.current) return
     const container = scrollRef.current
     const centerX = container.scrollLeft + container.clientWidth / 2
-    // Each card is ~200px wide + 12px gap
-    const cardWidth = 200 + 12
-    const padding = 24 // left padding
-    const idx = Math.round((centerX - padding - 100) / cardWidth)
+    const cardWidth = 180 + 12
+    const padding = 24
+    const idx = Math.round((centerX - padding - 90) / cardWidth)
     setFocusIndex(Math.max(0, Math.min(idx, media.length - 1)))
   }, [media.length])
 
@@ -100,9 +99,9 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
         {media.map((item, i) => {
           const isFocused = i === focusIndex
           const distance = Math.abs(i - focusIndex)
-          // Scale: focused = 1.0, adjacent = 0.85, far = 0.75
-          const scale = distance === 0 ? 1.0 : distance === 1 ? 0.85 : 0.75
-          const opacity = distance === 0 ? 1.0 : distance === 1 ? 0.7 : 0.5
+          // Scale: focused = 1.08, adjacent = 0.95, far = 0.88
+          const scale = distance === 0 ? 1.08 : distance === 1 ? 0.95 : 0.88
+          const opacity = distance === 0 ? 1.0 : distance === 1 ? 0.75 : 0.5
 
           return (
             <div
@@ -110,13 +109,13 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
               className="filmstrip-card flex-shrink-0 relative overflow-hidden rounded-sm cursor-pointer"
               onClick={() => scrollToIndex(i)}
               style={{
-                width: '200px',
-                height: isFocused ? '280px' : '240px',
+                width: '180px',
+                height: '260px',
                 scrollSnapAlign: 'center',
-                transform: `scale(${scale})`,
+                transform: `scale(${scale}) translateY(${isFocused ? '-8px' : '0px'})`,
                 opacity,
-                transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, height 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-                transformOrigin: 'center bottom',
+                transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease',
+                transformOrigin: 'center center',
                 zIndex: isFocused ? 10 : 1,
               }}
             >
