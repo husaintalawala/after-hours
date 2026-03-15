@@ -9,17 +9,9 @@ interface MediaItem { src: string; type: 'photo' | 'video'; caption?: string }
 interface FilmstripProps { photos: string[]; videos: { src: string; start?: number; end?: number; caption?: string }[]; chapterTitle: string }
 
 export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [rotation, setRotation] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStartX, setDragStartX] = useState(0)
-  const [dragStartRotation, setDragStartRotation] = useState(0)
-  const [velocity, setVelocity] = useState(0)
-  const [lastX, setLastX] = useState(0)
-  const [lastTime, setLastTime] = useState(0)
-  const [unmuted, setUnmuted] = useState<Set<number>>(new Set())
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [focusIndex, setFocusIndex] = useState(0)
   const [dynamicMedia, setDynamicMedia] = useState<MediaItem[] | null>(null)
-  const animFrame = useRef<number>(0)
 
   useEffect(() => {
     const folder = chapterTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
@@ -45,172 +37,103 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
   const media = dynamicMedia && dynamicMedia.length > 0 ? dynamicMedia : staticMedia
   if (media.length === 0) return null
 
-  const count = media.length
-  const angleStep = 360 / count
-  const RADIUS = Math.max(160, count * 12)
+  const CW = 180
+  const GAP = 10
+  const STEP = CW + GAP
 
-  const getFocusedIndex = () => {
-    const normalized = ((rotation % 360) + 360) % 360
-    return Math.round(normalized / angleStep) % count
-  }
+  const updateFocus = useCallback(() => {
+    if (!scrollRef.current) return
+    const cx = scrollRef.current.scrollLeft + scrollRef.current.clientWidth / 2
+    const idx = Math.round((cx - CW / 2) / STEP)
+    setFocusIndex(Math.max(0, Math.min(idx, media.length - 1)))
+  }, [media.length])
 
-  // Inertia animation
   useEffect(() => {
-    if (isDragging) return
-    if (Math.abs(velocity) < 0.1) return
-    let vel = velocity
-    const animate = () => {
-      vel *= 0.95
-      if (Math.abs(vel) < 0.1) return
-      setRotation(prev => prev + vel)
-      animFrame.current = requestAnimationFrame(animate)
-    }
-    animFrame.current = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(animFrame.current)
-  }, [isDragging, velocity])
-
-  // Mouse drag
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsDragging(true)
-    setDragStartX(e.clientX)
-    setDragStartRotation(rotation)
-    setLastX(e.clientX)
-    setLastTime(Date.now())
-    setVelocity(0)
-  }, [rotation])
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return
-    const dx = e.clientX - dragStartX
-    const now = Date.now()
-    const dt = now - lastTime
-    if (dt > 0) setVelocity((e.clientX - lastX) / dt * 8)
-    setLastX(e.clientX)
-    setLastTime(now)
-    setRotation(dragStartRotation + dx * 0.3)
-  }, [isDragging, dragStartX, dragStartRotation, lastX, lastTime])
-
-  const handleMouseUp = useCallback(() => { setIsDragging(false) }, [])
-
-  // Touch drag
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    setIsDragging(true)
-    setDragStartX(e.touches[0].clientX)
-    setDragStartRotation(rotation)
-    setLastX(e.touches[0].clientX)
-    setLastTime(Date.now())
-    setVelocity(0)
-  }, [rotation])
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return
-    const dx = e.touches[0].clientX - dragStartX
-    const now = Date.now()
-    const dt = now - lastTime
-    if (dt > 0) setVelocity((e.touches[0].clientX - lastX) / dt * 8)
-    setLastX(e.touches[0].clientX)
-    setLastTime(now)
-    setRotation(dragStartRotation + dx * 0.3)
-  }, [isDragging, dragStartX, dragStartRotation, lastX, lastTime])
-
-  const handleTouchEnd = useCallback(() => { setIsDragging(false) }, [])
-
-
-  const handleWheel = useCallback((e: React.WheelEvent) => { e.preventDefault(); setRotation(prev => prev + e.deltaX * 0.3 + e.deltaY * 0.3) }, [])
-
-  // Click to snap
-  const snapTo = useCallback((idx: number) => {
-    setVelocity(0)
-    setRotation(idx * angleStep)
-  }, [angleStep])
-
-  const focusedIndex = getFocusedIndex()
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', updateFocus, { passive: true })
+    updateFocus()
+    return () => el.removeEventListener('scroll', updateFocus)
+  }, [updateFocus])
 
   return (
     <div className="mt-5 -mx-6 md:-mx-8">
-      <div className="flex items-center gap-3 px-6 md:px-8 mb-2">
+      <div className="flex items-center gap-3 px-6 md:px-8 mb-3">
         <span className="text-[10px] font-mono tracking-[0.2em] text-cream/25 uppercase">Gallery</span>
         <span className="flex-1 h-px bg-white/[0.06]" />
-        <span className="text-[10px] font-mono text-cream/20">{count}</span>
+        <span className="text-[10px] font-mono text-cream/20">{media.length}</span>
       </div>
+
       <div
-        ref={containerRef}
-        className="relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
-        style={{ height: '280px', perspective: '1000px' }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd} onWheel={handleWheel}
+        ref={scrollRef}
+        className="flex overflow-x-auto px-6 md:px-8 pb-4"
+        style={{
+          gap: `${GAP}px`,
+          scrollSnapType: 'x mandatory',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
       >
-        <div className="absolute inset-0 flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
-          {media.map((item, i) => {
-            const angle = (i * angleStep - rotation) * (Math.PI / 180)
-            const x = Math.sin(angle) * RADIUS
-            const z = Math.cos(angle) * RADIUS
-            const scale = 0.6 + 0.4 * ((z + RADIUS) / (2 * RADIUS))
-            const opacity = 0.2 + 0.8 * ((z + RADIUS) / (2 * RADIUS))
-            const isFront = i === focusedIndex
-            const isVideo = item.type === 'video'
-            const loud = isFront
+        {media.map((item, i) => {
+          const isFocused = i === focusIndex
+          const dist = Math.abs(i - focusIndex)
+          const scale = isFocused ? 1.08 : dist === 1 ? 0.95 : 0.88
+          const opacity = isFocused ? 1 : dist === 1 ? 0.55 : 0.3
 
-            return (
-              <div
-                key={i}
-                className="absolute overflow-hidden"
-                onClick={(e) => {
-                  if (isFront && isVideo) { e.stopPropagation(); setUnmuted(prev => { const n = new Set(prev); if (n.has(i)) n.delete(i); else n.add(i); return n }) }
-                  else snapTo(i)
-                }}
-                style={{
-                  width: '120px',
-                  height: '170px',
-                  borderRadius: '8px',
-                  transform: `translateX(${x}px) translateZ(${z}px) scale(${isFront ? 1.2 : scale * 0.85})`,
-                  opacity: isFront ? 1 : opacity,
-                  zIndex: Math.round(z + RADIUS),
-                  transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.25,1,0.5,1), opacity 0.3s ease',
-                  border: isFront ? '2px solid rgba(201,162,39,0.5)' : '1px solid rgba(255,255,255,0.06)',
-                  boxShadow: isFront ? '0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(201,162,39,0.15)' : '0 4px 12px rgba(0,0,0,0.3)',
-                  cursor: isFront ? (isVideo ? 'pointer' : 'default') : 'pointer',
-                }}
-              >
-                {isVideo ? (
-                  <video src={item.src} className="w-full h-full object-cover" autoPlay muted={!loud} loop playsInline />
-                ) : (
-                  <img src={item.src} alt={`${chapterTitle} ${i+1}`} className="w-full h-full object-cover" draggable={false} loading="lazy" />
-                )}
+          return (
+            <div
+              key={i}
+              className="flex-shrink-0 relative overflow-hidden"
+              style={{
+                width: `${CW}px`,
+                height: '260px',
+                scrollSnapAlign: 'center',
+                transform: `scale(${scale})`,
+                opacity,
+                transition: 'transform 0.4s ease-out, opacity 0.3s ease',
+                transformOrigin: 'center center',
+                borderRadius: '8px',
+                border: isFocused ? '1.5px solid rgba(201,162,39,0.35)' : '1px solid rgba(255,255,255,0.04)',
+                boxShadow: isFocused ? '0 8px 32px rgba(0,0,0,0.5)' : 'none',
+              }}
+            >
+              {item.type === 'video' ? (
+                <video
+                  src={item.src}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted={!isFocused}
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={item.src}
+                  alt={`${chapterTitle} ${i + 1}`}
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                  loading="lazy"
+                />
+              )}
 
-                {item.caption && isFront && (
-                  <div className="absolute bottom-0 left-0 right-0 p-2" style={{background:'linear-gradient(transparent,rgba(10,10,15,0.9))'}}>
-                    <p className="text-[10px] font-mono text-cream/80">{item.caption}</p>
-                  </div>
-                )}
-
-                <div className="absolute top-1.5 right-2 text-[8px] font-mono" style={{color: isFront ? 'rgba(201,162,39,0.7)' : 'rgba(255,255,255,0.1)'}}>
-                  {String(i+1).padStart(2,'0')}
+              {item.caption && isFocused && (
+                <div className="absolute bottom-0 left-0 right-0 p-2.5" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
+                  <p className="text-[10px] font-mono text-cream/70">{item.caption}</p>
                 </div>
+              )}
 
-                {isVideo && isFront && (
-                  <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[8px] font-mono text-cream/50" style={{background:'rgba(0,0,0,0.6)'}}>
-                    {loud ? '\u{1F50A}' : '\u{1F507} tap'}
-                  </div>
-                )}
-
-                {isVideo && !isFront && (
-                  <div className="absolute top-1.5 left-1.5"><div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" /></div>
-                )}
+              <div className="absolute top-2 right-2 text-[8px] font-mono" style={{ color: isFocused ? 'rgba(201,162,39,0.5)' : 'rgba(255,255,255,0.08)' }}>
+                {String(i + 1).padStart(2, '0')}
               </div>
-            )
-          })}
-        </div>
+            </div>
+          )
+        })}
+        <div className="flex-shrink-0 w-6" />
       </div>
 
-      <div className="flex justify-center gap-2 mt-1 px-6">
-        <span className="text-[9px] font-mono text-cream/20">{String(focusedIndex + 1).padStart(2,'0')} / {String(count).padStart(2,'0')}</span>
-        <span className="text-[9px] font-mono text-cream/12">drag to spin</span>
+      <div className="text-center mt-1">
+        <span className="text-[9px] font-mono text-cream/15">{focusIndex + 1} / {media.length}</span>
       </div>
     </div>
   )
