@@ -118,8 +118,8 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
           scrollSnapType: "x mandatory",
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
-          paddingLeft: "2rem",
-          paddingRight: "2rem",
+          paddingLeft: "calc(50vw - " + (CW / 2) + "px)",
+          paddingRight: "calc(50vw - " + (CW / 2) + "px)",
           height: "340px",
           perspective: "800px",
         }}
