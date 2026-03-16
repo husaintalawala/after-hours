@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from "react"
 
 export function useScrollProgress() {
   const [progress, setProgress] = useState(0)
@@ -12,9 +12,9 @@ export function useScrollProgress() {
   }, [])
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener("scroll", handleScroll, { passive: true })
     handleScroll()
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [handleScroll])
 
   return progress
@@ -22,10 +22,8 @@ export function useScrollProgress() {
 
 export function useActiveChapter(totalChapters: number) {
   const progress = useScrollProgress()
-  // hero(1) + chapters × 2 (city reveal + content) + outro(1)
   const totalSections = 1 + (totalChapters * 2) + 1
   const rawSection = Math.floor(progress * totalSections)
-  // Section 0 = hero (-1), sections 1..34 = chapters, last = outro
   const chapterSection = rawSection - 1
   const activeIndex = Math.min(
     Math.max(Math.floor(chapterSection / 2), -1),
@@ -33,9 +31,9 @@ export function useActiveChapter(totalChapters: number) {
   )
 
   const seekToChapter = useCallback((chapterIndex: number) => {
-    const sections = document.querySelectorAll('[data-chapter-section]')
+    const sections = document.querySelectorAll("[data-chapter-section]")
     if (sections[chapterIndex]) {
-      sections[chapterIndex].scrollIntoView({ behavior: 'smooth', block: 'start' })
+      sections[chapterIndex].scrollIntoView({ behavior: "smooth", block: "start" })
     }
   }, [])
 
