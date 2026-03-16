@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 export function useScrollProgress() {
   const [progress, setProgress] = useState(0)
@@ -8,8 +8,7 @@ export function useScrollProgress() {
   const handleScroll = useCallback(() => {
     const scrollTop = window.scrollY
     const docHeight = document.documentElement.scrollHeight - window.innerHeight
-    const scrollProgress = docHeight > 0 ? scrollTop / docHeight : 0
-    setProgress(Math.min(Math.max(scrollProgress, 0), 1))
+    setProgress(docHeight > 0 ? Math.min(Math.max(scrollTop / docHeight, 0), 1) : 0)
   }, [])
 
   useEffect(() => {
@@ -23,18 +22,20 @@ export function useScrollProgress() {
 
 export function useActiveChapter(totalChapters: number) {
   const progress = useScrollProgress()
-  // +1 for hero section, +1 for outro
-  const totalSections = totalChapters + 2
+  // hero(1) + chapters × 2 (city reveal + content) + outro(1)
+  const totalSections = 1 + (totalChapters * 2) + 1
+  const rawSection = Math.floor(progress * totalSections)
+  // Section 0 = hero (-1), sections 1..34 = chapters, last = outro
+  const chapterSection = rawSection - 1
   const activeIndex = Math.min(
-    Math.max(Math.floor(progress * totalSections) - 1, -1), // -1 = hero
+    Math.max(Math.floor(chapterSection / 2), -1),
     totalChapters - 1
   )
 
   const seekToChapter = useCallback((chapterIndex: number) => {
-    // Each chapter section is one "page" of scroll
     const sections = document.querySelectorAll('[data-chapter-section]')
     if (sections[chapterIndex]) {
-      sections[chapterIndex].scrollIntoView({ behavior: 'smooth', block: 'center' })
+      sections[chapterIndex].scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [])
 

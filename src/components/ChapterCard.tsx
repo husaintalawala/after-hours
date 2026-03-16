@@ -61,8 +61,8 @@ export default function ChapterCard({ chapter, index, isActive }: ChapterCardPro
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
-  const isLeft = index % 2 === 0
-  const alignment = isLeft ? 'mr-auto ml-4 md:ml-10' : 'ml-auto mr-4 md:mr-10'
+  const isLeft = true
+  const alignment = "mx-auto"
   const coordStr = `${chapter.coordinates.lat.toFixed(4)}°N ${Math.abs(chapter.coordinates.lng).toFixed(4)}°${chapter.coordinates.lng >= 0 ? 'E' : 'W'}`
   return (
     <div ref={cardRef} className={`chapter-card p-6 md:p-8 max-w-lg w-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${alignment} ${isVisible ? 'opacity-100 translate-y-0' : isLeft ? 'opacity-0 -translate-x-8 translate-y-4' : 'opacity-0 translate-x-8 translate-y-4'}`}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { journey } from '@/data/journey'
 import ChapterCard from '@/components/ChapterCard'
@@ -11,9 +11,7 @@ const Globe = dynamic(() => import('@/components/Globe'), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 bg-black flex items-center justify-center">
-      <div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">
-        Loading globe...
-      </div>
+      <div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">loading</div>
     </div>
   ),
 })
@@ -21,129 +19,94 @@ const Globe = dynamic(() => import('@/components/Globe'), {
 export default function Home() {
   const { progress, activeIndex, seekToChapter } = useActiveChapter(journey.chapters.length)
   const [mounted, setMounted] = useState(false)
-  const [heroVisible, setHeroVisible] = useState(false)
-  const heroRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setMounted(true)
-    // Stagger hero entrance
-    const timer = setTimeout(() => setHeroVisible(true), 100)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const handleSeek = useCallback((index: number) => {
-    seekToChapter(index)
-  }, [seekToChapter])
+  useEffect(() => { setMounted(true) }, [])
+  const handleSeek = useCallback((index: number) => { seekToChapter(index) }, [seekToChapter])
 
   if (!mounted) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">
-          Initializing...
-        </div>
-      </div>
-    )
+    return <div className="min-h-screen bg-black flex items-center justify-center"><div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">loading</div></div>
   }
 
   return (
     <main className="relative">
-      {/* Fixed 3D Globe Background */}
+      {/* Globe — always fixed full screen */}
       <Globe scrollProgress={progress} activeIndex={Math.max(activeIndex, 0)} />
 
-      {/* Scroll Progress Bar — top */}
-      <div className="fixed top-0 left-0 right-0 h-[2px] bg-white/5 z-50">
-        <div
-          className="h-full bg-gradient-to-r from-[#424245] to-[#333] transition-all duration-100"
-          style={{ width: `${progress * 100}%` }}
-        />
+      {/* Progress bar */}
+      <div className="fixed top-0 left-0 right-0 h-px bg-white/5 z-50">
+        <div className="h-full bg-[#424245] transition-all duration-150" style={{ width: `${progress * 100}%` }} />
       </div>
 
-      {/* Content Overlay */}
-      <div className="content-overlay relative z-10">
+      {/* Scrollable content */}
+      <div className="relative z-10">
 
-        {/* ═══════════════════════════════════════════════════════════════
-            HERO SECTION
-        ═══════════════════════════════════════════════════════════════ */}
-        <section
-          ref={heroRef}
-          className="min-h-screen flex flex-col items-center justify-end px-6 pb-24 text-center"
-        >
-          <div className={`stagger-children ${heroVisible ? 'visible' : ''}`}>
-            <p className="font-mono text-sm tracking-[0.4em] text-[#f5f5f7]/50 uppercase mb-3">
-              {journey.title}
-            </p>
-            <p className="font-mono text-xs tracking-[0.3em] text-[#424245] uppercase">
-              {journey.dateRange}
-            </p>
-            <div className="mt-16 flex flex-col items-center gap-2">
-              <div className="scroll-indicator w-px h-12 bg-gradient-to-b from-cream/20 to-transparent" />
-            </div>
-          </div>
+        {/* ── HERO ── */}
+        <section className="h-screen flex flex-col items-center justify-end pb-24">
+          <p className="font-mono text-sm tracking-[0.4em] text-[#f5f5f7]/50 uppercase">{journey.title}</p>
+          <p className="mt-2 font-mono text-xs tracking-[0.3em] text-[#424245] uppercase">{journey.dateRange}</p>
+          <div className="mt-12 w-px h-10 bg-gradient-to-b from-[#424245] to-transparent scroll-indicator" />
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            CHAPTER SECTIONS
-        ═══════════════════════════════════════════════════════════════ */}
+        {/* ── CHAPTERS ── */}
         {journey.chapters.map((chapter, index) => (
-          <section
-            key={chapter.id}
-            data-chapter-section={index}
-            className="min-h-screen flex items-center px-4 md:px-6 py-24"
-          >
-            <ChapterCard
-              chapter={chapter}
-              index={index}
-              isActive={index === activeIndex}
-            />
-          </section>
+          <div key={chapter.id}>
+            {/* City reveal — full screen, just the name over globe */}
+            <section
+              data-chapter-section={index}
+              className="h-screen flex flex-col items-center justify-center text-center px-6"
+            >
+              <p className="font-mono text-[11px] tracking-[0.4em] text-[#6e6e73] uppercase mb-4">
+                {String(index + 1).padStart(2, '0')}
+              </p>
+              <h2 className="text-5xl md:text-7xl lg:text-8xl font-display font-light text-[#f5f5f7] tracking-tight leading-none">
+                {chapter.title}
+              </h2>
+              <p className="mt-3 text-lg md:text-xl font-display italic text-[#86868b]">
+                {chapter.subtitle}
+              </p>
+              <p className="mt-2 font-mono text-[10px] tracking-[0.15em] text-[#424245] uppercase">
+                {chapter.dates}
+              </p>
+            </section>
+
+            {/* Chapter content — slides up over the globe */}
+            <section className="min-h-screen relative">
+              {/* Gradient fade from globe into content */}
+              <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent to-black/90 pointer-events-none z-10" />
+              {/* Dark background for readability */}
+              <div className="absolute inset-0 bg-black/85" />
+              {/* Content */}
+              <div className="relative z-10 flex items-start justify-center px-4 md:px-6 py-20">
+                <ChapterCard
+                  chapter={chapter}
+                  index={index}
+                  isActive={index === activeIndex}
+                />
+              </div>
+            </section>
+          </div>
         ))}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            OUTRO SECTION
-        ═══════════════════════════════════════════════════════════════ */}
-        <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-          {/* Route summary */}
-          <div className="max-w-2xl mx-auto mb-12">
-            <p className="font-mono text-[11px] tracking-wider text-[#424245] leading-loose">
-              NYC → London → Kathmandu → <span className="text-[#86868b]">EBC</span> → Mumbai →
-              HK → Tokyo → Kyoto → <span className="text-[#86868b]">Hakuba</span> → Bangkok →
-              Phuket → KL → Bali → Madrid → Sevilla → Ronda → Granada → Naples →
-              <span className="text-[#86868b]"> Positano</span> → Roma → London → NYC
-            </p>
-          </div>
-
-          {/* End title */}
-          <h2 className="text-6xl md:text-8xl font-display italic text-[#86868b] text-glow">
-            home.
-          </h2>
-
-          {/* Final stats */}
-          <div className="flex justify-center gap-8 mt-12">
+        {/* ── OUTRO ── */}
+        <section className="h-screen flex flex-col items-center justify-center px-6 text-center">
+          <p className="font-mono text-[11px] tracking-wider text-[#424245] leading-loose max-w-xl mb-12">
+            NYC → London → Kathmandu → EBC → Mumbai → HK → Tokyo → Kyoto → Bangkok → Phuket → KL → Bali → Madrid → Sevilla → Positano → Roma → London → NYC
+          </p>
+          <h2 className="text-6xl md:text-8xl font-display font-light italic text-[#f5f5f7]">home.</h2>
+          <div className="flex justify-center gap-10 mt-16">
             {journey.stats.map((stat, i) => (
               <div key={i} className="text-center">
-                <div className="text-2xl font-display text-[#f5f5f7]">{stat.value}</div>
-                <div className="font-mono text-xs tracking-wider text-[#424245] uppercase">
-                  {stat.label}
-                </div>
+                <div className="text-[28px] font-display text-[#f5f5f7] tabular-nums">{stat.value}</div>
+                <div className="font-mono text-[9px] tracking-[0.1em] text-[#6e6e73] uppercase mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
-
-          <p className="font-mono text-xs tracking-[0.3em] text-[#424245] uppercase mt-12">
-            {journey.dateRange}
-          </p>
         </section>
 
-        {/* Footer spacer for timeline */}
         <div className="h-20" />
       </div>
 
-      {/* Timeline Scrubber */}
-      <TimelineScrubber
-        progress={progress}
-        activeIndex={Math.max(activeIndex, 0)}
-        onSeek={handleSeek}
-      />
+      {/* Timeline */}
+      <TimelineScrubber progress={progress} activeIndex={Math.max(activeIndex, 0)} onSeek={handleSeek} />
     </main>
   )
 }
