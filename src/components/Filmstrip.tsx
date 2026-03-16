@@ -71,9 +71,9 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
   return (
     <div className="mt-5 -mx-6 md:-mx-8">
       <div className="flex items-center gap-3 px-6 md:px-8 mb-3">
-        <span className="text-[10px] font-mono tracking-[0.2em] text-cream/25 uppercase">Gallery</span>
+        <span className="text-[10px] font-mono tracking-[0.2em] text-[#424245] uppercase">Gallery</span>
         <span className="flex-1 h-px bg-white/[0.06]" />
-        <span className="text-[10px] font-mono text-cream/20">{mediaItems.length}</span>
+        <span className="text-[10px] font-mono text-[#424245]">{mediaItems.length}</span>
       </div>
       <div ref={scrollRef} className="flex overflow-x-auto pb-4 items-center" style={{ gap: '10px', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', paddingLeft: '24px', paddingRight: '24px', height: '300px' }}>
         {mediaItems.map((item, i) => {
@@ -91,7 +91,7 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
               )}
               {item.caption && f && (
                 <div className="absolute bottom-0 left-0 right-0 p-2.5" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.85))' }}>
-                  <p className="text-[10px] font-mono text-cream/70">{item.caption}</p>
+                  <p className="text-[10px] font-mono text-[#86868b]">{item.caption}</p>
                 </div>
               )}
               <div className="absolute top-2 right-2 text-[8px] font-mono" style={{ color: f ? 'rgba(245,245,247,0.4)' : 'rgba(255,255,255,0.08)' }}>
@@ -102,7 +102,7 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
         })}
       </div>
       <div className="text-center mt-1">
-        <span className="text-[9px] font-mono text-cream/15">{Math.max(focusIndex + 1, 1)} / {mediaItems.length}</span>
+        <span className="text-[9px] font-mono text-[#424245]">{Math.max(focusIndex + 1, 1)} / {mediaItems.length}</span>
       </div>
     </div>
   )

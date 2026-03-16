@@ -10,8 +10,8 @@ import { useActiveChapter } from '@/hooks/useScrollProgress'
 const Globe = dynamic(() => import('@/components/Globe'), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 bg-midnight flex items-center justify-center">
-      <div className="text-gold font-mono text-sm tracking-wider animate-pulse">
+    <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">
         Loading globe...
       </div>
     </div>
@@ -37,8 +37,8 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-midnight flex items-center justify-center">
-        <div className="text-gold font-mono text-sm tracking-wider animate-pulse">
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">
           Initializing...
         </div>
       </div>
@@ -53,7 +53,7 @@ export default function Home() {
       {/* Scroll Progress Bar — top */}
       <div className="fixed top-0 left-0 right-0 h-[2px] bg-white/5 z-50">
         <div
-          className="h-full bg-gradient-to-r from-gold/80 to-copper/60 transition-all duration-100"
+          className="h-full bg-gradient-to-r from-[#424245] to-[#333] transition-all duration-100"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
@@ -69,10 +69,10 @@ export default function Home() {
           className="min-h-screen flex flex-col items-center justify-end px-6 pb-24 text-center"
         >
           <div className={`stagger-children ${heroVisible ? 'visible' : ''}`}>
-            <p className="font-mono text-sm tracking-[0.4em] text-cream/50 uppercase mb-3">
+            <p className="font-mono text-sm tracking-[0.4em] text-[#f5f5f7]/50 uppercase mb-3">
               {journey.title}
             </p>
-            <p className="font-mono text-xs tracking-[0.3em] text-cream/30 uppercase">
+            <p className="font-mono text-xs tracking-[0.3em] text-[#424245] uppercase">
               {journey.dateRange}
             </p>
             <div className="mt-16 flex flex-col items-center gap-2">
@@ -104,16 +104,16 @@ export default function Home() {
         <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
           {/* Route summary */}
           <div className="max-w-2xl mx-auto mb-12">
-            <p className="font-mono text-[11px] tracking-wider text-cream/25 leading-loose">
-              NYC → London → Kathmandu → <span className="text-gold">EBC</span> → Mumbai →
-              HK → Tokyo → Kyoto → <span className="text-gold">Hakuba</span> → Bangkok →
+            <p className="font-mono text-[11px] tracking-wider text-[#424245] leading-loose">
+              NYC → London → Kathmandu → <span className="text-[#86868b]">EBC</span> → Mumbai →
+              HK → Tokyo → Kyoto → <span className="text-[#86868b]">Hakuba</span> → Bangkok →
               Phuket → KL → Bali → Madrid → Sevilla → Ronda → Granada → Naples →
-              <span className="text-gold"> Positano</span> → Roma → London → NYC
+              <span className="text-[#86868b]"> Positano</span> → Roma → London → NYC
             </p>
           </div>
 
           {/* End title */}
-          <h2 className="text-6xl md:text-8xl font-display italic text-gold text-glow">
+          <h2 className="text-6xl md:text-8xl font-display italic text-[#86868b] text-glow">
             home.
           </h2>
 
@@ -121,15 +121,15 @@ export default function Home() {
           <div className="flex justify-center gap-8 mt-12">
             {journey.stats.map((stat, i) => (
               <div key={i} className="text-center">
-                <div className="text-2xl font-display text-cream">{stat.value}</div>
-                <div className="font-mono text-xs tracking-wider text-cream/40 uppercase">
+                <div className="text-2xl font-display text-[#f5f5f7]">{stat.value}</div>
+                <div className="font-mono text-xs tracking-wider text-[#424245] uppercase">
                   {stat.label}
                 </div>
               </div>
             ))}
           </div>
 
-          <p className="font-mono text-xs tracking-[0.3em] text-cream/30 uppercase mt-12">
+          <p className="font-mono text-xs tracking-[0.3em] text-[#424245] uppercase mt-12">
             {journey.dateRange}
           </p>
         </section>
