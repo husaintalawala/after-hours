@@ -130,12 +130,12 @@ export default function ChapterCard({ chapter, index, isActive }: ChapterCardPro
       <h2 className="text-4xl md:text-5xl font-display font-light text-[#f5f5f7] tracking-tight mb-1">{chapter.title}</h2>
       <p className="text-lg font-display italic text-[#86868b] mb-2">{chapter.subtitle}</p>
       <div className="font-mono text-[10px] tracking-wider text-[#424245] uppercase mb-6">{chapter.dates}</div>
-      {chapter.description && <p className="text-[15px] font-light text-[#86868b] leading-relaxed mb-6">{chapter.description}</p>}
+      {chapter.description && <p className="text-[20px] font-display italic text-[#86868b] leading-[1.6] mb-8">{chapter.description}</p>}
       {chapter.stats && chapter.stats.length > 0 && (
         <div className="flex gap-8 mb-6">{chapter.stats.map((s, i) => (<div key={i}><div className="text-2xl font-display text-[#f5f5f7] tabular-nums">{s.value}</div><div className="text-[9px] font-mono tracking-wider text-[#6e6e73] uppercase">{s.label}</div></div>))}</div>
       )}
       {chapter.highlights.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">{chapter.highlights.map((h, i) => <span key={i} className="text-[13px] text-[#86868b]">{h}</span>)}</div>
+        <div className="flex flex-wrap gap-2 mb-6">{chapter.highlights.map((h, i) => <span key={i} className="text-[13px] text-[#86868b] px-3.5 py-1.5 rounded-full" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>{h}</span>)}</div>
       )}
       <Filmstrip photos={chapter.photos} videos={chapter.videos} chapterTitle={chapter.title} />
       {chapter.days && chapter.days.length > 0 && <Itinerary days={chapter.days} />}
