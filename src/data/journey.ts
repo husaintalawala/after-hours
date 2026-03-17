@@ -244,26 +244,40 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 10: BANGKOK · PHUKET · KL ──
+    // ── CHAPTER 10: BANGKOK · PHUKET ──
     {
       id: 10,
-      title: "Bangkok · Phuket · KL",
-      subtitle: "Sathorn · Asiatique · Kata Beach · KL Eco City",
-      dates: "DEC 8–15",
+      title: "Bangkok · Phuket",
+      subtitle: "Sathorn · Asiatique · Kata Beach",
+      dates: "DEC 8–12",
       coordinates: { lat: 13.7225, lng: 100.5290 },
       photos: [],
       videos: [],
-      highlights: ["Asiatique", "Kata Beach", "Kuala Lumpur"],
+      highlights: ["Asiatique", "Kata Beach", "Karon"],
       days: [
         { day: 39, date: "Dec 8–10", summary: "Bangkok · Sathorn · Khlong Toei · Asiatique", tags: ["culture", "food"] },
         { day: 42, date: "Dec 11–12", summary: "Phuket · Kata Beach · Karon", tags: ["culture", "food", "nature"] },
+      ],
+    },
+
+    // ── CHAPTER 11: KUALA LUMPUR ──
+    {
+      id: 11,
+      title: "Kuala Lumpur",
+      subtitle: "KL Eco City · Petronas · Batu Caves",
+      dates: "DEC 13–15",
+      coordinates: { lat: 3.1390, lng: 101.6869 },
+      photos: [],
+      videos: [],
+      highlights: ["KL Eco City", "Petronas Towers", "Batu Caves"],
+      days: [
         { day: 44, date: "Dec 13–15", summary: "Kuala Lumpur", tags: ["transit", "culture"], transit: { mode: "flight", from: "KUL", to: "Mumbai", duration: "15 hr 25 min" } }
       ],
     },
 
-    // ── CHAPTER 11: MUMBAI ──
+    // ── CHAPTER 12: MUMBAI ──
     {
-      id: 11,
+      id: 12,
       title: "Mumbai II",
       subtitle: "Fort · Kala Ghoda · Lonavala",
       dates: "DEC 16–31",
@@ -279,9 +293,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 12: THE MP RUN ──
+    // ── CHAPTER 13: THE MP RUN ──
     {
-      id: 12,
+      id: 13,
       title: "The MP Run",
       subtitle: "Indore → Mandsaur → Neemuch → Ratlam",
       dates: "DEC 24–27",
@@ -296,9 +310,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 13: BALI ──
+    // ── CHAPTER 14: BALI ──
     {
-      id: 13,
+      id: 14,
       title: "Bali",
       subtitle: "Ubud · Tegallalang · Uluwatu · Lovina",
       dates: "JAN 2–7",
@@ -316,9 +330,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 14: ESPAÑA ──
+    // ── CHAPTER 15: ESPAÑA ──
     {
-      id: 14,
+      id: 15,
       title: "Spain",
       subtitle: "Madrid · Sevilla · Málaga · Ronda · Granada",
       dates: "JAN 8–16",
@@ -339,9 +353,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 15: POSITANO ──
+    // ── CHAPTER 16: POSITANO ──
     {
-      id: 15,
+      id: 16,
       title: "Positano",
       subtitle: "Amalfi Coast",
       dates: "JAN 17–20",
@@ -359,9 +373,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 16: ROMA ──
+    // ── CHAPTER 17: ROMA ──
     {
-      id: 16,
+      id: 17,
       title: "Roma",
       subtitle: "Pompei · Sorrento · Baths of Caracalla",
       dates: "JAN 21–22",
@@ -378,9 +392,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 17: LONDON → NEW YORK ──
+    // ── CHAPTER 18: LONDON → NEW YORK ──
     {
-      id: 17,
+      id: 18,
       title: "London → New York",
       subtitle: "Temple · South Kensington · JFK · home",
       dates: "JAN 24–27",
