@@ -67,15 +67,30 @@ export const journey: JourneyConfig = {
   ],
 
   chapters: [
-    // ── CHAPTER 01: LONDON ──
+    // 01: NEW YORK
     {
       id: 1,
+      title: "New York",
+      subtitle: "Goodbye, for now",
+      dates: "OCT 31",
+      coordinates: { lat: 40.7484, lng: -73.9856 },
+      photos: [],
+      videos: [],
+      highlights: ["Manhattan", "JFK"],
+      description: "One bag. One-way ticket. See you in 89 days.",
+      days: [
+        { day: 1, date: "Oct 31", summary: "JFK Terminal 1 → London Heathrow", tags: ["transit"], transit: { mode: "flight", from: "JFK", to: "LHR", duration: "7 hr" } }
+      ],
+    },
+
+    // 02: LONDON
+    {
+      id: 2,
       title: "London",
       subtitle: "Kensington · Notting Hill · Leavesden",
       dates: "OCT 31 – NOV 6",
       coordinates: { lat: 51.4942, lng: -0.1880 },
-      photos: [
-      ],
+      photos: [],
       videos: [
         { src: "london/bigben_bagpipe.mp4", caption: "Big Ben · bagpipes" },
         { src: "london/bijli.mp4", caption: "Bijli" },
@@ -97,9 +112,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 02: KATHMANDU ──
+    // 03: KATHMANDU
     {
-      id: 2,
+      id: 3,
       title: "Kathmandu",
       subtitle: "Thamel · Gear up · Lukla",
       dates: "NOV 7–9",
@@ -116,47 +131,33 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 03: EVEREST BASE CAMP ──
+    // 04: EVEREST BASE CAMP
     {
-      id: 3,
+      id: 4,
       title: "Everest Base Camp",
       subtitle: "Khumbu Icefall · 17,598 ft",
-      dates: "NOV 10–16",
+      dates: "NOV 10–18",
       coordinates: { lat: 28.0025, lng: 86.8528 },
       photos: [],
       videos: [],
-      highlights: ["Namche Bazaar", "Tengboche Monastery", "Khumbu Glacier", "Helicopter out"],
-      description: "7 days trekking. Lukla → Namche → Tengboche → Dingboche → Lobuche → EBC.",
-      stats: [{ label: "Summit", value: "17,598 ft" }, { label: "Oxygen", value: "~60%" }, { label: "Trek Days", value: "7" }],
+      highlights: ["Namche Bazaar", "Tengboche Monastery", "Khumbu Glacier", "Helicopter out", "Swayambhunath"],
+      description: "Seven days up. One helicopter down.",
+      stats: [{ label: "Summit", value: "17,598 ft" }, { label: "Oxygen", value: "~60%%" }, { label: "Trek Days", value: "7" }],
       isPeak: true,
-      peakLabel: "⛺ Highest Point",
+      peakLabel: "\u26fa Highest Point",
       days: [
         { day: 11, date: "Nov 10", summary: "Lukla → Phakding → Namche Bazaar · 11,286 ft", tags: ["culture", "food"], elevation: 11286 },
         { day: 12, date: "Nov 11", summary: "Namche Bazaar · acclimatisation rest day", tags: ["adventure", "rest"], elevation: 11286 },
         { day: 13, date: "Nov 12–13", summary: "Namche → Tengboche → Dingboche · 14,470 ft", tags: ["culture"], elevation: 14470 },
         { day: 15, date: "Nov 14", summary: "Dingboche · second acclimatisation day", tags: ["food", "adventure", "rest"], elevation: 14470 },
         { day: 16, date: "Nov 15", summary: "Dingboche → Lobuche · Khumbu Glacier moraine · 16,175 ft", tags: ["adventure", "culture"], elevation: 16175 },
-        { day: 17, date: "Nov 16", summary: "🏔 Lobuche → Gorakshep → Everest Base Camp · 17,598 ft", tags: ["culture", "peak", "transit", "adventure"], transit: { mode: "helicopter", from: "Gorakshep", to: "Lukla" }, elevation: 17598, highlight: "Peak" }
-      ],
-    },
-
-    // ── CHAPTER 04: COMING DOWN ──
-    {
-      id: 4,
-      title: "Coming Down",
-      subtitle: "Lukla → Kathmandu → Mumbai",
-      dates: "NOV 17–18",
-      coordinates: { lat: 27.7172, lng: 85.324 },
-      photos: [],
-      videos: [],
-      highlights: ["Swayambhunath", "Flight to Delhi", "Onward to Mumbai"],
-      days: [
+        { day: 17, date: "Nov 16", summary: "Lobuche → Gorakshep → Everest Base Camp · 17,598 ft", tags: ["culture", "peak", "transit", "adventure"], transit: { mode: "helicopter", from: "Gorakshep", to: "Lukla" }, elevation: 17598, highlight: "Peak" },
         { day: 18, date: "Nov 17", summary: "Morning flight to Kathmandu · Arya Hotel · Swayambhunath", tags: ["transit", "culture"], transit: { mode: "flight", from: "Lukla", to: "Tribhuvan Intl" } },
         { day: 19, date: "Nov 18", summary: "KTM → Delhi → Mumbai", tags: ["transit", "culture"], transit: { mode: "flight", from: "Delhi", to: "Mumbai", duration: "7 hr 6 min" } }
       ],
     },
 
-    // ── CHAPTER 05: MUMBAI ──
+    // 05: MUMBAI
     {
       id: 5,
       title: "Mumbai",
@@ -172,7 +173,7 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 06: HONG KONG ──
+    // 06: HONG KONG
     {
       id: 6,
       title: "Hong Kong",
@@ -187,7 +188,7 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 07: TOKYO ──
+    // 07: TOKYO
     {
       id: 7,
       title: "Tokyo",
@@ -207,7 +208,7 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 08: KYOTO + KANAZAWA ──
+    // 08: KYOTO + KANAZAWA
     {
       id: 8,
       title: "Kyoto + Kanazawa",
@@ -224,29 +225,57 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 09: OSAKA + HIROSHIMA ──
+    // 09: OSAKA + HIROSHIMA
     {
       id: 9,
       title: "Osaka + Hiroshima",
-      subtitle: "Shinsaibashi · Miyakojima · Hakuba",
-      dates: "DEC 1–7",
+      subtitle: "Shinsaibashi · Peace Memorial",
+      dates: "DEC 1–3",
       coordinates: { lat: 34.6723, lng: 135.5023 },
       photos: [],
       videos: [],
-      highlights: ["Hiroshima Peace Memorial", "Miyakojima", "Hakuba Happo-One"],
-      isPeak: true,
-      peakLabel: "🏔 Snowboarding",
+      highlights: ["Shinsaibashi", "Hiroshima Peace Memorial"],
       days: [
         { day: 32, date: "Dec 1", summary: "Osaka · Shinsaibashi", tags: ["food"] },
         { day: 33, date: "Dec 2", summary: "Hiroshima", tags: ["transit", "culture"], transit: { mode: "train", from: "—", to: "—" } },
+      ],
+    },
+
+    // 10: MIYAKOJIMA
+    {
+      id: 10,
+      title: "Miyakojima",
+      subtitle: "Okinawa · Coral coast",
+      dates: "DEC 4–5",
+      coordinates: { lat: 24.7833, lng: 125.2833 },
+      photos: [],
+      videos: [],
+      highlights: ["Coral coast", "Okinawa"],
+      days: [
         { day: 35, date: "Dec 4–5", summary: "Miyakojima · Okinawa · coral coast", tags: ["culture", "nature"] },
+      ],
+    },
+
+    // 11: HAKUBA + TOKYO
+    {
+      id: 11,
+      title: "Hakuba + Tokyo",
+      subtitle: "Happo-One · Snowboarding · Onsen",
+      dates: "DEC 6–7",
+      coordinates: { lat: 36.6983, lng: 137.8617 },
+      photos: [],
+      videos: [],
+      highlights: ["Hakuba Happo-One", "Snowboarding", "Onsen"],
+      isPeak: true,
+      peakLabel: "Snowboarding",
+      days: [
         { day: 37, date: "Dec 6–7", summary: "Miyako → Hakuba · snowboarding · onsen", tags: ["transit", "culture", "food", "adventure"], transit: { mode: "flight", from: "Miyako", to: "Osaka" } }
       ],
     },
 
-    // ── CHAPTER 10: BANGKOK · PHUKET ──
+    // 12: BANGKOK + PHUKET
     {
-      id: 10,
+      id: 12,
       title: "Bangkok · Phuket",
       subtitle: "Sathorn · Asiatique · Kata Beach",
       dates: "DEC 8–12",
@@ -260,9 +289,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 11: KUALA LUMPUR ──
+    // 13: KUALA LUMPUR
     {
-      id: 11,
+      id: 13,
       title: "Kuala Lumpur",
       subtitle: "KL Eco City · Petronas · Batu Caves",
       dates: "DEC 13–15",
@@ -275,9 +304,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 12: MUMBAI ──
+    // 14: MUMBAI II
     {
-      id: 12,
+      id: 14,
       title: "Mumbai II",
       subtitle: "Fort · Kala Ghoda · Lonavala",
       dates: "DEC 16–31",
@@ -293,9 +322,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 13: THE MP RUN ──
+    // 15: THE MP RUN
     {
-      id: 13,
+      id: 15,
       title: "The MP Run",
       subtitle: "Indore → Mandsaur → Neemuch → Ratlam",
       dates: "DEC 24–27",
@@ -310,9 +339,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 14: BALI ──
+    // 16: BALI
     {
-      id: 14,
+      id: 16,
       title: "Bali",
       subtitle: "Ubud · Tegallalang · Uluwatu · Lovina",
       dates: "JAN 2–7",
@@ -320,7 +349,7 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Monkey Forest", "Tegallalang", "Uluwatu", "Lovina"],
-      description: "Rice terraces, cliff temples, coral reefs. Then the longest flight\u20148,167 miles to Madrid.",
+      description: "Rice terraces, cliff temples, coral reefs. Then the longest flight—8,167 miles to Madrid.",
       days: [
         { day: 64, date: "Jan 2", summary: "Arrives Bali · Ubud · Monkey Forest", tags: ["food", "culture", "nature"] },
         { day: 65, date: "Jan 3", summary: "Full Ubud day · 12 visits", tags: ["food", "culture"] },
@@ -330,9 +359,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 15: ESPAÑA ──
+    // 17: SPAIN
     {
-      id: 15,
+      id: 17,
       title: "Spain",
       subtitle: "Madrid · Sevilla · Málaga · Ronda · Granada",
       dates: "JAN 8–16",
@@ -353,9 +382,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 16: POSITANO ──
+    // 18: POSITANO
     {
-      id: 16,
+      id: 18,
       title: "Positano",
       subtitle: "Amalfi Coast",
       dates: "JAN 17–20",
@@ -364,7 +393,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Positano", "Amalfi Coast", "Circumvesuviana"],
       isPeak: true,
-      peakLabel: "🌊 Amalfi Coast",
+      peakLabel: "Amalfi Coast",
       days: [
         { day: 79, date: "Jan 17", summary: "Late Madrid · late-night Napoli", tags: ["transit", "food", "culture"], transit: { mode: "flight", from: "MAD", to: "NAP" } },
         { day: 80, date: "Jan 18", summary: "Train down to the Amalfi Coast", tags: ["transit", "peak", "food", "nature"], transit: { mode: "train", from: "—", to: "—", duration: "6 hr 18 min" }, highlight: "Positano (Chiesa Nuova)" },
@@ -373,9 +402,9 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 17: ROMA ──
+    // 19: ROMA
     {
-      id: 17,
+      id: 19,
       title: "Roma",
       subtitle: "Pompei · Sorrento · Baths of Caracalla",
       dates: "JAN 21–22",
@@ -384,7 +413,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Pompei Scavi", "Baths of Caracalla", "Sorrento"],
       isPeak: true,
-      peakLabel: "🏛 Ancient Ruins",
+      peakLabel: "Ancient Ruins",
       days: [
         { day: 83, date: "Jan 21", summary: "Positano → Sorrento → Pompei · then into Roma", tags: ["transit", "peak", "food"], transit: { mode: "train", from: "Train Pompei", to: "Roma", duration: "4 hr 12 min" }, highlight: "Pompei Scavi Villa dei Misteri" },
         { day: 84, date: "Jan 22", summary: "Roma morning · Baths of Caracalla · back to Madrid", tags: ["transit", "food", "peak", "culture"], transit: { mode: "train", from: "Roma", to: "Madrid Barajas", duration: "4 hr 13 min" }, highlight: "Baths of Caracalla" },
@@ -392,13 +421,13 @@ export const journey: JourneyConfig = {
       ],
     },
 
-    // ── CHAPTER 18: LONDON → NEW YORK ──
+    // 20: LONDON II
     {
-      id: 18,
-      title: "London → New York",
-      subtitle: "Temple · South Kensington · JFK · home",
+      id: 20,
+      title: "London II",
+      subtitle: "Temple · South Kensington · JFK",
       dates: "JAN 24–27",
-      coordinates: { lat: 40.7484, lng: -73.9856 },
+      coordinates: { lat: 51.5074, lng: -0.1278 },
       photos: [],
       videos: [],
       highlights: ["Hamilton House", "South Kensington", "LHR → JFK", "Day 89"],
@@ -407,7 +436,7 @@ export const journey: JourneyConfig = {
         { day: 86, date: "Jan 24", summary: "Arrives London 12:27 AM · Hamilton House, Temple EC4Y", tags: ["transit", "culture"], transit: { mode: "train", from: "—", to: "—", duration: "2 hr 12 min" } },
         { day: 87, date: "Jan 25", summary: "South Kensington · sister-in-law's family · Sakurado", tags: ["culture", "food", "family"] },
         { day: 88, date: "Jan 26", summary: "South Kensington · Bentley Hotel", tags: ["transit", "culture"], transit: { mode: "train", from: "—", to: "—", duration: "1 hr 6 min" } },
-        { day: 89, date: "Jan 27", summary: "🏠 Departure · LHR → JFK · New York · home", tags: ["transit", "culture", "food", "family"], transit: { mode: "train", from: "Subway JFK", to: "Manhattan", duration: "1 hr 58 min" }, highlight: "Home" }
+        { day: 89, date: "Jan 27", summary: "Departure · LHR → JFK · New York · home", tags: ["transit", "culture", "food", "family"], transit: { mode: "flight", from: "LHR", to: "JFK", duration: "8 hr" }, highlight: "Home" }
       ],
     },
 
