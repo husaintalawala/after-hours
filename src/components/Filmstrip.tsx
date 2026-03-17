@@ -30,16 +30,13 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
           const items = data.files.filter((f: any) => f.size > 0).map((f: any) => ({
             src: MEDIA_BASE + "/" + f.key,
             type: (f.type === "video" ? "video" : "photo") as "photo" | "video",
-            caption: f.type === "video" ? f.key.split("/").pop()?.replace(/\.\w+$/, "").replace(/[_-]/g, " ") : undefined,
+            caption: f.type === "video" ? f.key.split("/").pop()?.replace(/\\.[^.]+$/, "").replace(/[_-]/g, " ") : undefined,
           }))
           if (items.length > 0) setMediaItems(items)
         }
       })
       .catch(() => {})
   }, [chapterTitle, photos, videos])
-
-  const CW = 200
-  const STEP = CW + 12
 
   const updateFocus = useCallback(() => {
     if (!scrollRef.current) return
@@ -64,21 +61,23 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
     const el = scrollRef.current
     if (!el) return
     let ticking = false
-    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { updateFocus(); ticking = false }) } }
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true
+        requestAnimationFrame(() => { updateFocus(); ticking = false })
+      }
+    }
     el.addEventListener("scroll", onScroll, { passive: true })
     requestAnimationFrame(() => updateFocus())
     return () => el.removeEventListener("scroll", onScroll)
   }, [updateFocus])
 
-  // Focus/blur audio: only unmute if user has clicked to unmute this video before
   useEffect(() => {
     videoRefs.current.forEach((vid, key) => {
       try {
         if (key === focusIndex) {
           vid.play().catch(() => {})
-          if (unmutedSet.current.has(key)) {
-            vid.muted = false
-          }
+          if (unmutedSet.current.has(key)) { vid.muted = false }
         } else {
           vid.muted = true
         }
@@ -86,7 +85,6 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
     })
   }, [focusIndex])
 
-  // Click to unmute — first click unmutes, subsequent focus/blur handles it
   const handleTap = useCallback((i: number) => {
     const vid = videoRefs.current.get(i)
     if (vid) {
@@ -103,34 +101,31 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
 
   if (mediaItems.length === 0) return null
 
+  const CW = 220
+
   return (
-    <div>
-      <div className="flex items-center gap-3 px-6 mb-3 max-w-[540px] mx-auto">
-        <span className="text-[10px] font-mono tracking-[0.15em] text-[#424245] uppercase">Gallery</span>
-        <span className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
+    <div className="mt-5" style={{ marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", width: "100vw" }}>
+      <div className="flex items-center gap-3 px-6 md:px-8 mb-3">
+        <span className="text-[10px] font-mono tracking-[0.2em] text-[#424245] uppercase">Gallery</span>
+        <span className="flex-1 h-px bg-white/[0.06]" />
         <span className="text-[10px] font-mono text-[#424245]">{mediaItems.length}</span>
       </div>
       <div
         ref={scrollRef}
-        className="flex overflow-x-auto pb-6 items-center"
         style={{
+          display: "flex",
           gap: "12px",
+          overflowX: "auto",
           scrollSnapType: "x mandatory",
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",
           paddingLeft: "calc(50vw - " + (CW / 2) + "px)",
           paddingRight: "calc(50vw - " + (CW / 2) + "px)",
-          height: "340px",
-          perspective: "800px",
+          paddingBottom: "1.5rem",
         }}
       >
         {mediaItems.map((item, i) => {
           const f = i === focusIndex
-          const d = Math.abs(i - focusIndex)
-          const scale = f ? 1.08 : d === 1 ? 0.88 : 0.75
-          const opacity = f ? 1 : d === 1 ? 0.5 : 0.25
-          const rotateY = i < focusIndex ? 3 : i > focusIndex ? -3 : 0
-          const translateZ = f ? 20 : d === 1 ? -10 : -30
           const isVideo = item.type === "video"
           return (
             <div
@@ -139,16 +134,13 @@ export default function Filmstrip({ photos, videos, chapterTitle }: FilmstripPro
               onClick={() => isVideo && handleTap(i)}
               style={{
                 width: CW + "px",
-                height: "280px",
+                height: "300px",
                 scrollSnapAlign: "center",
                 borderRadius: "10px",
-                transform: "scale(" + scale + ") rotateY(" + rotateY + "deg) translateZ(" + translateZ + "px)",
-                opacity: opacity,
                 border: f ? "1.5px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.04)",
-                boxShadow: f ? "0 16px 48px rgba(0,0,0,0.7)" : "none",
-                transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1), opacity 0.3s ease, border-color 0.3s, box-shadow 0.4s",
+                opacity: f ? 1 : 0.4,
+                transition: "opacity 0.3s ease, border-color 0.3s ease",
                 cursor: isVideo ? "pointer" : "default",
-                transformStyle: "preserve-3d",
               }}
             >
               {isVideo ? (
