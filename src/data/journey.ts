@@ -77,7 +77,6 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Manhattan", "JFK"],
-      description: "One bag. One-way ticket. See you in 89 days.",
       days: [
         { day: 1, date: "Oct 31", summary: "JFK Terminal 1 → London Heathrow", tags: ["transit"], transit: { mode: "flight", from: "JFK", to: "LHR", duration: "7 hr" } }
       ],
@@ -101,7 +100,6 @@ export const journey: JourneyConfig = {
         { src: "london/wimbledon_rashida_reaction.mp4", caption: "Wimbledon · Rashida" },
       ],
       highlights: ["Borough Market", "Warner Bros. Studio", "Wimbledon", "Portobello Road"],
-      description: "Heathrow, 2:03 PM. Seven days from Kensington to Portobello Road.",
       days: [
         { day: 1, date: "Oct 31", summary: "Arrives Heathrow 2:03 PM · Kensington", tags: ["culture", "food"] },
         { day: 2, date: "Nov 1", summary: "Battersea → St James's Park → Leicester Square", tags: ["food", "culture"] },
@@ -122,7 +120,6 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Garden of Dreams", "Thamel gear shops", "Tenzing-Hillary Airport"],
-      description: "4:53 AM departure. The runway ends at a cliff.",
       stats: [{ label: "Elevation", value: "9,383 ft" }],
       days: [
         { day: 8, date: "Nov 7", summary: "Arrives Kathmandu", tags: ["culture"] },
@@ -141,7 +138,6 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Namche Bazaar", "Tengboche Monastery", "Khumbu Glacier", "Helicopter out", "Swayambhunath"],
-      description: "Seven days up. One helicopter down.",
       stats: [{ label: "Summit", value: "17,598 ft" }, { label: "Oxygen", value: "~60%%" }, { label: "Trek Days", value: "7" }],
       isPeak: true,
       peakLabel: "\u26fa Highest Point",
@@ -198,7 +194,6 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Komagome", "Shibuya", "Lake Kawaguchi", "Mt. Fuji"],
-      description: "Five days. Ramen at midnight, shrines at dawn, Fuji by bicycle.",
       days: [
         { day: 24, date: "Nov 23", summary: "Haneda → Komagome · base", tags: ["culture", "food"] },
         { day: 25, date: "Nov 24", summary: "Harajuku → Shibuya", tags: ["food"] },
@@ -349,7 +344,6 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Monkey Forest", "Tegallalang", "Uluwatu", "Lovina"],
-      description: "Rice terraces, cliff temples, coral reefs. Then the longest flight—8,167 miles to Madrid.",
       days: [
         { day: 64, date: "Jan 2", summary: "Arrives Bali · Ubud · Monkey Forest", tags: ["food", "culture", "nature"] },
         { day: 65, date: "Jan 3", summary: "Full Ubud day · 12 visits", tags: ["food", "culture"] },
@@ -431,7 +425,6 @@ export const journey: JourneyConfig = {
       photos: [],
       videos: [],
       highlights: ["Hamilton House", "South Kensington", "LHR → JFK", "Day 89"],
-      description: "Eighty-nine days. Ten countries. Home.",
       days: [
         { day: 86, date: "Jan 24", summary: "Arrives London 12:27 AM · Hamilton House, Temple EC4Y", tags: ["transit", "culture"], transit: { mode: "train", from: "—", to: "—", duration: "2 hr 12 min" } },
         { day: 87, date: "Jan 25", summary: "South Kensington · sister-in-law's family · Sakurado", tags: ["culture", "food", "family"] },
