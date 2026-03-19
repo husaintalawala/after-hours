@@ -1,37 +1,41 @@
 "use client"
-import { useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 
 export default function Handwrite() {
-  const svgRef = useRef<SVGSVGElement>(null)
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    const svg = svgRef.current
-    if (!svg) return
-    const paths = svg.querySelectorAll("path")
-    let totalDelay = 1500
-    paths.forEach((path) => {
-      const length = path.getTotalLength()
-      path.style.strokeDasharray = String(length)
-      path.style.strokeDashoffset = String(length)
-      path.style.animation = "none"
-      path.getBoundingClientRect()
-      const duration = Math.max(0.3, length / 300)
-      path.style.transition = `stroke-dashoffset ${duration}s ease ${totalDelay}ms`
-      setTimeout(() => {
-        path.style.strokeDashoffset = "0"
-      }, 50)
-      totalDelay += duration * 700
-    })
+    const start = setTimeout(() => {
+      let p = 0
+      const draw = () => {
+        p += 0.008 + Math.random() * 0.005
+        if (p > 1) p = 1
+        setProgress(p)
+        if (p < 1) requestAnimationFrame(draw)
+      }
+      requestAnimationFrame(draw)
+    }, 1500)
+    return () => clearTimeout(start)
   }, [])
 
   return (
     <div className="px-6" style={{ transform: "rotate(-2deg)" }}>
-      <svg ref={svgRef} viewBox="0 0 800 120" className="w-[85vw] max-w-[750px]" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap');
-        `}</style>
-        <text x="400" y="80" textAnchor="middle" style={{ fontFamily: "'Caveat', cursive", fontSize: "60px", fontWeight: 500 }} stroke="rgba(245,245,247,0.5)" strokeWidth="1.2" fill="none">welcome to our side quest</text>
-      </svg>
+      <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap" rel="stylesheet" />
+      <div style={{ overflow: "hidden", display: "inline-block" }}>
+        <p style={{
+          fontFamily: "'Caveat', cursive",
+          fontSize: "clamp(32px, 6vw, 64px)",
+          fontWeight: 500,
+          color: "rgba(245,245,247,0.5)",
+          letterSpacing: "0.01em",
+          lineHeight: 1.2,
+          textShadow: "0 2px 20px rgba(0,0,0,0.6)",
+          whiteSpace: "nowrap",
+          clipPath: "inset(0 " + (100 - progress * 100) + "% 0 0)",
+        }}>
+          welcome to our side quest
+        </p>
+      </div>
     </div>
   )
 }
