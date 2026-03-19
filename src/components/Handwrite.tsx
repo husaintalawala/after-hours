@@ -5,47 +5,37 @@ const message = "welcome to our side quest"
 
 export default function Handwrite() {
   const [charCount, setCharCount] = useState(0)
-  const [showCursor, setShowCursor] = useState(true)
 
   useEffect(() => {
     const delay = setTimeout(() => {
-      if (charCount < message.length) {
-        const timer = setInterval(() => {
-          setCharCount(prev => {
-            if (prev >= message.length) {
-              clearInterval(timer)
-              return prev
-            }
-            return prev + 1
-          })
-        }, 80 + Math.random() * 60)
-        return () => clearInterval(timer)
+      let i = 0
+      const write = () => {
+        i++
+        setCharCount(i)
+        if (i < message.length) {
+          const pause = message[i] === " " ? 40 : (60 + Math.random() * 80)
+          setTimeout(write, pause)
+        }
       }
-    }, 1200)
+      write()
+    }, 1500)
     return () => clearTimeout(delay)
   }, [])
 
-  useEffect(() => {
-    if (charCount >= message.length) {
-      const t = setTimeout(() => setShowCursor(false), 1500)
-      return () => clearTimeout(t)
-    }
-  }, [charCount])
-
   return (
-    <div className="text-center px-6">
+    <div className="text-center px-6" style={{ transform: "rotate(-2deg)" }}>
       <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&display=swap" rel="stylesheet" />
       <p style={{
         fontFamily: "'Caveat', cursive",
-        fontSize: "clamp(28px, 5vw, 56px)",
+        fontSize: "clamp(32px, 6vw, 64px)",
         fontWeight: 500,
-        color: "rgba(245,245,247,0.55)",
-        letterSpacing: "0.02em",
+        color: "rgba(245,245,247,0.5)",
+        letterSpacing: "0.01em",
         lineHeight: 1.2,
-        textShadow: "0 2px 20px rgba(0,0,0,0.5)",
+        textShadow: "0 2px 20px rgba(0,0,0,0.6)",
+        minHeight: "1.5em",
       }}>
         {message.slice(0, charCount)}
-        {showCursor && <span style={{ borderRight: "2px solid rgba(245,245,247,0.4)", marginLeft: "2px", animation: "blink 0.6s step-end infinite" }}>&nbsp;</span>}
       </p>
     </div>
   )
