@@ -37,13 +37,19 @@ export default function Home() {
 
       <div className="relative z-10">
 
-        <section className="h-screen flex flex-col items-center justify-end pb-32 text-center px-6">
-          <p className="font-mono text-[10px] tracking-[0.5em] text-[#6e6e73] uppercase mb-6">89 days · 10 countries · 40,000+ miles</p>
-          <h1 className="text-[15vw] md:text-[10vw] font-light text-[#f5f5f7] leading-[0.85] tracking-[-0.04em] mb-3" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, system-ui, sans-serif" }}>side quest</h1>
-          <p className="font-mono text-[10px] tracking-[0.3em] text-[#424245] uppercase">{journey.dateRange}</p>
-          <div className="mt-16">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#424245" strokeWidth="1.5" className="scroll-indicator"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
+        <section className="h-screen flex items-center justify-center relative overflow-hidden">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <path id="leftArc" d="M 280,780 A 380,380 0 0,1 280,220" fill="none" />
+              <path id="rightArc" d="M 720,220 A 380,380 0 0,1 720,780" fill="none" />
+            </defs>
+            <text fill="rgba(245,245,247,0.35)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "13px", letterSpacing: "0.4em" }}>
+              <textPath href="#leftArc" startOffset="50%" textAnchor="middle">SIDE QUEST</textPath>
+            </text>
+            <text fill="rgba(110,110,115,0.4)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", letterSpacing: "0.25em" }}>
+              <textPath href="#rightArc" startOffset="50%" textAnchor="middle">{"89 DAYS \u00b7 10 COUNTRIES \u00b7 OCT 2025 \u2013 JAN 2026"}</textPath>
+            </text>
+          </svg>
         </section>
 
         {journey.chapters.map((chapter, index) => (
