@@ -37,11 +37,15 @@ export default function Home() {
 
       <div className="relative z-10">
 
-                <section className="h-screen relative overflow-hidden">
-          <div className="absolute bottom-8 left-0 right-0 flex items-end justify-between px-8 md:px-12 z-10">
-            <h1 className="font-mono text-xs md:text-sm tracking-[0.4em] text-[#f5f5f7]/30 uppercase">Side Quest</h1>
-            <p className="font-mono text-[10px] md:text-xs tracking-[0.2em] text-[#f5f5f7]/20 uppercase">89 days {"·"} 10 countries {"·"} 2025–26</p>
-          </div>
+                        <section className="h-screen relative overflow-hidden flex items-center justify-center">
+          <svg className="absolute pointer-events-none" style={{ width: "min(100vh, 100vw)", height: "min(100vh, 100vw)" }} viewBox="0 0 800 800">
+            <defs>
+              <path id="textCircle" d="M 400,400 m -340,0 a 340,340 0 1,1 680,0 a 340,340 0 1,1 -680,0" fill="none" />
+            </defs>
+            <text fill="rgba(245,245,247,0.18)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "14px", letterSpacing: "0.5em", textTransform: "uppercase" }}>
+              <textPath href="#textCircle" startOffset="0%">SIDE QUEST {"·"} 89 DAYS {"·"} 10 COUNTRIES {"·"} 40,000+ MILES {"·"} OCT 2025 {"–"} JAN 2026 {"·"} SIDE QUEST {"·"} 89 DAYS {"·"} 10 COUNTRIES {"·"} 40,000+ MILES {"·"} OCT 2025 {"–"} JAN 2026</textPath>
+            </text>
+          </svg>
         </section>
 
         {journey.chapters.map((chapter, index) => (
