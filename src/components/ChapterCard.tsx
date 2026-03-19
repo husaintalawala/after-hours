@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useEffect, useState } from "react"
-import type { Chapter, DayEntry } from "@/data/journey"
+import type { Chapter, DayEntry, Place } from "@/data/journey"
 import dynamic from "next/dynamic"
 const Filmstrip = dynamic(() => import("./Filmstrip"), { ssr: false })
 
@@ -38,6 +38,41 @@ function TransitBadge({ transit }: { transit: { mode: string; from: string; to: 
   )
 }
 
+
+function PlaceCard({ place }: { place: Place }) {
+  const colors: Record<string, { stroke: string; bg: string; border: string }> = {
+    eat: { stroke: "#EF9F27", bg: "rgba(239,159,39,0.04)", border: "rgba(239,159,39,0.1)" },
+    see: { stroke: "#5DCAA5", bg: "rgba(93,202,165,0.04)", border: "rgba(93,202,165,0.08)" },
+    stay: { stroke: "#85B7EB", bg: "rgba(133,183,235,0.04)", border: "rgba(133,183,235,0.08)" },
+    drink: { stroke: "#ED93B1", bg: "rgba(237,147,177,0.04)", border: "rgba(237,147,177,0.08)" },
+    music: { stroke: "#AFA9EC", bg: "rgba(175,169,236,0.04)", border: "rgba(175,169,236,0.08)" },
+  }
+  const c = colors[place.type] || colors.see
+  const icons: Record<string, string> = {
+    eat: "M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3",
+    see: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 7a3 3 0 100 6 3 3 0 000-6z",
+    stay: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10",
+    drink: "M8 2h8l-2 18H10L8 2zM6 6h12",
+    music: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zM21 16a3 3 0 11-6 0 3 3 0 016 0z",
+  }
+  const iconPath = icons[place.type] || icons.see
+  const wrapper = place.url ? "a" : "div"
+  const linkProps = place.url ? { href: place.url, target: "_blank", rel: "noopener noreferrer" } : {}
+
+  return (
+    <a {...linkProps} className="flex items-center gap-2.5 px-3 py-2 rounded-lg no-underline transition-all hover:translate-x-0.5" style={{ background: c.bg, border: "1px solid " + c.border, cursor: place.url ? "pointer" : "default", textDecoration: "none" }}>
+      <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: c.border }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={iconPath}/></svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[12px] text-[#f5f5f7] font-medium">{place.name}</div>
+        {place.note && <div className="text-[10px] text-[#6e6e73]">{place.note}</div>}
+      </div>
+      {place.url && <svg className="flex-shrink-0" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#424245" strokeWidth="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>}
+    </a>
+  )
+}
+
 function DayRow({ day, expanded }: { day: DayEntry; expanded: boolean }) {
   const isHighlight = !!day.highlight
   const isPeak = day.tags.includes("peak")
@@ -65,6 +100,11 @@ function DayRow({ day, expanded }: { day: DayEntry; expanded: boolean }) {
         {day.elevation && <ElevationBadge elevation={day.elevation} />}
         {day.transit && <TransitBadge transit={day.transit} />}
       </div>
+      {day.places && day.places.length > 0 && (
+        <div className="flex flex-col gap-1.5 mt-2">
+          {day.places.map((p, i) => <PlaceCard key={i} place={p} />)}
+        </div>
+      )}
       {expanded && day.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1.5">
           {day.tags.map((t, i) => {

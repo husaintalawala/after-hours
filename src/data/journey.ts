@@ -1,4 +1,5 @@
-// ═══════════════════════════════════════════════════════════════════════════
+
+        { day: 3, date: "Nov 2", summary: "Family time", tags: ["family", "food"], places: [{ name: "Dishoom", type: "eat", note: "Kensington", url: "https://www.google.com/maps/search/Dishoom+Kensington+London" }] },// ═══════════════════════════════════════════════════════════════════════════
 // JOURNEY DATA — Edit this file to update your sabbatical content
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -12,6 +13,13 @@ export interface Transit {
   detail?: string
 }
 
+export interface Place {
+  name: string
+  type: 'eat' | 'see' | 'stay' | 'drink' | 'music'
+  note?: string
+  url?: string
+}
+
 export interface DayEntry {
   day: number
   date: string
@@ -20,6 +28,7 @@ export interface DayEntry {
   transit?: Transit
   elevation?: number
   highlight?: string
+  places?: Place[]
 }
 
 export interface Chapter {
@@ -78,7 +87,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Manhattan", "JFK"],
       days: [
-        { day: 1, date: "Oct 31", summary: "JFK Terminal 1 → London Heathrow", tags: ["transit"], transit: { mode: "flight", from: "JFK", to: "LHR", duration: "7 hr" } }
+        { day: 1, date: "Oct 31", summary: "JFK Terminal 1 → London Heathrow", tags: ["transit"], transit: { mode: "flight", from: "JFK", to: "LHR", duration: "7 hr" }, places: [{ name: "Capital One Lounge", type: "eat", note: "Great pre-flight spot", url: "https://www.google.com/maps/search/Capital+One+Lounge+JFK+New+York" }] }
       ],
     },
 
@@ -101,12 +110,12 @@ export const journey: JourneyConfig = {
       ],
       highlights: ["Borough Market", "Warner Bros. Studio", "Wimbledon", "Portobello Road"],
       days: [
-        { day: 1, date: "Oct 31", summary: "Arrives Heathrow 2:03 PM · Kensington", tags: ["culture", "food"] },
+        { day: 1, date: "Oct 31", summary: "Arrives Heathrow 2:03 PM · Kensington", tags: ["culture", "food"], places: [{ name: "Bolton Gardens", type: "stay", note: "Home base in Kensington", url: "https://www.google.com/maps/search/Bolton+Gardens+London" }, { name: "Borough Market", type: "see", note: "First stop for food", url: "https://www.google.com/maps/search/Borough+Market+London" }, { name: "Cahoots Postal Office", type: "drink", note: "Speakeasy vibes", url: "https://www.google.com/maps/search/Cahoots+Postal+Office+London" }] },
         { day: 2, date: "Nov 1", summary: "Battersea → St James's Park → Leicester Square", tags: ["food", "culture"] },
-        { day: 4, date: "Nov 3", summary: "Buckingham Palace → Mayfair", tags: ["culture", "food"] },
-        { day: 5, date: "Nov 4", summary: "Warner Bros. Studio Tour · Leavesden", tags: ["culture"] },
-        { day: 6, date: "Nov 5", summary: "Wimbledon → Covent Garden", tags: ["culture"] },
-        { day: 7, date: "Nov 6", summary: "Portobello Road · overnight train out", tags: ["culture", "food", "transit"], transit: { mode: "train", from: "Overnight", to: "Kathmandu" } }
+        { day: 4, date: "Nov 3", summary: "Buckingham Palace → Mayfair", tags: ["culture", "food"], places: [{ name: "Chez Antoinette", type: "eat", note: "Victoria station area", url: "https://www.google.com/maps/search/Chez+Antoinette+Victoria+London" }, { name: "St Mark’s Church Mayfair", type: "eat", note: "Mayfair", url: "https://www.google.com/maps/search/St+Marks+Church+Mayfair+London" }, { name: "Buckingham Palace", type: "see", url: "https://www.google.com/maps/search/Buckingham+Palace+London" }, { name: "Hyde Park", type: "see", url: "https://www.google.com/maps/search/Hyde+Park+London" }] },
+        { day: 5, date: "Nov 4", summary: "Warner Bros. Studio Tour · Leavesden", tags: ["culture"], places: [{ name: "Chaiiwala", type: "eat", note: "Quick chai stop", url: "https://www.google.com/maps/search/Chaiiwala+London" }, { name: "Warner Bros. Studio Tour", type: "see", note: "The Wizarding World", url: "https://www.google.com/maps/search/Warner+Bros+Studio+Tour+London+Leavesden" }] },
+        { day: 6, date: "Nov 5", summary: "Wimbledon → Covent Garden", tags: ["culture"], places: [{ name: "Wimbledon", type: "see", note: "All England Lawn Tennis Club", url: "https://www.google.com/maps/search/All+England+Lawn+Tennis+and+Croquet+Club+London" }, { name: "Covent Garden", type: "see", url: "https://www.google.com/maps/search/Covent+Garden+London" }] },
+        { day: 7, date: "Nov 6", summary: "Portobello Road · overnight train out", tags: ["culture", "food", "transit"], transit: { mode: "train", from: "Overnight", to: "Kathmandu" }, places: [{ name: "The Pelican", type: "eat", note: "Notting Hill", url: "https://www.google.com/maps/search/The+Pelican+Notting+Hill+London" }, { name: "Portobello Road Market", type: "see", note: "Notting Hill Book Shop area", url: "https://www.google.com/maps/search/Portobello+Road+Market+London" }] }
       ],
     },
 
