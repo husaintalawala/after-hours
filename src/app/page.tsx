@@ -37,19 +37,10 @@ export default function Home() {
 
       <div className="relative z-10">
 
-                                <section className="h-screen relative overflow-hidden flex items-center justify-center">
-          <svg className="absolute pointer-events-none" style={{ width: "min(110vh, 110vw)", height: "min(110vh, 110vw)" }} viewBox="0 0 800 800">
-            <defs>
-              <path id="topArc" d="M 120,400 A 280,280 0 0,1 680,400" fill="none" />
-              <path id="bottomArc" d="M 680,400 A 280,280 0 0,1 120,400" fill="none" />
-            </defs>
-            <text fill="rgba(184,115,51,0.15)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", letterSpacing: "0.6em", textTransform: "uppercase" }}>
-              <textPath href="#topArc" startOffset="50%" textAnchor="middle">Side Quest</textPath>
-            </text>
-            <text fill="rgba(184,115,51,0.12)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "9px", letterSpacing: "0.4em", textTransform: "uppercase" }}>
-              <textPath href="#bottomArc" startOffset="50%" textAnchor="middle">89 Days {"·"} 10 Countries {"·"} Oct 2025 {"–"} Jan 2026</textPath>
-            </text>
-          </svg>
+                                        <section className="h-screen relative overflow-hidden flex items-end justify-center pb-24">
+          <div className="z-10 text-center">
+            <p className="typewriter font-mono text-sm md:text-base tracking-wider text-[#f5f5f7]/50">Welcome to our side quest</p>
+          </div>
         </section>
 
         {journey.chapters.map((chapter, index) => (
