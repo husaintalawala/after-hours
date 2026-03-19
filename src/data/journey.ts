@@ -1,5 +1,4 @@
-
-        { day: 3, date: "Nov 2", summary: "Family time", tags: ["family", "food"], places: [{ name: "Dishoom", type: "eat", note: "Kensington", url: "https://www.google.com/maps/search/Dishoom+Kensington+London" }] },// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 // JOURNEY DATA — Edit this file to update your sabbatical content
 // ═══════════════════════════════════════════════════════════════════════════
 
