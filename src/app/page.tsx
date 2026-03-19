@@ -8,6 +8,7 @@ import CityReveal from "@/components/CityReveal"
 import TimelineScrubber from "@/components/TimelineScrubber"
 import { useActiveChapter } from "@/hooks/useScrollProgress"
 
+const Handwrite = dynamic(() => import("@/components/Handwrite"), { ssr: false })
 const Globe = dynamic(() => import("@/components/Globe"), {
   ssr: false,
   loading: () => (
