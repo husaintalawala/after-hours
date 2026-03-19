@@ -37,19 +37,11 @@ export default function Home() {
 
       <div className="relative z-10">
 
-        <section className="h-screen flex items-center justify-center relative overflow-hidden">
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <path id="leftArc" d="M 280,780 A 380,380 0 0,1 280,220" fill="none" />
-              <path id="rightArc" d="M 720,220 A 380,380 0 0,1 720,780" fill="none" />
-            </defs>
-            <text fill="rgba(245,245,247,0.35)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "13px", letterSpacing: "0.4em" }}>
-              <textPath href="#leftArc" startOffset="50%" textAnchor="middle">SIDE QUEST</textPath>
-            </text>
-            <text fill="rgba(110,110,115,0.4)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", letterSpacing: "0.25em" }}>
-              <textPath href="#rightArc" startOffset="50%" textAnchor="middle">{"89 DAYS \u00b7 10 COUNTRIES \u00b7 OCT 2025 \u2013 JAN 2026"}</textPath>
-            </text>
-          </svg>
+                <section className="h-screen relative overflow-hidden">
+          <div className="absolute bottom-8 left-0 right-0 flex items-end justify-between px-8 md:px-12 z-10">
+            <h1 className="font-mono text-xs md:text-sm tracking-[0.4em] text-[#f5f5f7]/30 uppercase">Side Quest</h1>
+            <p className="font-mono text-[10px] md:text-xs tracking-[0.2em] text-[#f5f5f7]/20 uppercase">89 days {"·"} 10 countries {"·"} 2025–26</p>
+          </div>
         </section>
 
         {journey.chapters.map((chapter, index) => (
