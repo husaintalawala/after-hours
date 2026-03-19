@@ -37,10 +37,20 @@ export default function Home() {
 
       <div className="relative z-10">
 
-        <section className="h-screen flex flex-col items-center justify-end pb-24">
-          <p className="font-mono text-sm tracking-[0.4em] text-[#f5f5f7]/50 uppercase">{journey.title}</p>
-          <p className="mt-2 font-mono text-xs tracking-[0.3em] text-[#424245] uppercase">{journey.dateRange}</p>
-          <div className="mt-12 w-px h-10 bg-gradient-to-b from-[#424245] to-transparent scroll-indicator" />
+        <section className="h-screen flex flex-col items-center justify-center text-center px-6">
+          <h1 className="text-7xl md:text-9xl lg:text-[12rem] font-display font-light text-[#f5f5f7] tracking-tight leading-[0.85] mb-4" style={{ opacity: 0.9 }}>Side Quest</h1>
+          <p className="font-mono text-xs tracking-[0.4em] text-[#6e6e73] uppercase mb-8">{journey.dateRange}</p>
+          <div className="flex items-center gap-6">
+            {journey.stats.map((stat, i) => (
+              <div key={i} className="text-center">
+                <div className="text-lg font-light text-[#f5f5f7]/70 tabular-nums">{stat.value}</div>
+                <div className="font-mono text-[8px] tracking-[0.2em] text-[#424245] uppercase mt-0.5">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-16 flex flex-col items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#424245" strokeWidth="1.5" className="scroll-indicator"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
         </section>
 
         {journey.chapters.map((chapter, index) => (
