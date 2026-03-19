@@ -153,10 +153,10 @@ export const journey: JourneyConfig = {
         { day: 11, date: "Nov 10", summary: "Lukla → Phakding → Namche Bazaar · 11,286 ft", tags: ["culture", "food"], elevation: 11286 , places: [{ name: "Green Tara Hotel", type: "stay", url: "https://www.google.com/maps/search/Green+Tara+Hotel+Namche+Bazaar" }]},
         { day: 12, date: "Nov 11", summary: "Namche Bazaar · acclimatisation rest day", tags: ["adventure", "rest"], elevation: 11286 , places: [{ name: "Cafe 4410", type: "eat", url: "https://www.google.com/maps/search/CAFE+4410+LUKLA" }]},
         { day: 13, date: "Nov 12–13", summary: "Namche → Tengboche → Dingboche · 14,470 ft", tags: ["culture"], elevation: 14470 , places: [{ name: "Tengboche Monastery", type: "see", url: "https://www.google.com/maps/search/Tengboche+Monastery" }]},
-        { day: 15, date: "Nov 14", summary: "Dingboche · second acclimatisation day", tags: ["food", "adventure", "rest"], elevation: 14470 },
+        { day: 15, date: "Nov 14", summary: "Dingboche · second acclimatisation day", tags: ["food", "adventure", "rest"], elevation: 14470 , places: [{ name: "Cafe 4410", type: "eat", url: "https://www.google.com/maps/search/Cafe+4410+Dingboche" }]},
         { day: 16, date: "Nov 15", summary: "Dingboche → Lobuche · Khumbu Glacier moraine · 16,175 ft", tags: ["adventure", "culture"], elevation: 16175 },
         { day: 17, date: "Nov 16", summary: "Lobuche → Gorakshep → Everest Base Camp · 17,598 ft", tags: ["culture", "peak", "transit", "adventure"], transit: { mode: "helicopter", from: "Gorakshep", to: "Lukla" }, elevation: 17598, highlight: "Peak" },
-        { day: 18, date: "Nov 17", summary: "Morning flight to Kathmandu · Arya Hotel · Swayambhunath", tags: ["transit", "culture"], transit: { mode: "flight", from: "Lukla", to: "Tribhuvan Intl" } , places: [{ name: "Aarya Hotel and Spa", type: "stay", url: "https://www.google.com/maps/search/Aarya+Hotel+and+Spa+Kathmandu" }]},
+        { day: 18, date: "Nov 17", summary: "Morning flight to Kathmandu · Arya Hotel · Swayambhunath", tags: ["transit", "culture"], transit: { mode: "flight", from: "Lukla", to: "Tribhuvan Intl" } , places: [{ name: "Aarya Hotel and Spa", type: "stay", url: "https://www.google.com/maps/search/Aarya+Hotel+and+Spa+Kathmandu" }, { name: "Yangling Tibetan Restaurant", type: "eat", url: "https://www.google.com/maps/search/Yangling+Tibetan+Restaurant+Kathmandu" }]},
         { day: 19, date: "Nov 18", summary: "KTM → Delhi → Mumbai", tags: ["transit", "culture"], transit: { mode: "flight", from: "Delhi", to: "Mumbai", duration: "7 hr 6 min" } }
       ],
     },
@@ -172,7 +172,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Gover Mansion", "Mint Road", "Family home"],
       days: [
-        { day: 19, date: "Nov 18–20", summary: "Gover Mansion · family home · Fort", tags: ["culture", "family"] , places: [{ name: "91 Mint Rd", type: "stay", note: "Gover Mansion, family home", url: "https://www.google.com/maps/search/91+Mint+Road+Fort+Mumbai" }]},
+        { day: 19, date: "Nov 18–20", summary: "Gover Mansion · family home · Fort", tags: ["culture", "family"] , places: [{ name: "91 Mint Rd", type: "stay", note: "Gover Mansion, family home", url: "https://www.google.com/maps/search/91+Mint+Road+Fort+Mumbai" }, { name: "Modern Juice Centre", type: "eat", url: "https://www.google.com/maps/search/Modern+Juice+Centre+Mumbai" }]},
         { day: 22, date: "Nov 21", summary: "Home → Mumbai Airport · straight from Gover Mansion", tags: ["culture", "transit", "family"], transit: { mode: "flight", from: "—", to: "—" } }
       ],
     },
@@ -204,10 +204,10 @@ export const journey: JourneyConfig = {
       highlights: ["Komagome", "Shibuya", "Lake Kawaguchi", "Mt. Fuji"],
       days: [
         { day: 24, date: "Nov 23", summary: "Haneda → Komagome · base", tags: ["culture", "food"] , places: [{ name: "Kabukicho", type: "eat", url: "https://www.google.com/maps/search/Kabukicho+Tokyo" }]},
-        { day: 25, date: "Nov 24", summary: "Harajuku → Shibuya", tags: ["food"] },
-        { day: 26, date: "Nov 25", summary: "Tsukiji → Azabu-Juban", tags: ["culture", "food"] },
-        { day: 27, date: "Nov 26", summary: "Lake Kawaguchi · Mt. Fuji · cycling", tags: ["transit", "culture", "adventure", "nature"], transit: { mode: "train", from: "Shinjuku", to: "Kawaguchiko Station" }, elevation: 3041 },
-        { day: 28, date: "Nov 27", summary: "Shibuya → overnight to Kyoto", tags: ["food", "transit"], transit: { mode: "train", from: "5 hr 48 min overnight", to: "Kyoto", duration: "5 hr 48 min" } }
+        { day: 25, date: "Nov 24", summary: "Harajuku → Shibuya", tags: ["food"] , places: [{ name: "The SG Club", type: "drink", note: "Sip and Guzzle", url: "https://www.google.com/maps/search/The+SG+Club+Tokyo" }, { name: "DiDi Grande Steakhouse", type: "eat", url: "https://www.google.com/maps/search/DiDi+Grande+Steakhouse+Tokyo" }]},
+        { day: 26, date: "Nov 25", summary: "Tsukiji → Azabu-Juban", tags: ["culture", "food"] , places: [{ name: "Sushizanmai", type: "eat", note: "Sushi", url: "https://www.google.com/maps/search/Sushizanmai+Tsukiji+Tokyo" }, { name: "Hoshino Coffee", type: "eat", note: "Tsukiji", url: "https://www.google.com/maps/search/Hoshino+Coffee+Tsukiji+Tokyo" }]},
+        { day: 27, date: "Nov 26", summary: "Lake Kawaguchi · Mt. Fuji · cycling", tags: ["transit", "culture", "adventure", "nature"], transit: { mode: "train", from: "Shinjuku", to: "Kawaguchiko Station" }, elevation: 3041 , places: [{ name: "Lake Kawaguchi", type: "see", url: "https://www.google.com/maps/search/Lake+Kawaguchi" }]},
+        { day: 28, date: "Nov 27", summary: "Shibuya → overnight to Kyoto", tags: ["food", "transit"], transit: { mode: "train", from: "5 hr 48 min overnight", to: "Kyoto", duration: "5 hr 48 min" } , places: [{ name: "Namikibashi Nakamura", type: "eat", note: "Chefs table", url: "https://www.google.com/maps/search/Namikibashi+Nakamura+Tokyo" }]}
       ],
     },
 
@@ -222,8 +222,8 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Fushimi Inari", "Pontocho", "Omicho Market"],
       days: [
-        { day: 29, date: "Nov 28", summary: "Arrives 1:24 AM · Fushimi Inari → Pontocho", tags: ["culture"] },
-        { day: 30, date: "Nov 29", summary: "Kyoto → Kanazawa", tags: ["food", "transit", "culture"], transit: { mode: "train", from: "2 hr 43 min", to: "Kanazawa", duration: "2 hr 43 min" } },
+        { day: 29, date: "Nov 28", summary: "Arrives 1:24 AM · Fushimi Inari → Pontocho", tags: ["culture"] , places: [{ name: "Fushimi Inari Taisha", type: "see", url: "https://www.google.com/maps/search/Fushimi+Inari+Taisha+Kyoto" }]},
+        { day: 30, date: "Nov 29", summary: "Kyoto → Kanazawa", tags: ["food", "transit", "culture"], transit: { mode: "train", from: "2 hr 43 min", to: "Kanazawa", duration: "2 hr 43 min" } , places: [{ name: "Onyado Nono Kanazawa", type: "stay", url: "https://www.google.com/maps/search/Onyado+Nono+Kanazawa" }]},
         { day: 31, date: "Nov 30", summary: "Kanazawa → Osaka", tags: ["culture", "transit"], transit: { mode: "train", from: "2 hr 52 min", to: "Osaka", duration: "2 hr 52 min" } }
       ],
     },
@@ -239,8 +239,8 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Shinsaibashi", "Hiroshima Peace Memorial"],
       days: [
-        { day: 32, date: "Dec 1", summary: "Osaka · Shinsaibashi", tags: ["food"] },
-        { day: 33, date: "Dec 2", summary: "Hiroshima", tags: ["transit", "culture"], transit: { mode: "train", from: "—", to: "—" } },
+        { day: 32, date: "Dec 1", summary: "Osaka · Shinsaibashi", tags: ["food"] , places: [{ name: "Sushi Making Class", type: "see", note: "Nihonbashi" }]},
+        { day: 33, date: "Dec 2", summary: "Hiroshima", tags: ["transit", "culture"], transit: { mode: "train", from: "—", to: "—" } , places: [{ name: "Hiroshima Peace Memorial Museum", type: "see", url: "https://www.google.com/maps/search/Hiroshima+Peace+Memorial+Museum" }]},
       ],
     },
 
@@ -255,7 +255,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Coral coast", "Okinawa"],
       days: [
-        { day: 35, date: "Dec 4–5", summary: "Miyakojima · Okinawa · coral coast", tags: ["culture", "nature"] },
+        { day: 35, date: "Dec 4–5", summary: "Miyakojima · Okinawa · coral coast", tags: ["culture", "nature"] , places: [{ name: "Hotel Shigira Mirage", type: "stay", url: "https://www.google.com/maps/search/Hotel+Shigira+Mirage" }]},
       ],
     },
 
@@ -272,7 +272,7 @@ export const journey: JourneyConfig = {
       isPeak: true,
       peakLabel: "Snowboarding",
       days: [
-        { day: 37, date: "Dec 6–7", summary: "Miyako → Hakuba · snowboarding · onsen", tags: ["transit", "culture", "food", "adventure"], transit: { mode: "flight", from: "Miyako", to: "Osaka" } }
+        { day: 37, date: "Dec 6–7", summary: "Miyako → Hakuba · snowboarding · onsen", tags: ["transit", "culture", "food", "adventure"], transit: { mode: "flight", from: "Miyako", to: "Osaka" } , places: [{ name: "Asuka Lodge", type: "stay", url: "https://www.google.com/maps/search/Asuka+Lodge+Hakuba" }, { name: "Hakuba Happo-One", type: "see", note: "Ski resort", url: "https://www.google.com/maps/search/Hakuba+Happo-One+Ski+Resort" }]}
       ],
     },
 
@@ -288,7 +288,7 @@ export const journey: JourneyConfig = {
       highlights: ["Asiatique", "Kata Beach", "Karon"],
       days: [
         { day: 39, date: "Dec 8–10", summary: "Bangkok · Sathorn · Khlong Toei · Asiatique", tags: ["culture", "food"] },
-        { day: 42, date: "Dec 11–12", summary: "Phuket · Kata Beach · Karon", tags: ["culture", "food", "nature"] },
+        { day: 42, date: "Dec 11–12", summary: "Phuket · Kata Beach · Karon", tags: ["culture", "food", "nature"] , places: [{ name: "Phi Phi Island Tour", type: "see", note: "Sunrise speedboat tour" }]},
       ],
     },
 
@@ -303,7 +303,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["KL Eco City", "Petronas Towers", "Batu Caves"],
       days: [
-        { day: 44, date: "Dec 13–15", summary: "Kuala Lumpur", tags: ["transit", "culture"], transit: { mode: "flight", from: "KUL", to: "Mumbai", duration: "15 hr 25 min" } }
+        { day: 44, date: "Dec 13–15", summary: "Kuala Lumpur", tags: ["transit", "culture"], transit: { mode: "flight", from: "KUL", to: "Mumbai", duration: "15 hr 25 min" } , places: [{ name: "Huskiss", type: "see", url: "https://www.google.com/maps/search/Huskiss+Kuala+Lumpur" }]}
       ],
     },
 
@@ -319,8 +319,8 @@ export const journey: JourneyConfig = {
       highlights: ["Gover Mansion", "Kala Ghoda", "Lonavala"],
       days: [
         { day: 47, date: "Dec 16", summary: "12:09 AM arrival · home at Gover Mansion · Fort", tags: ["culture", "food", "family"] },
-        { day: 54, date: "Dec 23", summary: "Kala Ghoda afternoon", tags: ["food", "culture"] },
-        { day: 59, date: "Dec 28–29", summary: "Lonavala · cousins weekend · Sahyadri hills", tags: ["transit", "adventure", "culture", "peak", "family"], transit: { mode: "bus", from: "Mumbai", to: "Lonavala" }, elevation: 2041 },
+        { day: 54, date: "Dec 23", summary: "Kala Ghoda afternoon", tags: ["food", "culture"] , places: [{ name: "Cafe Nur", type: "eat", url: "https://www.google.com/maps/search/Cafe+Nur+Mumbai" }]},
+        { day: 59, date: "Dec 28–29", summary: "Lonavala · cousins weekend · Sahyadri hills", tags: ["transit", "adventure", "culture", "peak", "family"], transit: { mode: "bus", from: "Mumbai", to: "Lonavala" }, elevation: 2041 , places: [{ name: "Lonavala", type: "see", url: "https://www.google.com/maps/search/Lonavala" }, { name: "Imagica", type: "see", note: "Amusement park", url: "https://www.google.com/maps/search/Imagicaa" }]},
         { day: 62, date: "Dec 31", summary: "New Year's Eve · home at Fort", tags: ["culture", "family"] }
       ],
     },
@@ -353,11 +353,11 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Monkey Forest", "Tegallalang", "Uluwatu", "Lovina"],
       days: [
-        { day: 64, date: "Jan 2", summary: "Arrives Bali · Ubud · Monkey Forest", tags: ["food", "culture", "nature"] },
-        { day: 65, date: "Jan 3", summary: "Full Ubud day · 12 visits", tags: ["food", "culture"] },
-        { day: 66, date: "Jan 4", summary: "Tegallalang · rice terraces · coffee · swing", tags: ["culture", "food"] },
-        { day: 67, date: "Jan 5", summary: "Pura Tirta Empul → Uluwatu coast", tags: ["culture", "food", "nature"] },
-        { day: 68, date: "Jan 6–7", summary: "North Bali → departure", tags: ["culture", "transit"], transit: { mode: "flight", from: "—", to: "—", duration: "34 min" } }
+        { day: 64, date: "Jan 2", summary: "Arrives Bali · Ubud · Monkey Forest", tags: ["food", "culture", "nature"] , places: [{ name: "Ubud Art Resort", type: "stay", url: "https://www.google.com/maps/search/Ubud+Art+Resort" }, { name: "Wedja Restaurant", type: "eat", url: "https://www.google.com/maps/search/Wedja+Restaurant+Ubud" }]},
+        { day: 65, date: "Jan 3", summary: "Full Ubud day · 12 visits", tags: ["food", "culture"] , places: [{ name: "Bale Udang Ubud", type: "eat", url: "https://www.google.com/maps/search/Bale+Udang+Ubud" }, { name: "Aloha Ubud Swing", type: "see", url: "https://www.google.com/maps/search/Aloha+Ubud+Swing" }]},
+        { day: 66, date: "Jan 4", summary: "Tegallalang · rice terraces · coffee · swing", tags: ["culture", "food"] , places: [{ name: "Bali Pulina", type: "eat", note: "Tegallalang", url: "https://www.google.com/maps/search/Bali+Pulina+Tegallalang" }, { name: "Tegallalang Rice Terrace", type: "see", url: "https://www.google.com/maps/search/Tegallalang+Rice+Terrace" }]},
+        { day: 67, date: "Jan 5", summary: "Pura Tirta Empul → Uluwatu coast", tags: ["culture", "food", "nature"] , places: [{ name: "Pura Tirta Empul", type: "see", url: "https://www.google.com/maps/search/Pura+Tirta+Empul" }, { name: "Uluwatu", type: "see", url: "https://www.google.com/maps/search/Uluwatu" }]},
+        { day: 68, date: "Jan 6–7", summary: "North Bali → departure", tags: ["culture", "transit"], transit: { mode: "flight", from: "—", to: "—", duration: "34 min" } , places: [{ name: "Lovina Beach Club", type: "stay", url: "https://www.google.com/maps/search/Lovina+Beach+Club+and+Resort" }, { name: "Dolphin Watching", type: "see", note: "Lovina", url: "https://www.google.com/maps/search/Lovina+Dolphin+Watching" }]}
       ],
     },
 
@@ -372,7 +372,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Museo del Prado", "Catedral de Sevilla", "Ronda", "Alhambra"],
       days: [
-        { day: 70, date: "Jan 8", summary: "Touchdown — Barajas T4 into Centro", tags: ["transit", "culture", "food"], transit: { mode: "bus", from: "Bus T4", to: "Centro", duration: "33 min" } },
+        { day: 70, date: "Jan 8", summary: "Touchdown — Barajas T4 into Centro", tags: ["transit", "culture", "food"], transit: { mode: "bus", from: "Bus T4", to: "Centro", duration: "33 min" } , places: [{ name: "The Hat Madrid", type: "stay", url: "https://www.google.com/maps/search/The+Hat+Madrid" }]},
         { day: 71, date: "Jan 9", summary: "Madrid on foot — Gran Vía to the Prado · then the AVE south", tags: ["transit", "food", "culture", "peak"], transit: { mode: "train", from: "AVE Madrid", to: "Sevilla", duration: "2 hr 50 min" }, highlight: "Museo Nacional del Prado" },
         { day: 72, date: "Jan 10", summary: "Slow Saturday · Casco Antiguo", tags: ["food"] },
         { day: 73, date: "Jan 11", summary: "La Catedral · La Giralda · overnight transit south", tags: ["transit", "peak"], transit: { mode: "train", from: "—", to: "—", duration: "16 hr 25 min" }, highlight: "La Giralda" },
@@ -418,7 +418,7 @@ export const journey: JourneyConfig = {
       peakLabel: "Ancient Ruins",
       days: [
         { day: 83, date: "Jan 21", summary: "Positano → Sorrento → Pompei · then into Roma", tags: ["transit", "peak", "food"], transit: { mode: "train", from: "Train Pompei", to: "Roma", duration: "4 hr 12 min" }, highlight: "Pompei Scavi Villa dei Misteri" },
-        { day: 84, date: "Jan 22", summary: "Roma morning · Baths of Caracalla · back to Madrid", tags: ["transit", "food", "peak", "culture"], transit: { mode: "train", from: "Roma", to: "Madrid Barajas", duration: "4 hr 13 min" }, highlight: "Baths of Caracalla" },
+        { day: 84, date: "Jan 22", summary: "Roma morning · Baths of Caracalla · back to Madrid", tags: ["transit", "food", "peak", "culture"], transit: { mode: "train", from: "Roma", to: "Madrid Barajas", duration: "4 hr 13 min" }, highlight: "Baths of Caracalla" , places: [{ name: "Ostello Bello Roma", type: "stay", note: "Colosseo", url: "https://www.google.com/maps/search/Ostello+Bello+Roma+Colosseo" }, { name: "Colosseum", type: "see", url: "https://www.google.com/maps/search/Colosseum+Rome" }, { name: "Baths of Caracalla", type: "see", url: "https://www.google.com/maps/search/Baths+of+Caracalla+Rome" }]},
         { day: 85, date: "Jan 23", summary: "Last Madrid afternoon · Sol · overnight to London", tags: ["transit", "food", "culture"], transit: { mode: "train", from: "—", to: "—", duration: "5 hr 45 min" } }
       ],
     },
