@@ -37,9 +37,21 @@ export default function Home() {
 
       <div className="relative z-10">
 
-                                        <section className="h-screen relative overflow-hidden flex items-end justify-center pb-24">
-          <div className="z-10 text-center">
-            <p className="typewriter font-mono text-sm md:text-base tracking-wider text-[#f5f5f7]/50">Welcome to our side quest</p>
+                                                <section className="h-screen relative overflow-hidden flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <svg viewBox="0 0 600 200" className="w-[80vw] max-w-[700px]" style={{ filter: "drop-shadow(0 0 8px rgba(0,0,0,0.5))" }}>
+              <defs>
+                <style>{`
+                  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&display=swap');
+                `}</style>
+              </defs>
+              <text x="300" y="100" textAnchor="middle" className="handwrite-text" style={{ fontFamily: "'Caveat', cursive", fontSize: "52px", fontWeight: 500, fill: "none", stroke: "rgba(245,245,247,0.7)", strokeWidth: "0.8", strokeDasharray: 1200, strokeDashoffset: 1200 }}>
+                welcome to our side quest
+              </text>
+              <text x="300" y="100" textAnchor="middle" className="handwrite-fill" style={{ fontFamily: "'Caveat', cursive", fontSize: "52px", fontWeight: 500, fill: "rgba(245,245,247,0.6)", opacity: 0 }}>
+                welcome to our side quest
+              </text>
+            </svg>
           </div>
         </section>
 
