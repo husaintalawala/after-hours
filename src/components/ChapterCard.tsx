@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useEffect, useState } from "react"
-import type { Chapter, DayEntry } from "@/data/journey"
+import type { Chapter, DayEntry, Place } from "@/data/journey"
 import dynamic from "next/dynamic"
 const Filmstrip = dynamic(() => import("./Filmstrip"), { ssr: false })
 
@@ -26,8 +26,7 @@ function ElevationBadge({ elevation }: { elevation: number }) {
 }
 
 function TransitBadge({ transit }: { transit: { mode: string; from: string; to: string; duration?: string } }) {
-  const parts = []
-  parts.push(transit.mode)
+  const parts = [transit.mode]
   if (transit.duration) parts.push(transit.duration)
   const label = parts.join(" \u00b7 ")
   return (
@@ -35,6 +34,38 @@ function TransitBadge({ transit }: { transit: { mode: string; from: string; to: 
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#85B7EB" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
       <span className="text-[10px]" style={{ color: "#85B7EB" }}>{label}</span>
     </div>
+  )
+}
+
+function PlaceCard({ place }: { place: Place }) {
+  const colors: Record<string, { stroke: string; bg: string; border: string }> = {
+    eat: { stroke: "#EF9F27", bg: "rgba(239,159,39,0.04)", border: "rgba(239,159,39,0.1)" },
+    see: { stroke: "#5DCAA5", bg: "rgba(93,202,165,0.04)", border: "rgba(93,202,165,0.08)" },
+    stay: { stroke: "#85B7EB", bg: "rgba(133,183,235,0.04)", border: "rgba(133,183,235,0.08)" },
+    drink: { stroke: "#ED93B1", bg: "rgba(237,147,177,0.04)", border: "rgba(237,147,177,0.08)" },
+    music: { stroke: "#AFA9EC", bg: "rgba(175,169,236,0.04)", border: "rgba(175,169,236,0.08)" },
+  }
+  const c = colors[place.type] || colors.see
+  const icons: Record<string, string> = {
+    eat: "M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3",
+    see: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 7a3 3 0 100 6 3 3 0 000-6z",
+    stay: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10",
+    drink: "M8 2h8l-2 18H10L8 2zM6 6h12",
+    music: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zM21 16a3 3 0 11-6 0 3 3 0 016 0z",
+  }
+  const iconPath = icons[place.type] || icons.see
+
+  return (
+    <a href={place.url || "#"} target={place.url ? "_blank" : undefined} rel={place.url ? "noopener noreferrer" : undefined} className="flex items-center gap-2.5 px-3 py-2 rounded-lg no-underline" style={{ background: c.bg, border: "1px solid " + c.border, cursor: place.url ? "pointer" : "default", textDecoration: "none" }}>
+      <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: c.border }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c.stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={iconPath}/></svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[12px] text-[#f5f5f7] font-medium">{place.name}</div>
+        {place.note && <div className="text-[10px] text-[#6e6e73]">{place.note}</div>}
+      </div>
+      {place.url && <svg className="flex-shrink-0" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#424245" strokeWidth="1.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>}
+    </a>
   )
 }
 
@@ -53,18 +84,23 @@ function DayRow({ day, expanded }: { day: DayEntry; expanded: boolean }) {
         boxShadow: isHighlight ? "0 0 6px rgba(245,245,247,0.25)" : "none",
       }} />
       <div className="flex items-baseline gap-2 mb-0.5">
-        <span className={"text-[12px] " + (isHighlight ? "text-[#f5f5f7] font-medium" : "text-[#6e6e73]")}>Day {day.day} \u00b7 {day.date}</span>
+        <span className={"text-[12px] " + (isHighlight ? "text-[#f5f5f7] font-medium" : "text-[#6e6e73]")}>Day {day.day} {"\u00b7"} {day.date}</span>
         {isPeak && <span className="text-[9px] font-medium uppercase" style={{ color: "#c9a227", letterSpacing: "0.1em" }}>Peak</span>}
       </div>
       <p className={"text-[14px] font-light leading-relaxed m-0 " + (isHighlight ? "text-[#f5f5f7]" : "text-[#86868b]")}>
         {day.highlight && <span className="text-[#f5f5f7] font-normal">{day.highlight}</span>}
-        {day.highlight && day.summary && <span className="text-[#424245]"> \u2014 </span>}
+        {day.highlight && day.summary && <span className="text-[#424245]"> {"\u2014"} </span>}
         {expanded ? day.summary : day.summary?.slice(0, 100) + (day.summary && day.summary.length > 100 ? "..." : "")}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {day.elevation && <ElevationBadge elevation={day.elevation} />}
         {day.transit && <TransitBadge transit={day.transit} />}
       </div>
+      {day.places && day.places.length > 0 && (
+        <div className="flex flex-col gap-1.5 mt-2">
+          {day.places.map((p, i) => <PlaceCard key={i} place={p} />)}
+        </div>
+      )}
       {expanded && day.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1.5">
           {day.tags.map((t, i) => {
@@ -86,7 +122,7 @@ function Itinerary({ days }: { days: DayEntry[] }) {
       <p className="text-[10px] tracking-[0.15em] text-[#6e6e73] uppercase mb-4">Itinerary</p>
       <div className="relative">
         {preview.map(d => <DayRow key={d.day} day={d} expanded={expanded} />)}
-        <div className="overflow-hidden transition-all duration-500" style={{ maxHeight: expanded ? (rest.length * 150) + "px" : "0px", opacity: expanded ? 1 : 0 }}>
+        <div className="overflow-hidden transition-all duration-500" style={{ maxHeight: expanded ? (rest.length * 200) + "px" : "0px", opacity: expanded ? 1 : 0 }}>
           {rest.map(d => <DayRow key={d.day} day={d} expanded={expanded} />)}
         </div>
         {!expanded && rest.length > 0 && <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-black pointer-events-none" />}
@@ -103,14 +139,21 @@ function Itinerary({ days }: { days: DayEntry[] }) {
 
 function LightDayEntry({ day }: { day: DayEntry }) {
   return (
-    <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(133,183,235,0.1)" }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#85B7EB" strokeWidth="1.5"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+    <div className="py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(133,183,235,0.1)" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#85B7EB" strokeWidth="1.5"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+        </div>
+        <div className="flex-1">
+          <div className="text-[13px] text-[#f5f5f7]">{day.summary}</div>
+          <div className="text-[11px] text-[#424245]">Day {day.day} {"\u00b7"} {day.date}{day.transit?.duration ? " \u00b7 " + day.transit.duration : ""}</div>
+        </div>
       </div>
-      <div className="flex-1">
-        <div className="text-[13px] text-[#f5f5f7]">{day.summary}</div>
-        <div className="text-[11px] text-[#424245]">Day {day.day} \u00b7 {day.date}{day.transit?.duration ? " \u00b7 " + day.transit.duration : ""}</div>
-      </div>
+      {day.places && day.places.length > 0 && (
+        <div className="flex flex-col gap-1.5 ml-11">
+          {day.places.map((p, i) => <PlaceCard key={i} place={p} />)}
+        </div>
+      )}
     </div>
   )
 }
@@ -130,7 +173,7 @@ export default function ChapterCard({ chapter, index, isActive }: ChapterCardPro
 
   const dayCount = chapter.days?.length || 0
   const hasStats = chapter.stats && chapter.stats.length > 0
-  const tier = dayCount <= 2 ? "light" : dayCount <= 5 ? "medium" : "rich"
+  const tier = dayCount <= 2 ? "light" : "full"
 
   return (
     <div ref={ref} className={"w-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] " + (isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6")}>

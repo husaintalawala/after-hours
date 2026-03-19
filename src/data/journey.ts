@@ -12,6 +12,13 @@ export interface Transit {
   detail?: string
 }
 
+export interface Place {
+  name: string
+  type: 'eat' | 'see' | 'stay' | 'drink' | 'music'
+  note?: string
+  url?: string
+}
+
 export interface DayEntry {
   day: number
   date: string
@@ -20,6 +27,7 @@ export interface DayEntry {
   transit?: Transit
   elevation?: number
   highlight?: string
+  places?: Place[]
 }
 
 export interface Chapter {
@@ -78,7 +86,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Manhattan", "JFK"],
       days: [
-        { day: 1, date: "Oct 31", summary: "JFK Terminal 1 → London Heathrow", tags: ["transit"], transit: { mode: "flight", from: "JFK", to: "LHR", duration: "7 hr" } }
+        { day: 1, date: "Oct 31", summary: "JFK Terminal 1 → London Heathrow", tags: ["transit"], transit: { mode: "flight", from: "JFK", to: "LHR", duration: "7 hr" } , places: [{ name: "Capital One Lounge", type: "eat", note: "Great pre-flight spot", url: "https://www.google.com/maps/search/Capital+One+Lounge+JFK+New+York" }]}
       ],
     },
 
@@ -101,12 +109,12 @@ export const journey: JourneyConfig = {
       ],
       highlights: ["Borough Market", "Warner Bros. Studio", "Wimbledon", "Portobello Road"],
       days: [
-        { day: 1, date: "Oct 31", summary: "Arrives Heathrow 2:03 PM · Kensington", tags: ["culture", "food"] },
-        { day: 2, date: "Nov 1", summary: "Battersea → St James's Park → Leicester Square", tags: ["food", "culture"] },
-        { day: 4, date: "Nov 3", summary: "Buckingham Palace → Mayfair", tags: ["culture", "food"] },
-        { day: 5, date: "Nov 4", summary: "Warner Bros. Studio Tour · Leavesden", tags: ["culture"] },
-        { day: 6, date: "Nov 5", summary: "Wimbledon → Covent Garden", tags: ["culture"] },
-        { day: 7, date: "Nov 6", summary: "Portobello Road · overnight train out", tags: ["culture", "food", "transit"], transit: { mode: "train", from: "Overnight", to: "Kathmandu" } }
+        { day: 1, date: "Oct 31", summary: "Arrives Heathrow 2:03 PM · Kensington", tags: ["culture", "food"] , places: [{ name: "Bolton Gardens", type: "stay", note: "Home base in Kensington", url: "https://www.google.com/maps/search/Bolton+Gardens+London" }, { name: "Borough Market", type: "see", url: "https://www.google.com/maps/search/Borough+Market+London" }, { name: "Cahoots Postal Office", type: "drink", note: "Speakeasy", url: "https://www.google.com/maps/search/Cahoots+Postal+Office+London" }]},
+        { day: 2, date: "Nov 1", summary: "Battersea → St James's Park → Leicester Square", tags: ["food", "culture"] , places: [{ name: "Thai Square", type: "eat", note: "Trafalgar Square", url: "https://www.google.com/maps/search/Thai+Square+Trafalgar+Square+London" }, { name: "The Cambridge", type: "eat", note: "Fish and chips", url: "https://www.google.com/maps/search/The+Cambridge+pub+London" }, { name: "Spice of Life", type: "music", note: "Live music pub", url: "https://www.google.com/maps/search/Spice+of+Life+Soho+London" }, { name: "Trafalgar Square", type: "see", url: "https://www.google.com/maps/search/Trafalgar+Square+London" }, { name: "St James's Park", type: "see", url: "https://www.google.com/maps/search/St+James+Park+London" }]},
+        { day: 4, date: "Nov 3", summary: "Buckingham Palace → Mayfair", tags: ["culture", "food"] , places: [{ name: "Chez Antoinette", type: "eat", note: "Victoria", url: "https://www.google.com/maps/search/Chez+Antoinette+Victoria+London" }, { name: "Buckingham Palace", type: "see", url: "https://www.google.com/maps/search/Buckingham+Palace+London" }, { name: "Hyde Park", type: "see", url: "https://www.google.com/maps/search/Hyde+Park+London" }]},
+        { day: 5, date: "Nov 4", summary: "Warner Bros. Studio Tour · Leavesden", tags: ["culture"] , places: [{ name: "Chaiiwala", type: "eat", url: "https://www.google.com/maps/search/Chaiiwala+London" }, { name: "Warner Bros. Studio Tour", type: "see", note: "The Wizarding World", url: "https://www.google.com/maps/search/Warner+Bros+Studio+Tour+London+Leavesden" }]},
+        { day: 6, date: "Nov 5", summary: "Wimbledon → Covent Garden", tags: ["culture"] , places: [{ name: "Wimbledon", type: "see", note: "All England Lawn Tennis Club", url: "https://www.google.com/maps/search/All+England+Lawn+Tennis+and+Croquet+Club+London" }, { name: "Covent Garden", type: "see", url: "https://www.google.com/maps/search/Covent+Garden+London" }, { name: "Baba Ghanouj", type: "eat", url: "https://www.google.com/maps/search/Baba+Ghanouj+London" }]},
+        { day: 7, date: "Nov 6", summary: "Portobello Road · overnight train out", tags: ["culture", "food", "transit"], transit: { mode: "train", from: "Overnight", to: "Kathmandu" } , places: [{ name: "The Pelican", type: "eat", note: "Notting Hill", url: "https://www.google.com/maps/search/The+Pelican+Notting+Hill+London" }, { name: "Portobello Road Market", type: "see", url: "https://www.google.com/maps/search/Portobello+Road+Market+London" }]}
       ],
     },
 
@@ -122,9 +130,9 @@ export const journey: JourneyConfig = {
       highlights: ["Garden of Dreams", "Thamel gear shops", "Tenzing-Hillary Airport"],
       stats: [{ label: "Elevation", value: "9,383 ft" }],
       days: [
-        { day: 8, date: "Nov 7", summary: "Arrives Kathmandu", tags: ["culture"] },
-        { day: 9, date: "Nov 8", summary: "Gear day · Thamel", tags: ["food", "culture"] },
-        { day: 10, date: "Nov 9", summary: "4:53 AM → Lukla", tags: ["transit", "culture", "adventure"], transit: { mode: "car", from: "—", to: "—", duration: "2 hr 57 min" }, elevation: 9383 }
+        { day: 8, date: "Nov 7", summary: "Arrives Kathmandu", tags: ["culture"] , places: [{ name: "Aarya Hotel and Spa", type: "stay", note: "Jhol momos", url: "https://www.google.com/maps/search/Aarya+Hotel+and+Spa+Kathmandu" }]},
+        { day: 9, date: "Nov 8", summary: "Gear day · Thamel", tags: ["food", "culture"] , places: [{ name: "Third Eye Restaurant", type: "eat", url: "https://www.google.com/maps/search/Third+Eye+Restaurant+Kathmandu" }, { name: "Swayambhunath", type: "see", note: "Monkey Temple", url: "https://www.google.com/maps/search/Swayambhu+Mahachaitya+Kathmandu" }, { name: "Pashupatinath Temple", type: "see", url: "https://www.google.com/maps/search/Pashupatinath+Temple+Kathmandu" }]},
+        { day: 10, date: "Nov 9", summary: "4:53 AM → Lukla", tags: ["transit", "culture", "adventure"], transit: { mode: "car", from: "—", to: "—", duration: "2 hr 57 min" }, elevation: 9383 , places: [{ name: "Snowland Hotel", type: "stay", url: "https://www.google.com/maps/search/Snowland+Hotel+Lukla" }]}
       ],
     },
 
@@ -142,13 +150,13 @@ export const journey: JourneyConfig = {
       isPeak: true,
       peakLabel: "\u26fa Highest Point",
       days: [
-        { day: 11, date: "Nov 10", summary: "Lukla → Phakding → Namche Bazaar · 11,286 ft", tags: ["culture", "food"], elevation: 11286 },
-        { day: 12, date: "Nov 11", summary: "Namche Bazaar · acclimatisation rest day", tags: ["adventure", "rest"], elevation: 11286 },
-        { day: 13, date: "Nov 12–13", summary: "Namche → Tengboche → Dingboche · 14,470 ft", tags: ["culture"], elevation: 14470 },
+        { day: 11, date: "Nov 10", summary: "Lukla → Phakding → Namche Bazaar · 11,286 ft", tags: ["culture", "food"], elevation: 11286 , places: [{ name: "Green Tara Hotel", type: "stay", url: "https://www.google.com/maps/search/Green+Tara+Hotel+Namche+Bazaar" }]},
+        { day: 12, date: "Nov 11", summary: "Namche Bazaar · acclimatisation rest day", tags: ["adventure", "rest"], elevation: 11286 , places: [{ name: "Cafe 4410", type: "eat", url: "https://www.google.com/maps/search/CAFE+4410+LUKLA" }]},
+        { day: 13, date: "Nov 12–13", summary: "Namche → Tengboche → Dingboche · 14,470 ft", tags: ["culture"], elevation: 14470 , places: [{ name: "Tengboche Monastery", type: "see", url: "https://www.google.com/maps/search/Tengboche+Monastery" }]},
         { day: 15, date: "Nov 14", summary: "Dingboche · second acclimatisation day", tags: ["food", "adventure", "rest"], elevation: 14470 },
         { day: 16, date: "Nov 15", summary: "Dingboche → Lobuche · Khumbu Glacier moraine · 16,175 ft", tags: ["adventure", "culture"], elevation: 16175 },
         { day: 17, date: "Nov 16", summary: "Lobuche → Gorakshep → Everest Base Camp · 17,598 ft", tags: ["culture", "peak", "transit", "adventure"], transit: { mode: "helicopter", from: "Gorakshep", to: "Lukla" }, elevation: 17598, highlight: "Peak" },
-        { day: 18, date: "Nov 17", summary: "Morning flight to Kathmandu · Arya Hotel · Swayambhunath", tags: ["transit", "culture"], transit: { mode: "flight", from: "Lukla", to: "Tribhuvan Intl" } },
+        { day: 18, date: "Nov 17", summary: "Morning flight to Kathmandu · Arya Hotel · Swayambhunath", tags: ["transit", "culture"], transit: { mode: "flight", from: "Lukla", to: "Tribhuvan Intl" } , places: [{ name: "Aarya Hotel and Spa", type: "stay", url: "https://www.google.com/maps/search/Aarya+Hotel+and+Spa+Kathmandu" }]},
         { day: 19, date: "Nov 18", summary: "KTM → Delhi → Mumbai", tags: ["transit", "culture"], transit: { mode: "flight", from: "Delhi", to: "Mumbai", duration: "7 hr 6 min" } }
       ],
     },
@@ -164,7 +172,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Gover Mansion", "Mint Road", "Family home"],
       days: [
-        { day: 19, date: "Nov 18–20", summary: "Gover Mansion · family home · Fort", tags: ["culture", "family"] },
+        { day: 19, date: "Nov 18–20", summary: "Gover Mansion · family home · Fort", tags: ["culture", "family"] , places: [{ name: "91 Mint Rd", type: "stay", note: "Gover Mansion, family home", url: "https://www.google.com/maps/search/91+Mint+Road+Fort+Mumbai" }]},
         { day: 22, date: "Nov 21", summary: "Home → Mumbai Airport · straight from Gover Mansion", tags: ["culture", "transit", "family"], transit: { mode: "flight", from: "—", to: "—" } }
       ],
     },
@@ -180,7 +188,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Victoria Peak", "Star Ferry", "Tsim Sha Tsui"],
       days: [
-        { day: 23, date: "Nov 22", summary: "Central → Tsim Sha Tsui → Victoria Peak", tags: ["culture"] }
+        { day: 23, date: "Nov 22", summary: "Central → Tsim Sha Tsui → Victoria Peak", tags: ["culture"] , places: [{ name: "Mini Central", type: "stay", url: "https://www.google.com/maps/search/Mini+Central+Hong+Kong" }, { name: "Fringe Club", type: "drink", url: "https://www.google.com/maps/search/Fringe+Club+Hong+Kong" }, { name: "Chord", type: "eat", note: "Live music and dinner", url: "https://www.google.com/maps/search/Chord+Hong+Kong" }, { name: "Kowloon Park", type: "see", url: "https://www.google.com/maps/search/Kowloon+Park+Hong+Kong" }, { name: "Peak Tram", type: "see", url: "https://www.google.com/maps/search/The+Peak+Tram+Hong+Kong" }, { name: "Hollywood Road", type: "see", url: "https://www.google.com/maps/search/Hollywood+Road+Hong+Kong" }]}
       ],
     },
 
@@ -195,7 +203,7 @@ export const journey: JourneyConfig = {
       videos: [],
       highlights: ["Komagome", "Shibuya", "Lake Kawaguchi", "Mt. Fuji"],
       days: [
-        { day: 24, date: "Nov 23", summary: "Haneda → Komagome · base", tags: ["culture", "food"] },
+        { day: 24, date: "Nov 23", summary: "Haneda → Komagome · base", tags: ["culture", "food"] , places: [{ name: "Kabukicho", type: "eat", url: "https://www.google.com/maps/search/Kabukicho+Tokyo" }]},
         { day: 25, date: "Nov 24", summary: "Harajuku → Shibuya", tags: ["food"] },
         { day: 26, date: "Nov 25", summary: "Tsukiji → Azabu-Juban", tags: ["culture", "food"] },
         { day: 27, date: "Nov 26", summary: "Lake Kawaguchi · Mt. Fuji · cycling", tags: ["transit", "culture", "adventure", "nature"], transit: { mode: "train", from: "Shinjuku", to: "Kawaguchiko Station" }, elevation: 3041 },
