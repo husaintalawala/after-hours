@@ -37,13 +37,17 @@ export default function Home() {
 
       <div className="relative z-10">
 
-                        <section className="h-screen relative overflow-hidden flex items-center justify-center">
-          <svg className="absolute pointer-events-none" style={{ width: "min(100vh, 100vw)", height: "min(100vh, 100vw)" }} viewBox="0 0 800 800">
+                                <section className="h-screen relative overflow-hidden flex items-center justify-center">
+          <svg className="absolute pointer-events-none" style={{ width: "min(110vh, 110vw)", height: "min(110vh, 110vw)" }} viewBox="0 0 800 800">
             <defs>
-              <path id="textCircle" d="M 400,400 m -340,0 a 340,340 0 1,1 680,0 a 340,340 0 1,1 -680,0" fill="none" />
+              <path id="topArc" d="M 120,400 A 280,280 0 0,1 680,400" fill="none" />
+              <path id="bottomArc" d="M 680,400 A 280,280 0 0,1 120,400" fill="none" />
             </defs>
-            <text fill="rgba(245,245,247,0.18)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "14px", letterSpacing: "0.5em", textTransform: "uppercase" }}>
-              <textPath href="#textCircle" startOffset="0%">SIDE QUEST {"·"} 89 DAYS {"·"} 10 COUNTRIES {"·"} 40,000+ MILES {"·"} OCT 2025 {"–"} JAN 2026 {"·"} SIDE QUEST {"·"} 89 DAYS {"·"} 10 COUNTRIES {"·"} 40,000+ MILES {"·"} OCT 2025 {"–"} JAN 2026</textPath>
+            <text fill="rgba(184,115,51,0.15)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", letterSpacing: "0.6em", textTransform: "uppercase" }}>
+              <textPath href="#topArc" startOffset="50%" textAnchor="middle">Side Quest</textPath>
+            </text>
+            <text fill="rgba(184,115,51,0.12)" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "9px", letterSpacing: "0.4em", textTransform: "uppercase" }}>
+              <textPath href="#bottomArc" startOffset="50%" textAnchor="middle">89 Days {"·"} 10 Countries {"·"} Oct 2025 {"–"} Jan 2026</textPath>
             </text>
           </svg>
         </section>
