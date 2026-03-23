@@ -1,11 +1,14 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 
 const SUPABASE_URL = "https://ykueoalpqeuqmhfbontz.supabase.co"
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrdWVvYWxwcWV1cW1oZmJvbnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMjY0MTEsImV4cCI6MjA4OTgwMjQxMX0.Lzwvw2LfjGBI2CeSXzEbjr8gVoEgTgH3Wwx5gqmvSwE"
+
+const headers = {
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+}
 
 interface Trip {
   id: string
@@ -15,81 +18,48 @@ interface Trip {
   status: string
 }
 
-interface Step {
-  id: string
+async function getTrip(id: string): Promise<Trip | null> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/trips?id=eq.${id}&select=*`,
+    { headers, next: { revalidate: 60 } }
+  )
+  const trips = await res.json()
+  return Array.isArray(trips) && trips.length > 0 ? trips[0] : null
 }
 
-// Required for static export with dynamic routes
-export function generateStaticParams() {
-  return []
+async function getStepCount(tripId: string): Promise<number> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/steps?trip_id=eq.${tripId}&select=id`,
+    { headers, next: { revalidate: 60 } }
+  )
+  const steps = await res.json()
+  return Array.isArray(steps) ? steps.length : 0
 }
 
-export default function TripPage() {
-  const params = useParams()
-  const id = params?.id as string
-
-  const [trip, setTrip] = useState<Trip | null>(null)
-  const [stepCount, setStepCount] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!id) return
-
-    async function fetchTrip() {
-      try {
-        const headers = {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        }
-
-        const tripRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/trips?id=eq.${id}&select=*`,
-          { headers }
-        )
-        const trips = await tripRes.json()
-        if (!trips.length) {
-          setError("Trip not found")
-          setLoading(false)
-          return
-        }
-        setTrip(trips[0])
-
-        const stepsRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/steps?trip_id=eq.${id}&select=id`,
-          { headers }
-        )
-        const steps = await stepsRes.json()
-        setStepCount(Array.isArray(steps) ? steps.length : 0)
-      } catch {
-        setError("Failed to load trip")
-      }
-      setLoading(false)
-    }
-
-    fetchTrip()
-  }, [id])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    )
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const trip = await getTrip(id)
+  if (!trip) return { title: "Trip not found" }
+  return {
+    title: `${trip.title} — Drift`,
+    description: `A trip recorded with Drift.`,
   }
+}
 
-  if (error || !trip) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-white/60 text-lg">{error ?? "Trip not found"}</p>
-          <a href="/" className="text-white/30 text-sm underline">
-            ← back
-          </a>
-        </div>
-      </div>
-    )
-  }
+export default async function TripPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const trip = await getTrip(id)
+  if (!trip) notFound()
+
+  const stepCount = await getStepCount(id)
 
   const startDate = new Date(trip.start_date).toLocaleDateString("en-US", {
     month: "long",
@@ -123,7 +93,9 @@ export default function TripPage() {
         <div className="mt-6 flex items-center gap-3">
           <span
             className={`inline-block w-2 h-2 rounded-full ${
-              trip.status === "active" ? "bg-red-500 animate-pulse" : "bg-white/20"
+              trip.status === "active"
+                ? "bg-red-500 animate-pulse"
+                : "bg-white/20"
             }`}
           />
           <span className="text-white/50 text-sm">
