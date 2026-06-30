@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Side Quest | 89 Days Around the World",
   description: "89 days, 10 countries, 40,000+ miles.",
   icons: { icon: "/favicon.svg" },
+  other: {
+    "impact-site-verification": "d801b9d7-f165-4297-814c-bd75223d116b",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
