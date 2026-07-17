@@ -1,0 +1,70 @@
+/* Shared foundation for Drift's legal pages (privacy.html, terms.html).
+   index.html stays self-contained; this mirrors its tokens so the pages match. */
+:root {
+  --bg:#ffffff; --bg-warm:#f5f5f7; --ink:#1d1d1f; --ink-soft:#6e6e73;
+  --coral:#d8542f; --coral-deep:#c0451f; --pine:#6e6e73; --line:#d2d2d7; --card:#ffffff;
+  --maxw:1080px;
+  --sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#000000; --bg-warm:#101012; --ink:#f5f5f7; --ink-soft:#a1a1a6;
+    --coral:#ff7a52; --coral-deep:#ff7a52; --pine:#a1a1a6; --line:#2a2a2c; --card:#1a1a1c;
+  }
+}
+:root[data-theme="light"] {
+  --bg:#ffffff; --bg-warm:#f5f5f7; --ink:#1d1d1f; --ink-soft:#6e6e73;
+  --coral:#d8542f; --coral-deep:#c0451f; --pine:#6e6e73; --line:#d2d2d7; --card:#ffffff;
+}
+:root[data-theme="dark"] {
+  --bg:#000000; --bg-warm:#101012; --ink:#f5f5f7; --ink-soft:#a1a1a6;
+  --coral:#ff7a52; --coral-deep:#ff7a52; --pine:#a1a1a6; --line:#2a2a2c; --card:#1a1a1c;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: 17px; line-height: 1.6; letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+a { color: var(--coral-deep); }
+a:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 6px; }
+
+/* Nav */
+header.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid var(--line); }
+.nav-inner { display: flex; align-items: center; justify-content: space-between; height: 62px; }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 19px; letter-spacing: -.03em; text-decoration: none; color: var(--ink); }
+.brand svg { display: block; }
+.nav-links { display: flex; align-items: center; gap: 26px; }
+.nav-links a { text-decoration: none; color: var(--ink-soft); font-size: 15px; font-weight: 500; }
+.nav-links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-size: 15px; text-decoration: none; padding: 11px 18px; border-radius: 999px; border: 1px solid transparent; }
+.btn-primary { background: var(--coral); color: #fff; box-shadow: 0 6px 18px color-mix(in srgb, var(--coral) 32%, transparent); }
+.nav-links a.cta { color: #fff; }
+@media (max-width: 640px) { .nav-links a:not(.cta) { display: none; } }
+
+/* Legal prose */
+.legal { max-width: 720px; margin: 0 auto; padding: 56px 24px 40px; }
+.legal .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--coral-deep); }
+.legal .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--coral); }
+.legal h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 600; letter-spacing: -.02em; line-height: 1.05; margin: 14px 0 0; text-wrap: balance; }
+.legal .updated { color: var(--ink-soft); font-size: 14.5px; margin: 14px 0 0; }
+.legal .lead { font-size: 18.5px; color: var(--ink); margin: 26px 0 0; line-height: 1.6; }
+.legal h2 { font-size: 22px; font-weight: 600; letter-spacing: -.01em; margin: 44px 0 0; scroll-margin-top: 78px; }
+.legal h3 { font-size: 17px; font-weight: 600; margin: 26px 0 0; }
+.legal p { margin: 14px 0 0; color: var(--ink); }
+.legal ul { margin: 12px 0 0; padding-left: 22px; }
+.legal li { margin: 8px 0 0; }
+.legal li::marker { color: var(--coral); }
+.legal strong { font-weight: 700; }
+.legal .callout { margin: 22px 0 0; padding: 16px 18px; background: var(--bg-warm); border: 1px solid var(--line); border-left: 3px solid var(--coral); border-radius: 0 12px 12px 0; font-size: 15.5px; color: var(--ink-soft); }
+.legal .backhome { display: inline-flex; align-items: center; gap: 7px; margin-top: 40px; font-size: 15px; font-weight: 600; text-decoration: none; }
+
+/* Footer */
+footer { border-top: 1px solid var(--line); padding: 40px 0; color: var(--ink-soft); font-size: 14.5px; margin-top: 24px; }
+.foot-inner { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; justify-content: space-between; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 22px; }
+.foot-links a { text-decoration: none; color: var(--ink-soft); }
+.foot-links a:hover { color: var(--ink); }
