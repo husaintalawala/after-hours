@@ -17,6 +17,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet" />
+        {/* Travelpayouts (Drive) site verification + affiliate tracking — project t=551440 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              `(function(){var s=document.createElement("script");s.async=1;s.src="https://tpembars.com/NTUxNDQw.js?t=551440";document.head.appendChild(s);})();`,
+          }}
+        />
       </head>
       <body className="bg-black text-[#f5f5f7] antialiased">{children}</body>
     </html>
