@@ -277,20 +277,6 @@
     @media (hover:hover){.mtile:hover img{transform:scale(1.05);}}
     @media (max-width:640px){.montage .g{columns:2 150px;}}
 
-    /* real app screenshots — phone gallery */
-    .screens{padding:clamp(66px,10vw,140px) 0;overflow:hidden;}
-    .screens .head{text-align:center;max-width:720px;margin:0 auto;}
-    .screens h2{font-size:clamp(36px,5.4vw,68px);margin:16px 0 0;}
-    .screens .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:22px auto 0;max-width:46ch;line-height:1.45;}
-    .rail{display:flex;gap:clamp(18px,2.6vw,32px);justify-content:safe center;width:100%;max-width:100%;margin-top:clamp(40px,6vw,66px);padding:16px clamp(22px,5vw,64px);overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-    .rail::-webkit-scrollbar{display:none;}
-    .phone{flex:none;width:clamp(188px,20vw,222px);scroll-snap-align:center;text-align:center;margin:0;}
-    .phone .scr{position:relative;aspect-ratio:520/1054;border-radius:30px;overflow:hidden;background:#0b0b0b;border:4px solid #0b0b0b;box-shadow:0 40px 72px -30px rgba(40,28,16,.55),0 14px 30px -18px rgba(40,28,16,.34);transition:transform .4s var(--e-out),box-shadow .4s var(--e-out);}
-    .phone .scr img{width:100%;height:100%;object-fit:cover;}
-    @media (hover:hover){.phone:hover .scr{transform:translateY(-8px);box-shadow:0 58px 96px -34px rgba(40,28,16,.6),0 18px 38px -20px rgba(40,28,16,.4);}}
-    .phone .cap{font-family:var(--ed);font-weight:600;font-size:16.5px;margin:18px 0 0;color:var(--ink);}
-    .phone .cap small{display:block;font-family:var(--meta);font-weight:500;font-size:13px;color:var(--sec);margin-top:4px;}
-
     /* download / final */
     .final{padding:clamp(80px,12vw,180px) 0;}
     .final .box{background:var(--ink);color:#fff;border-radius:36px;padding:clamp(50px,8vw,96px) clamp(28px,6vw,80px);text-align:center;position:relative;overflow:hidden;}
@@ -575,39 +561,6 @@
       </div>
     </div>
   </div></section>
-
-  <!-- REAL SCREENS -->
-  <section class="screens">
-    <div class="wrap">
-      <div class="head">
-        <span class="eyebrow" data-rise>The actual app</span>
-        <h2 data-rise style="--i:1">Not a mockup.</h2>
-        <p class="lede" data-rise style="--i:2">Real screens from Drift on iPhone — find places, build the plan, split the costs and get trip-ready, all in one app.</p>
-      </div>
-    </div>
-    <div class="rail">
-      <figure class="phone" data-rise style="--i:0">
-        <div class="scr"><picture><source type="image/webp" srcset="assets/app/discover.webp"><img loading="lazy" src="assets/app/discover.jpg" alt="Discovering rated places on the map in Drift" width="520" height="1054"></picture></div>
-        <figcaption class="cap">Discover<small>Places, rated &amp; mapped</small></figcaption>
-      </figure>
-      <figure class="phone" data-rise style="--i:1">
-        <div class="scr"><picture><source type="image/webp" srcset="assets/app/plan.webp"><img loading="lazy" src="assets/app/plan.jpg" alt="A destination guide with the vibe, top things to do and where to stay" width="520" height="1054"></picture></div>
-        <figcaption class="cap">Plan<small>Your trip, guided</small></figcaption>
-      </figure>
-      <figure class="phone" data-rise style="--i:2">
-        <div class="scr"><picture><source type="image/webp" srcset="assets/app/split.webp"><img loading="lazy" src="assets/app/split.jpg" alt="Trip expenses and one-tap settle-up in Drift" width="520" height="1054"></picture></div>
-        <figcaption class="cap">Split<small>Settle up, square</small></figcaption>
-      </figure>
-      <figure class="phone" data-rise style="--i:3">
-        <div class="scr"><picture><source type="image/webp" srcset="assets/app/track.webp"><img loading="lazy" src="assets/app/track.jpg" alt="Trip readiness with flights, stays and route still to book" width="520" height="1054"></picture></div>
-        <figcaption class="cap">Track<small>Get trip-ready</small></figcaption>
-      </figure>
-      <figure class="phone" data-rise style="--i:4">
-        <div class="scr"><picture><source type="image/webp" srcset="assets/app/kit.webp"><img loading="lazy" src="assets/app/kit.jpg" alt="An AI-built packing list sized for the trip" width="520" height="1054"></picture></div>
-        <figcaption class="cap">Pack<small>AI packing list</small></figcaption>
-      </figure>
-    </div>
-  </section>
 
   <!-- EVERYTHING A TRIP NEEDS -->
   <section class="grid-sec"><div class="wrap">
