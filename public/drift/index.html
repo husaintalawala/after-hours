@@ -234,6 +234,81 @@
 
     a:focus-visible,.pill:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
 
+    /* ===== merged: status-bar mask + richer app mockups + play-on-reveal ===== */
+    .phone .screen{position:relative;}
+    /* synthetic clean status bar — masks the captured iOS bar on real screenshots */
+    .sbar{position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 22px;font-size:12px;font-weight:600;z-index:6;color:#fff;font-variant-numeric:tabular-nums;}
+    .sbar .rt{display:flex;align-items:center;gap:5px;}
+    .sbar svg{display:block;}
+    .rx-scroll{flex:1;overflow:hidden;padding-bottom:4px;}
+    .rx-hd.pad{padding-top:46px;}
+
+    /* trip feed cards */
+    .tc{margin:0 14px 12px;border-radius:16px;overflow:hidden;background:#fff;border:1px solid #ece5da;box-shadow:0 6px 16px -12px rgba(20,14,8,.5);}
+    .tc .im{height:92px;position:relative;background-size:cover;background-position:center;}
+    .tc .im::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.5));}
+    .tc .im .cap{position:absolute;left:11px;bottom:8px;z-index:2;color:#fff;}
+    .tc .im .cap b{font-family:var(--ed);font-size:17px;font-weight:600;display:block;line-height:1.05;}
+    .tc .im .cap span{font-size:11px;opacity:.9;}
+    .tc .im .fl{position:absolute;right:9px;top:9px;z-index:2;font-size:15px;}
+    .tc .mr{display:flex;align-items:center;gap:6px;padding:9px 12px;}
+    .tc .mr .a{display:flex;}
+    .tc .mr .a span{width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;margin-left:-6px;background:var(--cream);display:grid;place-items:center;font-size:9px;font-weight:700;color:var(--coralDeep);}
+    .tc .mr .a span:first-child{margin-left:0;}
+    .tc .mr .st{margin-left:auto;font-size:11px;font-weight:600;color:var(--coralDeep);background:#F3E4DC;padding:3px 9px;border-radius:8px;}
+
+    /* tours & tickets price rows */
+    .tk{margin:0 14px 9px;background:#fff;border:1px solid #ece5da;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:11px;}
+    .tk .im{width:44px;height:44px;border-radius:11px;background-size:cover;background-position:center;flex:none;}
+    .tk .nm{font-family:var(--ed);font-size:13.5px;font-weight:600;line-height:1.15;color:#151515;}
+    .tk .mt{font-size:10.5px;color:#9a8f80;display:flex;align-items:center;gap:5px;margin-top:2px;}
+    .tk .vd{font-size:9px;font-weight:700;letter-spacing:.03em;padding:2px 6px;border-radius:6px;background:var(--cream);color:var(--sec);}
+    .tk .pr{margin-left:auto;text-align:right;}
+    .tk .pr b{font-family:var(--ed);font-size:15px;font-weight:600;display:block;color:#151515;}
+    .tk .pr span{font-size:9.5px;color:#9a8f80;}
+
+    /* itinerary timeline (Iceland) */
+    .itin{padding:8px 0 0;}
+    .itin .day{font-family:var(--ed);font-size:12px;font-weight:600;color:var(--coralDeep);text-transform:uppercase;letter-spacing:.08em;margin:6px 16px 8px;}
+    .stop{position:relative;margin:0 16px 0 22px;padding:0 0 15px 20px;border-left:2px solid #e6ddd0;}
+    .stop:last-child{border-left-color:transparent;}
+    .stop::before{content:"";position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--coral);border:2px solid #FAF7F2;}
+    .stop .tm{font-size:10.5px;font-weight:600;color:#9a8f80;letter-spacing:.02em;}
+    .stop .card{margin-top:5px;background:#fff;border:1px solid #ece5da;border-radius:13px;padding:9px 11px;display:flex;align-items:center;gap:9px;}
+    .stop .card .ic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:none;color:#fff;}
+    .stop .card .ic svg{width:15px;height:15px;}
+    .stop .card .nm{font-family:var(--ed);font-size:13.5px;font-weight:600;line-height:1.15;color:#151515;}
+    .stop .card .mt{font-size:10.5px;color:#9a8f80;}
+    .stop .card .ch{margin-left:auto;font-size:10px;font-weight:600;color:#2f6a43;background:#eaf3ec;padding:3px 7px;border-radius:7px;}
+
+    /* Ask-Drift chat */
+    .chat{display:flex;flex-direction:column;height:100%;background:#FAF7F2;filter:var(--grade-screen);font-family:var(--meta);text-align:left;color:#151515;}
+    .chat .hd{padding:46px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ece5da;}
+    .chat .hd .av{width:30px;height:30px;border-radius:9px;background:var(--coral);display:grid;place-items:center;flex:none;}
+    .chat .hd .av svg{width:17px;height:17px;}
+    .chat .hd .t b{font-family:var(--ed);font-size:15px;font-weight:600;display:block;line-height:1.1;}
+    .chat .hd .t span{font-size:11px;color:#9a8f80;}
+    .chat .body{flex:1;padding:15px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden;}
+    .cm{max-width:84%;font-size:13.5px;line-height:1.42;padding:11px 14px;border-radius:17px;}
+    .cm.u{align-self:flex-end;background:var(--coral);color:#fff;border-bottom-right-radius:5px;}
+    .cm.d{align-self:flex-start;background:#fff;border:1px solid #ece5da;border-bottom-left-radius:5px;}
+    .verdict{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:#eaf3ec;color:#2f6a43;border:1px solid #cfe6d5;border-radius:13px;padding:9px 13px;font-size:13px;font-weight:600;}
+    .verdict svg{width:15px;height:15px;flex:none;}
+    .pcard{align-self:stretch;background:#fff;border:1px solid #ece5da;border-radius:15px;overflow:hidden;}
+    .pcard .ph{height:64px;background:linear-gradient(120deg,#6ea3c9,#98c1dd);position:relative;}
+    .pcard .ph .tag{position:absolute;left:9px;bottom:8px;background:rgba(0,0,0,.42);color:#fff;font-size:10px;font-weight:600;padding:3px 8px;border-radius:7px;backdrop-filter:blur(4px);}
+    .pcard .pb{padding:10px 12px;display:flex;align-items:center;gap:8px;}
+    .pcard .pb .nm{font-family:var(--ed);font-size:14px;font-weight:600;color:#151515;}
+    .pcard .pb .mt{font-size:11px;color:#9a8f80;}
+    .pcard .pb .add{margin-left:auto;background:var(--coral);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:9px;}
+
+    /* play-on-reveal: children cascade in when the section scrolls into view */
+    .js .playseq > *{opacity:0;transform:translateY(14px);}
+    .playseq.play > *{opacity:1;transform:none;transition:opacity .5s var(--e-out),transform .55s var(--e-out);}
+    .playseq.play > *:nth-child(1){transition-delay:.05s} .playseq.play > *:nth-child(2){transition-delay:.16s}
+    .playseq.play > *:nth-child(3){transition-delay:.27s} .playseq.play > *:nth-child(4){transition-delay:.38s}
+    .playseq.play > *:nth-child(5){transition-delay:.49s} .playseq.play > *:nth-child(6){transition-delay:.60s}
+
     /* scroll reveals (only hide once JS confirms it can animate them) */
     .js [data-reveal]{opacity:0;transform:translateY(24px);transition:opacity .7s var(--e-out),transform .7s var(--e-out);transition-delay:calc(var(--i,0) * 80ms);will-change:opacity,transform;}
     .js [data-reveal].in{opacity:1;transform:none;will-change:auto;}
@@ -243,6 +318,7 @@
     @media (prefers-reduced-motion:reduce){
       html{scroll-behavior:auto;}
       .js [data-reveal]{opacity:1!important;transform:none!important;}
+      .js .playseq > *{opacity:1!important;transform:none!important;}
       *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
     }
   </style>
@@ -295,7 +371,40 @@
         <h2>Every journey,<br>on one globe.</h2>
         <p class="lede">Every place you've been, on a globe you can spin.</p>
       </div>
-      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift travel globe pinned with trips"></div></div></div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen">
+        <div class="sbar" style="background:linear-gradient(#050608,#050608 62%,rgba(5,6,8,0))"><span>9:41</span><span class="rt">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+          <svg width="25" height="12" viewBox="0 0 25 12" fill="none" aria-hidden="true"><rect x="1" y="1.5" width="20" height="9" rx="2.6" stroke="#fff" opacity=".5"/><rect x="2.6" y="3.1" width="16" height="5.8" rx="1.4" fill="#fff"/><rect x="22.4" y="4.4" width="1.6" height="3.2" rx=".8" fill="#fff" opacity=".5"/></svg>
+        </span></div>
+        <img loading="lazy" src="assets/app/globe.jpg" alt="Drift travel globe pinned with trips" style="object-position:center -22px"></div></div></div>
+    </div>
+  </section>
+
+  <!-- ASK DRIFT — tap-to-answer chat, plays its sequence on scroll-in -->
+  <section class="feature">
+    <div class="wrap in">
+      <div class="txt" data-reveal>
+        <span class="eyebrow">Ask Drift</span>
+        <h2>Is it worth<br>the hype?</h2>
+        <p class="lede">Ask anything and Drift answers with a real, local take — then drops the place straight into your plan.</p>
+      </div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen">
+        <div class="chat playseq" aria-hidden="true">
+          <div class="hd">
+            <span class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3l2.2 4.8L19 9l-3.6 3.4.9 5-4.3-2.4L7.7 17.4l.9-5L5 9l4.8-1.2z"/></svg></span>
+            <span class="t"><b>Drift</b><span>Reykjavík · Trip assistant</span></span>
+          </div>
+          <div class="body">
+            <div class="cm u">Is the Blue Lagoon worth the hype?</div>
+            <div class="cm d">Honestly? Yes — but time it right. Skip the midday crowds and take the last slot so you soak at sunset.</div>
+            <div class="verdict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg>Worth it · book the sunset slot</div>
+            <div class="pcard">
+              <div class="ph"><span class="tag">Grindavík · 40 min from KEF</span></div>
+              <div class="pb"><div><div class="nm">Blue Lagoon</div><div class="mt">Geothermal spa · from $79</div></div><span class="add">+ Day 1</span></div>
+            </div>
+          </div>
+        </div>
+      </div></div></div>
     </div>
   </section>
 
@@ -309,7 +418,105 @@
         <h2>Your destination,<br>decoded.</h2>
         <p class="lede">Weather, budget, neighborhoods, and what to do — before you land.</p>
       </div>
-      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen"><img loading="lazy" src="assets/app/guide.jpg" alt="Drift destination guide"></div></div></div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen">
+        <div class="sbar" style="background:linear-gradient(#15281b,#15281b 66%,rgba(21,40,27,0))"><span>9:41</span><span class="rt">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+          <svg width="25" height="12" viewBox="0 0 25 12" fill="none" aria-hidden="true"><rect x="1" y="1.5" width="20" height="9" rx="2.6" stroke="#fff" opacity=".5"/><rect x="2.6" y="3.1" width="16" height="5.8" rx="1.4" fill="#fff"/><rect x="22.4" y="4.4" width="1.6" height="3.2" rx=".8" fill="#fff" opacity=".5"/></svg>
+        </span></div>
+        <img loading="lazy" src="assets/app/guide.jpg" alt="Drift destination guide" style="object-position:center -16px"></div></div></div>
+    </div>
+  </section>
+
+  <!-- TOURS & TICKETS — Viator / Klook price rows -->
+  <section class="feature flip">
+    <div class="wrap in">
+      <div class="txt" data-reveal>
+        <span class="eyebrow">Tours &amp; tickets</span>
+        <h2>Book the good<br>stuff early.</h2>
+        <p class="lede">Real experiences from Viator and Klook — compared, then added to the right day.</p>
+      </div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen rx" aria-hidden="true">
+        <div class="rx-bar"><span>9:41</span><span class="r">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="#151515" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11" aria-hidden="true"><rect x="1" y="1" width="20" height="9" rx="2.6" fill="none" stroke="#151515" opacity=".45"/><rect x="2.6" y="2.6" width="15" height="5.8" rx="1.4" fill="#151515"/><rect x="22" y="4" width="1.6" height="3" rx=".8" fill="#151515" opacity=".45"/></svg>
+        </span></div>
+        <div class="rx-hd"><div class="rx-ttl">Barcelona</div><div class="rx-sub">Top things · Tours &amp; tickets</div></div>
+        <div class="rx-scroll playseq">
+          <div class="tk"><div class="im" style="background:linear-gradient(135deg,#d8a25e,#b9743a)"></div><div><div class="nm">Sagrada Família</div><div class="mt">Skip-the-line entry <span class="vd">Viator</span></div></div><div class="pr"><b>$41</b><span>per person</span></div></div>
+          <div class="tk"><div class="im" style="background:linear-gradient(135deg,#6a9bd8,#3f6fb0)"></div><div><div class="nm">Montserrat &amp; wine</div><div class="mt">Day trip · 7 hrs <span class="vd">Klook</span></div></div><div class="pr"><b>$68</b><span>per person</span></div></div>
+          <div class="tk"><div class="im" style="background:linear-gradient(135deg,#cf6f4e,#a8482b)"></div><div><div class="nm">Tapas night walk</div><div class="mt">Small group · 3 hrs <span class="vd">Viator</span></div></div><div class="pr"><b>$59</b><span>per person</span></div></div>
+          <div class="tk"><div class="im" style="background:linear-gradient(135deg,#7bab7f,#4f8557)"></div><div><div class="nm">Park Güell tour</div><div class="mt">Guided · 1.5 hrs <span class="vd">Klook</span></div></div><div class="pr"><b>$29</b><span>per person</span></div></div>
+        </div>
+        <div class="rx-dock">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+          <span class="plus">+</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21C6 15 3 11 3 8a4.5 4.5 0 019-1 4.5 4.5 0 019 1c0 3-3 7-9 13z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+        </div>
+      </div></div></div>
+    </div>
+  </section>
+
+  <!-- ICELAND PLAN — multi-stop typed timeline -->
+  <section class="feature band">
+    <div class="wrap in">
+      <div class="txt" data-reveal>
+        <span class="eyebrow">The plan</span>
+        <h2>Multi-stop days,<br>beautifully typed.</h2>
+        <p class="lede">Stays, drives, tours and dinners — laid out by the hour, drag to reorder.</p>
+      </div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen rx" aria-hidden="true">
+        <div class="rx-bar"><span>9:41</span><span class="r">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="#151515" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11" aria-hidden="true"><rect x="1" y="1" width="20" height="9" rx="2.6" fill="none" stroke="#151515" opacity=".45"/><rect x="2.6" y="2.6" width="15" height="5.8" rx="1.4" fill="#151515"/><rect x="22" y="4" width="1.6" height="3" rx=".8" fill="#151515" opacity=".45"/></svg>
+        </span></div>
+        <div class="rx-hd"><div class="rx-ttl">Iceland · Ring Road</div><div class="rx-sub">Day 2 · South Coast</div></div>
+        <div class="rx-scroll itin playseq">
+          <div class="day">Thursday, Sep 18</div>
+          <div class="stop"><div class="tm">8:30 AM · Drive 2h</div><div class="card"><span class="ic" style="background:#6a9bd8"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M5 11l2-5h10l2 5M5 11h14v5H5zM7 16v2M17 16v2"/></svg></span><div><div class="nm">Seljalandsfoss</div><div class="mt">Waterfall · walk behind it</div></div></div></div>
+          <div class="stop"><div class="tm">11:00 AM</div><div class="card"><span class="ic" style="background:#7bab7f"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.6" fill="#fff"/></svg></span><div><div class="nm">Skógafoss hike</div><div class="mt">Tour · 2 hrs</div></div><span class="ch">Booked</span></div></div>
+          <div class="stop"><div class="tm">2:00 PM · Lunch</div><div class="card"><span class="ic" style="background:#d9853d"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Black Beach Café</div><div class="mt">Reynisfjara · $$</div></div></div></div>
+          <div class="stop"><div class="tm">7:00 PM · Stay</div><div class="card"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Hótel Vík</div><div class="mt">Booking.com · 2 nights</div></div><span class="ch">Booked</span></div></div>
+        </div>
+        <div class="rx-dock">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+          <span class="plus">+</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21C6 15 3 11 3 8a4.5 4.5 0 019-1 4.5 4.5 0 019 1c0 3-3 7-9 13z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+        </div>
+      </div></div></div>
+    </div>
+  </section>
+
+  <!-- TRIP FEED — the crew's trips -->
+  <section class="feature flip">
+    <div class="wrap in">
+      <div class="txt" data-reveal>
+        <span class="eyebrow">Your trips</span>
+        <h2>Every trip,<br>in one place.</h2>
+        <p class="lede">Upcoming, current and past — with the whole crew already on board.</p>
+      </div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen rx" aria-hidden="true">
+        <div class="rx-bar"><span>9:41</span><span class="r">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="#151515" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11" aria-hidden="true"><rect x="1" y="1" width="20" height="9" rx="2.6" fill="none" stroke="#151515" opacity=".45"/><rect x="2.6" y="2.6" width="15" height="5.8" rx="1.4" fill="#151515"/><rect x="22" y="4" width="1.6" height="3" rx=".8" fill="#151515" opacity=".45"/></svg>
+        </span></div>
+        <div class="rx-hd"><div class="rx-ttl">Trips</div><div class="rx-sub">3 upcoming · 2 crews</div></div>
+        <div class="rx-scroll playseq">
+          <div class="tc"><div class="im" style="background-image:url(assets/photo/swing.jpg)"><span class="fl">🇳🇵</span><span class="cap"><b>Kathmandu</b><span>Oct 4 – Oct 14 · 4 going</span></span></div><div class="mr"><span class="a"><span>H</span><span>A</span><span>M</span><span>+1</span></span><span class="st">Planning</span></div></div>
+          <div class="tc"><div class="im" style="background-image:url(assets/photo/positano.jpg)"><span class="fl">🇬🇧</span><span class="cap"><b>London</b><span>Nov 21 – Nov 26 · 2 going</span></span></div><div class="mr"><span class="a"><span>H</span><span>J</span></span><span class="st">Booked</span></div></div>
+          <div class="tc"><div class="im" style="background-image:url(assets/photo/amalfi.jpg)"><span class="fl">🇨🇴</span><span class="cap"><b>Bogotá</b><span>Jan 9 – Jan 18 · 5 going</span></span></div><div class="mr"><span class="a"><span>H</span><span>A</span><span>M</span><span>+2</span></span><span class="st">Planning</span></div></div>
+        </div>
+        <div class="rx-dock">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+          <span class="plus">+</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21C6 15 3 11 3 8a4.5 4.5 0 019-1 4.5 4.5 0 019 1c0 3-3 7-9 13z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>
+        </div>
+      </div></div></div>
     </div>
   </section>
 
@@ -476,6 +683,22 @@
       addEventListener('scroll',function(){ if(tick)return; tick=true; requestAnimationFrame(function(){update();tick=false;}); },{passive:true});
       addEventListener('resize',function(){ measure(); last=-1; update(); },{passive:true});
     }
+  })();
+  </script>
+  <script>
+  /* play-on-reveal cascades for the recreated app screens (chat, tours, plan, feed) */
+  (function(){
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var seqs = document.querySelectorAll('.playseq');
+    if(!seqs.length) return;
+    if(reduce || !('IntersectionObserver' in window)){
+      seqs.forEach(function(el){el.classList.add('play');});
+      return;
+    }
+    var io = new IntersectionObserver(function(es,o){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('play'); o.unobserve(e.target); } });
+    },{threshold:.35});
+    seqs.forEach(function(el){io.observe(el);});
   })();
   </script>
 </body>
