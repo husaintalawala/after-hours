@@ -277,6 +277,25 @@
     @media (hover:hover){.mtile:hover img{transform:scale(1.05);}}
     @media (max-width:640px){.montage .g{columns:2 150px;}}
 
+    /* real-screen showcase — floating device cluster */
+    .showcase{padding:clamp(66px,11vw,150px) 0;overflow:hidden;}
+    .showcase .in{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,7vw,100px);align-items:center;}
+    .showcase h2{font-size:clamp(38px,5.6vw,74px);margin:18px 0 0;}
+    .showcase .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:24px 0 0;max-width:33ch;line-height:1.45;}
+    .showcase .tlink{display:inline-flex;align-items:center;gap:8px;margin-top:30px;font-weight:600;font-size:16px;color:var(--coralDeep);text-decoration:none;}
+    .showcase .tlink svg{width:20px;height:20px;}
+    .devcluster{position:relative;width:100%;max-width:430px;margin:0 auto;}
+    .dev{border-radius:34px;overflow:hidden;background:#0b0b0b;border:4px solid #0b0b0b;box-shadow:0 46px 88px -34px rgba(40,28,16,.6),0 15px 34px -20px rgba(40,28,16,.42);}
+    .dev img{width:100%;display:block;}
+    .dev.front{position:relative;z-index:3;width:76%;margin-left:auto;}
+    .dev.back{position:absolute;left:0;top:7%;width:60%;z-index:2;}
+    .anim .dev.front{animation:f2 8.5s ease-in-out infinite;}
+    .anim .dev.back{animation:f1 7.5s ease-in-out infinite;}
+    @media (max-width:880px){
+      .showcase .in{grid-template-columns:1fr;gap:46px;}
+      .devcluster{max-width:400px;}
+    }
+
     /* download / final */
     .final{padding:clamp(80px,12vw,180px) 0;}
     .final .box{background:var(--ink);color:#fff;border-radius:36px;padding:clamp(50px,8vw,96px) clamp(28px,6vw,80px);text-align:center;position:relative;overflow:hidden;}
@@ -558,6 +577,22 @@
         <div class="ph"><picture><source type="image/webp" srcset="assets/photo/phiphi-bg.webp"><img loading="lazy" src="assets/photo/phiphi-bg.jpg" alt="A long-tail boat winding between the Phi Phi islands" width="780" height="1040"></picture></div>
         <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
         <div class="devcard"><span class="sb"></span><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe, pinned with every country you've visited" width="276" height="600"></picture></div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- REAL-SCREEN SHOWCASE -->
+  <section class="showcase"><div class="wrap in">
+    <div class="txt">
+      <span class="eyebrow" data-rise>The actual app</span>
+      <h2 data-rise style="--i:1">The whole trip,<br>in your pocket.</h2>
+      <p class="lede" data-rise style="--i:2">Real screens from Drift — a guide for every place, a live map of the journey, and the countdown to wheels-up. Not a mockup.</p>
+      <a class="tlink" href="#get" data-rise style="--i:3">Join the beta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="art" data-rise style="--i:1">
+      <div class="devcluster">
+        <div class="dev back"><picture><source type="image/webp" srcset="assets/app/hero-discover.webp"><img loading="lazy" src="assets/app/hero-discover.jpg" alt="Discovering places around Ko Phi Phi on the map in Drift" width="600" height="1216"></picture></div>
+        <div class="dev front"><picture><source type="image/webp" srcset="assets/app/hero-track.webp"><img loading="lazy" src="assets/app/hero-track.jpg" alt="A Thailand trip in Drift, counting down 48 nights until you wander" width="600" height="1216"></picture></div>
       </div>
     </div>
   </div></section>
