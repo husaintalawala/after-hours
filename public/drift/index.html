@@ -253,12 +253,30 @@
       .stack{max-width:400px;}
     }
 
+    /* app-card hover lift */
+    .appcard{transition:transform .4s var(--e-out),box-shadow .4s var(--e-out);}
+    @media (hover:hover){.stack:hover .appcard{transform:translateY(-6px);box-shadow:0 52px 96px -42px rgba(40,28,16,.5),0 18px 38px -20px rgba(40,28,16,.3);}}
+
+    /* card choreography — inner rows cascade in when the card scrolls into view */
+    .js .appcard .cm,.js .appcard .verdict,.js .appcard .pcard,
+    .js .appcard .srow,.js .appcard .exp,.js .appcard .settle,
+    .js .appcard .stop{opacity:0;transform:translateY(14px);}
+    .appcard.play .cm,.appcard.play .verdict,.appcard.play .pcard,
+    .appcard.play .srow,.appcard.play .exp,.appcard.play .settle,
+    .appcard.play .stop{opacity:1;transform:none;transition:opacity .5s var(--e-out),transform .58s var(--e-out);}
+    .appcard.play .chat-body>:nth-child(1),.appcard.play .ac-pad>:nth-child(1){transition-delay:.05s}
+    .appcard.play .chat-body>:nth-child(2),.appcard.play .ac-pad>:nth-child(2){transition-delay:.16s}
+    .appcard.play .chat-body>:nth-child(3),.appcard.play .ac-pad>:nth-child(3){transition-delay:.27s}
+    .appcard.play .chat-body>:nth-child(4),.appcard.play .ac-pad>:nth-child(4){transition-delay:.38s}
+    .appcard.play .ac-pad>:nth-child(5){transition-delay:.49s}
+
     /* reveals */
     .js [data-rise]{opacity:0;transform:translateY(28px);transition:opacity .8s var(--e-out),transform .8s var(--e-out);transition-delay:calc(var(--i,0)*90ms);will-change:opacity,transform;}
     .js [data-rise].shown{opacity:1;transform:none;will-change:auto;}
     @media (prefers-reduced-motion:reduce){
       html{scroll-behavior:auto;}
       .js [data-rise]{opacity:1!important;transform:none!important;}
+      .js .appcard .cm,.js .appcard .verdict,.js .appcard .pcard,.js .appcard .srow,.js .appcard .exp,.js .appcard .settle,.js .appcard .stop{opacity:1!important;transform:none!important;}
       *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
     }
   </style>
@@ -330,7 +348,7 @@
     </div>
     <div class="art" data-rise style="--i:1">
       <div class="stack">
-        <div class="badge3d" style="bottom:-24px;left:18px;">💸</div>
+        <div class="badge3d" style="top:-24px;left:-14px;">💸</div>
         <div class="appcard">
           <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Casa Verde</div><div class="ac-sub">San José · Aug 12–16 · 4 guests</div></div>
           <div class="ac-pad" style="padding-top:4px">
@@ -360,8 +378,8 @@
             <div class="exp"><span class="ic" style="background:#D9853D"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><div><div class="nm">Rafting day</div><div class="mt">You paid</div></div><span class="amt">$88</span></div>
             <div class="exp"><span class="ic" style="background:#C9603F"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Dinner in San José</div><div class="mt">Marco paid</div></div><span class="amt">$64</span></div>
             <div class="settle">
-              <div class="st"><span class="l">Your share</span><span class="a">$116</span></div>
-              <div class="owe">You owe Ana <b>$54</b> to settle up</div>
+              <div class="st"><span class="l">Your share</span><span class="a" data-count="116" data-pre="$">$116</span></div>
+              <div class="owe">You owe Ana <b data-count="54" data-pre="$">$54</b> to settle up</div>
               <div class="av"><span>A</span><span>M</span><span>J</span><span>+1</span></div>
             </div>
           </div>
@@ -468,13 +486,35 @@
     addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>10);},{passive:true});
 
     var rise=document.querySelectorAll('[data-rise]');
+    var cards=document.querySelectorAll('.appcard');
+    function countup(card){
+      card.querySelectorAll('[data-count]').forEach(function(el){
+        var to=parseFloat(el.dataset.count), pre=el.dataset.pre||'', start=null, dur=1100;
+        requestAnimationFrame(function step(ts){ if(!start)start=ts; var p=Math.min((ts-start)/dur,1);
+          el.textContent=pre+Math.round(to*(1-Math.pow(1-p,3))); if(p<1)requestAnimationFrame(step); });
+      });
+    }
+    function showRise(el){el.classList.add('shown');}
+    function playCard(c){ if(!c.classList.contains('play')){ c.classList.add('play'); countup(c); } }
     if(reduce || !('IntersectionObserver' in window)){
-      rise.forEach(function(el){el.classList.add('shown');});
+      rise.forEach(showRise); cards.forEach(function(c){c.classList.add('play');});
     } else {
       var io=new IntersectionObserver(function(es,o){
-        es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('shown'); o.unobserve(e.target); } });
+        es.forEach(function(e){ if(e.isIntersecting){ showRise(e.target); o.unobserve(e.target); } });
       },{threshold:.16,rootMargin:'0px 0px -6% 0px'});
       rise.forEach(function(el){io.observe(el);});
+      var cio=new IntersectionObserver(function(es,o){
+        es.forEach(function(e){ if(e.isIntersecting){ playCard(e.target); o.unobserve(e.target); } });
+      },{threshold:.35});
+      cards.forEach(function(c){cio.observe(c);});
+      // robustness: reveal anything already in view immediately (don't wait on IO latency)
+      requestAnimationFrame(function(){
+        var vh=innerHeight;
+        rise.forEach(function(el){ if(el.getBoundingClientRect().top < vh) showRise(el); });
+        cards.forEach(function(c){ if(c.getBoundingClientRect().top < vh) playCard(c); });
+      });
+      // last-resort failsafe so content can never stay hidden if IO misfires
+      setTimeout(function(){ rise.forEach(showRise); cards.forEach(playCard); }, 4000);
     }
   })();
   </script>
