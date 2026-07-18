@@ -43,7 +43,8 @@
     html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
     body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--meta);line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip;}
     img{display:block;max-width:100%;}
-    .wrap{max-width:1200px;margin:0 auto;padding:0 clamp(22px,5vw,56px);}
+    .wrap{max-width:1500px;margin:0 auto;padding:0 clamp(22px,5vw,64px);}
+    .wrap.narrow{max-width:1180px;}
     h1,h2,h3{font-family:var(--ed);font-weight:600;letter-spacing:-.032em;line-height:1.0;margin:0;text-wrap:balance;}
     .eyebrow{font-family:var(--meta);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--coralDeep);}
     p{margin:0;}
@@ -127,6 +128,16 @@
     .badge3d{position:absolute;z-index:4;width:52px;height:52px;border-radius:15px;background:#fff;box-shadow:var(--shadow-sm);display:grid;place-items:center;font-size:26px;transform:rotate(-8deg);}
     .anim .badge3d{animation:f3 6.8s ease-in-out infinite;}
 
+    /* photo "shot" card (rounded photo + floating app chip) */
+    .shotcard{position:relative;width:100%;max-width:410px;margin:0 auto;}
+    .shotcard .ph{border-radius:28px;overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/5;background:#ddd;}
+    .shotcard .ph img{width:100%;height:100%;object-fit:cover;}
+    .shotcard .rchip{position:absolute;left:-16px;bottom:30px;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm);padding:13px 16px;z-index:3;will-change:transform;}
+    .shotcard .rchip .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ter);font-weight:700;}
+    .shotcard .rchip .v{font-family:var(--ed);font-weight:600;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;color:var(--ink);}
+    .shotcard .rchip .v svg{width:17px;height:17px;color:var(--coral);flex:none;}
+    .anim .shotcard .rchip{animation:f1 7.4s ease-in-out infinite;}
+
     /* card header */
     .ac-hd{display:flex;align-items:center;gap:11px;padding:18px 18px 14px;border-bottom:1px solid var(--line);}
     .ac-hd .av{width:34px;height:34px;border-radius:10px;background:var(--coral);display:grid;place-items:center;flex:none;}
@@ -190,6 +201,27 @@
     .stop .card .mt{font-size:11px;color:var(--ter);}
     .stop .card .ch{margin-left:auto;font-size:10px;font-weight:700;color:#2f6a43;background:#eaf3ec;padding:3px 8px;border-radius:7px;}
 
+    /* keep 2-col product moments balanced inside the wide container */
+    .moment .in{max-width:1300px;margin:0 auto;}
+    .grid-sec .wrap,.montage .wrap,.trust .wrap,.how .wrap,.final .wrap{max-width:1300px;margin:0 auto;}
+
+    /* HOW IT WORKS — numbered step flow */
+    .how{padding:clamp(64px,10vw,140px) 0;}
+    .how .head{max-width:680px;}
+    .how h2{font-size:clamp(36px,5.2vw,64px);margin:18px 0 0;}
+    .how .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:22px 0 0;max-width:48ch;}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;margin-top:64px;}
+    @media (max-width:860px){.steps{grid-template-columns:1fr 1fr;gap:44px 26px;}}
+    @media (max-width:520px){.steps{grid-template-columns:1fr;gap:36px;}}
+    .step .n{width:44px;height:44px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--ed);font-weight:600;font-size:18px;display:grid;place-items:center;}
+    .step h3{font-size:22px;margin:20px 0 0;}
+    .step p{font-size:15.5px;color:var(--sec);margin:10px 0 0;line-height:1.55;}
+
+    /* small text link (adds per-section CTAs) */
+    .tlink{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:15px;color:var(--coralDeep);text-decoration:none;margin-top:26px;}
+    .tlink svg{width:16px;height:16px;transition:transform .25s var(--e-spring);}
+    .tlink:hover svg{transform:translateX(4px);}
+
     /* GRID — everything a trip needs */
     .grid-sec{padding:clamp(70px,11vw,150px) 0;}
     .grid-sec .head{max-width:660px;}
@@ -238,10 +270,17 @@
     .badge small{display:block;font-size:10px;opacity:.6;}
     .badge b{font-size:18px;}
 
-    footer{padding:56px 0 64px;color:var(--sec);font-size:14.5px;border-top:1px solid var(--line);}
-    footer .in{display:flex;flex-wrap:wrap;gap:18px 34px;align-items:center;justify-content:space-between;}
-    footer a{color:var(--sec);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;} footer a:hover{color:var(--ink);}
-    footer .fl{display:flex;gap:8px 30px;flex-wrap:wrap;}
+    footer{padding:76px 0 56px;color:var(--sec);font-size:14.5px;border-top:1px solid var(--line);}
+    footer .top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:48px;}
+    @media (max-width:760px){footer .top{grid-template-columns:1fr 1fr;gap:40px 24px;}}
+    footer .brand{margin-bottom:0;}
+    footer .tag{font-size:15px;color:var(--sec);margin:18px 0 0;max-width:30ch;line-height:1.55;}
+    footer .col h4{font-family:var(--meta);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--ter);font-weight:700;margin:0 0 12px;}
+    footer a{color:var(--sec);text-decoration:none;} footer a:hover{color:var(--ink);}
+    footer .col a{display:flex;align-items:center;min-height:38px;}
+    footer .bot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px 30px;margin-top:56px;padding-top:28px;border-top:1px solid var(--line);}
+    footer .bot .fl{display:flex;gap:8px 26px;flex-wrap:wrap;}
+    footer .bot .fl a{min-height:44px;display:inline-flex;align-items:center;}
 
     a:focus-visible,.pill:focus-visible,.badge:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
 
@@ -313,12 +352,33 @@
     </div>
   </div></section>
 
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how"><div class="wrap">
+    <div class="head">
+      <span class="eyebrow" data-rise>How it works</span>
+      <h2 data-rise style="--i:1">From “where should<br>we go?” to home.</h2>
+      <p class="lede" data-rise style="--i:2">Drift carries a group trip from the first spark of an idea all the way to the last settled payment — no scattered group chats, no mystery spreadsheet.</p>
+    </div>
+    <div class="steps">
+      <div class="step" data-rise style="--i:0"><div class="n">1</div><h3>Start a trip</h3><p>Name it, set the dates, and drop in a destination. Drift builds the shell of your itinerary in seconds.</p></div>
+      <div class="step" data-rise style="--i:1"><div class="n">2</div><h3>Bring your crew</h3><p>Invite everyone with a link. They see the same plan, vote on ideas, and chat right inside the trip.</p></div>
+      <div class="step" data-rise style="--i:2"><div class="n">3</div><h3>Plan &amp; book</h3><p>Compare stays, line up tours, and build the day-by-day together — booking with the names you trust.</p></div>
+      <div class="step" data-rise style="--i:3"><div class="n">4</div><h3>Split as you go</h3><p>Log expenses as they happen and Drift keeps the math. End the trip square, with one tap to settle up.</p></div>
+    </div>
+  </div></section>
+
   <!-- ASK DRIFT -->
   <section class="moment" id="ask"><div class="wrap in">
     <div class="txt">
       <span class="eyebrow" data-rise>Ask Drift</span>
       <h2 data-rise style="--i:1">Is it worth<br>the hype?</h2>
-      <p class="lede" data-rise style="--i:2">Ask anything and Drift answers with a real, local take — then drops the place straight into the right day of your plan.</p>
+      <p class="lede" data-rise style="--i:2">Ask anything and Drift answers with a real, local take — not a top-ten listicle — then drops the place straight into the right day of your plan.</p>
+      <div class="mini" data-rise style="--i:3">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Honest verdicts</b> — worth it, skip it, or go at a different time of day.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Knows your trip</b> — answers factor in your dates, city, and who's coming.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>One tap to add</b> — the place lands in the right day, already scheduled.</span></div>
+      </div>
+      <a class="tlink" href="#get" data-rise style="--i:4">Try it in the app <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="art" data-rise style="--i:1">
       <div class="stack">
@@ -344,7 +404,13 @@
     <div class="txt">
       <span class="eyebrow" data-rise>Book the stay</span>
       <h2 data-rise style="--i:1">One place<br>you love,<br>every price.</h2>
-      <p class="lede" data-rise style="--i:2">Drift checks Booking, Expedia, Hotels.com and Vrbo at once and shows you the best price — you book with the name you trust.</p>
+      <p class="lede" data-rise style="--i:2">Find the stay everyone agrees on, then let Drift do the price shopping. We check Booking, Expedia, Hotels.com and Vrbo at once so you never overpay.</p>
+      <div class="mini" data-rise style="--i:3">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Four sites, one view</b> — the same room, compared side by side.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Best price, flagged</b> — Drift highlights the cheapest and links you out to book.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Saved to the trip</b> — the booking sits in your plan, split-ready.</span></div>
+      </div>
+      <a class="tlink" href="#get" data-rise style="--i:4">Compare stays <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="art" data-rise style="--i:1">
       <div class="stack">
@@ -367,7 +433,13 @@
     <div class="txt">
       <span class="eyebrow" data-rise>Split costs</span>
       <h2 data-rise style="--i:1">Settle up,<br>simply.</h2>
-      <p class="lede" data-rise style="--i:2">Track who paid for what as you go, and end the trip square — no spreadsheet, no awkward group-chat math.</p>
+      <p class="lede" data-rise style="--i:2">Someone always fronts the villa; someone else grabs every dinner. Drift quietly keeps score so the trip ends square — no spreadsheet, no awkward group-chat math.</p>
+      <div class="mini" data-rise style="--i:3">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Log it in seconds</b> — add an expense and who covered it, right as it happens.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Fair shares, auto</b> — split evenly or by who was actually there.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>One number to pay</b> — the fewest transfers to make everyone even.</span></div>
+      </div>
+      <a class="tlink" href="#get" data-rise style="--i:4">See the math <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="art" data-rise style="--i:1">
       <div class="stack">
@@ -393,7 +465,13 @@
     <div class="txt">
       <span class="eyebrow" data-rise>The plan</span>
       <h2 data-rise style="--i:1">Every day,<br>laid out<br>by the hour.</h2>
-      <p class="lede" data-rise style="--i:2">Stays, drives, tours and dinners on one timeline the whole crew can see — drag to reorder, and everyone stays in sync.</p>
+      <p class="lede" data-rise style="--i:2">Stays, drives, tours and dinners on one clean timeline the whole crew can see. Drag to reorder, and every change shows up for everyone instantly.</p>
+      <div class="mini" data-rise style="--i:3">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Hour by hour</b> — realistic days with drive times built in, not a wish list.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Everything in one place</b> — bookings, reservations and tickets attached to each stop.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Live for the group</b> — no “which version is current?” — there's only one.</span></div>
+      </div>
+      <a class="tlink" href="#get" data-rise style="--i:4">Build a plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="art" data-rise style="--i:1">
       <div class="stack">
@@ -407,6 +485,55 @@
             <div class="stop"><div class="tm">7:00 PM · Stay</div><div class="card"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Hótel Vík</div><div class="mt">Booking.com · 2 nights</div></div><span class="ch">Booked</span></div></div>
           </div>
         </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- TOURS -->
+  <section class="moment"><div class="wrap in">
+    <div class="txt">
+      <span class="eyebrow" data-rise>Tours &amp; experiences</span>
+      <h2 data-rise style="--i:1">Book the good<br>stuff early.</h2>
+      <p class="lede" data-rise style="--i:2">The tours that sell out are the ones you'll remember. Drift pulls real experiences from Viator and Klook and slots them into the right day before they're gone.</p>
+      <div class="mini" data-rise style="--i:3">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Vetted operators</b> — Viator and Klook, with real reviews and prices.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Straight into the plan</b> — added to the day, with time and meeting point.</span></div>
+      </div>
+      <a class="tlink" href="#get" data-rise style="--i:4">Find experiences <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="art" data-rise style="--i:1">
+      <div class="stack">
+        <div class="badge3d" style="top:-24px;right:22px;">🎟️</div>
+        <div class="appcard">
+          <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Barcelona</div><div class="ac-sub">Top experiences · Tours &amp; tickets</div></div>
+          <div class="ac-pad" style="padding-top:4px">
+            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#d8a25e,#b9743a)"></span><div><div class="nm">Sagrada Família</div><div class="mt">Skip-the-line · Viator</div></div><div class="pr">$41<small>/person</small></div></div>
+            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#6a9bd8,#3f6fb0)"></span><div><div class="nm">Montserrat &amp; wine</div><div class="mt">Day trip, 7h · Klook</div></div><div class="pr">$68<small>/person</small></div></div>
+            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#cf6f4e,#a8482b)"></span><div><div class="nm">Tapas night walk</div><div class="mt">Small group · Viator</div></div><div class="pr">$59<small>/person</small></div></div>
+            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#7bab7f,#4f8557)"></span><div><div class="nm">Park Güell tour</div><div class="mt">Guided, 1.5h · Klook</div></div><div class="pr">$29<small>/person</small></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- TRACK -->
+  <section class="moment flip"><div class="wrap in">
+    <div class="txt">
+      <span class="eyebrow" data-rise>Track the journey</span>
+      <h2 data-rise style="--i:1">Every step,<br>on the map.</h2>
+      <p class="lede" data-rise style="--i:2">As you travel, Drift quietly traces your route and pins the moments — so the trip becomes a map you can look back on, and a globe of everywhere you've been.</p>
+      <div class="mini" data-rise style="--i:3">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Automatic route</b> — your path drawn as you go, no check-ins required.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>A globe of your travels</b> — every country you've touched, spinning in one view.</span></div>
+      </div>
+      <a class="tlink" href="#get" data-rise style="--i:4">See your map <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="art" data-rise style="--i:1">
+      <div class="shotcard">
+        <div class="badge3d" style="top:-22px;left:-14px;z-index:5;">🌍</div>
+        <div class="ph"><img loading="lazy" src="assets/photo/phiphi.jpg" alt="A long-tail boat winding between the Phi Phi islands"></div>
+        <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
       </div>
     </div>
   </div></section>
@@ -470,10 +597,35 @@
   </div></section>
   </main>
 
-  <footer><div class="wrap in">
-    <a class="brand" href="#top" style="font-size:20px;"><span class="p"></span>Drift</a>
-    <div class="fl"><a href="mailto:hello@after-hours.app">Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
-    <div>© 2026 Drift</div>
+  <footer><div class="wrap">
+    <div class="top">
+      <div>
+        <a class="brand" href="#top" style="font-size:22px;"><span class="p"></span>Drift</a>
+        <p class="tag">The group-trip app — plan, book, and split every cost with your people.</p>
+      </div>
+      <div class="col">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#ask">Ask Drift</a>
+        <a href="#get">Book &amp; compare</a>
+        <a href="#get">Split costs</a>
+      </div>
+      <div class="col">
+        <h4>Get the app</h4>
+        <a href="#get">Join the beta</a>
+        <a href="#get">TestFlight</a>
+        <a href="mailto:hello@after-hours.app">Contact us</a>
+      </div>
+      <div class="col">
+        <h4>Legal</h4>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </div>
+    </div>
+    <div class="bot">
+      <div>© 2026 Drift · Made for people who travel together.</div>
+      <div class="fl"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="mailto:hello@after-hours.app">hello@after-hours.app</a></div>
+    </div>
   </div></footer>
 
   <script>
