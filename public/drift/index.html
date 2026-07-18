@@ -66,6 +66,10 @@
     .nav .in{display:flex;align-items:center;justify-content:space-between;height:70px;}
     .brand{display:flex;align-items:center;gap:9px;font-family:var(--ed);font-weight:600;font-size:25px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;}
     .brand .p{width:16px;height:16px;border-radius:50% 50% 50% 0;background:var(--coral);transform:rotate(45deg);}
+    .nav .links{display:flex;gap:34px;}
+    .nav .links a{color:var(--sec);font-weight:500;font-size:15.5px;text-decoration:none;transition:color .2s;}
+    .nav .links a:hover{color:var(--ink);}
+    @media (max-width:760px){.nav .links{display:none;}}
 
     /* HERO */
     .hero{padding:clamp(40px,7vw,92px) 0 clamp(60px,9vw,120px);}
@@ -334,6 +338,7 @@
 <body id="top">
   <header class="nav" id="nav"><div class="wrap in">
     <a class="brand" href="#top"><span class="p"></span>Drift</a>
+    <nav class="links" aria-label="Primary"><a href="#how">How it works</a><a href="#ask">Features</a><a href="#get">Beta</a></nav>
     <a class="pill coral sm" href="#get">Get the app</a>
   </div></header>
 
@@ -681,6 +686,28 @@
       });
       // last-resort failsafe so content can never stay hidden if IO misfires
       setTimeout(function(){ rise.forEach(showRise); cards.forEach(playCard); }, 4000);
+    }
+
+    // scroll-linked parallax on the floating card clusters (depth as you scroll)
+    if(!reduce && matchMedia('(hover:hover) and (pointer:fine)').matches){
+      var pars=[].slice.call(document.querySelectorAll('.stack,.shotcard,.cluster'));
+      pars.forEach(function(el){el.style.willChange='transform';});
+      var ticking=false;
+      function updatePar(){
+        var vh=innerHeight, mid=vh/2;
+        for(var i=0;i<pars.length;i++){
+          var el=pars[i], r=el.getBoundingClientRect();
+          if(r.bottom<-200||r.top>vh+200) continue;
+          var off=(r.top+r.height/2)-mid;
+          var t=off*-0.045;
+          if(t>44)t=44; else if(t<-44)t=-44;
+          el.style.transform='translate3d(0,'+t.toFixed(1)+'px,0)';
+        }
+        ticking=false;
+      }
+      addEventListener('scroll',function(){ if(!ticking){ticking=true;requestAnimationFrame(updatePar);} },{passive:true});
+      addEventListener('resize',updatePar,{passive:true});
+      updatePar();
     }
   })();
   </script>
