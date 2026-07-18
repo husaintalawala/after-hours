@@ -3,92 +3,134 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drift hero — edge-to-edge</title>
+<title>Drift — new design system (preview)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --ink:#14100A; --white:#FCFCFB; --cream:#FDF6EC; --line:#ECE6DC;
+    --coral:#C9603F; --coralDeep:#A8482B; --coralSoft:#F6E4DA;
+    --ed:"Bricolage Grotesque","Inter",sans-serif; --meta:"Inter",system-ui,sans-serif;
+    --e:cubic-bezier(.16,1,.3,1);
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{background:#E58C57;}
-  body{font-family:"Inter",system-ui,sans-serif;overflow-x:hidden;}
+  html{scroll-behavior:smooth;}
+  body{font-family:var(--meta);background:var(--white);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;}
   img{display:block;max-width:100%;}
-  a{text-decoration:none;}
-  .tag{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:50;background:rgba(17,17,17,.9);color:#fff;font-size:13px;font-weight:600;padding:9px 18px;border-radius:999px;backdrop-filter:blur(6px);}
-
-  /* ===== full-bleed immersive hero ===== */
-  .hero{position:relative;width:100vw;min-height:100vh;overflow:hidden;
-    background:linear-gradient(118deg,#F6CB84 0%,#F0AC6B 46%,#E88A55 100%);}
-  /* full-bleed photo, right side, melting into the warm ground */
-  .scene{position:absolute;inset:0 0 0 auto;width:58vw;z-index:1;}
-  .scene .ph{position:absolute;inset:0;}
-  .scene .ph img{width:100%;height:100%;object-fit:cover;
-    -webkit-mask-image:linear-gradient(to right,transparent,#000 26%);
-    mask-image:linear-gradient(to right,transparent,#000 26%);}
-  /* soft floor shadow */
-  .scene::after{content:"";position:absolute;left:-8%;right:0;bottom:0;height:26%;
-    background:linear-gradient(to top,rgba(120,60,20,.28),transparent);z-index:2;}
-
-  nav{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;
-    padding:26px clamp(24px,4vw,54px);}
-  nav .brand{display:flex;align-items:center;gap:9px;font-family:"Bricolage Grotesque";font-weight:800;font-size:26px;color:#14100A;letter-spacing:-.02em;}
-  nav .brand .p{width:16px;height:16px;border-radius:50% 50% 50% 0;background:#C9603F;transform:rotate(45deg);}
-  nav .links{display:flex;gap:30px;align-items:center;}
-  nav .links a{font-size:15px;font-weight:500;color:#14100A;}
-  nav .get{border:1.5px solid #14100A;border-radius:999px;padding:9px 20px;font-weight:600;font-size:14px;color:#14100A;}
-  @media(max-width:820px){nav .links{display:none;}}
-
-  .inner{position:relative;z-index:10;padding:clamp(10px,2vw,26px) clamp(24px,4vw,54px) 0;max-width:min(58%,860px);}
-  @media(max-width:820px){.inner{max-width:100%;}}
-  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;color:#14100A;
-    background:rgba(255,255,255,.55);border:1px solid rgba(20,16,10,.12);padding:7px 14px 7px 12px;border-radius:999px;}
-  .eyebrow .d{width:7px;height:7px;border-radius:50%;background:#C9603F;}
-  h1{font-family:"Bricolage Grotesque","Inter",sans-serif;font-weight:800;
-    font-size:clamp(60px,10.5vw,152px);line-height:.88;letter-spacing:-.04em;color:#14100A;margin:26px 0 0;text-wrap:balance;}
-  .lede{font-size:clamp(19px,2.1vw,24px);color:#3d2f1c;margin:26px 0 0;max-width:26ch;line-height:1.4;font-weight:500;}
-  .cta{display:flex;gap:20px;align-items:center;margin-top:38px;flex-wrap:wrap;}
-  .pill{background:#14100A;color:#fff;font-weight:600;font-size:16.5px;padding:17px 32px;border-radius:14px;}
-  .play{display:flex;align-items:center;gap:12px;font-weight:600;font-size:16px;color:#14100A;}
-  .play .pb{width:44px;height:44px;border-radius:50%;background:#14100A;display:grid;place-items:center;}
+  a{text-decoration:none;color:inherit;}
+  h1,h2{font-family:var(--ed);font-weight:800;letter-spacing:-.04em;line-height:.9;text-wrap:balance;}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;color:currentColor;background:rgba(255,255,255,.55);border:1px solid rgba(20,16,10,.12);padding:7px 14px 7px 12px;border-radius:999px;}
+  .eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--coral);}
+  .pill{display:inline-flex;align-items:center;gap:9px;background:var(--ink);color:#fff;font-weight:600;font-size:16.5px;padding:16px 30px;border-radius:14px;transition:transform .3s var(--e);}
+  .pill:hover{transform:translateY(-2px);}
+  .play{display:inline-flex;align-items:center;gap:12px;font-weight:600;font-size:16px;}
+  .play .pb{width:44px;height:44px;border-radius:50%;background:var(--ink);display:grid;place-items:center;}
   .play .pb svg{width:14px;height:14px;margin-left:2px;fill:#fff;}
-  .more{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:10;
-    display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#14100A;}
-
-  /* floating product cards straddling the seam */
-  .card{position:absolute;z-index:15;background:#fff;border-radius:16px;
-    box-shadow:0 26px 54px -24px rgba(80,40,10,.45);padding:13px 15px;font-family:"Inter";will-change:transform;}
-  .card .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#9a968e;font-weight:700;}
-  .card .row{display:flex;align-items:center;gap:10px;margin-top:8px;}
-  .card .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#14100A;flex:none;}
-  .card .nm{font-family:"Bricolage Grotesque";font-weight:700;font-size:14.5px;color:#14100A;line-height:1.1;}
-  .card .mt{font-size:11.5px;color:#78746c;}
-  .c1{top:20%;left:46%;width:236px;animation:fl1 7s ease-in-out infinite;}
-  .c2{top:52%;left:38%;background:#14100A;color:#fff;padding:14px 18px;animation:fl2 8s ease-in-out infinite;}
-  .c2 .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;font-weight:700;}
-  .c2 .v{font-family:"Bricolage Grotesque";font-size:19px;font-weight:700;margin-top:4px;letter-spacing:-.02em;}
-  .c2 .v b{color:#F2A98C;}
-  .c3{bottom:16%;left:52%;display:flex;align-items:center;gap:10px;border-radius:999px;padding:12px 17px;animation:fl1 7.6s ease-in-out infinite .3s;}
-  .c3 .p{width:22px;height:22px;border-radius:6px;background:#C9603F;display:grid;place-items:center;flex:none;}
-  .c3 .p svg{width:12px;height:12px;stroke:#fff;}
-  .c3 .tx{font-size:13.5px;color:#57534e;font-weight:500;}
-  .heart{position:absolute;top:12%;right:11%;z-index:15;width:56px;height:56px;border-radius:16px;background:#fff;
-    box-shadow:0 22px 44px -20px rgba(80,40,10,.5);display:grid;place-items:center;font-size:28px;transform:rotate(-8deg);animation:fl3 6.5s ease-in-out infinite;}
   @keyframes fl1{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
   @keyframes fl2{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
   @keyframes fl3{0%,100%{transform:translate(0,0) rotate(-8deg)}50%{transform:translate(0,-10px) rotate(-8deg)}}
-  @media(prefers-reduced-motion:reduce){.card,.heart{animation:none!important;}}
-  @media(max-width:820px){.scene{width:100vw;opacity:.32;} .c1,.c2,.c3,.heart{display:none;}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;}}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;width:100vw;min-height:100vh;overflow:hidden;background:linear-gradient(118deg,#F6CB84 0%,#F0AC6B 46%,#E88A55 100%);}
+  .hero .scene{position:absolute;inset:0 0 0 auto;width:58vw;z-index:1;}
+  .hero .scene img{width:100%;height:100%;object-fit:cover;-webkit-mask-image:linear-gradient(to right,transparent,#000 26%);mask-image:linear-gradient(to right,transparent,#000 26%);}
+  .hero .scene::after{content:"";position:absolute;left:-8%;right:0;bottom:0;height:26%;background:linear-gradient(to top,rgba(120,60,20,.28),transparent);}
+  nav{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:26px clamp(24px,4vw,54px);}
+  nav .brand{display:flex;align-items:center;gap:9px;font-family:var(--ed);font-weight:800;font-size:26px;letter-spacing:-.02em;}
+  nav .brand .p{width:16px;height:16px;border-radius:50% 50% 50% 0;background:var(--coral);transform:rotate(45deg);}
+  nav .links{display:flex;gap:30px;} nav .links a{font-size:15px;font-weight:500;}
+  nav .get{border:1.5px solid var(--ink);border-radius:999px;padding:9px 20px;font-weight:600;font-size:14px;}
+  @media(max-width:820px){nav .links{display:none;}}
+  .hero .inner{position:relative;z-index:10;padding:clamp(10px,2vw,26px) clamp(24px,4vw,54px) 0;max-width:min(58%,860px);}
+  @media(max-width:820px){.hero .inner{max-width:100%;}}
+  .hero h1{font-size:clamp(60px,10.5vw,152px);margin:26px 0 0;}
+  .hero .lede{font-size:clamp(19px,2.1vw,24px);color:#3d2f1c;margin:26px 0 0;max-width:26ch;line-height:1.4;font-weight:500;}
+  .hero .cta{display:flex;gap:20px;align-items:center;margin-top:38px;flex-wrap:wrap;}
+  .card{position:absolute;z-index:15;background:#fff;border-radius:16px;box-shadow:0 26px 54px -24px rgba(80,40,10,.45);padding:13px 15px;will-change:transform;}
+  .card .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#9a968e;font-weight:700;}
+  .card .row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .card .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--ink);flex:none;}
+  .card .nm{font-family:var(--ed);font-weight:700;font-size:14.5px;line-height:1.1;}
+  .card .mt{font-size:11.5px;color:#78746c;}
+  .hero .c1{top:20%;left:46%;width:236px;animation:fl1 7s ease-in-out infinite;}
+  .hero .c2{top:52%;left:38%;background:var(--ink);color:#fff;padding:14px 18px;animation:fl2 8s ease-in-out infinite;}
+  .c2 .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;font-weight:700;}
+  .c2 .v{font-family:var(--ed);font-size:19px;font-weight:700;margin-top:4px;} .c2 .v b{color:#F2A98C;}
+  .hero .c3{bottom:16%;left:52%;display:flex;align-items:center;gap:10px;border-radius:999px;padding:12px 17px;animation:fl1 7.6s ease-in-out infinite .3s;}
+  .c3 .p{width:22px;height:22px;border-radius:6px;background:var(--coral);display:grid;place-items:center;flex:none;} .c3 .p svg{width:12px;height:12px;stroke:#fff;}
+  .c3 .tx{font-size:13.5px;color:#57534e;font-weight:500;}
+  .heart{position:absolute;top:12%;right:11%;z-index:15;width:56px;height:56px;border-radius:16px;background:#fff;box-shadow:0 22px 44px -20px rgba(80,40,10,.5);display:grid;place-items:center;font-size:28px;transform:rotate(-8deg);animation:fl3 6.5s ease-in-out infinite;}
+  .more{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:10;font-size:14px;font-weight:600;}
+  @media(max-width:820px){.hero .scene{width:100vw;opacity:.32;}.hero .card,.heart{display:none;}}
+
+  /* ---------- MOMENT sections (edge-to-edge) ---------- */
+  .moment{position:relative;width:100vw;overflow:hidden;padding:clamp(70px,11vw,150px) 0;}
+  .moment.light{background:var(--white);}
+  .moment.dark{background:var(--ink);color:#fff;}
+  .moment .in{max-width:1440px;margin:0 auto;padding:0 clamp(24px,4vw,54px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,70px);align-items:center;}
+  .moment.flip .txt{order:2;} .moment.flip .art{order:1;}
+  .moment h2{font-size:clamp(40px,6vw,84px);margin:20px 0 0;}
+  .moment .lede{font-size:clamp(18px,2vw,22px);margin:24px 0 0;max-width:30ch;line-height:1.45;}
+  .moment.light .lede{color:#57534e;} .moment.dark .lede{color:rgba(255,255,255,.72);}
+  .moment .mini{margin:26px 0 0;display:flex;flex-direction:column;gap:12px;}
+  .moment .mini .mrow{display:flex;gap:12px;font-size:15.5px;align-items:flex-start;}
+  .moment.light .mini .mrow{color:#57534e;} .moment.dark .mini .mrow{color:rgba(255,255,255,.72);}
+  .moment .mini .mrow svg{width:20px;height:20px;flex:none;color:var(--coral);margin-top:1px;}
+  .moment .mini .mrow b{color:currentColor;} .moment.light .mini b{color:var(--ink);} .moment.dark .mini b{color:#fff;}
+  .moment .eyebrow{color:currentColor;background:transparent;border-color:rgba(20,16,10,.14);}
+  .moment.dark .eyebrow{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);}
+  .tlink{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:15px;color:var(--coralDeep);margin-top:26px;}
+  .moment.dark .tlink{color:#F2A98C;}
+
+  /* app card — bleeds toward the outer edge */
+  .stack{position:relative;width:100%;max-width:440px;}
+  .moment:not(.flip) .stack{margin-left:auto;margin-right:calc(-1 * clamp(24px,4vw,54px));}
+  .moment.flip .stack{margin-right:auto;margin-left:calc(-1 * clamp(24px,4vw,54px));}
+  .appcard{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 50px 90px -44px rgba(20,12,4,.5);text-align:left;}
+  .badge3d{position:absolute;z-index:4;width:52px;height:52px;border-radius:15px;background:#fff;box-shadow:0 22px 44px -22px rgba(20,12,4,.55);display:grid;place-items:center;font-size:26px;transform:rotate(-8deg);animation:fl3 6.8s ease-in-out infinite;}
+  .ac-hd{display:flex;align-items:center;gap:11px;padding:18px 18px 14px;border-bottom:1px solid var(--line);}
+  .ac-hd .av{width:34px;height:34px;border-radius:10px;background:var(--coral);display:grid;place-items:center;flex:none;}
+  .ac-hd .av svg{width:19px;height:19px;}
+  .ac-hd b{font-family:var(--ed);font-size:16px;font-weight:700;display:block;} .ac-hd span{font-size:11.5px;color:#9a968e;}
+  .ac-ttl{font-family:var(--ed);font-size:20px;font-weight:700;} .ac-sub{font-size:12px;color:#9a968e;margin-top:3px;}
+  .chat{padding:18px 16px;display:flex;flex-direction:column;gap:11px;}
+  .cm{max-width:86%;font-size:14px;line-height:1.45;padding:12px 15px;border-radius:18px;}
+  .cm.u{align-self:flex-end;background:var(--coral);color:#fff;border-bottom-right-radius:5px;}
+  .cm.d{align-self:flex-start;background:var(--white);border:1px solid var(--line);border-bottom-left-radius:5px;}
+  .verdict{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:#eaf3ec;color:#2f6a43;border:1px solid #cfe6d5;border-radius:13px;padding:10px 14px;font-size:13.5px;font-weight:600;}
+  .verdict svg{width:16px;height:16px;}
+  .pcard{align-self:stretch;background:var(--white);border:1px solid var(--line);border-radius:15px;overflow:hidden;}
+  .pcard .ph{height:70px;background:linear-gradient(120deg,#6ea3c9,#9cc3dd);}
+  .pcard .pb{padding:11px 13px;display:flex;align-items:center;gap:8px;}
+  .pcard .nm{font-family:var(--ed);font-size:15px;font-weight:700;} .pcard .mt{font-size:11.5px;color:#78746c;}
+  .pcard .add{margin-left:auto;background:var(--coral);color:#fff;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:10px;}
+  .ac-pad{padding:16px;}
+  .srow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .srow:last-child{border-bottom:none;}
+  .srow .lg{width:34px;height:34px;border-radius:10px;background:var(--cream);display:grid;place-items:center;flex:none;}
+  .srow .lg span{width:20px;height:20px;background:#8a7f70;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;}
+  .srow .nm{font-family:var(--ed);font-size:15px;font-weight:700;} .srow .mt{font-size:11.5px;color:#9a968e;}
+  .srow .pr{margin-left:auto;font-family:var(--ed);font-weight:700;font-size:17px;} .srow .pr small{display:block;font-family:var(--meta);font-size:10px;color:#9a968e;font-weight:600;text-transform:uppercase;}
+  .srow.best{background:var(--coralSoft);margin:0 -16px;padding:12px 16px;border-radius:14px;border:none;}
+  .srow.best .tagb{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--coralDeep);background:#fff;padding:3px 8px;border-radius:7px;}
+  .srow.best .pr{margin-left:14px;color:var(--coralDeep);}
+  @media(max-width:820px){.moment .in{grid-template-columns:1fr;gap:44px;}.moment.flip .txt{order:1;}.moment.flip .art{order:2;}.stack{margin:0 auto!important;max-width:400px;}}
+
+  .tagbar{position:fixed;bottom:0;left:0;right:0;z-index:60;background:rgba(17,17,17,.92);color:#fff;font-size:12.5px;font-weight:600;padding:9px 18px;text-align:center;backdrop-filter:blur(6px);}
 </style>
 </head>
 <body>
-<section class="hero">
-  <div class="scene"><div class="ph"><img src="https://drift.after-hours.app/assets/photo/hero.webp" alt="Friends on a trip together"></div></div>
 
+<!-- HERO -->
+<section class="hero">
+  <div class="scene"><img src="https://drift.after-hours.app/assets/photo/hero.webp" alt="Friends on a trip together"></div>
   <nav>
     <div class="brand"><span class="p"></span>Drift</div>
     <div class="links"><a href="#">How it works</a><a href="#">Features</a><a href="#">Beta</a></div>
     <a class="get" href="#">Get the app</a>
   </nav>
-
   <div class="inner">
     <span class="eyebrow"><span class="d"></span>The group-trip app</span>
     <h1>Every trip,<br>together.</h1>
@@ -98,14 +140,69 @@
       <a class="play" href="#"><span class="pb"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>Watch the demo</a>
     </div>
   </div>
-
   <div class="heart">🧡</div>
   <div class="card c1"><div class="k">Where to stay</div><div class="row"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" width="16" height="16"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Casa Verde</div><div class="mt">San José · $104/nt</div></div></div></div>
   <div class="card c2"><div class="l">Settle up</div><div class="v">You owe Ana <b>$54</b></div></div>
   <div class="card c3"><span class="p"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9"><path d="M12 3l2.2 4.8L19 9l-3.6 3.4.9 5-4.3-2.4L7.7 17.4l.9-5L5 9l4.8-1.2z"/></svg></span><span class="tx">Ask Drift about San José</span></div>
-
-  <a class="more" href="#">Learn more ↓</a>
+  <a class="more" href="#ask">Learn more ↓</a>
 </section>
-<div class="tag">Drift hero — edge-to-edge, immersive (Mindtrip-energy)</div>
+
+<!-- ASK DRIFT (light) -->
+<section class="moment light" id="ask">
+  <div class="in">
+    <div class="txt">
+      <span class="eyebrow"><span class="d"></span>Ask Drift</span>
+      <h2>Is it worth<br>the hype?</h2>
+      <p class="lede">Ask anything and Drift answers with a real, local take — not a listicle — then drops the place into the right day.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Honest verdicts</b> — worth it, skip it, or go at a different time.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>One tap to add</b> — it lands in the right day, already scheduled.</span></div>
+      </div>
+      <a class="tlink" href="#">Try it in the app →</a>
+    </div>
+    <div class="art"><div class="stack">
+      <div class="badge3d" style="top:-24px;right:20px;">✨</div>
+      <div class="appcard">
+        <div class="ac-hd"><span class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3l2.2 4.8L19 9l-3.6 3.4.9 5-4.3-2.4L7.7 17.4l.9-5L5 9l4.8-1.2z"/></svg></span><div><b>Drift</b><span>Reykjavík · Trip assistant</span></div></div>
+        <div class="chat">
+          <div class="cm u">Is the Blue Lagoon worth the hype?</div>
+          <div class="cm d">Honestly? Yes — but time it right. Skip the midday crowds and take the last slot so you soak at sunset.</div>
+          <div class="verdict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 12l5 5L20 6"/></svg>Worth it · book the sunset slot</div>
+          <div class="pcard"><div class="ph"></div><div class="pb"><div><div class="nm">Blue Lagoon</div><div class="mt">Geothermal spa · from $79</div></div><span class="add">+ Day 1</span></div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- STAYS (dark) -->
+<section class="moment dark flip">
+  <div class="in">
+    <div class="txt">
+      <span class="eyebrow"><span class="d"></span>Book the stay</span>
+      <h2>One place<br>you love,<br>every price.</h2>
+      <p class="lede">Find the stay everyone agrees on, then let Drift shop it — Booking, Expedia, Hotels.com and Vrbo at once, so you never overpay.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Four sites, one view</b> — the same room, compared side by side.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Best price, flagged</b> — book with the name you trust.</span></div>
+      </div>
+      <a class="tlink" href="#">Compare stays →</a>
+    </div>
+    <div class="art"><div class="stack">
+      <div class="badge3d" style="bottom:-22px;left:16px;">💸</div>
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:6px"><div class="ac-ttl">Casa Verde</div><div class="ac-sub">San José · Aug 12–16 · 4 guests</div></div>
+        <div class="ac-pad" style="padding-top:4px">
+          <div class="srow best"><span class="lg" style="background:#fff"><span style="-webkit-mask-image:url(https://drift.after-hours.app/assets/logos/booking.svg);mask-image:url(https://drift.after-hours.app/assets/logos/booking.svg);background:var(--coralDeep)"></span></span><div><div class="nm">Booking.com</div><div class="mt">Free cancellation</div></div><span class="tagb">Best price</span><div class="pr">$104<small>/night</small></div></div>
+          <div class="srow"><span class="lg"><span style="-webkit-mask-image:url(https://drift.after-hours.app/assets/logos/expedia.svg);mask-image:url(https://drift.after-hours.app/assets/logos/expedia.svg)"></span></span><div><div class="nm">Expedia</div><div class="mt">+ One Key points</div></div><div class="pr">$112<small>/night</small></div></div>
+          <div class="srow"><span class="lg"><span style="-webkit-mask-image:url(https://drift.after-hours.app/assets/logos/hotelscom.svg);mask-image:url(https://drift.after-hours.app/assets/logos/hotelscom.svg)"></span></span><div><div class="nm">Hotels.com</div><div class="mt">Collect 1 free night</div></div><div class="pr">$109<small>/night</small></div></div>
+          <div class="srow"><span class="lg" style="font-family:var(--ed);font-weight:700;color:#8a7f70;font-size:13px">V</span><div><div class="nm">Vrbo</div><div class="mt">Whole home</div></div><div class="pr">$118<small>/night</small></div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<div class="tagbar">Drift — new design system preview · hero + 2 sections (warm → light → dark) · roll across full site when approved</div>
 </body>
 </html>
