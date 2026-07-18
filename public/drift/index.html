@@ -27,6 +27,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="assets/photo/hero-640.webp" imagesrcset="assets/photo/hero-640.webp 640w, assets/photo/hero.webp 1180w" imagesizes="(max-width:880px) 92vw, 560px" fetchpriority="high">
   <script>document.documentElement.classList.add('js');</script>
 
   <style>
@@ -118,6 +119,16 @@
     .moment .mini .mrow{display:flex;align-items:flex-start;gap:12px;font-size:15.5px;color:var(--sec);}
     .moment .mini .mrow svg{width:20px;height:20px;flex:none;color:var(--coral);margin-top:1px;}
     .moment .mini .mrow b{color:var(--ink);font-weight:600;}
+
+    /* dark moment — one high-contrast band for rhythm */
+    .moment.dark{background:#191410;}
+    .moment.dark h2{color:#fff;}
+    .moment.dark .eyebrow{color:#E8916E;}
+    .moment.dark .lede{color:rgba(255,255,255,.72);}
+    .moment.dark .mini .mrow{color:rgba(255,255,255,.7);}
+    .moment.dark .mini .mrow b{color:#fff;}
+    .moment.dark .mini .mrow svg{color:#E8916E;}
+    .moment.dark .tlink{color:#E8916E;}
 
     /* the floating app card (unframed UI) */
     .stack{position:relative;width:100%;max-width:430px;margin:0 auto;}
@@ -340,7 +351,10 @@
     </div>
     <div class="art" data-rise style="--i:2">
       <div class="cluster">
-        <div class="photocard"><img src="assets/photo/hero.jpg" alt="Friends together on a trip" fetchpriority="high"></div>
+        <div class="photocard"><picture>
+          <source type="image/webp" srcset="assets/photo/hero-640.webp 640w, assets/photo/hero.webp 1180w" sizes="(max-width:880px) 92vw, 560px">
+          <img src="assets/photo/hero.jpg" alt="Friends together on a trip" fetchpriority="high" width="1180" height="1573">
+        </picture></div>
         <div class="sticker s-heart">🧡</div>
         <div class="chip c-stay">
           <div class="k">Where to stay</div>
@@ -518,7 +532,7 @@
   </div></section>
 
   <!-- TRACK -->
-  <section class="moment flip"><div class="wrap in">
+  <section class="moment flip dark"><div class="wrap in">
     <div class="txt">
       <span class="eyebrow" data-rise>Track the journey</span>
       <h2 data-rise style="--i:1">Every step,<br>on the map.</h2>
@@ -532,7 +546,7 @@
     <div class="art" data-rise style="--i:1">
       <div class="shotcard">
         <div class="badge3d" style="top:-22px;left:-14px;z-index:5;">🌍</div>
-        <div class="ph"><img loading="lazy" src="assets/photo/phiphi.jpg" alt="A long-tail boat winding between the Phi Phi islands"></div>
+        <div class="ph"><picture><source type="image/webp" srcset="assets/photo/phiphi-bg.webp"><img loading="lazy" src="assets/photo/phiphi-bg.jpg" alt="A long-tail boat winding between the Phi Phi islands" width="780" height="1040"></picture></div>
         <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
       </div>
     </div>
@@ -574,14 +588,14 @@
   <section class="montage"><div class="wrap">
     <div class="head" data-rise><span class="eyebrow">Real trips</span><h2>89 days. 10 countries.<br>One app.</h2></div>
     <div class="g" data-rise>
-      <div class="mtile"><img loading="lazy" width="360" height="270" src="assets/photo/friends-bali.jpg" alt="Friends on a beach at sunset"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/positano.jpg" alt="Positano on the Amalfi Coast"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/sunset.jpg" alt="Golden-hour sky over the coast"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/alhambra.jpg" alt="The Alhambra in Granada"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/friends-kl.jpg" alt="Friends together on the trip"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/amalfi.jpg" alt="The Amalfi coastline"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/phiphi.jpg" alt="Longtail boats in the Phi Phi islands"></div>
-      <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/swing.jpg" alt="A cliffside swing over the sea"></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/friends-bali.webp"><img loading="lazy" width="360" height="270" src="assets/photo/friends-bali.jpg" alt="Friends on a beach at sunset"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/positano.webp"><img loading="lazy" width="360" height="480" src="assets/photo/positano.jpg" alt="Positano on the Amalfi Coast"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/sunset.webp"><img loading="lazy" width="360" height="480" src="assets/photo/sunset.jpg" alt="Golden-hour sky over the coast"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/alhambra.webp"><img loading="lazy" width="360" height="480" src="assets/photo/alhambra.jpg" alt="The Alhambra in Granada"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/friends-kl.webp"><img loading="lazy" width="360" height="480" src="assets/photo/friends-kl.jpg" alt="Friends together on the trip"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/amalfi.webp"><img loading="lazy" width="360" height="480" src="assets/photo/amalfi.jpg" alt="The Amalfi coastline"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/phiphi.webp"><img loading="lazy" width="360" height="480" src="assets/photo/phiphi.jpg" alt="Longtail boats in the Phi Phi islands"></picture></div>
+      <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/swing.webp"><img loading="lazy" width="360" height="480" src="assets/photo/swing.jpg" alt="A cliffside swing over the sea"></picture></div>
     </div>
   </div></section>
 
