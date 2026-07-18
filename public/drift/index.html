@@ -5,11 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Drift — Every trip, together</title>
   <meta name="description" content="Plan the trip with your people, book the stays and tours, and split every cost — together.">
-  <meta name="theme-color" content="#F7F1E8">
+  <meta name="theme-color" content="#F7F2EA">
+  <link rel="canonical" href="https://drift.after-hours.app/">
+  <link rel="preload" as="image" href="assets/photo/hero.jpg" fetchpriority="high">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Drift">
   <meta property="og:title" content="Drift — Every trip, together">
-  <meta property="og:description" content="Plan, book, and split — together.">
+  <meta property="og:description" content="Plan the trip with your people, book the stays and tours, and split every cost — together.">
   <meta property="og:url" content="https://drift.after-hours.app/">
+  <meta property="og:image" content="https://drift.after-hours.app/assets/photo/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Drift — every trip, together">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Drift — Every trip, together">
+  <meta name="twitter:description" content="Plan, book, and split — together.">
+  <meta name="twitter:image" content="https://drift.after-hours.app/assets/photo/og-image.jpg">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"MobileApplication","name":"Drift","applicationCategory":"TravelApplication","operatingSystem":"iOS","description":"Plan the trip with your people, book the stays and tours, and split every cost — together.","url":"https://drift.after-hours.app/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+  </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23C9603F' d='M16 2C10.5 2 6 6.4 6 11.9 6 19.6 16 30 16 30s10-10.4 10-18.1C26 6.4 21.5 2 16 2z'/%3E%3Ccircle cx='16' cy='12' r='4' fill='%23fff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,12 +53,12 @@
     img{display:block;max-width:100%;}
     .wrap{max-width:1160px;margin:0 auto;padding:0 clamp(20px,4vw,44px);}
     h1,h2,h3{font-family:var(--ed);font-weight:500;letter-spacing:-.02em;line-height:1.02;margin:0;text-wrap:balance;}
-    .eyebrow{font-family:var(--meta);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ter);}
+    .eyebrow{font-family:var(--meta);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--sec);}
     .eyebrow.on{color:rgba(255,255,255,.72);}
     .pill{display:inline-flex;align-items:center;gap:8px;font-family:var(--meta);font-weight:500;font-size:16px;text-decoration:none;padding:13px 26px;border-radius:999px;border:none;cursor:pointer;transition:transform .16s var(--e-std),opacity .2s;}
-    .pill.coral{background:var(--coral);color:#fff;box-shadow:0 10px 24px -12px rgba(168,72,43,.7);} .pill.sm{padding:9px 18px;font-size:14px;}
+    .pill.coral{background:var(--coralDeep);color:#fff;box-shadow:0 10px 24px -12px rgba(168,72,43,.7);} .pill.sm{padding:12px 20px;font-size:14px;}
     .pill:hover{opacity:.94;} .pill:active{transform:scale(.97);}
-    .tlink{font-family:var(--meta);font-weight:500;font-size:16px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
+    .tlink{font-family:var(--meta);font-weight:500;font-size:16px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:5px;min-height:44px;}
     .tlink.on{color:#fff;}
     .tlink::after{content:"→";transition:transform .2s;} .tlink:hover::after{transform:translateX(3px);}
 
@@ -65,7 +79,7 @@
     .hero .bg{position:absolute;left:-6%;top:-6%;width:112%;height:112%;object-fit:cover;filter:var(--grade);}
     .hero .scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(96deg,rgba(28,18,10,.72),rgba(28,18,10,.4) 44%,rgba(28,18,10,.05) 74%);}
     .hero .in{position:relative;z-index:3;color:#fff;max-width:660px;padding:0 clamp(20px,4vw,44px);}
-    .hero h1{font-size:clamp(46px,7.8vw,90px);color:#fff;}
+    .hero h1{font-size:clamp(40px,7.8vw,90px);color:#fff;}
     .hero p{font-size:clamp(18px,2.2vw,23px);color:rgba(255,255,255,.9);margin:22px 0 0;max-width:24ch;font-weight:400;}
     .hero .cta{display:flex;gap:22px;align-items:center;margin-top:32px;flex-wrap:wrap;}
 
@@ -125,6 +139,8 @@
       .feature .in,.panel .in{grid-template-columns:1fr;gap:36px;}
       .feature.flip .txt,.panel.flip .txt{order:1;} .feature.flip .art,.panel.flip .art{order:2;}
       .art{max-width:400px;margin:0 auto;}
+      /* full-width text on mobile needs a vertical scrim (the desktop horizontal one darkens the wrong side) */
+      .hero .scrim{background:linear-gradient(180deg,rgba(28,18,10,.34),rgba(28,18,10,.12) 42%,rgba(28,18,10,.66));}
     }
 
     /* DOWNLOAD banner */
@@ -153,7 +169,8 @@
 
     /* partners — monochrome brand logos, uniform height, one warm-grey tint */
     .partners{padding:clamp(48px,7vw,78px) 0;text-align:center;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);}
-    .partners .lbl{font-size:14px;font-weight:500;color:var(--ter);}
+    .partners .lbl{font-size:14px;font-weight:500;color:var(--sec);}
+    .partners .disc{font-size:12px;color:var(--ter);margin-top:18px;max-width:52ch;margin-left:auto;margin-right:auto;line-height:1.5;}
     .plogos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:22px 40px;margin-top:30px;}
     .lg{height:23px;width:auto;background:#8a7f70;-webkit-mask:var(--s) center/contain no-repeat;mask:var(--s) center/contain no-repeat;transition:background .25s ease,transform .25s var(--e-out);}
     .lg.word{background:none;color:#8a7f70;font-weight:700;font-size:19px;letter-spacing:-.01em;line-height:1;transition:color .25s ease,transform .25s var(--e-out);}
@@ -197,7 +214,7 @@
     .montage h2 [data-countup]{font-variant-numeric:tabular-nums;}
     .montage .g{columns:4 200px;column-gap:12px;margin-top:44px;}
     .mtile{border-radius:16px;overflow:hidden;margin-bottom:12px;break-inside:avoid;}
-    .mtile img{width:100%;filter:var(--grade);transition:transform .6s var(--e-out);}
+    .mtile img{width:100%;height:auto;filter:var(--grade);transition:transform .6s var(--e-out);}
     @media (hover:hover){.mtile:hover img{transform:scale(1.06);}}
     @media (max-width:620px){.montage .g{columns:2 150px;}}
 
@@ -212,14 +229,15 @@
     footer{padding:44px 0 56px;color:var(--sec);font-size:14px;}
     footer .in{display:flex;flex-wrap:wrap;gap:16px 30px;align-items:center;justify-content:space-between;}
     footer a{color:var(--sec);text-decoration:none;} footer a:hover{color:var(--ink);}
-    footer .fl{display:flex;gap:26px;flex-wrap:wrap;}
+    footer .fl{display:flex;gap:8px 26px;flex-wrap:wrap;}
+    footer .fl a{display:inline-flex;align-items:center;min-height:44px;}
 
     a:focus-visible,.pill:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
 
     /* scroll reveals (only hide once JS confirms it can animate them) */
     .js [data-reveal]{opacity:0;transform:translateY(24px);transition:opacity .7s var(--e-out),transform .7s var(--e-out);transition-delay:calc(var(--i,0) * 80ms);will-change:opacity,transform;}
     .js [data-reveal].in{opacity:1;transform:none;will-change:auto;}
-    [data-speed]{will-change:transform;}
+    .anim [data-speed]{will-change:transform;}
 
     /* the one switch that turns all optional motion off */
     @media (prefers-reduced-motion:reduce){
@@ -235,9 +253,10 @@
     <a class="pill coral sm" href="#get">Get the app</a>
   </div></header>
 
+  <main>
   <!-- HERO -->
   <section class="hero">
-    <div class="bgwrap"><img class="bg" src="assets/photo/hero.jpg" alt="Travelers on a trip together"></div>
+    <div class="bgwrap"><img class="bg" src="assets/photo/hero.jpg" fetchpriority="high" alt=""></div>
     <div class="scrim"></div>
     <div class="floats" aria-hidden="true">
       <div class="fcard f-stay">
@@ -258,7 +277,7 @@
     </div>
     <div class="in">
       <h1>Every trip,<br>together.</h1>
-      <p>Plan, book, and split — together.</p>
+      <p>The group-trip app — plan, book, and split every cost with your people.</p>
       <div class="cta">
         <a class="pill coral" href="#get">Join the beta</a>
         <a class="tlink on" href="#globe">See how it works</a>
@@ -268,7 +287,7 @@
 
   <!-- GLOBE — dark screen against moody dusk -->
   <section class="panel dark" id="globe">
-    <div class="bgwrap"><img class="bg" data-speed="-0.08" src="assets/photo/sunset-bg.jpg" alt=""></div>
+    <div class="bgwrap"><img class="bg" data-speed="-0.08" loading="lazy" src="assets/photo/sunset-bg.jpg" alt=""></div>
     <div class="scrim"></div>
     <div class="wrap in">
       <div class="txt" data-reveal>
@@ -276,13 +295,13 @@
         <h2>Every journey,<br>on one globe.</h2>
         <p class="lede">Every place you've been, on a globe you can spin.</p>
       </div>
-      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen"><img src="assets/app/globe.jpg" alt="Drift travel globe pinned with trips"></div></div></div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift travel globe pinned with trips"></div></div></div>
     </div>
   </section>
 
   <!-- GUIDE — green destination screen against jungle-green cliffs -->
   <section class="panel nature flip">
-    <div class="bgwrap"><img class="bg" data-speed="-0.08" src="assets/photo/phiphi-bg.jpg" alt=""></div>
+    <div class="bgwrap"><img class="bg" data-speed="-0.08" loading="lazy" src="assets/photo/phiphi-bg.jpg" alt=""></div>
     <div class="scrim"></div>
     <div class="wrap in">
       <div class="txt" data-reveal>
@@ -290,7 +309,7 @@
         <h2>Your destination,<br>decoded.</h2>
         <p class="lede">Weather, budget, neighborhoods, and what to do — before you land.</p>
       </div>
-      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen"><img src="assets/app/guide.jpg" alt="Drift destination guide"></div></div></div>
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen"><img loading="lazy" src="assets/app/guide.jpg" alt="Drift destination guide"></div></div></div>
     </div>
   </section>
 
@@ -302,7 +321,7 @@
         <h2>Settle up,<br>simply.</h2>
         <p class="lede">Track who paid and end the trip square — no spreadsheet.</p>
       </div>
-      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen rx" id="rx">
+      <div class="art" data-reveal style="--i:1"><div class="phone"><div class="screen rx" id="rx" aria-hidden="true">
         <div class="rx-bar"><span>2:57</span><span class="r">
           <svg width="17" height="11" viewBox="0 0 17 11" fill="#151515" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
           <svg width="24" height="11" viewBox="0 0 24 11" aria-hidden="true"><rect x="1" y="1" width="20" height="9" rx="2.6" fill="none" stroke="#151515" opacity=".45"/><rect x="2.6" y="2.6" width="15" height="5.8" rx="1.4" fill="#151515"/><rect x="22" y="4" width="1.6" height="3" rx=".8" fill="#151515" opacity=".45"/></svg>
@@ -332,10 +351,10 @@
     <div class="wrap" data-reveal>
       <h2>Take Drift<br>on your next trip.</h2>
       <p>Free during the beta · iPhone</p>
-      <!-- TODO: replace # with your TestFlight public link -->
+      <!-- TODO: replace # with your TestFlight public invite link (https://testflight.apple.com/join/XXXXXXXX) -->
       <a class="badge" href="#">
         <svg viewBox="0 0 24 24" fill="#111" aria-hidden="true"><path d="M17 12.3c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2-1.5 2.5-.4 6.3 1 8.4.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1-.02 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.02-.01-2.1-.8-2.1-3.1zM15 6.2c.6-.7 1-1.7.9-2.7-.9.04-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .07 1.9-.5 2.5-1.2z"/></svg>
-        <span><small>Download on the</small><b>App Store</b></span>
+        <span><small>Join the beta on</small><b>TestFlight</b></span>
       </a>
     </div>
   </section>
@@ -346,12 +365,12 @@
       <div data-reveal><span class="eyebrow">One app</span>
       <h2>Everything a trip needs.</h2></div>
       <div class="tiles">
-        <div class="tile" data-reveal style="--i:0"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><h3>Stays</h3><p>Compare Booking, Expedia, Hotels.com and Vrbo in one tap.</p></div>
-        <div class="tile" data-reveal style="--i:1"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12l20-7-7 20-3-8-8-3z"/></svg></span><h3>Flights</h3><p>Keep every booking and boarding pass in the trip.</p></div>
-        <div class="tile" data-reveal style="--i:2"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><h3>Tours</h3><p>Line up experiences from Viator and Klook, right in the plan.</p></div>
-        <div class="tile" data-reveal style="--i:0"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span><h3>Split</h3><p>Track who paid and settle up square at the end.</p></div>
-        <div class="tile" data-reveal style="--i:1"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.6" fill="currentColor"/></svg></span><h3>Track</h3><p>Your route and moments, mapped as you travel.</p></div>
-        <div class="tile" data-reveal style="--i:2"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="10" r="3"/><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7z"/></svg></span><h3>Guide</h3><p>Weather, budget, and neighborhoods for every destination.</p></div>
+        <div class="tile" data-reveal style="--i:0"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><h3>Stays</h3><p>Compare Booking, Expedia, Hotels.com and Vrbo in one tap.</p></div>
+        <div class="tile" data-reveal style="--i:1"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12l20-7-7 20-3-8-8-3z"/></svg></span><h3>Flights</h3><p>Keep every booking and boarding pass in the trip.</p></div>
+        <div class="tile" data-reveal style="--i:2"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><h3>Tours</h3><p>Line up experiences from Viator and Klook, right in the plan.</p></div>
+        <div class="tile" data-reveal style="--i:0"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span><h3>Split</h3><p>Track who paid and settle up square at the end.</p></div>
+        <div class="tile" data-reveal style="--i:1"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.6" fill="currentColor"/></svg></span><h3>Track</h3><p>Your route and moments, mapped as you travel.</p></div>
+        <div class="tile" data-reveal style="--i:2"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="10" r="3"/><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7z"/></svg></span><h3>Guide</h3><p>Weather, budget, and neighborhoods for every destination.</p></div>
       </div>
     </div>
   </section>
@@ -372,6 +391,7 @@
         <span class="lg" style="--s:url(assets/logos/tripadvisor.svg);aspect-ratio:1/1" role="img" aria-label="Tripadvisor"></span>
         <span class="lg" style="--s:url(assets/logos/airbnb.svg);aspect-ratio:1/1" role="img" aria-label="Airbnb"></span>
       </div>
+      <p class="disc">Drift compares prices and links you out to these providers to book. Names and logos are the property of their owners; Drift is not affiliated with or endorsed by them.</p>
     </div>
   </section>
 
@@ -379,25 +399,26 @@
   <section class="montage">
     <div class="wrap">
       <div data-reveal><span class="eyebrow">Real trips</span>
-      <h2><span data-countup data-to="89">89</span> days. <span data-countup data-to="10">10</span> countries.<br>One app.</h2></div>
+      <h2>89 days. 10 countries.<br>One app.</h2></div>
       <div class="g" data-reveal>
-        <div class="mtile"><img src="assets/photo/friends-bali.jpg" alt=""></div><div class="mtile"><img src="assets/photo/positano.jpg" alt=""></div>
-        <div class="mtile"><img src="assets/photo/sunset.jpg" alt=""></div><div class="mtile"><img src="assets/photo/alhambra.jpg" alt=""></div>
-        <div class="mtile"><img src="assets/photo/friends-kl.jpg" alt=""></div><div class="mtile"><img src="assets/photo/amalfi.jpg" alt=""></div>
-        <div class="mtile"><img src="assets/photo/phiphi.jpg" alt=""></div><div class="mtile"><img src="assets/photo/swing.jpg" alt=""></div>
+        <div class="mtile"><img loading="lazy" width="360" height="270" src="assets/photo/friends-bali.jpg" alt="Friends on a beach at sunset"></div><div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/positano.jpg" alt="Positano on the Amalfi Coast"></div>
+        <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/sunset.jpg" alt="Golden-hour sky over the coast"></div><div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/alhambra.jpg" alt="The Alhambra in Granada"></div>
+        <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/friends-kl.jpg" alt="Friends together on the trip"></div><div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/amalfi.jpg" alt="The Amalfi coastline"></div>
+        <div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/phiphi.jpg" alt="Longtail boats in the Phi Phi islands"></div><div class="mtile"><img loading="lazy" width="360" height="480" src="assets/photo/swing.jpg" alt="A cliffside swing over the sea"></div>
       </div>
     </div>
   </section>
 
   <!-- FINAL -->
   <section class="final">
-    <div class="bgwrap"><img class="bg" data-speed="-0.1" src="assets/photo/sunset-bg.jpg" alt=""></div>
+    <div class="bgwrap"><img class="bg" data-speed="-0.1" loading="lazy" src="assets/photo/sunset-bg.jpg" alt=""></div>
     <div class="wrap in" data-reveal>
       <h2>Your next trip<br>starts here.</h2>
       <p>Free during the beta. iPhone.</p>
       <a class="pill coral" href="#get">Join the beta</a>
     </div>
   </section>
+  </main>
 
   <footer><div class="wrap in">
     <a class="brand" href="#top" style="font-size:19px;"><span class="p"></span>Drift</a>

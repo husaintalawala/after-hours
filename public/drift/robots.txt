@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://drift.after-hours.app/sitemap.xml
