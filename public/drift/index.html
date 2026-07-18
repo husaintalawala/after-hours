@@ -235,6 +235,9 @@
     a:focus-visible,.pill:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
 
     /* ===== merged: status-bar mask + richer app mockups + play-on-reveal ===== */
+    /* full-bleed backgrounds must beat the global img{max-width:100%} so their
+       width:112% / left:-6% actually covers the right edge (no gray gap) */
+    .bgwrap .bg{max-width:none;}
     .phone .screen{position:relative;}
     /* synthetic clean status bar — masks the captured iOS bar on real screenshots */
     .sbar{position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 22px;font-size:12px;font-weight:600;z-index:6;color:#fff;font-variant-numeric:tabular-nums;}
