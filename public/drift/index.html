@@ -152,6 +152,11 @@
     .shotcard .rchip .v{font-family:var(--ed);font-weight:600;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;color:var(--ink);}
     .shotcard .rchip .v svg{width:17px;height:17px;color:var(--coral);flex:none;}
     .anim .shotcard .rchip{animation:f1 7.4s ease-in-out infinite;}
+    /* real app screenshot layered over the photo (Mindtrip-style device card) */
+    .devcard{position:absolute;right:-20px;bottom:-16px;width:132px;aspect-ratio:520/1042;border-radius:22px;overflow:hidden;background:#0b0b0b;border:3px solid #0b0b0b;box-shadow:0 34px 60px -26px rgba(0,0,0,.7);z-index:4;will-change:transform;}
+    .devcard img{width:100%;height:100%;object-fit:cover;object-position:center -5px;}
+    .devcard .sb{position:absolute;inset:0 0 auto 0;height:15px;background:linear-gradient(#050608,#050608 58%,transparent);z-index:2;}
+    .anim .devcard{animation:f2 8.6s ease-in-out infinite;}
 
     /* card header */
     .ac-hd{display:flex;align-items:center;gap:11px;padding:18px 18px 14px;border-bottom:1px solid var(--line);}
@@ -550,9 +555,9 @@
     </div>
     <div class="art" data-rise style="--i:1">
       <div class="shotcard">
-        <div class="badge3d" style="top:-22px;left:-14px;z-index:5;">🌍</div>
         <div class="ph"><picture><source type="image/webp" srcset="assets/photo/phiphi-bg.webp"><img loading="lazy" src="assets/photo/phiphi-bg.jpg" alt="A long-tail boat winding between the Phi Phi islands" width="780" height="1040"></picture></div>
         <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
+        <div class="devcard"><span class="sb"></span><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe, pinned with every country you've visited" width="520" height="1130"></picture></div>
       </div>
     </div>
   </div></section>
