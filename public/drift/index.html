@@ -202,6 +202,14 @@
     .dcard .dgo{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;opacity:0;transform:translateY(-4px);transition:opacity .3s var(--e),transform .3s var(--e);} .dcard .dgo svg{width:16px;height:16px;stroke:#fff;}
     @media(hover:hover){.dcard:hover .dgo{opacity:1;transform:none;}}
 
+    /* app showcase (white) */
+    .show{background:var(--white);padding:clamp(72px,11vw,140px) 0;overflow:hidden;} .show .swrap{max-width:1500px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .show .shead{max-width:660px;margin:0 auto;text-align:center;} .show h2{font-size:clamp(38px,5.4vw,68px);margin:18px 0 0;} .show .slede{font-size:clamp(18px,2vw,22px);color:#57534e;margin:22px auto 0;max-width:46ch;line-height:1.45;}
+    .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:58px;}
+    @media(max-width:900px){.sgrid{grid-template-columns:1fr 1fr;gap:44px 24px;}} @media(max-width:520px){.sgrid{grid-template-columns:1fr;max-width:320px;margin-left:auto;margin-right:auto;}}
+    .sphone{margin:0;display:flex;flex-direction:column;align-items:center;}
+    .sphone .scap{text-align:center;margin-top:18px;} .sphone .scap b{font-family:var(--ed);font-weight:700;font-size:16px;display:block;} .sphone .scap span{font-size:13.5px;color:#8a8178;display:block;margin-top:3px;}
+
     /* final */
     .final{background:var(--ink);color:#fff;padding:clamp(90px,13vw,190px) 0;text-align:center;position:relative;overflow:hidden;}
     .final::after{content:"";position:absolute;width:60%;height:150%;right:-8%;top:-25%;background:radial-gradient(circle,rgba(201,96,63,.4),transparent 62%);}
@@ -437,6 +445,21 @@
       <a class="dcard" href="#get" data-rise style="--i:2"><picture><source type="image/webp" srcset="assets/photo/swing.webp"><img loading="lazy" src="assets/photo/swing.jpg" alt="A cliffside swing over the sea" width="360" height="480"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Nusa Penida</span><span class="dmt">Indonesia · add-on</span></div></a>
     </div>
     <a class="tlink" href="#get">Start a trip anywhere <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div></section>
+
+  <!-- SEE IT IN ACTION — app showcase (white) -->
+  <section class="show"><div class="swrap">
+    <div class="shead" data-rise>
+      <span class="eyebrow"><span class="d"></span>See it in action</span>
+      <h2>The whole trip,<br>screen by screen.</h2>
+      <p class="slede">From the first spark of an idea to the last day on the ground — this is what your crew actually sees.</p>
+    </div>
+    <div class="sgrid">
+      <figure class="sphone" data-rise style="--i:0"><div class="shot screen"><picture><source type="image/webp" srcset="assets/app/hero-track.webp"><img loading="lazy" src="assets/app/hero-track.jpg" alt="Drift trip countdown — Thailand, 48 nights until you wander, with flights and stays to get ready" width="520" height="1054"></picture></div><figcaption class="scap"><b>Count down to takeoff</b><span>Everything left to book, at a glance</span></figcaption></figure>
+      <figure class="sphone" data-rise style="--i:1"><div class="shot screen"><picture><source type="image/webp" srcset="assets/app/hero-discover.webp"><img loading="lazy" src="assets/app/hero-discover.jpg" alt="Drift Discover map of Ko Phi Phi with pinned beaches and viewpoints" width="520" height="1054"></picture></div><figcaption class="scap"><b>Find the good spots</b><span>Beaches, views and eats, pinned</span></figcaption></figure>
+      <figure class="sphone" data-rise style="--i:2"><div class="shot screen"><picture><source type="image/webp" srcset="assets/app/guide.webp"><img loading="lazy" src="assets/app/guide.jpg" alt="Drift city guide — weather, currency, language and safety for the trip" width="520" height="1130"></picture></div><figcaption class="scap"><b>A guide for every city</b><span>Weather, budget, the vibe</span></figcaption></figure>
+      <figure class="sphone" data-rise style="--i:3"><div class="shot screen"><picture><source type="image/webp" srcset="assets/app/kit.webp"><img loading="lazy" src="assets/app/kit.jpg" alt="Drift packing kit — a packing list sized for the trip length" width="520" height="1054"></picture></div><figcaption class="scap"><b>Pack without forgetting</b><span>A list sized to your trip</span></figcaption></figure>
+    </div>
   </div></section>
 
   <!-- EVERYTHING GRID (stone) -->
