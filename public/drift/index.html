@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Drift — Every trip, together</title>
   <meta name="description" content="Plan the trip with your people, book the stays and tours, and split every cost — together.">
-  <meta name="theme-color" content="#FBF9F5">
+  <meta name="theme-color" content="#E5DDD0">
   <link rel="canonical" href="https://drift.after-hours.app/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Drift">
@@ -15,7 +15,6 @@
   <meta property="og:image" content="https://drift.after-hours.app/assets/photo/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Drift — every trip, together">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Drift — Every trip, together">
   <meta name="twitter:description" content="Plan, book, and split — together.">
@@ -26,332 +25,192 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23C9603F' d='M16 2C10.5 2 6 6.4 6 11.9 6 19.6 16 30 16 30s10-10.4 10-18.1C26 6.4 21.5 2 16 2z'/%3E%3Ccircle cx='16' cy='12' r='4' fill='%23fff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="assets/photo/hero-640.webp" imagesrcset="assets/photo/hero-640.webp 640w, assets/photo/hero.webp 1180w" imagesizes="(max-width:880px) 92vw, 560px" fetchpriority="high">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="assets/photo/hero-640.webp" imagesrcset="assets/photo/hero-640.webp 640w, assets/photo/hero.webp 1180w" imagesizes="(max-width:820px) 100vw, 58vw" fetchpriority="high">
   <script>document.documentElement.classList.add('js');</script>
-
   <style>
     :root{
-      --bg:#FBF9F5; --panel:#F2ECE2; --ink:#1C1712; --sec:#6f655a; --ter:#a99d8c;
-      --line:#ECE4D8; --coral:#C9603F; --coralDeep:#A8482B; --coralSoft:#F6E6DE;
-      --ed:"Fraunces",Georgia,serif; --meta:"Inter",system-ui,-apple-system,sans-serif;
-      --card:#fff;
-      --shadow:0 40px 80px -40px rgba(40,28,16,.45), 0 14px 30px -18px rgba(40,28,16,.28);
-      --shadow-sm:0 20px 44px -24px rgba(40,28,16,.4);
-      --e-out:cubic-bezier(.16,1,.3,1); --e-spring:cubic-bezier(.34,1.5,.5,1);
+      --ink:#14100A; --white:#FCFCFB; --stone:#E5DDD0; --stone2:#EFEAE0; --cream:#FDF6EC; --line:#ECE6DC;
+      --coral:#C9603F; --coralDeep:#A8482B; --coralSoft:#F6E4DA;
+      --ed:"Bricolage Grotesque","Inter",sans-serif; --meta:"Inter",system-ui,-apple-system,sans-serif;
+      --e:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.4,.5,1);
     }
-    *{box-sizing:border-box;}
-    html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--meta);line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+    body{font-family:var(--meta);background:var(--stone);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased;line-height:1.5;}
     img{display:block;max-width:100%;}
-    .wrap{max-width:1500px;margin:0 auto;padding:0 clamp(22px,5vw,64px);}
-    .wrap.narrow{max-width:1180px;}
-    h1,h2,h3{font-family:var(--ed);font-weight:600;letter-spacing:-.032em;line-height:1.0;margin:0;text-wrap:balance;}
-    .eyebrow{font-family:var(--meta);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--coralDeep);}
-    p{margin:0;}
+    a{text-decoration:none;color:inherit;}
+    h1,h2,h3{font-family:var(--ed);font-weight:800;letter-spacing:-.038em;line-height:.92;text-wrap:balance;}
+    .eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--meta);font-size:12.5px;font-weight:600;letter-spacing:.01em;color:currentColor;border:1px solid rgba(20,16,10,.14);padding:7px 14px 7px 12px;border-radius:999px;}
+    .eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--coral);}
+    .pill{display:inline-flex;align-items:center;gap:9px;background:var(--ink);color:#fff;font-family:var(--meta);font-weight:600;font-size:16px;padding:15px 28px;border-radius:14px;cursor:pointer;transition:transform .3s var(--spring);}
+    .pill:hover{transform:translateY(-2px);} .pill:active{transform:scale(.97);}
+    .play{display:inline-flex;align-items:center;gap:12px;font-weight:600;font-size:16px;color:currentColor;}
+    .play .pb{width:44px;height:44px;border-radius:50%;background:var(--ink);display:grid;place-items:center;transition:transform .3s var(--spring);}
+    .play .pb svg{width:14px;height:14px;margin-left:2px;fill:#fff;} .play:hover .pb{transform:scale(1.08);}
+    .tlink{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:15px;color:var(--coralDeep);margin-top:26px;}
+    .tlink svg{width:16px;height:16px;transition:transform .25s var(--spring);} .tlink:hover svg{transform:translateX(4px);}
 
-    .pill{display:inline-flex;align-items:center;gap:9px;font-family:var(--meta);font-weight:600;font-size:16px;text-decoration:none;padding:15px 28px;border-radius:999px;border:none;cursor:pointer;transition:transform .3s var(--e-spring),box-shadow .3s var(--e-out),opacity .2s;}
-    .pill.coral{background:var(--coral);color:#fff;box-shadow:0 14px 30px -12px rgba(168,72,43,.7);}
-    .pill.coral:hover{transform:translateY(-2px);box-shadow:0 20px 40px -12px rgba(168,72,43,.75);}
-    .pill:active{transform:translateY(0) scale(.97);}
-    .pill.sm{padding:11px 20px;font-size:14px;}
-    .playlink{display:inline-flex;align-items:center;gap:11px;font-weight:600;font-size:16px;color:var(--ink);text-decoration:none;}
-    .playlink .pb{width:40px;height:40px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;transition:transform .3s var(--e-spring);}
-    .playlink .pb svg{width:14px;height:14px;margin-left:2px;}
-    .playlink:hover .pb{transform:scale(1.08);}
+    @keyframes fl1{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    @keyframes fl2{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+    @keyframes fl3{0%,100%{transform:translate(0,0) rotate(-8deg)}50%{transform:translate(0,-10px) rotate(-8deg)}}
+    @keyframes car{0%,50%{opacity:1}51%,100%{opacity:0}}
 
-    /* nav */
-    .nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid transparent;transition:border-color .3s;}
-    .nav.scrolled{border-bottom-color:var(--line);}
-    .nav .in{display:flex;align-items:center;justify-content:space-between;height:70px;}
-    .brand{display:flex;align-items:center;gap:9px;font-family:var(--ed);font-weight:600;font-size:25px;letter-spacing:-.02em;color:var(--ink);text-decoration:none;}
+    /* ---------------- HERO ---------------- */
+    .hero{position:relative;width:100vw;min-height:100vh;overflow:hidden;background:linear-gradient(118deg,#EFEAE0 0%,#E5DDD0 52%,#DBD2C3 100%);}
+    .hero .scene{position:absolute;inset:0 0 0 auto;width:58vw;z-index:1;}
+    .hero .scene img{width:100%;height:100%;object-fit:cover;-webkit-mask-image:linear-gradient(to right,transparent,#000 26%);mask-image:linear-gradient(to right,transparent,#000 26%);}
+    .hero .scene::after{content:"";position:absolute;left:-8%;right:0;bottom:0;height:22%;background:linear-gradient(to top,rgba(90,78,60,.14),transparent);}
+    nav .in{display:flex;align-items:center;justify-content:space-between;padding:24px clamp(24px,4vw,54px);}
+    .brand{display:flex;align-items:center;gap:9px;font-family:var(--ed);font-weight:800;font-size:25px;letter-spacing:-.02em;}
     .brand .p{width:16px;height:16px;border-radius:50% 50% 50% 0;background:var(--coral);transform:rotate(45deg);}
-    .nav .links{display:flex;gap:34px;}
-    .nav .links a{color:var(--sec);font-weight:500;font-size:15.5px;text-decoration:none;transition:color .2s;}
-    .nav .links a:hover{color:var(--ink);}
-    @media (max-width:760px){.nav .links{display:none;}}
-
-    /* HERO */
-    .hero{padding:clamp(40px,7vw,92px) 0 clamp(60px,9vw,120px);}
-    .hero .in{display:grid;grid-template-columns:1.02fr .98fr;gap:clamp(30px,5vw,70px);align-items:center;}
-    .hero h1{font-size:clamp(52px,9.2vw,124px);}
-    .hero .lede{font-size:clamp(19px,2.2vw,25px);color:var(--sec);margin:26px 0 0;max-width:26ch;line-height:1.4;}
-    .hero .cta{display:flex;gap:24px;align-items:center;margin-top:38px;flex-wrap:wrap;}
-    .hero .eyebrow{margin-bottom:22px;display:inline-block;}
-
-    /* hero visual cluster: a rounded photo card + floating app chips */
-    .cluster{position:relative;aspect-ratio:1/1.02;width:100%;max-width:560px;margin-left:auto;}
-    .photocard{position:absolute;inset:6% 4% 6% 8%;border-radius:30px;overflow:hidden;box-shadow:var(--shadow);background:#ddd;}
-    .photocard img{width:100%;height:100%;object-fit:cover;}
-    .chip{position:absolute;background:#fff;border-radius:18px;box-shadow:var(--shadow-sm);padding:13px 15px;font-family:var(--meta);will-change:transform;z-index:3;}
-    .chip .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ter);font-weight:700;}
+    nav .links{display:flex;gap:30px;} nav .links a{font-size:15px;font-weight:500;} nav .links a:hover{color:var(--coralDeep);}
+    nav .get{border:1.5px solid var(--ink);border-radius:999px;padding:9px 20px;font-weight:600;font-size:14px;}
+    @media(max-width:820px){nav .links{display:none;}}
+    .hero .inner{position:relative;z-index:10;padding:clamp(8px,2vw,24px) clamp(24px,4vw,54px) 0;max-width:min(58%,880px);}
+    @media(max-width:820px){.hero .inner{max-width:100%;}}
+    .hero h1{font-size:clamp(58px,10.4vw,150px);margin:26px 0 0;}
+    .hero .lede{font-size:clamp(19px,2.1vw,24px);color:#3d3226;margin:26px 0 0;max-width:26ch;line-height:1.4;font-weight:500;}
+    .hero .cta{display:flex;gap:20px;align-items:center;margin-top:38px;flex-wrap:wrap;}
+    .chip{position:absolute;z-index:15;background:#fff;border-radius:16px;box-shadow:0 26px 54px -24px rgba(80,60,30,.4);padding:13px 15px;will-change:transform;}
+    .chip .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#9a968e;font-weight:700;}
     .chip .row{display:flex;align-items:center;gap:10px;margin-top:8px;}
-    .chip .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;}
-    .chip .ic svg{width:16px;height:16px;}
-    .chip .nm{font-family:var(--ed);font-weight:600;font-size:15px;line-height:1.1;color:var(--ink);}
-    .chip .mt{font-size:11.5px;color:var(--sec);}
-    .chip .amt{margin-left:auto;font-weight:700;font-size:14px;}
-    .c-stay{top:9%;right:-3%;width:230px;}
-    .c-split{bottom:20%;left:-6%;background:var(--ink);color:#fff;padding:14px 17px;}
-    .c-split .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.6;font-weight:700;}
-    .c-split .v{font-family:var(--ed);font-size:19px;font-weight:600;margin-top:4px;}
-    .c-split .v b{color:#F2A98C;}
-    .c-ask{bottom:5%;right:4%;display:flex;align-items:center;gap:10px;border-radius:999px;padding:13px 18px;}
-    .c-ask .p{width:14px;height:14px;border-radius:50% 50% 50% 0;background:var(--coral);transform:rotate(45deg);flex:none;}
-    .c-ask .tx{font-size:13.5px;color:var(--sec);font-weight:500;}
-    .caret{display:inline-block;width:2px;height:15px;background:var(--coral);margin-left:1px;vertical-align:-2px;}
-    .sticker{position:absolute;width:56px;height:56px;border-radius:16px;background:#fff;box-shadow:var(--shadow-sm);display:grid;place-items:center;font-size:28px;z-index:4;transform:rotate(-8deg);}
-    .s-heart{top:2%;left:2%;}
+    .chip .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--ink);flex:none;}
+    .chip .nm{font-family:var(--ed);font-weight:700;font-size:14.5px;line-height:1.1;} .chip .mt{font-size:11.5px;color:#78746c;}
+    .hero .c1{top:20%;left:46%;width:236px;} .hero .c2{top:52%;left:38%;background:var(--ink);color:#fff;padding:14px 18px;}
+    .c2 .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;font-weight:700;}
+    .c2 .v{font-family:var(--ed);font-size:19px;font-weight:700;margin-top:4px;} .c2 .v b{color:#F2A98C;}
+    .hero .c3{bottom:15%;left:52%;display:flex;align-items:center;gap:10px;border-radius:999px;padding:12px 17px;}
+    .c3 .p{width:22px;height:22px;border-radius:6px;background:var(--coral);display:grid;place-items:center;flex:none;} .c3 .p svg{width:12px;height:12px;stroke:#fff;}
+    .c3 .tx{font-size:13.5px;color:#57534e;font-weight:500;} .c3 .car{display:inline-block;width:2px;height:14px;background:var(--coral);margin-left:1px;vertical-align:-2px;}
+    .heart{position:absolute;top:12%;right:11%;z-index:15;width:56px;height:56px;border-radius:16px;background:#fff;box-shadow:0 22px 44px -20px rgba(80,60,30,.45);display:grid;place-items:center;font-size:28px;transform:rotate(-8deg);}
+    .more{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:10;font-size:14px;font-weight:600;}
+    .anim .hero .c1{animation:fl1 7s ease-in-out infinite;} .anim .hero .c2{animation:fl2 8s ease-in-out infinite;}
+    .anim .hero .c3{animation:fl1 7.6s ease-in-out infinite .3s;} .anim .heart{animation:fl3 6.5s ease-in-out infinite;} .anim .c3 .car{animation:car .8s steps(1) infinite;}
+    @media(max-width:820px){.hero .scene{width:100vw;opacity:.3;}.hero .chip,.heart{display:none;}}
 
-    @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(0,-13px)}}
-    @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(0,11px)}}
-    @keyframes f3{0%,100%{transform:translate(0,0) rotate(-8deg)}50%{transform:translate(0,-10px) rotate(-8deg)}}
-    @keyframes caret{0%,50%{opacity:1}51%,100%{opacity:0}}
-    .anim .c-stay{animation:f1 7s ease-in-out infinite;}
-    .anim .c-split{animation:f2 8s ease-in-out infinite;}
-    .anim .c-ask{animation:f1 7.6s ease-in-out infinite .3s;}
-    .anim .s-heart{animation:f3 6.5s ease-in-out infinite;}
-    .anim .caret{animation:caret .8s steps(1) infinite;}
-
-    /* PRODUCT MOMENTS — huge headline + floating app card */
-    .moment{padding:clamp(66px,11vw,150px) 0;}
-    .moment .in{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,7vw,110px);align-items:center;}
+    /* ---------------- MOMENT sections ---------------- */
+    .moment{position:relative;width:100vw;overflow:hidden;padding:clamp(72px,11vw,160px) 0;}
+    .moment.white{background:var(--white);} .moment.stone{background:var(--stone);} .moment.dark{background:var(--ink);color:#fff;}
+    .moment .in{max-width:1440px;margin:0 auto;padding:0 clamp(24px,4vw,54px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,72px);align-items:center;}
     .moment.flip .txt{order:2;} .moment.flip .art{order:1;}
-    .moment h2{font-size:clamp(38px,5.6vw,74px);margin:20px 0 0;}
-    .moment .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:24px 0 0;max-width:32ch;line-height:1.45;}
-    .moment .mini{margin:26px 0 0;display:flex;flex-direction:column;gap:13px;}
-    .moment .mini .mrow{display:flex;align-items:flex-start;gap:12px;font-size:15.5px;color:var(--sec);}
+    .moment h2{font-size:clamp(40px,6vw,84px);margin:20px 0 0;}
+    .moment .lede{font-size:clamp(18px,2vw,22px);margin:24px 0 0;max-width:30ch;line-height:1.45;}
+    .moment.white .lede,.moment.stone .lede{color:#57534e;} .moment.dark .lede{color:rgba(255,255,255,.72);}
+    .moment .mini{margin:26px 0 0;display:flex;flex-direction:column;gap:12px;}
+    .moment .mini .mrow{display:flex;gap:12px;font-size:15.5px;align-items:flex-start;}
+    .moment.white .mini .mrow,.moment.stone .mini .mrow{color:#57534e;} .moment.dark .mini .mrow{color:rgba(255,255,255,.72);}
     .moment .mini .mrow svg{width:20px;height:20px;flex:none;color:var(--coral);margin-top:1px;}
-    .moment .mini .mrow b{color:var(--ink);font-weight:600;}
+    .moment.white .mini b,.moment.stone .mini b{color:var(--ink);} .moment.dark .mini b{color:#fff;}
+    .moment.dark .eyebrow{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);}
+    .moment.dark .tlink{color:#F2A98C;}
 
-    /* dark moment — one high-contrast band for rhythm */
-    .moment.dark{background:#191410;}
-    .moment.dark h2{color:#fff;}
-    .moment.dark .eyebrow{color:#E8916E;}
-    .moment.dark .lede{color:rgba(255,255,255,.72);}
-    .moment.dark .mini .mrow{color:rgba(255,255,255,.7);}
-    .moment.dark .mini .mrow b{color:#fff;}
-    .moment.dark .mini .mrow svg{color:#E8916E;}
-    .moment.dark .tlink{color:#E8916E;}
-
-    /* the floating app card (unframed UI) */
-    .stack{position:relative;width:100%;max-width:430px;margin:0 auto;}
-    .appcard{position:relative;z-index:2;background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);overflow:hidden;text-align:left;}
-    .accent{position:absolute;z-index:3;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm);padding:12px 14px;will-change:transform;}
-    .anim .stack .accent{animation:f1 7.2s ease-in-out infinite;}
-    .anim .stack .accent.b{animation:f2 8.4s ease-in-out infinite;}
-    .badge3d{position:absolute;z-index:4;width:52px;height:52px;border-radius:15px;background:#fff;box-shadow:var(--shadow-sm);display:grid;place-items:center;font-size:26px;transform:rotate(-8deg);}
-    .anim .badge3d{animation:f3 6.8s ease-in-out infinite;}
-
-    /* photo "shot" card (rounded photo + floating app chip) */
-    .shotcard{position:relative;width:100%;max-width:410px;margin:0 auto;}
-    .shotcard .ph{border-radius:28px;overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/5;background:#ddd;}
-    .shotcard .ph img{width:100%;height:100%;object-fit:cover;}
-    .shotcard .rchip{position:absolute;left:-16px;bottom:30px;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm);padding:13px 16px;z-index:3;will-change:transform;}
-    .shotcard .rchip .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ter);font-weight:700;}
-    .shotcard .rchip .v{font-family:var(--ed);font-weight:600;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;color:var(--ink);}
-    .shotcard .rchip .v svg{width:17px;height:17px;color:var(--coral);flex:none;}
-    .anim .shotcard .rchip{animation:f1 7.4s ease-in-out infinite;}
-    /* real app screenshot layered over the photo (Mindtrip-style device card) */
-    .devcard{position:absolute;right:-20px;bottom:-16px;width:132px;aspect-ratio:520/1042;border-radius:22px;overflow:hidden;background:#0b0b0b;border:3px solid #0b0b0b;box-shadow:0 34px 60px -26px rgba(0,0,0,.7);z-index:4;will-change:transform;}
-    .devcard img{width:100%;height:100%;object-fit:cover;object-position:center -5px;}
-    .devcard .sb{position:absolute;inset:0 0 auto 0;height:15px;background:linear-gradient(#050608,#050608 58%,transparent);z-index:2;}
-    .anim .devcard{animation:f2 8.6s ease-in-out infinite;}
-
-    /* card header */
+    .stack{position:relative;width:100%;max-width:440px;}
+    .moment:not(.flip) .stack{margin-left:auto;margin-right:calc(-1 * clamp(24px,4vw,54px));}
+    .moment.flip .stack{margin-right:auto;margin-left:calc(-1 * clamp(24px,4vw,54px));}
+    .appcard{position:relative;z-index:2;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 50px 90px -44px rgba(20,12,4,.45);text-align:left;transition:transform .4s var(--e),box-shadow .4s var(--e);}
+    @media(hover:hover){.stack:hover .appcard{transform:translateY(-6px);box-shadow:0 62px 108px -46px rgba(20,12,4,.5);}}
+    .badge3d{position:absolute;z-index:4;width:52px;height:52px;border-radius:15px;background:#fff;box-shadow:0 22px 44px -22px rgba(20,12,4,.5);display:grid;place-items:center;font-size:26px;transform:rotate(-8deg);}
+    .anim .badge3d{animation:fl3 6.8s ease-in-out infinite;}
     .ac-hd{display:flex;align-items:center;gap:11px;padding:18px 18px 14px;border-bottom:1px solid var(--line);}
-    .ac-hd .av{width:34px;height:34px;border-radius:10px;background:var(--coral);display:grid;place-items:center;flex:none;}
-    .ac-hd .av svg{width:19px;height:19px;}
-    .ac-hd .t b{font-family:var(--ed);font-size:16px;font-weight:600;display:block;line-height:1.1;}
-    .ac-hd .t span{font-size:11.5px;color:var(--ter);}
-    .ac-ttl{font-family:var(--ed);font-size:20px;font-weight:600;letter-spacing:-.02em;}
-    .ac-sub{font-size:12px;color:var(--ter);margin-top:3px;}
-
-    /* chat */
-    .chat-body{padding:18px 16px;display:flex;flex-direction:column;gap:11px;}
+    .ac-hd .av{width:34px;height:34px;border-radius:10px;background:var(--coral);display:grid;place-items:center;flex:none;} .ac-hd .av svg{width:19px;height:19px;}
+    .ac-hd b{font-family:var(--ed);font-size:16px;font-weight:700;display:block;line-height:1.1;} .ac-hd span{font-size:11.5px;color:#9a968e;}
+    .ac-ttl{font-family:var(--ed);font-size:20px;font-weight:700;} .ac-sub{font-size:12px;color:#9a968e;margin-top:3px;}
+    .ac-pad{padding:16px;}
+    .chat{padding:18px 16px;display:flex;flex-direction:column;gap:11px;}
     .cm{max-width:86%;font-size:14px;line-height:1.45;padding:12px 15px;border-radius:18px;}
     .cm.u{align-self:flex-end;background:var(--coral);color:#fff;border-bottom-right-radius:5px;}
-    .cm.d{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:5px;}
-    .verdict{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:#eaf3ec;color:#2f6a43;border:1px solid #cfe6d5;border-radius:13px;padding:10px 14px;font-size:13.5px;font-weight:600;}
-    .verdict svg{width:16px;height:16px;flex:none;}
-    .pcard{align-self:stretch;background:var(--bg);border:1px solid var(--line);border-radius:15px;overflow:hidden;margin-top:2px;}
-    .pcard .ph{height:74px;background:linear-gradient(120deg,#6ea3c9,#9cc3dd);}
-    .pcard .pb{padding:11px 13px;display:flex;align-items:center;gap:8px;}
-    .pcard .nm{font-family:var(--ed);font-size:15px;font-weight:600;}
-    .pcard .mt{font-size:11.5px;color:var(--sec);}
+    .cm.d{align-self:flex-start;background:var(--stone2);border:1px solid var(--line);border-bottom-left-radius:5px;}
+    .verdict{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:#eaf3ec;color:#2f6a43;border:1px solid #cfe6d5;border-radius:13px;padding:10px 14px;font-size:13.5px;font-weight:600;} .verdict svg{width:16px;height:16px;}
+    .pcard{align-self:stretch;background:var(--stone2);border:1px solid var(--line);border-radius:15px;overflow:hidden;}
+    .pcard .ph{height:70px;background:linear-gradient(120deg,#6ea3c9,#9cc3dd);} .pcard .pb{padding:11px 13px;display:flex;align-items:center;gap:8px;}
+    .pcard .nm{font-family:var(--ed);font-size:15px;font-weight:700;} .pcard .mt{font-size:11.5px;color:#78746c;}
     .pcard .add{margin-left:auto;background:var(--coral);color:#fff;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:10px;}
-
-    /* generic app rows (stays compare, split, itinerary) */
-    .ac-pad{padding:16px 16px 18px;}
-    .srow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
-    .srow:last-child{border-bottom:none;}
-    .srow .lg{width:34px;height:34px;border-radius:10px;background:var(--panel);display:grid;place-items:center;flex:none;}
-    .srow .lg span{width:20px;height:20px;background:var(--sec);-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;}
-    .srow .nm{font-family:var(--ed);font-size:15px;font-weight:600;}
-    .srow .mt{font-size:11.5px;color:var(--ter);}
-    .srow .pr{margin-left:auto;text-align:right;font-family:var(--ed);font-weight:600;font-size:17px;}
-    .srow .pr small{display:block;font-family:var(--meta);font-size:10px;color:var(--ter);font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
-    .srow.best{background:var(--coralSoft);margin:0 -16px;padding:12px 16px;border:none;border-radius:14px;}
-    .srow.best .best-tag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--coralDeep);background:#fff;padding:3px 8px;border-radius:7px;}
-    .srow.best .pr{margin-left:14px;color:var(--coralDeep);}
-
-    .exp{display:flex;align-items:center;gap:11px;padding:11px 0;}
-    .exp .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;flex:none;}
-    .exp .ic svg{width:17px;height:17px;}
-    .exp .nm{font-family:var(--ed);font-size:14.5px;font-weight:600;}
-    .exp .mt{font-size:11.5px;color:var(--ter);}
-    .exp .amt{margin-left:auto;font-family:var(--ed);font-weight:600;font-size:15px;}
+    .srow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);} .srow:last-child{border-bottom:none;}
+    .srow .lg{width:34px;height:34px;border-radius:10px;background:var(--cream);display:grid;place-items:center;flex:none;}
+    .srow .lg span{width:20px;height:20px;background:#8a7f70;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;}
+    .srow .nm{font-family:var(--ed);font-size:15px;font-weight:700;line-height:1.15;} .srow .mt{font-size:11.5px;color:#9a968e;display:flex;align-items:center;gap:5px;}
+    .srow .vd{font-size:9px;font-weight:700;letter-spacing:.03em;padding:2px 6px;border-radius:6px;background:var(--cream);color:#78746c;}
+    .srow .pr{margin-left:auto;font-family:var(--ed);font-weight:700;font-size:17px;text-align:right;} .srow .pr small{display:block;font-family:var(--meta);font-size:10px;color:#9a968e;font-weight:600;text-transform:uppercase;}
+    .srow.best{background:var(--coralSoft);margin:0 -16px;padding:12px 16px;border-radius:14px;border:none;} .srow.best .tagb{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--coralDeep);background:#fff;padding:3px 8px;border-radius:7px;} .srow.best .pr{margin-left:14px;color:var(--coralDeep);}
+    .exp{display:flex;align-items:center;gap:11px;padding:11px 0;} .exp .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;flex:none;} .exp .ic svg{width:17px;height:17px;}
+    .exp .nm{font-family:var(--ed);font-size:14.5px;font-weight:700;} .exp .mt{font-size:11.5px;color:#9a968e;} .exp .amt{margin-left:auto;font-family:var(--ed);font-weight:700;font-size:15px;}
     .settle{margin-top:6px;background:var(--ink);color:#fff;border-radius:16px;padding:15px 16px;}
-    .settle .st{display:flex;justify-content:space-between;align-items:baseline;}
-    .settle .st .l{font-size:10px;letter-spacing:.09em;text-transform:uppercase;opacity:.6;font-weight:700;}
-    .settle .st .a{font-family:var(--ed);font-size:26px;font-weight:600;}
-    .settle .owe{font-size:12.5px;color:rgba(255,255,255,.75);margin-top:7px;}
-    .settle .owe b{color:#fff;}
-    .settle .av{display:flex;gap:5px;margin-top:12px;}
-    .settle .av span{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:9px;font-weight:700;}
-
-    .stop{position:relative;padding:0 0 16px 22px;border-left:2px solid var(--line);margin-left:5px;}
-    .stop:last-child{border-left-color:transparent;padding-bottom:2px;}
+    .settle .st{display:flex;justify-content:space-between;align-items:baseline;} .settle .st .l{font-size:10px;letter-spacing:.09em;text-transform:uppercase;opacity:.6;font-weight:700;} .settle .st .a{font-family:var(--ed);font-size:26px;font-weight:700;}
+    .settle .owe{font-size:12.5px;color:rgba(255,255,255,.75);margin-top:7px;} .settle .owe b{color:#fff;}
+    .settle .av{display:flex;gap:5px;margin-top:12px;} .settle .av span{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:9px;font-weight:700;}
+    .stop{position:relative;padding:0 0 16px 22px;border-left:2px solid var(--line);margin-left:5px;} .stop:last-child{border-left-color:transparent;padding-bottom:2px;}
     .stop::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--coral);border:2px solid #fff;}
-    .stop .tm{font-size:10.5px;font-weight:700;color:var(--ter);letter-spacing:.03em;text-transform:uppercase;}
-    .stop .card{margin-top:6px;display:flex;align-items:center;gap:10px;}
-    .stop .card .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;flex:none;}
-    .stop .card .ic svg{width:16px;height:16px;}
-    .stop .card .nm{font-family:var(--ed);font-size:14.5px;font-weight:600;}
-    .stop .card .mt{font-size:11px;color:var(--ter);}
-    .stop .card .ch{margin-left:auto;font-size:10px;font-weight:700;color:#2f6a43;background:#eaf3ec;padding:3px 8px;border-radius:7px;}
+    .stop .tm{font-size:10.5px;font-weight:700;color:#9a968e;letter-spacing:.03em;text-transform:uppercase;} .stop .card{margin-top:6px;display:flex;align-items:center;gap:10px;}
+    .stop .card .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;flex:none;} .stop .card .ic svg{width:16px;height:16px;}
+    .stop .card .nm{font-family:var(--ed);font-size:14.5px;font-weight:700;} .stop .card .mt{font-size:11px;color:#9a968e;} .stop .card .ch{margin-left:auto;font-size:10px;font-weight:700;color:#2f6a43;background:#eaf3ec;padding:3px 8px;border-radius:7px;}
+    .shot{position:relative;border-radius:26px;overflow:hidden;box-shadow:0 50px 90px -44px rgba(20,12,4,.55);border:3px solid #0b0b0b;background:#0b0b0b;aspect-ratio:276/600;max-width:300px;margin:0 auto;}
+    .shot img{width:100%;height:100%;object-fit:cover;object-position:center -4px;} .shot .sb{position:absolute;inset:0 0 auto 0;height:22px;background:linear-gradient(#050608,#050608 60%,transparent);z-index:2;}
+    .rchip{position:absolute;z-index:5;background:#fff;color:var(--ink);border-radius:15px;box-shadow:0 26px 54px -24px rgba(20,12,4,.5);padding:13px 16px;bottom:22px;right:-24px;}
+    .rchip .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a968e;font-weight:700;} .rchip .v{font-family:var(--ed);font-weight:700;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;} .rchip .v svg{width:17px;height:17px;color:var(--coral);}
+    @media(max-width:820px){.moment .in{grid-template-columns:1fr;gap:44px;}.moment.flip .txt{order:1;}.moment.flip .art{order:2;}.stack{margin:0 auto!important;max-width:400px;}}
 
-    /* keep 2-col product moments balanced inside the wide container */
-    .moment .in{max-width:1300px;margin:0 auto;}
-    .grid-sec .wrap,.montage .wrap,.trust .wrap,.how .wrap,.final .wrap{max-width:1300px;margin:0 auto;}
-
-    /* HOW IT WORKS — numbered step flow */
-    .how{padding:clamp(64px,10vw,140px) 0;}
-    .how .head{max-width:680px;}
-    .how h2{font-size:clamp(36px,5.2vw,64px);margin:18px 0 0;}
-    .how .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:22px 0 0;max-width:48ch;}
+    /* how it works */
+    .how{background:var(--white);padding:clamp(72px,11vw,150px) 0;}
+    .how .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .how .head{max-width:680px;} .how h2{font-size:clamp(38px,5.4vw,68px);margin:18px 0 0;} .how .lede{font-size:clamp(18px,2vw,22px);color:#57534e;margin:22px 0 0;max-width:48ch;}
     .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;margin-top:64px;}
-    @media (max-width:860px){.steps{grid-template-columns:1fr 1fr;gap:44px 26px;}}
-    @media (max-width:520px){.steps{grid-template-columns:1fr;gap:36px;}}
-    .step .n{width:44px;height:44px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--ed);font-weight:600;font-size:18px;display:grid;place-items:center;}
-    .step h3{font-size:22px;margin:20px 0 0;}
-    .step p{font-size:15.5px;color:var(--sec);margin:10px 0 0;line-height:1.55;}
+    @media(max-width:860px){.steps{grid-template-columns:1fr 1fr;gap:44px 26px;}} @media(max-width:520px){.steps{grid-template-columns:1fr;}}
+    .step .n{width:44px;height:44px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--ed);font-weight:700;font-size:18px;display:grid;place-items:center;}
+    .step h3{font-size:22px;margin:20px 0 0;} .step p{font-size:15.5px;color:#57534e;margin:10px 0 0;line-height:1.55;}
 
-    /* small text link (adds per-section CTAs) */
-    .tlink{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:15px;color:var(--coralDeep);text-decoration:none;margin-top:26px;}
-    .tlink svg{width:16px;height:16px;transition:transform .25s var(--e-spring);}
-    .tlink:hover svg{transform:translateX(4px);}
-
-    /* GRID — everything a trip needs */
-    .grid-sec{padding:clamp(70px,11vw,150px) 0;}
-    .grid-sec .head{max-width:660px;}
-    .grid-sec h2{font-size:clamp(36px,5.4vw,68px);margin:18px 0 0;}
-    .grid-sec .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:22px 0 0;max-width:44ch;}
+    /* everything grid */
+    .grid-sec{background:var(--stone);padding:clamp(72px,11vw,150px) 0;} .grid-sec .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .grid-sec .head{max-width:660px;} .grid-sec h2{font-size:clamp(38px,5.4vw,68px);margin:18px 0 0;} .grid-sec .lede{font-size:clamp(18px,2vw,22px);color:#57534e;margin:22px 0 0;max-width:44ch;}
     .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:60px;}
-    @media (max-width:800px){.tiles{grid-template-columns:1fr 1fr;}}
-    @media (max-width:540px){.tiles{grid-template-columns:1fr;}}
-    .tile{background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px 28px;transition:transform .34s var(--e-out),box-shadow .34s var(--e-out);}
-    @media (hover:hover){.tile:hover{transform:translateY(-6px);box-shadow:var(--shadow-sm);}}
-    .tile .ic{width:46px;height:46px;border-radius:13px;background:var(--coralSoft);display:grid;place-items:center;color:var(--coralDeep);}
-    .tile .ic svg{width:23px;height:23px;}
-    .tile h3{font-size:22px;margin:20px 0 0;}
-    .tile p{font-size:15px;color:var(--sec);margin:9px 0 0;line-height:1.5;}
+    @media(max-width:800px){.tiles{grid-template-columns:1fr 1fr;}} @media(max-width:540px){.tiles{grid-template-columns:1fr;}}
+    .tile{background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px 28px;transition:transform .34s var(--e),box-shadow .34s var(--e);}
+    @media(hover:hover){.tile:hover{transform:translateY(-6px);box-shadow:0 30px 60px -34px rgba(20,12,4,.4);}}
+    .tile .ic{width:46px;height:46px;border-radius:13px;background:var(--coralSoft);display:grid;place-items:center;color:var(--coralDeep);} .tile .ic svg{width:23px;height:23px;}
+    .tile h3{font-size:22px;margin:20px 0 0;} .tile p{font-size:15px;color:#57534e;margin:9px 0 0;line-height:1.5;}
 
-    /* trust logos */
-    .trust{padding:clamp(56px,8vw,96px) 0;text-align:center;}
-    .trust .lbl{font-size:15px;font-weight:500;color:var(--sec);}
-    .plogos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:26px 46px;margin-top:34px;}
-    .lg2{height:25px;width:auto;background:#b3a897;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;transition:background .25s;}
-    .lg2.word{background:none;color:#b3a897;font-weight:700;font-size:21px;letter-spacing:-.01em;}
-    @media (hover:hover){.plogos:hover .lg2{background:#8a7f70;}.plogos:hover .lg2.word{color:#8a7f70;}}
-    .trust .disc{font-size:12.5px;color:var(--ter);margin:26px auto 0;max-width:56ch;line-height:1.5;}
+    /* trust */
+    .trust{background:var(--white);padding:clamp(56px,8vw,96px) 0;text-align:center;} .trust .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .trust .lbl{font-size:15px;font-weight:500;color:#57534e;}
+    .plogos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:26px 46px;margin-top:32px;}
+    .lg2{height:25px;width:auto;background:#b3a897;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;}
+    .lg2.word{background:none;color:#b3a897;font-family:var(--ed);font-weight:700;font-size:21px;}
+    .trust .disc{font-size:12.5px;color:#9a968e;margin:26px auto 0;max-width:56ch;line-height:1.5;}
 
     /* montage */
-    .montage{padding:clamp(66px,10vw,140px) 0;}
-    .montage .head{text-align:center;max-width:720px;margin:0 auto;}
-    .montage h2{font-size:clamp(36px,5.4vw,68px);margin:16px 0 0;}
-    .montage h2 [data-countup]{font-variant-numeric:tabular-nums;}
-    .montage .g{columns:4 220px;column-gap:16px;margin-top:56px;}
-    .mtile{border-radius:20px;overflow:hidden;margin-bottom:16px;break-inside:avoid;box-shadow:var(--shadow-sm);}
-    .mtile img{width:100%;height:auto;transition:transform .6s var(--e-out);}
-    @media (hover:hover){.mtile:hover img{transform:scale(1.05);}}
-    @media (max-width:640px){.montage .g{columns:2 150px;}}
+    .montage{background:var(--stone);padding:clamp(72px,11vw,150px) 0;} .montage .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .montage .head{text-align:center;max-width:720px;margin:0 auto;} .montage h2{font-size:clamp(38px,5.4vw,68px);margin:16px 0 0;} .montage h2 [data-count]{font-variant-numeric:tabular-nums;}
+    .montage .g{columns:4 220px;column-gap:16px;margin-top:56px;} .mtile{border-radius:20px;overflow:hidden;margin-bottom:16px;break-inside:avoid;box-shadow:0 24px 50px -30px rgba(20,12,4,.4);}
+    .mtile img{width:100%;height:auto;transition:transform .6s var(--e);} @media(hover:hover){.mtile:hover img{transform:scale(1.05);}} @media(max-width:640px){.montage .g{columns:2 150px;}}
 
-    /* real-screen showcase — floating device cluster */
-    .showcase{padding:clamp(66px,11vw,150px) 0;overflow:hidden;}
-    .showcase .in{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,7vw,100px);align-items:center;}
-    .showcase h2{font-size:clamp(38px,5.6vw,74px);margin:18px 0 0;}
-    .showcase .lede{font-size:clamp(18px,2vw,22px);color:var(--sec);margin:24px 0 0;max-width:33ch;line-height:1.45;}
-    .showcase .tlink{display:inline-flex;align-items:center;gap:8px;margin-top:30px;font-weight:600;font-size:16px;color:var(--coralDeep);text-decoration:none;}
-    .showcase .tlink svg{width:20px;height:20px;}
-    .devcluster{position:relative;width:100%;max-width:430px;margin:0 auto;}
-    .dev{border-radius:34px;overflow:hidden;background:#0b0b0b;border:4px solid #0b0b0b;box-shadow:0 46px 88px -34px rgba(40,28,16,.6),0 15px 34px -20px rgba(40,28,16,.42);}
-    .dev img{width:100%;display:block;}
-    .dev.front{position:relative;z-index:3;width:76%;margin-left:auto;}
-    .dev.back{position:absolute;left:0;top:7%;width:60%;z-index:2;}
-    .anim .dev.front{animation:f2 8.5s ease-in-out infinite;}
-    .anim .dev.back{animation:f1 7.5s ease-in-out infinite;}
-    @media (max-width:880px){
-      .showcase .in{grid-template-columns:1fr;gap:46px;}
-      .devcluster{max-width:400px;}
-    }
+    /* final */
+    .final{background:var(--ink);color:#fff;padding:clamp(90px,13vw,190px) 0;text-align:center;position:relative;overflow:hidden;}
+    .final::after{content:"";position:absolute;width:60%;height:150%;right:-8%;top:-25%;background:radial-gradient(circle,rgba(201,96,63,.4),transparent 62%);}
+    .final .wrap{position:relative;z-index:2;max-width:900px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .final h2{color:#fff;font-size:clamp(46px,7vw,104px);} .final p{color:rgba(255,255,255,.7);font-size:clamp(18px,2vw,22px);margin:24px auto 0;}
+    .final .cta{margin-top:40px;display:flex;justify-content:center;}
+    .badge{display:inline-flex;align-items:center;gap:11px;background:#fff;color:#111;border-radius:15px;padding:15px 24px;font-weight:600;transition:transform .3s var(--spring);} .badge:hover{transform:translateY(-2px);}
+    .badge svg{width:24px;height:24px;} .badge small{display:block;font-size:10px;opacity:.6;} .badge b{font-size:18px;font-family:var(--ed);}
 
-    /* download / final */
-    .final{padding:clamp(80px,12vw,180px) 0;}
-    .final .box{background:var(--ink);color:#fff;border-radius:36px;padding:clamp(50px,8vw,96px) clamp(28px,6vw,80px);text-align:center;position:relative;overflow:hidden;}
-    .final .box::after{content:"";position:absolute;width:60%;height:160%;right:-10%;top:-30%;background:radial-gradient(circle,rgba(201,96,63,.35),transparent 65%);}
-    .final h2{color:#fff;font-size:clamp(40px,6vw,86px);position:relative;z-index:2;}
-    .final p{color:rgba(255,255,255,.7);font-size:clamp(18px,2vw,22px);margin:22px auto 0;position:relative;z-index:2;}
-    .final .cta{margin-top:38px;display:flex;gap:18px;justify-content:center;flex-wrap:wrap;position:relative;z-index:2;}
-    .badge{display:inline-flex;align-items:center;gap:11px;background:#fff;color:#111;border-radius:15px;padding:14px 22px;text-decoration:none;font-weight:600;transition:transform .3s var(--e-spring);}
-    .badge:hover{transform:translateY(-2px);}
-    .badge svg{width:24px;height:24px;}
-    .badge small{display:block;font-size:10px;opacity:.6;}
-    .badge b{font-size:18px;}
-
-    footer{padding:76px 0 56px;color:var(--sec);font-size:14.5px;border-top:1px solid var(--line);}
-    footer .top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:48px;}
-    @media (max-width:760px){footer .top{grid-template-columns:1fr 1fr;gap:40px 24px;}}
-    footer .brand{margin-bottom:0;}
-    footer .tag{font-size:15px;color:var(--sec);margin:18px 0 0;max-width:30ch;line-height:1.55;}
-    footer .col h4{font-family:var(--meta);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--ter);font-weight:700;margin:0 0 12px;}
-    footer a{color:var(--sec);text-decoration:none;} footer a:hover{color:var(--ink);}
-    footer .col a{display:flex;align-items:center;min-height:38px;}
-    footer .bot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px 30px;margin-top:56px;padding-top:28px;border-top:1px solid var(--line);}
-    footer .bot .fl{display:flex;gap:8px 26px;flex-wrap:wrap;}
-    footer .bot .fl a{min-height:44px;display:inline-flex;align-items:center;}
+    footer{background:var(--ink);color:rgba(255,255,255,.62);padding:72px 0 56px;font-size:14.5px;border-top:1px solid rgba(255,255,255,.08);}
+    footer .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    footer .top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:48px;} @media(max-width:760px){footer .top{grid-template-columns:1fr 1fr;gap:40px 24px;}}
+    footer .brand{color:#fff;} footer .tag{margin:18px 0 0;max-width:30ch;line-height:1.55;color:rgba(255,255,255,.55);}
+    footer .col h4{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.4);font-weight:700;margin:0 0 12px;}
+    footer a:hover{color:#fff;} footer .col a{display:flex;align-items:center;min-height:38px;}
+    footer .bot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px 26px;margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.08);}
+    footer .bot .fl{display:flex;gap:8px 26px;flex-wrap:wrap;} footer .bot .fl a{min-height:44px;display:inline-flex;align-items:center;}
 
     a:focus-visible,.pill:focus-visible,.badge:focus-visible{outline:2px solid var(--coral);outline-offset:3px;}
 
-    @media (max-width:880px){
-      .hero .in{grid-template-columns:1fr;gap:20px;}
-      .cluster{max-width:440px;margin:10px auto 0;}
-      .moment .in{grid-template-columns:1fr;gap:48px;}
-      .moment.flip .txt{order:1;} .moment.flip .art{order:2;}
-      .stack{max-width:400px;}
-    }
-
-    /* app-card hover lift */
-    .appcard{transition:transform .4s var(--e-out),box-shadow .4s var(--e-out);}
-    @media (hover:hover){.stack:hover .appcard{transform:translateY(-6px);box-shadow:0 52px 96px -42px rgba(40,28,16,.5),0 18px 38px -20px rgba(40,28,16,.3);}}
-
-    /* card choreography — inner rows cascade in when the card scrolls into view */
-    .js .appcard .cm,.js .appcard .verdict,.js .appcard .pcard,
-    .js .appcard .srow,.js .appcard .exp,.js .appcard .settle,
-    .js .appcard .stop{opacity:0;transform:translateY(14px);}
-    .appcard.play .cm,.appcard.play .verdict,.appcard.play .pcard,
-    .appcard.play .srow,.appcard.play .exp,.appcard.play .settle,
-    .appcard.play .stop{opacity:1;transform:none;transition:opacity .5s var(--e-out),transform .58s var(--e-out);}
-    .appcard.play .chat-body>:nth-child(1),.appcard.play .ac-pad>:nth-child(1){transition-delay:.05s}
-    .appcard.play .chat-body>:nth-child(2),.appcard.play .ac-pad>:nth-child(2){transition-delay:.16s}
-    .appcard.play .chat-body>:nth-child(3),.appcard.play .ac-pad>:nth-child(3){transition-delay:.27s}
-    .appcard.play .chat-body>:nth-child(4),.appcard.play .ac-pad>:nth-child(4){transition-delay:.38s}
-    .appcard.play .ac-pad>:nth-child(5){transition-delay:.49s}
-
-    /* reveals */
-    .js [data-rise]{opacity:0;transform:translateY(28px);transition:opacity .8s var(--e-out),transform .8s var(--e-out);transition-delay:calc(var(--i,0)*90ms);will-change:opacity,transform;}
+    /* reveals + card play */
+    .js [data-rise]{opacity:0;transform:translateY(28px);transition:opacity .8s var(--e),transform .8s var(--e);transition-delay:calc(var(--i,0)*90ms);will-change:opacity,transform;}
     .js [data-rise].shown{opacity:1;transform:none;will-change:auto;}
-    @media (prefers-reduced-motion:reduce){
+    .js .appcard .cm,.js .appcard .verdict,.js .appcard .pcard,.js .appcard .srow,.js .appcard .exp,.js .appcard .settle,.js .appcard .stop{opacity:0;transform:translateY(14px);}
+    .appcard.play .cm,.appcard.play .verdict,.appcard.play .pcard,.appcard.play .srow,.appcard.play .exp,.appcard.play .settle,.appcard.play .stop{opacity:1;transform:none;transition:opacity .5s var(--e),transform .58s var(--e);}
+    .appcard.play .chat>:nth-child(1),.appcard.play .ac-pad>:nth-child(1){transition-delay:.05s} .appcard.play .chat>:nth-child(2),.appcard.play .ac-pad>:nth-child(2){transition-delay:.16s}
+    .appcard.play .chat>:nth-child(3),.appcard.play .ac-pad>:nth-child(3){transition-delay:.27s} .appcard.play .chat>:nth-child(4),.appcard.play .ac-pad>:nth-child(4){transition-delay:.38s} .appcard.play .ac-pad>:nth-child(5){transition-delay:.49s}
+    @media(prefers-reduced-motion:reduce){
       html{scroll-behavior:auto;}
       .js [data-rise]{opacity:1!important;transform:none!important;}
       .js .appcard .cm,.js .appcard .verdict,.js .appcard .pcard,.js .appcard .srow,.js .appcard .exp,.js .appcard .settle,.js .appcard .stop{opacity:1!important;transform:none!important;}
@@ -360,247 +219,202 @@
   </style>
 </head>
 <body id="top">
-  <header class="nav" id="nav"><div class="wrap in">
-    <a class="brand" href="#top"><span class="p"></span>Drift</a>
-    <nav class="links" aria-label="Primary"><a href="#how">How it works</a><a href="#ask">Features</a><a href="#get">Beta</a></nav>
-    <a class="pill coral sm" href="#get">Get the app</a>
-  </div></header>
-
   <main>
   <!-- HERO -->
-  <section class="hero"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>The group-trip app</span>
-      <h1 data-rise style="--i:1">Every trip,<br>together.</h1>
-      <p class="lede" data-rise style="--i:2">Plan it with your people, book the stays and tours, and split every cost — in one place.</p>
-      <div class="cta" data-rise style="--i:3">
-        <a class="pill coral" href="#get">Join the beta</a>
-        <a class="playlink" href="#ask"><span class="pb"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>See how it works</a>
+  <section class="hero">
+    <div class="scene"><picture><source type="image/webp" srcset="assets/photo/hero-640.webp 640w, assets/photo/hero.webp 1180w" sizes="(max-width:820px) 100vw, 58vw"><img src="assets/photo/hero.jpg" alt="Friends together on a trip" fetchpriority="high" width="1180" height="1573"></picture></div>
+    <nav><div class="in">
+      <a class="brand" href="#top"><span class="p"></span>Drift</a>
+      <div class="links"><a href="#how">How it works</a><a href="#ask">Features</a><a href="#get">Beta</a></div>
+      <a class="get" href="#get">Get the app</a>
+    </div></nav>
+    <div class="inner">
+      <span class="eyebrow"><span class="d"></span>The group-trip app</span>
+      <h1>Every trip,<br>together.</h1>
+      <p class="lede">Plan it with your people, book the stays and tours, and split every cost — all in one place.</p>
+      <div class="cta">
+        <a class="pill" href="#get">Start planning</a>
+        <a class="play" href="#how"><span class="pb"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>Watch the demo</a>
       </div>
     </div>
-    <div class="art" data-rise style="--i:2">
-      <div class="cluster">
-        <div class="photocard"><picture>
-          <source type="image/webp" srcset="assets/photo/hero-640.webp 640w, assets/photo/hero.webp 1180w" sizes="(max-width:880px) 92vw, 560px">
-          <img src="assets/photo/hero.jpg" alt="Friends together on a trip" fetchpriority="high" width="1180" height="1573">
-        </picture></div>
-        <div class="sticker s-heart">🧡</div>
-        <div class="chip c-stay">
-          <div class="k">Where to stay</div>
-          <div class="row"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Casa Verde</div><div class="mt">San José · $104/nt</div></div></div>
-        </div>
-        <div class="chip c-split"><div class="l">Settle up</div><div class="v">You owe Ana <b>$54</b></div></div>
-        <div class="chip c-ask"><span class="p"></span><span class="tx">Ask Drift about San José<span class="caret"></span></span></div>
-      </div>
-    </div>
-  </div></section>
+    <div class="heart">🧡</div>
+    <div class="chip c1"><div class="k">Where to stay</div><div class="row"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" width="16" height="16"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Casa Verde</div><div class="mt">San José · $104/nt</div></div></div></div>
+    <div class="chip c2"><div class="l">Settle up</div><div class="v">You owe Ana <b>$54</b></div></div>
+    <div class="chip c3"><span class="p"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9"><path d="M12 3l2.2 4.8L19 9l-3.6 3.4.9 5-4.3-2.4L7.7 17.4l.9-5L5 9l4.8-1.2z"/></svg></span><span class="tx">Ask Drift about San José<span class="car"></span></span></div>
+    <a class="more" href="#how">Learn more ↓</a>
+  </section>
 
   <!-- HOW IT WORKS -->
   <section class="how" id="how"><div class="wrap">
-    <div class="head">
-      <span class="eyebrow" data-rise>How it works</span>
-      <h2 data-rise style="--i:1">From “where should<br>we go?” to home.</h2>
-      <p class="lede" data-rise style="--i:2">Drift carries a group trip from the first spark of an idea all the way to the last settled payment — no scattered group chats, no mystery spreadsheet.</p>
+    <div class="head" data-rise>
+      <span class="eyebrow"><span class="d"></span>How it works</span>
+      <h2>From “where should<br>we go?” to home.</h2>
+      <p class="lede">Drift carries a group trip from the first spark of an idea all the way to the last settled payment — no scattered group chats, no mystery spreadsheet.</p>
     </div>
     <div class="steps">
-      <div class="step" data-rise style="--i:0"><div class="n">1</div><h3>Start a trip</h3><p>Name it, set the dates, and drop in a destination. Drift builds the shell of your itinerary in seconds.</p></div>
-      <div class="step" data-rise style="--i:1"><div class="n">2</div><h3>Bring your crew</h3><p>Invite everyone with a link. They see the same plan, vote on ideas, and chat right inside the trip.</p></div>
-      <div class="step" data-rise style="--i:2"><div class="n">3</div><h3>Plan &amp; book</h3><p>Compare stays, line up tours, and build the day-by-day together — booking with the names you trust.</p></div>
-      <div class="step" data-rise style="--i:3"><div class="n">4</div><h3>Split as you go</h3><p>Log expenses as they happen and Drift keeps the math. End the trip square, with one tap to settle up.</p></div>
+      <div class="step" data-rise style="--i:0"><div class="n">1</div><h3>Start a trip</h3><p>Name it, set the dates, drop a destination. Drift builds the shell of your itinerary in seconds.</p></div>
+      <div class="step" data-rise style="--i:1"><div class="n">2</div><h3>Bring your crew</h3><p>Invite everyone with a link. They see the same plan, vote on ideas, and chat inside the trip.</p></div>
+      <div class="step" data-rise style="--i:2"><div class="n">3</div><h3>Plan &amp; book</h3><p>Compare stays, line up tours, and build the day-by-day together — with the names you trust.</p></div>
+      <div class="step" data-rise style="--i:3"><div class="n">4</div><h3>Split as you go</h3><p>Log expenses as they happen and Drift keeps the math. End the trip square, one tap to settle.</p></div>
     </div>
   </div></section>
 
-  <!-- ASK DRIFT -->
-  <section class="moment" id="ask"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>Ask Drift</span>
-      <h2 data-rise style="--i:1">Is it worth<br>the hype?</h2>
-      <p class="lede" data-rise style="--i:2">Ask anything and Drift answers with a real, local take — not a top-ten listicle — then drops the place straight into the right day of your plan.</p>
-      <div class="mini" data-rise style="--i:3">
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Honest verdicts</b> — worth it, skip it, or go at a different time of day.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Knows your trip</b> — answers factor in your dates, city, and who's coming.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>One tap to add</b> — the place lands in the right day, already scheduled.</span></div>
+  <!-- ASK DRIFT (stone) -->
+  <section class="moment stone" id="ask"><div class="in">
+    <div class="txt" data-rise>
+      <span class="eyebrow"><span class="d"></span>Ask Drift</span>
+      <h2>Is it worth<br>the hype?</h2>
+      <p class="lede">Ask anything and Drift answers with a real, local take — not a listicle — then drops the place into the right day of your plan.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Honest verdicts</b> — worth it, skip it, or go at a different time.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Knows your trip</b> — answers factor in your dates, city, and crew.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>One tap to add</b> — it lands in the right day, already scheduled.</span></div>
       </div>
-      <a class="tlink" href="#get" data-rise style="--i:4">Try it in the app <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="tlink" href="#get">Try it in the app <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="stack">
-        <div class="badge3d" style="top:-26px;right:24px;">✨</div>
-        <div class="appcard">
-          <div class="ac-hd"><span class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3l2.2 4.8L19 9l-3.6 3.4.9 5-4.3-2.4L7.7 17.4l.9-5L5 9l4.8-1.2z"/></svg></span><div class="t"><b>Drift</b><span>Reykjavík · Trip assistant</span></div></div>
-          <div class="chat-body">
-            <div class="cm u">Is the Blue Lagoon worth the hype?</div>
-            <div class="cm d">Honestly? Yes — but time it right. Skip the midday crowds and take the last slot so you soak at sunset.</div>
-            <div class="verdict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 12l5 5L20 6"/></svg>Worth it · book the sunset slot</div>
-            <div class="pcard">
-              <div class="ph"></div>
-              <div class="pb"><div><div class="nm">Blue Lagoon</div><div class="mt">Geothermal spa · from $79</div></div><span class="add">+ Day 1</span></div>
-            </div>
-          </div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="badge3d" style="top:-24px;right:20px;">✨</div>
+      <div class="appcard">
+        <div class="ac-hd"><span class="av"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3l2.2 4.8L19 9l-3.6 3.4.9 5-4.3-2.4L7.7 17.4l.9-5L5 9l4.8-1.2z"/></svg></span><div><b>Drift</b><span>Reykjavík · Trip assistant</span></div></div>
+        <div class="chat">
+          <div class="cm u">Is the Blue Lagoon worth the hype?</div>
+          <div class="cm d">Honestly? Yes — but time it right. Skip the midday crowds and take the last slot so you soak at sunset.</div>
+          <div class="verdict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 12l5 5L20 6"/></svg>Worth it · book the sunset slot</div>
+          <div class="pcard"><div class="ph"></div><div class="pb"><div><div class="nm">Blue Lagoon</div><div class="mt">Geothermal spa · from $79</div></div><span class="add">+ Day 1</span></div></div>
         </div>
       </div>
-    </div>
+    </div></div>
   </div></section>
 
-  <!-- STAYS COMPARE -->
-  <section class="moment flip"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>Book the stay</span>
-      <h2 data-rise style="--i:1">One place<br>you love,<br>every price.</h2>
-      <p class="lede" data-rise style="--i:2">Find the stay everyone agrees on, then let Drift do the price shopping. We check Booking, Expedia, Hotels.com and Vrbo at once so you never overpay.</p>
-      <div class="mini" data-rise style="--i:3">
+  <!-- STAYS (dark, flip) -->
+  <section class="moment dark flip"><div class="in">
+    <div class="txt" data-rise>
+      <span class="eyebrow"><span class="d"></span>Book the stay</span>
+      <h2>One place<br>you love,<br>every price.</h2>
+      <p class="lede">Find the stay everyone agrees on, then let Drift shop it — Booking, Expedia, Hotels.com and Vrbo at once, so you never overpay.</p>
+      <div class="mini">
         <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Four sites, one view</b> — the same room, compared side by side.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Best price, flagged</b> — Drift highlights the cheapest and links you out to book.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Saved to the trip</b> — the booking sits in your plan, split-ready.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Best price, flagged</b> — book with the name you trust.</span></div>
       </div>
-      <a class="tlink" href="#get" data-rise style="--i:4">Compare stays <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="tlink" href="#get">Compare stays <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="stack">
-        <div class="badge3d" style="top:-24px;left:-14px;">💸</div>
-        <div class="appcard">
-          <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Casa Verde</div><div class="ac-sub">San José · Aug 12–16 · 4 guests</div></div>
-          <div class="ac-pad" style="padding-top:4px">
-            <div class="srow best"><span class="lg" style="background:#fff"><span style="-webkit-mask-image:url(assets/logos/booking.svg);mask-image:url(assets/logos/booking.svg);background:var(--coralDeep)"></span></span><div><div class="nm">Booking.com</div><div class="mt">Free cancellation</div></div><span class="best-tag">Best price</span><div class="pr">$104<small>/night</small></div></div>
-            <div class="srow"><span class="lg"><span style="-webkit-mask-image:url(assets/logos/expedia.svg);mask-image:url(assets/logos/expedia.svg)"></span></span><div><div class="nm">Expedia</div><div class="mt">+ One Key points</div></div><div class="pr">$112<small>/night</small></div></div>
-            <div class="srow"><span class="lg"><span style="-webkit-mask-image:url(assets/logos/hotelscom.svg);mask-image:url(assets/logos/hotelscom.svg)"></span></span><div><div class="nm">Hotels.com</div><div class="mt">Collect 1 free night</div></div><div class="pr">$109<small>/night</small></div></div>
-            <div class="srow"><span class="lg" style="background:var(--panel);font-family:var(--ed);font-weight:700;color:var(--sec);font-size:13px">V</span><div><div class="nm">Vrbo</div><div class="mt">Whole home</div></div><div class="pr">$118<small>/night</small></div></div>
-          </div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="badge3d" style="bottom:-22px;left:16px;">💸</div>
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:6px"><div class="ac-ttl">Casa Verde</div><div class="ac-sub">San José · Aug 12–16 · 4 guests</div></div>
+        <div class="ac-pad" style="padding-top:4px">
+          <div class="srow best"><span class="lg" style="background:#fff"><span style="-webkit-mask-image:url(assets/logos/booking.svg);mask-image:url(assets/logos/booking.svg);background:var(--coralDeep)"></span></span><div><div class="nm">Booking.com</div><div class="mt">Free cancellation</div></div><span class="tagb">Best price</span><div class="pr">$104<small>/night</small></div></div>
+          <div class="srow"><span class="lg"><span style="-webkit-mask-image:url(assets/logos/expedia.svg);mask-image:url(assets/logos/expedia.svg)"></span></span><div><div class="nm">Expedia</div><div class="mt">+ One Key points</div></div><div class="pr">$112<small>/night</small></div></div>
+          <div class="srow"><span class="lg"><span style="-webkit-mask-image:url(assets/logos/hotelscom.svg);mask-image:url(assets/logos/hotelscom.svg)"></span></span><div><div class="nm">Hotels.com</div><div class="mt">Collect 1 free night</div></div><div class="pr">$109<small>/night</small></div></div>
+          <div class="srow"><span class="lg" style="font-family:var(--ed);font-weight:700;color:#8a7f70;font-size:13px">V</span><div><div class="nm">Vrbo</div><div class="mt">Whole home</div></div><div class="pr">$118<small>/night</small></div></div>
         </div>
       </div>
-    </div>
+    </div></div>
   </div></section>
 
-  <!-- SPLIT -->
-  <section class="moment"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>Split costs</span>
-      <h2 data-rise style="--i:1">Settle up,<br>simply.</h2>
-      <p class="lede" data-rise style="--i:2">Someone always fronts the villa; someone else grabs every dinner. Drift quietly keeps score so the trip ends square — no spreadsheet, no awkward group-chat math.</p>
-      <div class="mini" data-rise style="--i:3">
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Log it in seconds</b> — add an expense and who covered it, right as it happens.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Fair shares, auto</b> — split evenly or by who was actually there.</span></div>
+  <!-- SPLIT (white) -->
+  <section class="moment white"><div class="in">
+    <div class="txt" data-rise>
+      <span class="eyebrow"><span class="d"></span>Split costs</span>
+      <h2>Settle up,<br>simply.</h2>
+      <p class="lede">Someone always fronts the villa; someone else grabs every dinner. Drift quietly keeps score so the trip ends square — no spreadsheet, no awkward group-chat math.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Log it in seconds</b> — an expense and who covered it, as it happens.</span></div>
         <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>One number to pay</b> — the fewest transfers to make everyone even.</span></div>
       </div>
-      <a class="tlink" href="#get" data-rise style="--i:4">See the math <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="tlink" href="#get">See the math <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="stack">
-        <div class="appcard">
-          <div class="ac-pad" style="padding-bottom:6px"><div class="ac-ttl">Costa Rica</div><div class="ac-sub">Trip expenses · 4 people</div></div>
-          <div class="ac-pad" style="padding-top:2px">
-            <div class="exp"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Casa Verde</div><div class="mt">Ana paid</div></div><span class="amt">$312</span></div>
-            <div class="exp"><span class="ic" style="background:#D9853D"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><div><div class="nm">Rafting day</div><div class="mt">You paid</div></div><span class="amt">$88</span></div>
-            <div class="exp"><span class="ic" style="background:#C9603F"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Dinner in San José</div><div class="mt">Marco paid</div></div><span class="amt">$64</span></div>
-            <div class="settle">
-              <div class="st"><span class="l">Your share</span><span class="a" data-count="116" data-pre="$">$116</span></div>
-              <div class="owe">You owe Ana <b data-count="54" data-pre="$">$54</b> to settle up</div>
-              <div class="av"><span>A</span><span>M</span><span>J</span><span>+1</span></div>
-            </div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:6px"><div class="ac-ttl">Costa Rica</div><div class="ac-sub">Trip expenses · 4 people</div></div>
+        <div class="ac-pad" style="padding-top:2px">
+          <div class="exp"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Casa Verde</div><div class="mt">Ana paid</div></div><span class="amt">$312</span></div>
+          <div class="exp"><span class="ic" style="background:#D9853D"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><div><div class="nm">Rafting day</div><div class="mt">You paid</div></div><span class="amt">$88</span></div>
+          <div class="exp"><span class="ic" style="background:#C9603F"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Dinner in San José</div><div class="mt">Marco paid</div></div><span class="amt">$64</span></div>
+          <div class="settle">
+            <div class="st"><span class="l">Your share</span><span class="a" data-count="116" data-pre="$">$116</span></div>
+            <div class="owe">You owe Ana <b data-count="54" data-pre="$">$54</b> to settle up</div>
+            <div class="av"><span>A</span><span>M</span><span>J</span><span>+1</span></div>
           </div>
         </div>
       </div>
-    </div>
+    </div></div>
   </div></section>
 
-  <!-- PLAN / ITINERARY -->
-  <section class="moment flip"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>The plan</span>
-      <h2 data-rise style="--i:1">Every day,<br>laid out<br>by the hour.</h2>
-      <p class="lede" data-rise style="--i:2">Stays, drives, tours and dinners on one clean timeline the whole crew can see. Drag to reorder, and every change shows up for everyone instantly.</p>
-      <div class="mini" data-rise style="--i:3">
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Hour by hour</b> — realistic days with drive times built in, not a wish list.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Everything in one place</b> — bookings, reservations and tickets attached to each stop.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Live for the group</b> — no “which version is current?” — there's only one.</span></div>
+  <!-- PLAN (stone, flip) -->
+  <section class="moment stone flip"><div class="in">
+    <div class="txt" data-rise>
+      <span class="eyebrow"><span class="d"></span>The plan</span>
+      <h2>Every day,<br>laid out<br>by the hour.</h2>
+      <p class="lede">Stays, drives, tours and dinners on one clean timeline the whole crew can see. Drag to reorder, and every change shows up for everyone instantly.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Hour by hour</b> — realistic days with drive times built in.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Live for the group</b> — there's only one current version.</span></div>
       </div>
-      <a class="tlink" href="#get" data-rise style="--i:4">Build a plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="tlink" href="#get">Build a plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="stack">
-        <div class="badge3d" style="top:-22px;right:20px;">📍</div>
-        <div class="appcard">
-          <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Iceland · Ring Road</div><div class="ac-sub">Day 2 · South Coast</div></div>
-          <div class="ac-pad" style="padding-top:4px">
-            <div class="stop"><div class="tm">8:30 AM · Drive 2h</div><div class="card"><span class="ic" style="background:#6a9bd8"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M5 11l2-5h10l2 5M5 11h14v5H5zM7 16v2M17 16v2"/></svg></span><div><div class="nm">Seljalandsfoss</div><div class="mt">Waterfall · walk behind it</div></div></div></div>
-            <div class="stop"><div class="tm">11:00 AM</div><div class="card"><span class="ic" style="background:#7bab7f"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.6" fill="#fff"/></svg></span><div><div class="nm">Skógafoss hike</div><div class="mt">Tour · 2 hrs</div></div><span class="ch">Booked</span></div></div>
-            <div class="stop"><div class="tm">2:00 PM · Lunch</div><div class="card"><span class="ic" style="background:#d9853d"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Black Beach Café</div><div class="mt">Reynisfjara · $$</div></div></div></div>
-            <div class="stop"><div class="tm">7:00 PM · Stay</div><div class="card"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Hótel Vík</div><div class="mt">Booking.com · 2 nights</div></div><span class="ch">Booked</span></div></div>
-          </div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="badge3d" style="top:-22px;right:20px;">📍</div>
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Iceland · Ring Road</div><div class="ac-sub">Day 2 · South Coast</div></div>
+        <div class="ac-pad" style="padding-top:4px">
+          <div class="stop"><div class="tm">8:30 AM · Drive 2h</div><div class="card"><span class="ic" style="background:#6a9bd8"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M5 11l2-5h10l2 5M5 11h14v5H5zM7 16v2M17 16v2"/></svg></span><div><div class="nm">Seljalandsfoss</div><div class="mt">Waterfall · walk behind it</div></div></div></div>
+          <div class="stop"><div class="tm">11:00 AM</div><div class="card"><span class="ic" style="background:#7bab7f"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.6" fill="#fff"/></svg></span><div><div class="nm">Skógafoss hike</div><div class="mt">Tour · 2 hrs</div></div><span class="ch">Booked</span></div></div>
+          <div class="stop"><div class="tm">2:00 PM · Lunch</div><div class="card"><span class="ic" style="background:#d9853d"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Black Beach Café</div><div class="mt">Reynisfjara · $$</div></div></div></div>
+          <div class="stop"><div class="tm">7:00 PM · Stay</div><div class="card"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Hótel Vík</div><div class="mt">Booking.com · 2 nights</div></div><span class="ch">Booked</span></div></div>
         </div>
       </div>
-    </div>
+    </div></div>
   </div></section>
 
-  <!-- TOURS -->
-  <section class="moment"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>Tours &amp; experiences</span>
-      <h2 data-rise style="--i:1">Book the good<br>stuff early.</h2>
-      <p class="lede" data-rise style="--i:2">The tours that sell out are the ones you'll remember. Drift pulls real experiences from Viator and Klook and slots them into the right day before they're gone.</p>
-      <div class="mini" data-rise style="--i:3">
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Vetted operators</b> — Viator and Klook, with real reviews and prices.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Straight into the plan</b> — added to the day, with time and meeting point.</span></div>
+  <!-- TOURS (dark) -->
+  <section class="moment dark"><div class="in">
+    <div class="txt" data-rise>
+      <span class="eyebrow"><span class="d"></span>Tours &amp; experiences</span>
+      <h2>Book the good<br>stuff early.</h2>
+      <p class="lede">The tours that sell out are the ones you'll remember. Drift pulls real experiences from Viator and Klook and slots them into the right day before they're gone.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Vetted operators</b> — Viator and Klook, real reviews and prices.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Straight into the plan</b> — with time and meeting point.</span></div>
       </div>
-      <a class="tlink" href="#get" data-rise style="--i:4">Find experiences <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="tlink" href="#get">Find experiences <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="stack">
-        <div class="badge3d" style="top:-24px;right:22px;">🎟️</div>
-        <div class="appcard">
-          <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Barcelona</div><div class="ac-sub">Top experiences · Tours &amp; tickets</div></div>
-          <div class="ac-pad" style="padding-top:4px">
-            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#d8a25e,#b9743a)"></span><div><div class="nm">Sagrada Família</div><div class="mt">Skip-the-line · Viator</div></div><div class="pr">$41<small>/person</small></div></div>
-            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#6a9bd8,#3f6fb0)"></span><div><div class="nm">Montserrat &amp; wine</div><div class="mt">Day trip, 7h · Klook</div></div><div class="pr">$68<small>/person</small></div></div>
-            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#cf6f4e,#a8482b)"></span><div><div class="nm">Tapas night walk</div><div class="mt">Small group · Viator</div></div><div class="pr">$59<small>/person</small></div></div>
-            <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#7bab7f,#4f8557)"></span><div><div class="nm">Park Güell tour</div><div class="mt">Guided, 1.5h · Klook</div></div><div class="pr">$29<small>/person</small></div></div>
-          </div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="badge3d" style="top:-24px;right:22px;">🎟️</div>
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Barcelona</div><div class="ac-sub">Top experiences · Tours &amp; tickets</div></div>
+        <div class="ac-pad" style="padding-top:4px">
+          <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#d8a25e,#b9743a)"></span><div><div class="nm">Sagrada Família</div><div class="mt">Skip-the-line <span class="vd">Viator</span></div></div><div class="pr">$41<small>/person</small></div></div>
+          <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#6a9bd8,#3f6fb0)"></span><div><div class="nm">Montserrat &amp; wine</div><div class="mt">Day trip · 7h <span class="vd">Klook</span></div></div><div class="pr">$68<small>/person</small></div></div>
+          <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#cf6f4e,#a8482b)"></span><div><div class="nm">Tapas night walk</div><div class="mt">Small group <span class="vd">Viator</span></div></div><div class="pr">$59<small>/person</small></div></div>
+          <div class="srow"><span class="lg" style="background:linear-gradient(135deg,#7bab7f,#4f8557)"></span><div><div class="nm">Park Güell tour</div><div class="mt">Guided · 1.5h <span class="vd">Klook</span></div></div><div class="pr">$29<small>/person</small></div></div>
         </div>
       </div>
-    </div>
+    </div></div>
   </div></section>
 
-  <!-- TRACK -->
-  <section class="moment flip dark"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>Track the journey</span>
-      <h2 data-rise style="--i:1">Every step,<br>on the map.</h2>
-      <p class="lede" data-rise style="--i:2">As you travel, Drift quietly traces your route and pins the moments — so the trip becomes a map you can look back on, and a globe of everywhere you've been.</p>
-      <div class="mini" data-rise style="--i:3">
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Automatic route</b> — your path drawn as you go, no check-ins required.</span></div>
-        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>A globe of your travels</b> — every country you've touched, spinning in one view.</span></div>
+  <!-- TRACK (white, flip) -->
+  <section class="moment white flip"><div class="in">
+    <div class="txt" data-rise>
+      <span class="eyebrow"><span class="d"></span>Track the journey</span>
+      <h2>Every step,<br>on the map.</h2>
+      <p class="lede">As you travel, Drift quietly traces your route and pins the moments — so the trip becomes a map you can look back on, and a globe of everywhere you've been.</p>
+      <div class="mini">
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>Automatic route</b> — your path drawn as you go, no check-ins.</span></div>
+        <div class="mrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg><span><b>A globe of your travels</b> — every country you've touched.</span></div>
       </div>
-      <a class="tlink" href="#get" data-rise style="--i:4">See your map <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="tlink" href="#get">See your map <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="shotcard">
-        <div class="ph"><picture><source type="image/webp" srcset="assets/photo/phiphi-bg.webp"><img loading="lazy" src="assets/photo/phiphi-bg.jpg" alt="A long-tail boat winding between the Phi Phi islands" width="780" height="1040"></picture></div>
-        <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
-        <div class="devcard"><span class="sb"></span><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe, pinned with every country you've visited" width="276" height="600"></picture></div>
-      </div>
-    </div>
+    <div class="art" data-rise style="--i:1"><div class="stack" style="max-width:300px;margin:0 auto;">
+      <div class="shot"><span class="sb"></span><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe, pinned with every country you've visited" width="276" height="600"></picture></div>
+      <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
+    </div></div>
   </div></section>
 
-  <!-- REAL-SCREEN SHOWCASE -->
-  <section class="showcase"><div class="wrap in">
-    <div class="txt">
-      <span class="eyebrow" data-rise>The actual app</span>
-      <h2 data-rise style="--i:1">The whole trip,<br>in your pocket.</h2>
-      <p class="lede" data-rise style="--i:2">Real screens from Drift — a guide for every place, a live map of the journey, and the countdown to wheels-up. Not a mockup.</p>
-      <a class="tlink" href="#get" data-rise style="--i:3">Join the beta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
-    <div class="art" data-rise style="--i:1">
-      <div class="devcluster">
-        <div class="dev back"><picture><source type="image/webp" srcset="assets/app/hero-discover.webp"><img loading="lazy" src="assets/app/hero-discover.jpg" alt="Discovering places around Ko Phi Phi on the map in Drift" width="600" height="1216"></picture></div>
-        <div class="dev front"><picture><source type="image/webp" srcset="assets/app/hero-track.webp"><img loading="lazy" src="assets/app/hero-track.jpg" alt="A Thailand trip in Drift, counting down 48 nights until you wander" width="600" height="1216"></picture></div>
-      </div>
-    </div>
-  </div></section>
-
-  <!-- EVERYTHING A TRIP NEEDS -->
+  <!-- EVERYTHING GRID (stone) -->
   <section class="grid-sec"><div class="wrap">
     <div class="head" data-rise>
-      <span class="eyebrow">One app</span>
+      <span class="eyebrow"><span class="d"></span>One app</span>
       <h2>Everything a<br>trip needs.</h2>
       <p class="lede">From the first “where should we go?” to the last split payment — Drift holds the whole thing.</p>
     </div>
@@ -614,24 +428,23 @@
     </div>
   </div></section>
 
-  <!-- TRUST -->
+  <!-- TRUST (white) -->
   <section class="trust"><div class="wrap" data-rise>
     <div class="lbl">Book with the names you already trust</div>
     <div class="plogos">
       <span class="lg2" style="-webkit-mask-image:url(assets/logos/booking.svg);mask-image:url(assets/logos/booking.svg);aspect-ratio:1/1" role="img" aria-label="Booking.com"></span>
       <span class="lg2" style="-webkit-mask-image:url(assets/logos/expedia.svg);mask-image:url(assets/logos/expedia.svg);aspect-ratio:1/1" role="img" aria-label="Expedia"></span>
       <span class="lg2" style="-webkit-mask-image:url(assets/logos/hotelscom.svg);mask-image:url(assets/logos/hotelscom.svg);aspect-ratio:1/1" role="img" aria-label="Hotels.com"></span>
-      <span class="lg2 word">Vrbo</span>
-      <span class="lg2 word">Viator</span>
+      <span class="lg2 word">Vrbo</span><span class="lg2 word">Viator</span>
       <span class="lg2" style="-webkit-mask-image:url(assets/logos/klook.svg);mask-image:url(assets/logos/klook.svg);aspect-ratio:1/1" role="img" aria-label="Klook"></span>
       <span class="lg2" style="-webkit-mask-image:url(assets/logos/google.svg);mask-image:url(assets/logos/google.svg);aspect-ratio:1/1" role="img" aria-label="Google"></span>
     </div>
     <p class="disc">Drift compares prices and links you out to these providers to book. Names and logos are the property of their owners; Drift is not affiliated with or endorsed by them.</p>
   </div></section>
 
-  <!-- MONTAGE -->
+  <!-- MONTAGE (stone) -->
   <section class="montage"><div class="wrap">
-    <div class="head" data-rise><span class="eyebrow">Real trips</span><h2>89 days. 10 countries.<br>One app.</h2></div>
+    <div class="head" data-rise><span class="eyebrow"><span class="d"></span>Real trips</span><h2>89 days. 10 countries.<br>One app.</h2></div>
     <div class="g" data-rise>
       <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/friends-bali.webp"><img loading="lazy" width="360" height="270" src="assets/photo/friends-bali.jpg" alt="Friends on a beach at sunset"></picture></div>
       <div class="mtile"><picture><source type="image/webp" srcset="assets/photo/positano.webp"><img loading="lazy" width="360" height="480" src="assets/photo/positano.jpg" alt="Positano on the Amalfi Coast"></picture></div>
@@ -645,109 +458,41 @@
   </div></section>
 
   <!-- FINAL -->
-  <section class="final" id="get"><div class="wrap">
-    <div class="box" data-rise>
-      <h2>Your next trip<br>starts here.</h2>
-      <p>Free during the beta · iPhone</p>
-      <div class="cta">
-        <a class="badge" href="#"><svg viewBox="0 0 24 24" fill="#111"><path d="M17 12.3c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2-1.5 2.5-.4 6.3 1 8.4.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1-.02 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.02-.01-2.1-.8-2.1-3.1zM15 6.2c.6-.7 1-1.7.9-2.7-.9.04-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .07 1.9-.5 2.5-1.2z"/></svg><span><small>Join the beta on</small><b>TestFlight</b></span></a>
-      </div>
+  <section class="final" id="get"><div class="wrap" data-rise>
+    <h2>Your next trip<br>starts here.</h2>
+    <p>Free during the beta · iPhone</p>
+    <div class="cta">
+      <a class="badge" href="#"><svg viewBox="0 0 24 24" fill="#111"><path d="M17 12.3c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.2.8-.7 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2-1.5 2.5-.4 6.3 1 8.4.7 1 1.5 2.2 2.6 2.1 1-.04 1.4-.7 2.7-.7 1.2 0 1.6.7 2.7.6 1.1-.02 1.8-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.02-.01-2.1-.8-2.1-3.1zM15 6.2c.6-.7 1-1.7.9-2.7-.9.04-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .07 1.9-.5 2.5-1.2z"/></svg><span><small>Join the beta on</small><b>TestFlight</b></span></a>
     </div>
   </div></section>
   </main>
 
   <footer><div class="wrap">
     <div class="top">
-      <div>
-        <a class="brand" href="#top" style="font-size:22px;"><span class="p"></span>Drift</a>
-        <p class="tag">The group-trip app — plan, book, and split every cost with your people.</p>
-      </div>
-      <div class="col">
-        <h4>Product</h4>
-        <a href="#how">How it works</a>
-        <a href="#ask">Ask Drift</a>
-        <a href="#get">Book &amp; compare</a>
-        <a href="#get">Split costs</a>
-      </div>
-      <div class="col">
-        <h4>Get the app</h4>
-        <a href="#get">Join the beta</a>
-        <a href="#get">TestFlight</a>
-        <a href="mailto:hello@after-hours.app">Contact us</a>
-      </div>
-      <div class="col">
-        <h4>Legal</h4>
-        <a href="privacy.html">Privacy</a>
-        <a href="terms.html">Terms</a>
-      </div>
+      <div><a class="brand" href="#top" style="font-size:22px;"><span class="p"></span>Drift</a><p class="tag">The group-trip app — plan, book, and split every cost with your people.</p></div>
+      <div class="col"><h4>Product</h4><a href="#how">How it works</a><a href="#ask">Ask Drift</a><a href="#get">Book &amp; compare</a><a href="#get">Split costs</a></div>
+      <div class="col"><h4>Get the app</h4><a href="#get">Join the beta</a><a href="#get">TestFlight</a><a href="mailto:hello@after-hours.app">Contact us</a></div>
+      <div class="col"><h4>Legal</h4><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
     </div>
-    <div class="bot">
-      <div>© 2026 Drift · Made for people who travel together.</div>
-      <div class="fl"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="mailto:hello@after-hours.app">hello@after-hours.app</a></div>
-    </div>
+    <div class="bot"><div>© 2026 Drift · Made for people who travel together.</div><div class="fl"><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="mailto:hello@after-hours.app">hello@after-hours.app</a></div></div>
   </div></footer>
 
   <script>
   (function(){
-    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var root = document.documentElement;
-    if(!reduce) root.classList.add('anim');
-
-    var nav=document.getElementById('nav');
-    addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>10);},{passive:true});
-
-    var rise=document.querySelectorAll('[data-rise]');
-    var cards=document.querySelectorAll('.appcard');
-    function countup(card){
-      card.querySelectorAll('[data-count]').forEach(function(el){
-        var to=parseFloat(el.dataset.count), pre=el.dataset.pre||'', start=null, dur=1100;
-        requestAnimationFrame(function step(ts){ if(!start)start=ts; var p=Math.min((ts-start)/dur,1);
-          el.textContent=pre+Math.round(to*(1-Math.pow(1-p,3))); if(p<1)requestAnimationFrame(step); });
-      });
-    }
-    function showRise(el){el.classList.add('shown');}
-    function playCard(c){ if(!c.classList.contains('play')){ c.classList.add('play'); countup(c); } }
-    if(reduce || !('IntersectionObserver' in window)){
-      rise.forEach(showRise); cards.forEach(function(c){c.classList.add('play');});
-    } else {
-      var io=new IntersectionObserver(function(es,o){
-        es.forEach(function(e){ if(e.isIntersecting){ showRise(e.target); o.unobserve(e.target); } });
-      },{threshold:.16,rootMargin:'0px 0px -6% 0px'});
+    var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!reduce) document.documentElement.classList.add('anim');
+    var rise=document.querySelectorAll('[data-rise]'), cards=document.querySelectorAll('.appcard');
+    function countup(card){card.querySelectorAll('[data-count]').forEach(function(el){var to=parseFloat(el.dataset.count),pre=el.dataset.pre||'',s=null,d=1100;requestAnimationFrame(function step(t){if(!s)s=t;var p=Math.min((t-s)/d,1);el.textContent=pre+Math.round(to*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(step);});});}
+    function show(el){el.classList.add('shown');}
+    function play(c){if(!c.classList.contains('play')){c.classList.add('play');countup(c);}}
+    if(reduce||!('IntersectionObserver'in window)){rise.forEach(show);cards.forEach(function(c){c.classList.add('play');});}
+    else{
+      var io=new IntersectionObserver(function(es,o){es.forEach(function(e){if(e.isIntersecting){show(e.target);o.unobserve(e.target);}});},{threshold:.16,rootMargin:'0px 0px -6% 0px'});
       rise.forEach(function(el){io.observe(el);});
-      var cio=new IntersectionObserver(function(es,o){
-        es.forEach(function(e){ if(e.isIntersecting){ playCard(e.target); o.unobserve(e.target); } });
-      },{threshold:.35});
+      var cio=new IntersectionObserver(function(es,o){es.forEach(function(e){if(e.isIntersecting){play(e.target);o.unobserve(e.target);}});},{threshold:.32});
       cards.forEach(function(c){cio.observe(c);});
-      // robustness: reveal anything already in view immediately (don't wait on IO latency)
-      requestAnimationFrame(function(){
-        var vh=innerHeight;
-        rise.forEach(function(el){ if(el.getBoundingClientRect().top < vh) showRise(el); });
-        cards.forEach(function(c){ if(c.getBoundingClientRect().top < vh) playCard(c); });
-      });
-      // last-resort failsafe so content can never stay hidden if IO misfires
-      setTimeout(function(){ rise.forEach(showRise); cards.forEach(playCard); }, 4000);
-    }
-
-    // scroll-linked parallax on the floating card clusters (depth as you scroll)
-    if(!reduce && matchMedia('(hover:hover) and (pointer:fine)').matches){
-      var pars=[].slice.call(document.querySelectorAll('.stack,.shotcard,.cluster'));
-      pars.forEach(function(el){el.style.willChange='transform';});
-      var ticking=false;
-      function updatePar(){
-        var vh=innerHeight, mid=vh/2;
-        for(var i=0;i<pars.length;i++){
-          var el=pars[i], r=el.getBoundingClientRect();
-          if(r.bottom<-200||r.top>vh+200) continue;
-          var off=(r.top+r.height/2)-mid;
-          var t=off*-0.045;
-          if(t>44)t=44; else if(t<-44)t=-44;
-          el.style.transform='translate3d(0,'+t.toFixed(1)+'px,0)';
-        }
-        ticking=false;
-      }
-      addEventListener('scroll',function(){ if(!ticking){ticking=true;requestAnimationFrame(updatePar);} },{passive:true});
-      addEventListener('resize',updatePar,{passive:true});
-      updatePar();
+      requestAnimationFrame(function(){var vh=innerHeight;rise.forEach(function(el){if(el.getBoundingClientRect().top<vh)show(el);});cards.forEach(function(c){if(c.getBoundingClientRect().top<vh)play(c);});});
+      setTimeout(function(){rise.forEach(show);cards.forEach(play);},4000);
     }
   })();
   </script>
