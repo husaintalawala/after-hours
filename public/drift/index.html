@@ -77,7 +77,7 @@
     .chip .row{display:flex;align-items:center;gap:10px;margin-top:8px;}
     .chip .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--ink);flex:none;}
     .chip .nm{font-family:var(--ed);font-weight:700;font-size:14.5px;line-height:1.1;} .chip .mt{font-size:11.5px;color:#78746c;}
-    .hero .c1{top:20%;left:46%;width:236px;} .hero .c2{top:52%;left:38%;background:var(--ink);color:#fff;padding:14px 18px;}
+    .hero .c1{top:15%;left:51%;width:230px;} .hero .c2{top:33%;left:auto;right:4%;background:var(--ink);color:#fff;padding:14px 18px;}
     .c2 .l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;font-weight:700;}
     .c2 .v{font-family:var(--ed);font-size:19px;font-weight:700;margin-top:4px;} .c2 .v b{color:#F2A98C;}
     .hero .c3{bottom:15%;left:52%;display:flex;align-items:center;gap:10px;border-radius:999px;padding:12px 17px;}
@@ -147,6 +147,7 @@
     .shot{position:relative;border-radius:26px;overflow:hidden;box-shadow:0 50px 90px -44px rgba(20,12,4,.55);border:3px solid #0b0b0b;background:#0b0b0b;aspect-ratio:276/600;max-width:300px;margin:0 auto;}
     .shot img{width:100%;height:100%;object-fit:cover;object-position:center -4px;} .shot .sb{position:absolute;inset:0 0 auto 0;height:22px;background:linear-gradient(#050608,#050608 60%,transparent);z-index:2;}
     .shot.screen{aspect-ratio:520/1054;} .shot.screen img{object-position:top;}
+    .shot.globe{aspect-ratio:300/402;background:#050608;} .shot.globe img{object-position:top;}
     .rchip{position:absolute;z-index:5;background:#fff;color:var(--ink);border-radius:15px;box-shadow:0 26px 54px -24px rgba(20,12,4,.5);padding:13px 16px;bottom:22px;right:-24px;}
     .rchip .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a968e;font-weight:700;} .rchip .v{font-family:var(--ed);font-weight:700;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;} .rchip .v svg{width:17px;height:17px;color:var(--coral);}
     @media(max-width:820px){.moment .in{grid-template-columns:1fr;gap:44px;}.moment.flip .txt{order:1;}.moment.flip .art{order:2;}.stack{margin:0 auto!important;max-width:400px;}}
@@ -316,8 +317,21 @@
       </div>
       <a class="tlink" href="#get">See the math <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1"><div class="stack" style="max-width:300px;margin:0 auto;">
-      <div class="shot screen"><picture><source type="image/webp" srcset="assets/app/split.webp"><img loading="lazy" src="assets/app/split.jpg" alt="Drift's Expenses screen — a shared trip budget with who paid what and one number to settle up" width="520" height="1054"></picture></div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="badge3d" style="bottom:-22px;left:16px;">💸</div>
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:6px"><div class="ac-ttl">Costa Rica</div><div class="ac-sub">Trip expenses · 4 people</div></div>
+        <div class="ac-pad" style="padding-top:2px">
+          <div class="exp"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Casa Verde villa</div><div class="mt">Ana paid · split ÷4</div></div><span class="amt">$312</span></div>
+          <div class="exp"><span class="ic" style="background:#D9853D"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><div><div class="nm">Rafting day</div><div class="mt">You paid · split ÷4</div></div><span class="amt">$88</span></div>
+          <div class="exp"><span class="ic" style="background:#C9603F"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Dinner in San José</div><div class="mt">Marco paid · split ÷4</div></div><span class="amt">$64</span></div>
+          <div class="settle">
+            <div class="st"><span class="l">You owe Ana</span><span class="a" data-count="54" data-pre="$">$54</span></div>
+            <div class="owe">One transfer and the whole trip is <b>settled up</b>.</div>
+            <div class="av"><span>A</span><span>M</span><span>J</span><span>+1</span></div>
+          </div>
+        </div>
+      </div>
     </div></div>
   </div></section>
 
@@ -333,8 +347,17 @@
       </div>
       <a class="tlink" href="#get">Build a plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="art" data-rise style="--i:1"><div class="stack" style="max-width:300px;margin:0 auto;">
-      <div class="shot screen"><picture><source type="image/webp" srcset="assets/app/plan.webp"><img loading="lazy" src="assets/app/plan.jpg" alt="Drift's trip plan — an Overview and day-by-day itinerary the whole group shares" width="520" height="1054"></picture></div>
+    <div class="art" data-rise style="--i:1"><div class="stack">
+      <div class="badge3d" style="top:-22px;right:20px;">📍</div>
+      <div class="appcard">
+        <div class="ac-pad" style="padding-bottom:8px"><div class="ac-ttl">Iceland · Ring Road</div><div class="ac-sub">Day 2 · South Coast</div></div>
+        <div class="ac-pad" style="padding-top:4px">
+          <div class="stop"><div class="tm">8:30 AM · Drive 2h</div><div class="card"><span class="ic" style="background:#6a9bd8"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M5 11l2-5h10l2 5M5 11h14v5H5zM7 16v2M17 16v2"/></svg></span><div><div class="nm">Seljalandsfoss</div><div class="mt">Waterfall · walk behind it</div></div></div></div>
+          <div class="stop"><div class="tm">11:00 AM</div><div class="card"><span class="ic" style="background:#7bab7f"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.6" fill="#fff"/></svg></span><div><div class="nm">Skógafoss hike</div><div class="mt">Tour · 2 hrs</div></div><span class="ch">Booked</span></div></div>
+          <div class="stop"><div class="tm">2:00 PM · Lunch</div><div class="card"><span class="ic" style="background:#d9853d"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M6 3v7a3 3 0 006 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 5v7"/></svg></span><div><div class="nm">Black Beach Café</div><div class="mt">Reynisfjara · $$</div></div></div></div>
+          <div class="stop"><div class="tm">7:00 PM · Stay</div><div class="card"><span class="ic" style="background:#6FA47B"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 9.5 12 4l9 5.5M5 10v9h14v-9"/></svg></span><div><div class="nm">Hótel Vík</div><div class="mt">Booking.com · 2 nights</div></div><span class="ch">Booked</span></div></div>
+        </div>
+      </div>
     </div></div>
   </div></section>
 
@@ -377,8 +400,7 @@
       <a class="tlink" href="#get">See your map <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
     <div class="art" data-rise style="--i:1"><div class="stack" style="max-width:300px;margin:0 auto;">
-      <div class="shot"><span class="sb"></span><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe, pinned with every country you've visited" width="276" height="600"></picture></div>
-      <div class="rchip"><div class="k">Today's route</div><div class="v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19c4-9 12-9 16 0"/><circle cx="12" cy="10.5" r="1.7" fill="currentColor"/></svg>Reykjavík → Vík · 187 km</div></div>
+      <div class="shot globe"><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe — every country you've visited, pinned on a spinning 3D earth" width="520" height="1054"></picture></div>
     </div></div>
   </div></section>
 
