@@ -92,7 +92,7 @@
     /* ---------------- MOMENT sections ---------------- */
     .moment{position:relative;width:100vw;overflow:hidden;padding:clamp(72px,11vw,160px) 0;}
     .moment.white{background:var(--white);} .moment.stone{background:var(--stone);} .moment.dark{background:var(--ink);color:#fff;}
-    .moment .in{max-width:1440px;margin:0 auto;padding:0 clamp(24px,4vw,54px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,72px);align-items:center;}
+    .moment .in{max-width:1500px;margin:0 auto;padding:0 clamp(24px,4vw,54px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,5vw,72px);align-items:center;}
     .moment.flip .txt{order:2;} .moment.flip .art{order:1;}
     .moment h2{font-size:clamp(40px,6vw,84px);margin:20px 0 0;}
     .moment .lede{font-size:clamp(18px,2vw,22px);margin:24px 0 0;max-width:30ch;line-height:1.45;}
@@ -154,7 +154,7 @@
 
     /* how it works */
     .how{background:var(--white);padding:clamp(72px,11vw,150px) 0;}
-    .how .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .how .wrap{max-width:1460px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
     .how .head{max-width:680px;} .how h2{font-size:clamp(38px,5.4vw,68px);margin:18px 0 0;} .how .lede{font-size:clamp(18px,2vw,22px);color:#57534e;margin:22px 0 0;max-width:48ch;}
     .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;margin-top:64px;}
     @media(max-width:860px){.steps{grid-template-columns:1fr 1fr;gap:44px 26px;}} @media(max-width:520px){.steps{grid-template-columns:1fr;}}
@@ -162,7 +162,7 @@
     .step h3{font-size:22px;margin:20px 0 0;} .step p{font-size:15.5px;color:#57534e;margin:10px 0 0;line-height:1.55;}
 
     /* everything grid */
-    .grid-sec{background:var(--stone);padding:clamp(72px,11vw,150px) 0;} .grid-sec .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .grid-sec{background:var(--stone);padding:clamp(72px,11vw,150px) 0;} .grid-sec .wrap{max-width:1460px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
     .grid-sec .head{max-width:660px;} .grid-sec h2{font-size:clamp(38px,5.4vw,68px);margin:18px 0 0;} .grid-sec .lede{font-size:clamp(18px,2vw,22px);color:#57534e;margin:22px 0 0;max-width:44ch;}
     .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:60px;}
     @media(max-width:800px){.tiles{grid-template-columns:1fr 1fr;}} @media(max-width:540px){.tiles{grid-template-columns:1fr;}}
@@ -172,7 +172,7 @@
     .tile h3{font-size:22px;margin:20px 0 0;} .tile p{font-size:15px;color:#57534e;margin:9px 0 0;line-height:1.5;}
 
     /* trust */
-    .trust{background:var(--white);padding:clamp(56px,8vw,96px) 0;text-align:center;} .trust .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .trust{background:var(--white);padding:clamp(56px,8vw,96px) 0;text-align:center;} .trust .wrap{max-width:1460px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
     .trust .lbl{font-size:15px;font-weight:500;color:#57534e;}
     .plogos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:26px 46px;margin-top:32px;}
     .lg2{height:25px;width:auto;background:#b3a897;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;}
@@ -180,10 +180,27 @@
     .trust .disc{font-size:12.5px;color:#9a968e;margin:26px auto 0;max-width:56ch;line-height:1.5;}
 
     /* montage */
-    .montage{background:var(--stone);padding:clamp(72px,11vw,150px) 0;} .montage .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .montage{background:var(--stone);padding:clamp(72px,11vw,150px) 0;} .montage .wrap{max-width:1460px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
     .montage .head{text-align:center;max-width:720px;margin:0 auto;} .montage h2{font-size:clamp(38px,5.4vw,68px);margin:16px 0 0;} .montage h2 [data-count]{font-variant-numeric:tabular-nums;}
     .montage .g{columns:4 220px;column-gap:16px;margin-top:56px;} .mtile{border-radius:20px;overflow:hidden;margin-bottom:16px;break-inside:avoid;box-shadow:0 24px 50px -30px rgba(20,12,4,.4);}
     .mtile img{width:100%;height:auto;transition:transform .6s var(--e);} @media(hover:hover){.mtile:hover img{transform:scale(1.05);}} @media(max-width:640px){.montage .g{columns:2 150px;}}
+
+    /* get inspired — destinations (dark) */
+    .dsec{background:var(--ink);color:#fff;padding:clamp(72px,11vw,150px) 0;} .dsec .dwrap{max-width:1500px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    .dsec .dhead{max-width:640px;} .dsec .eyebrow{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);}
+    .dsec h2{font-size:clamp(38px,5.4vw,68px);margin:18px 0 0;} .dsec .dlede{font-size:clamp(18px,2vw,22px);color:rgba(255,255,255,.72);margin:22px 0 0;max-width:46ch;line-height:1.45;}
+    .dsec .tlink{color:#F2A98C;margin-top:34px;}
+    .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:52px;}
+    @media(max-width:860px){.dgrid{grid-template-columns:1fr 1fr;}} @media(max-width:560px){.dgrid{grid-template-columns:1fr;}}
+    .dcard{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:4/5;display:block;box-shadow:0 30px 60px -34px rgba(0,0,0,.6);}
+    .dcard img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--e);}
+    @media(hover:hover){.dcard:hover img{transform:scale(1.06);}}
+    .dcard::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,7,3,.74),rgba(10,7,3,.04) 54%);}
+    .dcap{position:absolute;left:20px;right:20px;bottom:18px;z-index:2;}
+    .dnm{font-family:var(--ed);font-weight:700;font-size:23px;line-height:1.05;display:block;letter-spacing:-.02em;}
+    .dmt{font-size:13px;color:rgba(255,255,255,.82);margin-top:4px;display:block;}
+    .dcard .dgo{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;opacity:0;transform:translateY(-4px);transition:opacity .3s var(--e),transform .3s var(--e);} .dcard .dgo svg{width:16px;height:16px;stroke:#fff;}
+    @media(hover:hover){.dcard:hover .dgo{opacity:1;transform:none;}}
 
     /* final */
     .final{background:var(--ink);color:#fff;padding:clamp(90px,13vw,190px) 0;text-align:center;position:relative;overflow:hidden;}
@@ -195,7 +212,7 @@
     .badge svg{width:24px;height:24px;} .badge small{display:block;font-size:10px;opacity:.6;} .badge b{font-size:18px;font-family:var(--ed);}
 
     footer{background:var(--ink);color:rgba(255,255,255,.62);padding:72px 0 56px;font-size:14.5px;border-top:1px solid rgba(255,255,255,.08);}
-    footer .wrap{max-width:1300px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
+    footer .wrap{max-width:1460px;margin:0 auto;padding:0 clamp(24px,4vw,54px);}
     footer .top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:48px;} @media(max-width:760px){footer .top{grid-template-columns:1fr 1fr;gap:40px 24px;}}
     footer .brand{color:#fff;} footer .tag{margin:18px 0 0;max-width:30ch;line-height:1.55;color:rgba(255,255,255,.55);}
     footer .col h4{font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.4);font-weight:700;margin:0 0 12px;}
@@ -402,6 +419,24 @@
     <div class="art" data-rise style="--i:1"><div class="stack" style="max-width:300px;margin:0 auto;">
       <div class="shot globe"><picture><source type="image/webp" srcset="assets/app/globe.webp"><img loading="lazy" src="assets/app/globe.jpg" alt="Drift's travel globe — every country you've visited, pinned on a spinning 3D earth" width="520" height="1054"></picture></div>
     </div></div>
+  </div></section>
+
+  <!-- GET INSPIRED — destinations (dark) -->
+  <section class="dsec" id="destinations"><div class="dwrap">
+    <div class="dhead" data-rise>
+      <span class="eyebrow"><span class="d"></span>Get inspired</span>
+      <h2>Where will you<br>go together?</h2>
+      <p class="dlede">Real places groups are planning on Drift right now. Tap one and Drift spins up the trip — dates, a stay to compare, and a day-by-day your crew can jump straight into.</p>
+    </div>
+    <div class="dgrid">
+      <a class="dcard" href="#get" data-rise style="--i:0"><picture><source type="image/webp" srcset="assets/photo/amalfi.webp"><img loading="lazy" src="assets/photo/amalfi.jpg" alt="The Amalfi Coast, Italy" width="360" height="480"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Amalfi Coast</span><span class="dmt">Italy · 6-day trip</span></div></a>
+      <a class="dcard" href="#get" data-rise style="--i:1"><picture><source type="image/webp" srcset="assets/photo/positano.webp"><img loading="lazy" src="assets/photo/positano.jpg" alt="Positano, Italy" width="360" height="480"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Positano</span><span class="dmt">Italy · long weekend</span></div></a>
+      <a class="dcard" href="#get" data-rise style="--i:2"><picture><source type="image/webp" srcset="assets/photo/alhambra.webp"><img loading="lazy" src="assets/photo/alhambra.jpg" alt="The Alhambra, Andalucía, Spain" width="360" height="480"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Andalucía</span><span class="dmt">Spain · 5-day trip</span></div></a>
+      <a class="dcard" href="#get" data-rise style="--i:0"><picture><source type="image/webp" srcset="assets/photo/phiphi.webp"><img loading="lazy" src="assets/photo/phiphi.jpg" alt="The Phi Phi islands, Thailand" width="360" height="480"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Ko Phi Phi</span><span class="dmt">Thailand · island week</span></div></a>
+      <a class="dcard" href="#get" data-rise style="--i:1"><picture><source type="image/webp" srcset="assets/photo/friends-bali.webp"><img loading="lazy" src="assets/photo/friends-bali.jpg" alt="Friends on a beach in Bali" width="360" height="270"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Bali</span><span class="dmt">Indonesia · 8-day trip</span></div></a>
+      <a class="dcard" href="#get" data-rise style="--i:2"><picture><source type="image/webp" srcset="assets/photo/swing.webp"><img loading="lazy" src="assets/photo/swing.jpg" alt="A cliffside swing over the sea" width="360" height="480"></picture><span class="dgo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span><div class="dcap"><span class="dnm">Nusa Penida</span><span class="dmt">Indonesia · add-on</span></div></a>
+    </div>
+    <a class="tlink" href="#get">Start a trip anywhere <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
   </div></section>
 
   <!-- EVERYTHING GRID (stone) -->
