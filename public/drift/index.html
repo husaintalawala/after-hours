@@ -60,11 +60,11 @@
 
   /* ============ EPIC HERO — persistent photo backdrop + rising phone ============ */
   .stage-photo{position:absolute;inset:0;z-index:0;will-change:opacity}
-  .stage-photo img{width:100%;height:100%;object-fit:cover;object-position:center 30%;transform:scale(1.05)}
+  .stage-photo img{width:100%;height:100%;object-fit:cover;object-position:center 46%;transform:scale(1.05);filter:saturate(1.1) contrast(1.05) brightness(.97)}
   .stage-scrim{position:absolute;inset:0;z-index:1;will-change:opacity;background:
      radial-gradient(120% 80% at 50% 32%,rgba(6,11,18,0) 26%,rgba(6,11,18,.30) 100%),
      linear-gradient(180deg,rgba(6,11,18,.68) 0%,rgba(6,11,18,.24) 24%,rgba(6,11,18,.28) 54%,rgba(6,11,18,.66) 100%)}
-  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(104px,16vh,168px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
+  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(84px,11vh,138px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
   .stage-hero>*{pointer-events:auto}
   .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);padding:7px 15px;border-radius:100px}
   .laurel i{width:7px;height:7px;border-radius:50%;background:#FF7A52;box-shadow:0 0 10px #FF7A52}
@@ -87,31 +87,26 @@
   .phone .scr img{width:100%;height:100%;object-fit:cover;object-position:center top}
 
   /* ===== SELF-DRAWING ROUTE MAP (live phone screen) ===== */
-  .routemap{position:absolute;inset:0;overflow:hidden;background:#0a1622}
-  .rm-bg{position:absolute;inset:0;background-image:url(assets/app/route-map.webp),url(assets/app/route-map.jpg);
-     background-size:cover;background-position:center;animation:rm-pan 26s ease-in-out infinite alternate}
-  @keyframes rm-pan{0%{transform:scale(1.08) translate(1%,-1%)}100%{transform:scale(1.16) translate(-2%,2%)}}
-  .rm-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,14,22,.52),rgba(6,14,22,.10) 26%,rgba(6,14,22,.14) 62%,rgba(6,14,22,.58))}
-  .rm-head{position:absolute;top:15px;left:16px;right:16px;z-index:5;color:#fff}
+  .routemap{position:absolute;inset:0;overflow:hidden;background:#8fc6c9}
+  .rm-lbl{position:absolute;z-index:3;font-size:9px;font-weight:700;color:#3c584f;text-shadow:0 1px 2px rgba(255,255,255,.55);transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none}
+  .rm-head{position:absolute;top:0;left:0;right:0;z-index:5;padding:15px 16px 28px;background:linear-gradient(180deg,rgba(10,26,34,.5),transparent);color:#fff}
   .rm-title{font-family:var(--serif);font-size:16px;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,.6)}
   .rm-sub{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 1px 6px rgba(0,0,0,.5)}
   .rm-sub .a{display:flex}
   .rm-sub .a span{width:19px;height:19px;border-radius:50%;border:1.5px solid #fff;margin-left:-6px;background-size:cover;background-position:center}
   .rm-sub .a span:first-child{margin-left:0}
-  .rm-svg{position:absolute;inset:0;z-index:2;width:100%;height:100%}
-  .rm-line{fill:none;stroke:#FF7A52;stroke-width:2.6;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;
-     filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
-  .rm-plane{fill:#fff;opacity:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
-  .rm-pin{position:absolute;z-index:4;width:25px;height:25px;margin:-25px 0 0 -12.5px;border-radius:50% 50% 50% 2px;
-     background:var(--coral);color:#fff;display:grid;place-items:center;font-weight:800;font-size:11.5px;
-     border:2.4px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.45);transform:scale(0) translateY(-6px);transform-origin:center bottom;rotate:45deg}
-  .rm-pin b{rotate:-45deg}
-  .rm-photo{position:absolute;z-index:4;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;
-     border:2.6px solid #fff;background-size:cover;background-position:center;box-shadow:0 6px 14px rgba(0,0,0,.5);transform:scale(0)}
-  .rm-pulse{position:absolute;z-index:3;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 0 rgba(74,222,128,.55)}
+  .rm-svg{position:absolute;inset:0;z-index:1;width:100%;height:100%}
+  .rm-line{fill:none;stroke:#F26A3D;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;
+     filter:drop-shadow(0 1.5px 2px rgba(20,40,50,.3))}
+  .rm-line.cap{stroke:#fff;stroke-width:6;filter:none}
+  .rm-pin{position:absolute;z-index:4;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+     background:var(--coral);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;
+     border:3px solid #fff;box-shadow:0 4px 10px rgba(20,40,50,.4);transform:scale(0)}
+  .rm-photo{position:absolute;z-index:4;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;
+     border:3px solid #fff;background-size:cover;background-position:center;box-shadow:0 5px 14px rgba(20,40,50,.45);transform:scale(0)}
+  .rm-pulse{position:absolute;z-index:3;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:#25c26a;border:2.5px solid #fff;box-shadow:0 0 0 0 rgba(37,194,106,.4)}
   /* play when the chapter is active (.s.on) */
   .routemap.on .rm-line{animation:rm-draw 1.9s var(--e) forwards}
-  .routemap.on .rm-plane{animation:rm-fly 1.9s var(--e) forwards}
   .routemap.on .rm-pin{animation:rm-drop .55s var(--e) forwards}
   .routemap.on .rm-photo{animation:rm-pop .5s var(--e) forwards}
   .routemap.on .rm-pulse{animation:rm-pulse 2.1s ease-out infinite}
@@ -119,12 +114,11 @@
   .routemap.on .rm-pin.s1{animation-delay:.15s}
   .rm-photo.m1{animation-delay:.8s}.rm-photo.m2{animation-delay:1.25s}
   @keyframes rm-draw{to{stroke-dashoffset:0}}
-  @keyframes rm-drop{0%{transform:scale(0) translateY(-10px)}60%{transform:scale(1.12) translateY(0)}100%{transform:scale(1) translateY(0)}}
+  @keyframes rm-drop{0%{transform:scale(0)}62%{transform:scale(1.16)}100%{transform:scale(1)}}
   @keyframes rm-pop{0%{transform:scale(0)}62%{transform:scale(1.14)}100%{transform:scale(1)}}
-  @keyframes rm-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 14px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
-  @keyframes rm-fly{0%{opacity:0;offset-distance:0%}12%{opacity:1}88%{opacity:1}100%{opacity:.9;offset-distance:100%}}
+  @keyframes rm-pulse{0%{box-shadow:0 0 0 0 rgba(37,194,106,.45)}70%{box-shadow:0 0 0 13px rgba(37,194,106,0)}100%{box-shadow:0 0 0 0 rgba(37,194,106,0)}}
   @media(prefers-reduced-motion:reduce){
-    .rm-line{stroke-dashoffset:0}.rm-pin,.rm-photo{transform:none}.rm-bg{animation:none}
+    .rm-line{stroke-dashoffset:0}.rm-pin,.rm-photo{transform:none}
   }
 
   /* ===== LIVE APP SCREENS (plan / split / discover / stats) ===== */
@@ -306,6 +300,11 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="rm-sea" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#c7ebe4"/><stop offset="0.5" stop-color="#86c8cd"/><stop offset="1" stop-color="#4f9fb2"/></linearGradient>
+  <radialGradient id="rm-glow" cx="0.5" cy="0.32" r="0.7"><stop offset="0" stop-color="#e6f6f0" stop-opacity=".5"/><stop offset="1" stop-color="#e6f6f0" stop-opacity="0"/></radialGradient>
+  <filter id="rm-soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs></svg>
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav"><div class="nav-in">
@@ -337,17 +336,27 @@
     <div class="stage-phone" id="stagePhone">
       <div class="phone"><div class="scr stage-screens" id="screens">
         <div class="s routemap on" data-i="0">
-          <div class="rm-bg"></div><div class="rm-scrim"></div>
-          <div class="rm-head"><div class="rm-title">Bali · with the crew</div>
+          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice">
+            <rect width="236" height="485" fill="url(#rm-sea)"/><rect width="236" height="485" fill="url(#rm-glow)"/>
+            <g filter="url(#rm-soft)" opacity=".5"><ellipse cx="55" cy="255" rx="86" ry="70" fill="#3f92a6"/><ellipse cx="205" cy="120" rx="66" ry="58" fill="#3f92a6"/><ellipse cx="180" cy="415" rx="78" ry="66" fill="#3f92a6"/><ellipse cx="120" cy="60" rx="70" ry="40" fill="#a7dcd8"/></g>
+            <g><path d="M36,150 C34,112 66,88 100,98 C138,109 140,150 120,182 C102,212 52,208 42,176 C37,166 37,158 36,150 Z" fill="#ecdfba"/><path d="M44,150 C42,118 70,97 99,106 C132,116 132,150 114,178 C98,204 58,201 49,173 C45,164 45,157 44,150 Z" fill="#8fbb7e"/><path d="M60,138 C70,120 95,122 104,142 C112,160 98,180 78,178 C58,175 52,155 60,138 Z" fill="#7aa96b"/></g>
+            <g><path d="M150,196 C148,168 172,150 198,158 C226,167 228,200 212,224 C196,248 158,244 150,220 C146,210 150,204 150,196 Z" fill="#ecdfba"/><path d="M157,196 C155,172 176,157 197,164 C221,172 221,200 207,220 C193,241 162,238 156,216 C153,208 156,203 157,196 Z" fill="#8fbb7e"/></g>
+            <g><path d="M34,320 C32,292 56,272 84,280 C114,289 118,322 100,346 C84,368 48,364 40,340 C36,330 34,326 34,320 Z" fill="#ecdfba"/><path d="M41,320 C39,297 60,281 82,288 C108,296 110,322 96,342 C82,361 52,358 46,336 C42,328 41,325 41,320 Z" fill="#8fbb7e"/><path d="M55,312 C64,298 84,300 90,316 C96,332 84,346 68,344 C52,341 48,325 55,312 Z" fill="#7aa96b"/></g>
+            <path d="M138,414 C136,400 150,392 164,398 C180,405 178,424 164,430 C150,436 140,428 138,414 Z" fill="#ecdfba"/><path d="M143,414 C141,403 152,397 163,402 C176,408 174,422 163,427 C151,432 145,424 143,414 Z" fill="#8fbb7e"/>
+            <circle cx="200" cy="300" r="7" fill="#ecdfba"/><circle cx="200" cy="300" r="4.5" fill="#8fbb7e"/><circle cx="30" cy="230" r="6" fill="#ecdfba"/><circle cx="30" cy="230" r="3.8" fill="#8fbb7e"/>
+            <path class="rm-line cap" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
+            <path class="rm-line" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
+          </svg>
+          <span class="rm-lbl" style="left:32%;top:39%">Ko Phi Phi</span><span class="rm-lbl" style="left:74%;top:53%">Laem Tong</span><span class="rm-lbl" style="left:30%;top:79%">Nui Bay</span>
+          <div class="rm-head"><div class="rm-title">Ko Phi Phi · with the crew</div>
             <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 · 6 stops</div></div>
-          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice"><path class="rm-line" pathLength="100" d="M62,150 C110,175 130,185 156,205 C200,235 60,265 92,300 C120,330 180,355 168,385"/></svg>
-          <span class="rm-photo m1" style="left:74%;top:34%;background-image:url(assets/photo/swing.jpg)"></span>
-          <span class="rm-photo m2" style="left:27%;top:56%;background-image:url(assets/photo/sunset.jpg)"></span>
-          <span class="rm-pin s1" style="left:26.3%;top:30.9%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:66.1%;top:42.3%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:39%;top:61.9%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:71.2%;top:79.4%"><b>4</b></span>
-          <span class="rm-pulse" style="left:71.2%;top:79.4%"></span>
+          <span class="rm-photo m1" style="left:84%;top:40%;background-image:url(assets/photo/swing.jpg)"></span>
+          <span class="rm-photo m2" style="left:16%;top:62%;background-image:url(assets/photo/sunset.jpg)"></span>
+          <span class="rm-pin s1" style="left:33%;top:30.9%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:70.3%;top:48.7%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:32.2%;top:68%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:63.6%;top:86.6%"><b>4</b></span>
+          <span class="rm-pulse" style="left:63.6%;top:86.6%"></span>
         </div>
         <div class="s appscr" data-i="1">
           <div class="top"><div class="t">Costa Rica · 8 days</div>
@@ -372,27 +381,45 @@
           </div>
         </div>
         <div class="s routemap" data-i="3">
-          <div class="rm-bg"></div><div class="rm-scrim"></div>
-          <div class="rm-head"><div class="rm-title">Iceland · Ring Road</div>
-            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking · day 4</div></div>
-          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice"><path class="rm-line" pathLength="100" d="M62,150 C110,175 130,185 156,205 C200,235 60,265 92,300 C120,330 180,355 168,385"/></svg>
-          <span class="rm-photo m1" style="left:74%;top:34%;background-image:url(assets/photo/positano.jpg)"></span>
-          <span class="rm-photo m2" style="left:27%;top:56%;background-image:url(assets/photo/amalfi.jpg)"></span>
-          <span class="rm-pin s1" style="left:26.3%;top:30.9%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:66.1%;top:42.3%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:39%;top:61.9%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:71.2%;top:79.4%"><b>4</b></span>
-          <span class="rm-pulse" style="left:71.2%;top:79.4%"></span>
+          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice">
+            <rect width="236" height="485" fill="url(#rm-sea)"/><rect width="236" height="485" fill="url(#rm-glow)"/>
+            <g filter="url(#rm-soft)" opacity=".5"><ellipse cx="55" cy="255" rx="86" ry="70" fill="#3f92a6"/><ellipse cx="205" cy="120" rx="66" ry="58" fill="#3f92a6"/><ellipse cx="180" cy="415" rx="78" ry="66" fill="#3f92a6"/><ellipse cx="120" cy="60" rx="70" ry="40" fill="#a7dcd8"/></g>
+            <g><path d="M36,150 C34,112 66,88 100,98 C138,109 140,150 120,182 C102,212 52,208 42,176 C37,166 37,158 36,150 Z" fill="#ecdfba"/><path d="M44,150 C42,118 70,97 99,106 C132,116 132,150 114,178 C98,204 58,201 49,173 C45,164 45,157 44,150 Z" fill="#8fbb7e"/><path d="M60,138 C70,120 95,122 104,142 C112,160 98,180 78,178 C58,175 52,155 60,138 Z" fill="#7aa96b"/></g>
+            <g><path d="M150,196 C148,168 172,150 198,158 C226,167 228,200 212,224 C196,248 158,244 150,220 C146,210 150,204 150,196 Z" fill="#ecdfba"/><path d="M157,196 C155,172 176,157 197,164 C221,172 221,200 207,220 C193,241 162,238 156,216 C153,208 156,203 157,196 Z" fill="#8fbb7e"/></g>
+            <g><path d="M34,320 C32,292 56,272 84,280 C114,289 118,322 100,346 C84,368 48,364 40,340 C36,330 34,326 34,320 Z" fill="#ecdfba"/><path d="M41,320 C39,297 60,281 82,288 C108,296 110,322 96,342 C82,361 52,358 46,336 C42,328 41,325 41,320 Z" fill="#8fbb7e"/><path d="M55,312 C64,298 84,300 90,316 C96,332 84,346 68,344 C52,341 48,325 55,312 Z" fill="#7aa96b"/></g>
+            <path d="M138,414 C136,400 150,392 164,398 C180,405 178,424 164,430 C150,436 140,428 138,414 Z" fill="#ecdfba"/><path d="M143,414 C141,403 152,397 163,402 C176,408 174,422 163,427 C151,432 145,424 143,414 Z" fill="#8fbb7e"/>
+            <circle cx="200" cy="300" r="7" fill="#ecdfba"/><circle cx="200" cy="300" r="4.5" fill="#8fbb7e"/><circle cx="30" cy="230" r="6" fill="#ecdfba"/><circle cx="30" cy="230" r="3.8" fill="#8fbb7e"/>
+            <path class="rm-line cap" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
+            <path class="rm-line" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
+          </svg>
+          <span class="rm-lbl" style="left:32%;top:39%">Maya Bay</span><span class="rm-lbl" style="left:74%;top:53%">Bamboo Is.</span><span class="rm-lbl" style="left:30%;top:79%">Railay</span>
+          <div class="rm-head"><div class="rm-title">Krabi · the long way</div>
+            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking · day 4 of 9</div></div>
+          <span class="rm-photo m1" style="left:84%;top:40%;background-image:url(assets/photo/positano.jpg)"></span>
+          <span class="rm-photo m2" style="left:16%;top:62%;background-image:url(assets/photo/amalfi.jpg)"></span>
+          <span class="rm-pin s1" style="left:33%;top:30.9%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:70.3%;top:48.7%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:32.2%;top:68%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:63.6%;top:86.6%"><b>4</b></span>
+          <span class="rm-pulse" style="left:63.6%;top:86.6%"></span>
         </div>
         <div class="s routemap" data-i="4">
-          <div class="rm-bg"></div><div class="rm-scrim"></div>
+          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice">
+            <rect width="236" height="485" fill="url(#rm-sea)"/><rect width="236" height="485" fill="url(#rm-glow)"/>
+            <g filter="url(#rm-soft)" opacity=".5"><ellipse cx="55" cy="255" rx="86" ry="70" fill="#3f92a6"/><ellipse cx="205" cy="120" rx="66" ry="58" fill="#3f92a6"/><ellipse cx="180" cy="415" rx="78" ry="66" fill="#3f92a6"/><ellipse cx="120" cy="60" rx="70" ry="40" fill="#a7dcd8"/></g>
+            <g><path d="M36,150 C34,112 66,88 100,98 C138,109 140,150 120,182 C102,212 52,208 42,176 C37,166 37,158 36,150 Z" fill="#ecdfba"/><path d="M44,150 C42,118 70,97 99,106 C132,116 132,150 114,178 C98,204 58,201 49,173 C45,164 45,157 44,150 Z" fill="#8fbb7e"/><path d="M60,138 C70,120 95,122 104,142 C112,160 98,180 78,178 C58,175 52,155 60,138 Z" fill="#7aa96b"/></g>
+            <g><path d="M150,196 C148,168 172,150 198,158 C226,167 228,200 212,224 C196,248 158,244 150,220 C146,210 150,204 150,196 Z" fill="#ecdfba"/><path d="M157,196 C155,172 176,157 197,164 C221,172 221,200 207,220 C193,241 162,238 156,216 C153,208 156,203 157,196 Z" fill="#8fbb7e"/></g>
+            <g><path d="M34,320 C32,292 56,272 84,280 C114,289 118,322 100,346 C84,368 48,364 40,340 C36,330 34,326 34,320 Z" fill="#ecdfba"/><path d="M41,320 C39,297 60,281 82,288 C108,296 110,322 96,342 C82,361 52,358 46,336 C42,328 41,325 41,320 Z" fill="#8fbb7e"/><path d="M55,312 C64,298 84,300 90,316 C96,332 84,346 68,344 C52,341 48,325 55,312 Z" fill="#7aa96b"/></g>
+            <circle cx="200" cy="300" r="7" fill="#ecdfba"/><circle cx="200" cy="300" r="4.5" fill="#8fbb7e"/><circle cx="30" cy="230" r="6" fill="#ecdfba"/><circle cx="30" cy="230" r="3.8" fill="#8fbb7e"/>
+          </svg>
+          <span class="rm-lbl" style="left:32%;top:39%">Ko Phi Phi</span><span class="rm-lbl" style="left:74%;top:53%">Laem Tong</span>
           <div class="rm-head"><div class="rm-title">Near you · Ao Nang</div><div class="rm-sub">Ask Drift what&rsquo;s good nearby</div></div>
-          <span class="disc-pin p1" style="left:34%;top:36%"></span>
-          <span class="disc-pin p2" style="left:62%;top:30%"></span>
-          <span class="disc-pin p3" style="left:70%;top:52%"></span>
-          <span class="disc-pin p4" style="left:44%;top:56%"></span>
-          <span class="disc-pin p5" style="left:26%;top:50%"></span>
-          <span class="rm-pulse" style="left:50%;top:44%"></span>
+          <span class="disc-pin p1" style="left:32%;top:31%"></span>
+          <span class="disc-pin p2" style="left:70%;top:40%"></span>
+          <span class="disc-pin p3" style="left:33%;top:66%"></span>
+          <span class="disc-pin p4" style="left:64%;top:75%"></span>
+          <span class="disc-pin p5" style="left:20%;top:48%"></span>
+          <span class="rm-pulse" style="left:52%;top:56%"></span>
           <div class="disc-card"><div class="dp" style="background-image:url(assets/photo/phiphi.jpg)"></div><div><div class="dn">Monkey Beach</div><div class="dm">★ 4.8 · 1.2 mi · snorkel spot</div></div><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
         </div>
         <div class="s stat" data-i="5">
@@ -523,7 +550,8 @@
     return 'rgb(245,234,218)';
   }
   var cur=-1, HERO_END=0.15;
-  var ephoto=document.getElementById('ephoto'),escrim=document.getElementById('escrim'),ehero=document.getElementById('ehero');
+  var ephoto=document.getElementById('ephoto'),escrim=document.getElementById('escrim'),ehero=document.getElementById('ehero'),tabsWrap=document.getElementById('tabs');
+  if(tabsWrap)tabsWrap.style.transition='opacity .45s var(--e)';
   function clamp01(x){return x<0?0:x>1?1:x;}
   function storyCount(el){var to=+el.getAttribute('data-to'),t0=null;
     function step(ts){if(!t0)t0=ts;var q=Math.min((ts-t0)/1100,1);el.textContent=Math.round((1-Math.pow(1-q,3))*to);if(q<1)requestAnimationFrame(step);}
@@ -540,7 +568,8 @@
   }
   function phoneTransform(i,rise){
     var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
-    stagePhone.style.transform='perspective(1300px) translateY('+(rise*46).toFixed(1)+'vh) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg) translateX('+(tx*tilt).toFixed(1)+'px)';
+    var riseVH=innerWidth<900?54:66;   // at rest the phone sits low, peeking only a sliver
+    stagePhone.style.transform='perspective(1300px) translateY('+(rise*riseVH).toFixed(1)+'vh) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg) translateX('+(tx*tilt).toFixed(1)+'px)';
   }
   function onStory(){
     var r=story.getBoundingClientRect();
@@ -557,6 +586,7 @@
     if(ehero){ehero.style.opacity=heroOp;ehero.style.transform='translateY('+(-(1-heroOp)*22).toFixed(1)+'px)';ehero.style.pointerEvents=heroOp>0.5?'auto':'none';}
     // chapters mapped to the range AFTER the hero slice
     var heroMode=p<HERO_END;
+    if(tabsWrap)tabsWrap.style.opacity=heroMode?'0':'1';
     var cp=clamp01((p-HERO_END)/(1-HERO_END));
     var idx=Math.min(Math.floor(cp*N),N-1);
     setChapter(idx);
