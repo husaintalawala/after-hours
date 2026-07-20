@@ -61,12 +61,17 @@
   /* ============ HERO (cinematic full-bleed) ============ */
   .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;text-align:center;color:#fff;overflow:hidden}
   .hero-bg{position:absolute;inset:0;z-index:0;will-change:transform}
-  .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 40%}
-  .hero-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,12,20,.5) 0%,rgba(8,12,20,.14) 26%,rgba(8,12,20,.26) 60%,rgba(251,242,230,.0) 82%,var(--cream) 100%)}
+  .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 30%;transform:scale(1.04)}
+  /* cinematic, moody grade — dark for legibility, immersive, fading into cream */
+  .hero-bg::after{content:"";position:absolute;inset:0;background:
+     radial-gradient(120% 80% at 50% 34%,rgba(6,11,18,0) 30%,rgba(6,11,18,.34) 100%),
+     linear-gradient(180deg,rgba(6,11,18,.66) 0%,rgba(6,11,18,.26) 20%,rgba(6,11,18,.30) 50%,rgba(6,11,18,.60) 78%,var(--cream) 100%)}
+  /* diagonal cream wedge into the next section */
+  .hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:92px;z-index:1;background:var(--cream);clip-path:polygon(0 58px,100% 0,100% 100%,0 100%)}
   .hero-copy{position:relative;z-index:2;margin-top:clamp(120px,17vh,168px);padding:0 22px;max-width:860px}
   .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 15px;border-radius:100px}
   .laurel i{width:7px;height:7px;border-radius:50%;background:#FF7A52;box-shadow:0 0 10px #FF7A52}
-  .hero h1{font-size:clamp(46px,8.4vw,92px);margin:20px 0 0;text-shadow:0 2px 40px rgba(0,0,0,.34)}
+  .hero h1{font-size:clamp(52px,10vw,116px);margin:20px 0 0;line-height:.98;text-shadow:0 2px 50px rgba(0,0,0,.4)}
   .hero h1 em{font-style:italic}
   .hero .sub{font-size:clamp(16.5px,1.7vw,21px);color:rgba(255,255,255,.94);margin:18px auto 0;max-width:32ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.4)}
   .hero .cta{margin-top:26px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
@@ -84,6 +89,106 @@
   .phone .scr{position:relative;border-radius:37px;overflow:hidden;background:#0a0d1c;height:0;padding-bottom:205.3%}
   .phone .scr>img,.phone .scr>picture{position:absolute;inset:0}
   .phone .scr img{width:100%;height:100%;object-fit:cover;object-position:center top}
+
+  /* ===== SELF-DRAWING ROUTE MAP (live phone screen) ===== */
+  .routemap{position:absolute;inset:0;overflow:hidden;background:#0a1622}
+  .rm-bg{position:absolute;inset:0;background-image:url(assets/app/route-map.webp),url(assets/app/route-map.jpg);
+     background-size:cover;background-position:center;animation:rm-pan 26s ease-in-out infinite alternate}
+  @keyframes rm-pan{0%{transform:scale(1.08) translate(1%,-1%)}100%{transform:scale(1.16) translate(-2%,2%)}}
+  .rm-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,14,22,.52),rgba(6,14,22,.10) 26%,rgba(6,14,22,.14) 62%,rgba(6,14,22,.58))}
+  .rm-head{position:absolute;top:15px;left:16px;right:16px;z-index:5;color:#fff}
+  .rm-title{font-family:var(--serif);font-size:16px;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,.6)}
+  .rm-sub{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .rm-sub .a{display:flex}
+  .rm-sub .a span{width:19px;height:19px;border-radius:50%;border:1.5px solid #fff;margin-left:-6px;background-size:cover;background-position:center}
+  .rm-sub .a span:first-child{margin-left:0}
+  .rm-svg{position:absolute;inset:0;z-index:2;width:100%;height:100%}
+  .rm-line{fill:none;stroke:#FF7A52;stroke-width:2.6;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;
+     filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
+  .rm-plane{fill:#fff;opacity:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+  .rm-pin{position:absolute;z-index:4;width:25px;height:25px;margin:-25px 0 0 -12.5px;border-radius:50% 50% 50% 2px;
+     background:var(--coral);color:#fff;display:grid;place-items:center;font-weight:800;font-size:11.5px;
+     border:2.4px solid #fff;box-shadow:0 5px 12px rgba(0,0,0,.45);transform:scale(0) translateY(-6px);transform-origin:center bottom;rotate:45deg}
+  .rm-pin b{rotate:-45deg}
+  .rm-photo{position:absolute;z-index:4;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;
+     border:2.6px solid #fff;background-size:cover;background-position:center;box-shadow:0 6px 14px rgba(0,0,0,.5);transform:scale(0)}
+  .rm-pulse{position:absolute;z-index:3;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 0 rgba(74,222,128,.55)}
+  /* play when the chapter is active (.s.on) */
+  .routemap.on .rm-line{animation:rm-draw 1.9s var(--e) forwards}
+  .routemap.on .rm-plane{animation:rm-fly 1.9s var(--e) forwards}
+  .routemap.on .rm-pin{animation:rm-drop .55s var(--e) forwards}
+  .routemap.on .rm-photo{animation:rm-pop .5s var(--e) forwards}
+  .routemap.on .rm-pulse{animation:rm-pulse 2.1s ease-out infinite}
+  .rm-pin.s2{animation-delay:.5s}.rm-pin.s3{animation-delay:.95s}.rm-pin.s4{animation-delay:1.4s}
+  .routemap.on .rm-pin.s1{animation-delay:.15s}
+  .rm-photo.m1{animation-delay:.8s}.rm-photo.m2{animation-delay:1.25s}
+  @keyframes rm-draw{to{stroke-dashoffset:0}}
+  @keyframes rm-drop{0%{transform:scale(0) translateY(-10px)}60%{transform:scale(1.12) translateY(0)}100%{transform:scale(1) translateY(0)}}
+  @keyframes rm-pop{0%{transform:scale(0)}62%{transform:scale(1.14)}100%{transform:scale(1)}}
+  @keyframes rm-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 14px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  @keyframes rm-fly{0%{opacity:0;offset-distance:0%}12%{opacity:1}88%{opacity:1}100%{opacity:.9;offset-distance:100%}}
+  @media(prefers-reduced-motion:reduce){
+    .rm-line{stroke-dashoffset:0}.rm-pin,.rm-photo{transform:none}.rm-bg{animation:none}
+  }
+
+  /* ===== LIVE APP SCREENS (plan / split / discover / stats) ===== */
+  .appscr{position:absolute;inset:0;overflow:hidden;background:#FAF7F1}
+  .appscr .top{padding:16px 16px 8px}
+  .appscr .top .t{font-family:var(--serif);font-size:17px;font-weight:500;color:var(--ink)}
+  .appscr .top .u{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:10.5px;color:var(--muted);font-weight:600}
+  .appscr .top .u .a{display:flex}.appscr .top .u .a span{width:18px;height:18px;border-radius:50%;border:1.5px solid #fff;margin-left:-5px;background-size:cover;background-position:center}
+  .appscr .top .u .a span:first-child{margin-left:0}
+  /* PLAN — itinerary cards drop in */
+  .pl-list{padding:2px 13px;display:flex;flex-direction:column;gap:8px}
+  .pl-card{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 8px 18px -14px rgba(40,26,12,.4);opacity:0;transform:translateY(16px)}
+  .pl-card .th{width:42px;height:42px;border-radius:10px;background-size:cover;background-position:center;flex-shrink:0}
+  .pl-card .d{font-size:9.5px;font-weight:800;letter-spacing:.05em;color:var(--coralDeep)}
+  .pl-card .n{font-weight:700;font-size:13px;margin-top:1px;color:var(--ink)}
+  .pl-card .by{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
+  .pl-card .by i{width:14px;height:14px;border-radius:50%;background-size:cover;background-position:center;font-style:normal}
+  .s.on .pl-card{animation:appin .5s var(--e) forwards}
+  .pl-card.k2{animation-delay:.28s}.pl-card.k3{animation-delay:.56s}.pl-card.k4{animation-delay:.84s}
+  @keyframes appin{to{opacity:1;transform:none}}
+  /* SPLIT — rows appear, BEST highlights, settle bar fills, count animates */
+  .sp-wrap{padding:6px 14px;display:flex;flex-direction:column;gap:10px}
+  .sp-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:11px 12px 6px}
+  .sp-card .h{font-family:var(--serif);font-size:14px;font-weight:500}
+  .sp-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px solid var(--line);opacity:0;transform:translateY(8px)}
+  .sp-row:first-of-type{border-top:0}
+  .s.on .sp-row{animation:appin .45s var(--e) forwards}
+  .sp-row.r2{animation-delay:.2s}.sp-row.r3{animation-delay:.4s}
+  .sp-row .lg{width:26px;height:26px;border-radius:8px;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:11px;color:#fff}
+  .sp-row .nm{font-weight:700;font-size:12.5px}.sp-row .pr{margin-left:auto;font-weight:800;font-size:13px}
+  .sp-row.best{background:var(--coralSoft);margin:0 -6px;padding:8px 6px;border-radius:10px;border:0}
+  .sp-row.best .pr{color:var(--coralDeep)}
+  .sp-flag{font-size:8.5px;font-weight:800;color:#fff;background:var(--coral);padding:3px 6px;border-radius:5px}
+  .sp-settle{background:var(--ink);color:#fff;border-radius:15px;padding:13px 15px}
+  .sp-settle .l{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:800}
+  .sp-settle .amt{font-family:var(--serif);font-size:30px;margin-top:2px;font-variant-numeric:tabular-nums}
+  .sp-settle .amt em{color:#FFB59A;font-style:normal}
+  .sp-settle .bar{height:6px;border-radius:100px;background:rgba(255,255,255,.14);margin-top:11px;overflow:hidden}
+  .sp-settle .bar i{display:block;height:100%;width:6%;border-radius:100px;background:linear-gradient(90deg,#FFB59A,var(--coral))}
+  .s.on .sp-settle .bar i{animation:barfill 1.3s var(--e) .6s forwards}
+  @keyframes barfill{to{width:100%}}
+  /* DISCOVER — pins pop on a map + a place card slides up */
+  .disc-pin{position:absolute;z-index:4;width:24px;height:24px;margin:-24px 0 0 -12px;border-radius:50% 50% 50% 2px;rotate:45deg;background:var(--coral);border:2.2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.4);transform:scale(0)}
+  .s.on .disc-pin{animation:rm-drop .5s var(--e) forwards}
+  .disc-pin.p2{animation-delay:.18s}.disc-pin.p3{animation-delay:.36s}.disc-pin.p4{animation-delay:.54s}.disc-pin.p5{animation-delay:.72s}
+  .disc-card{position:absolute;left:14px;right:14px;bottom:16px;z-index:5;background:#fff;border-radius:14px;padding:8px;display:flex;align-items:center;gap:10px;box-shadow:0 16px 30px -16px rgba(0,0,0,.5);opacity:0;transform:translateY(20px)}
+  .s.on .disc-card{animation:appin .55s var(--e) .8s forwards}
+  .disc-card .dp{width:44px;height:44px;border-radius:10px;background-size:cover;background-position:center;flex-shrink:0}
+  .disc-card .dn{font-weight:700;font-size:13.5px}.disc-card .dm{font-size:11px;color:var(--muted);margin-top:1px}
+  .disc-card .go{margin-left:auto;width:28px;height:28px;border-radius:50%;background:var(--coral);color:#fff;display:grid;place-items:center;flex-shrink:0}
+  /* STATS — rotating globe + counting numbers */
+  .stat{position:absolute;inset:0;overflow:hidden;background:#0a0d1c}
+  .stat-globe{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 34%}
+  .stat-card{position:absolute;left:14px;right:14px;bottom:16px;z-index:3;background:rgba(10,16,26,.66);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px 16px;color:#fff;opacity:0;transform:translateY(18px)}
+  .s.on .stat-card{animation:appin .6s var(--e) .3s forwards}
+  .stat-card .big{font-family:var(--serif);font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+  .stat-card .big em{font-style:normal;font-size:15px;color:rgba(255,255,255,.7);margin-left:6px}
+  .stat-card .row{display:flex;gap:16px;margin-top:9px}
+  .stat-card .row div b{font-family:var(--serif);font-weight:500;font-size:17px}
+  .stat-card .row div span{display:block;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:700}
 
   /* ============ STORY (sticky-phone scrollytelling) ============ */
   .story{position:relative;height:760vh;background:var(--cream)}
@@ -190,8 +295,11 @@
   .fbot a{color:rgba(255,255,255,.42)}.fbot a:hover{color:#fff}
   @media(min-width:760px){.fgrid{grid-template-columns:1.4fr 1fr 1fr 1fr}.fbrand{grid-column:1;flex-direction:column;align-items:flex-start}}
 
-  [data-r]{opacity:0;transform:translateY(22px);transition:opacity .8s var(--e),transform .8s var(--e)}
+  [data-r]{opacity:0;transform:translateY(26px) scale(.985);transition:opacity .9s var(--e),transform .9s var(--e)}
   [data-r].rvld{opacity:1;transform:none}
+  /* signature ghosted headline reveal — sits faint, fades to full */
+  [data-ghost]{opacity:.13;transition:opacity 1.15s var(--e),transform 1.15s var(--e)}
+  [data-ghost].rvld{opacity:1}
 
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important;scroll-behavior:auto}
@@ -217,7 +325,7 @@
   <div class="hero-bg" data-px="0.08"><picture><source type="image/webp" srcset="assets/photo/hero.webp"><img src="assets/photo/hero.jpg" alt="Friends on a boat in the Phi Phi islands" width="1180" height="1573"></picture></div>
   <div class="hero-copy">
     <span class="laurel"><i></i>The group-trip app · iPhone</span>
-    <h1>Every trip,<br><em>together.</em></h1>
+    <h1 data-ghost>Every trip,<br><em>together.</em></h1>
     <p class="sub">Plan it with your people, track the journey and split every cost — then watch it map itself.</p>
     <div class="cta">
       <a class="btn light" href="#beta"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get it on TestFlight</a>
@@ -225,7 +333,21 @@
     </div>
   </div>
   <div class="hero-phone" data-px="-0.05">
-    <div class="phone"><div class="scr"><picture><source type="image/webp" srcset="assets/app/hero-discover.webp"><img src="assets/app/hero-discover.jpg" alt="A shared trip map with route pins in Drift" width="600" height="1216"></picture></div></div>
+    <div class="phone"><div class="scr">
+      <div class="routemap on" id="heroRoute">
+        <div class="rm-bg"></div><div class="rm-scrim"></div>
+        <div class="rm-head"><div class="rm-title">Bali · with the crew</div>
+          <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 · 6 stops</div></div>
+        <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice"><path class="rm-line" pathLength="100" d="M62,150 C110,175 130,185 156,205 C200,235 60,265 92,300 C120,330 180,355 168,385"/></svg>
+        <span class="rm-photo m1" style="left:74%;top:34%;background-image:url(assets/photo/swing.jpg)"></span>
+        <span class="rm-photo m2" style="left:27%;top:56%;background-image:url(assets/photo/sunset.jpg)"></span>
+        <span class="rm-pin s1" style="left:26.3%;top:30.9%"><b>1</b></span>
+        <span class="rm-pin s2" style="left:66.1%;top:42.3%"><b>2</b></span>
+        <span class="rm-pin s3" style="left:39%;top:61.9%"><b>3</b></span>
+        <span class="rm-pin s4" style="left:71.2%;top:79.4%"><b>4</b></span>
+        <span class="rm-pulse" style="left:71.2%;top:79.4%"></span>
+      </div>
+    </div></div>
   </div>
   <div class="hero-cap">↓&nbsp;&nbsp;Explore the app</div>
 </section>
@@ -236,14 +358,74 @@
     <!-- pinned phone with crossfading screens -->
     <div class="stage-phone" id="stagePhone">
       <div class="phone"><div class="scr stage-screens" id="screens">
-        <img class="s on" data-i="0" src="assets/app/hero-discover.jpg" alt="Shared trip map">
-        <img class="s" data-i="1" src="assets/app/guide.jpg" alt="Trip overview and guide">
-        <img class="s" data-i="2" src="assets/app/split.jpg" alt="Expenses and split">
-        <img class="s" data-i="3" src="assets/app/track.jpg" alt="Trip tracker countdown">
-        <img class="s" data-i="4" src="assets/app/discover.jpg" alt="Discover places along the way">
-        <img class="s" data-i="5" src="assets/app/globe.jpg" alt="Your globe and travel stats">
-        <img class="s" data-i="6" src="assets/app/onboard-globe.jpg" alt="A living globe of your trip photos">
-        <img class="s" data-i="7" src="assets/app/onboard-globe.jpg" alt="Everywhere you have been">
+        <div class="s routemap on" data-i="0">
+          <div class="rm-bg"></div><div class="rm-scrim"></div>
+          <div class="rm-head"><div class="rm-title">Bali · with the crew</div>
+            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 · 6 stops</div></div>
+          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice"><path class="rm-line" pathLength="100" d="M62,150 C110,175 130,185 156,205 C200,235 60,265 92,300 C120,330 180,355 168,385"/></svg>
+          <span class="rm-photo m1" style="left:74%;top:34%;background-image:url(assets/photo/swing.jpg)"></span>
+          <span class="rm-photo m2" style="left:27%;top:56%;background-image:url(assets/photo/sunset.jpg)"></span>
+          <span class="rm-pin s1" style="left:26.3%;top:30.9%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:66.1%;top:42.3%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:39%;top:61.9%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:71.2%;top:79.4%"><b>4</b></span>
+          <span class="rm-pulse" style="left:71.2%;top:79.4%"></span>
+        </div>
+        <div class="s appscr" data-i="1">
+          <div class="top"><div class="t">Costa Rica · 8 days</div>
+            <div class="u"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 building the plan</div></div>
+          <div class="pl-list">
+            <div class="pl-card k1"><div class="th" style="background-image:url(assets/photo/positano.jpg)"></div><div><div class="d">DAY 1 · SAN JOSÉ</div><div class="n">Barrio Escalante food crawl</div><div class="by"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i>added by Ana</div></div></div>
+            <div class="pl-card k2"><div class="th" style="background-image:url(assets/photo/swing.jpg)"></div><div><div class="d">DAY 2 · MANUEL ANTONIO</div><div class="n">Rainforest &amp; the beach</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Sam</div></div></div>
+            <div class="pl-card k3"><div class="th" style="background-image:url(assets/photo/amalfi.jpg)"></div><div><div class="d">DAY 4 · MONTEVERDE</div><div class="n">Cloud-forest ziplines</div><div class="by"><i style="background-image:url(assets/photo/hero.jpg)"></i>added by you</div></div></div>
+            <div class="pl-card k4"><div class="th" style="background-image:url(assets/photo/sunset.jpg)"></div><div><div class="d">DAY 6 · ARENAL</div><div class="n">Hot springs at dusk</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Mia</div></div></div>
+          </div>
+        </div>
+        <div class="s appscr" data-i="2">
+          <div class="top"><div class="t">Casa Verde · Aug 12–16</div><div class="u">Best rate &amp; who owes what</div></div>
+          <div class="sp-wrap">
+            <div class="sp-card">
+              <div class="h">4 sites compared</div>
+              <div class="sp-row best r1"><span class="lg" style="background:#003580">B.</span><span class="nm">Booking.com</span><span class="sp-flag">BEST</span><span class="pr">$104</span></div>
+              <div class="sp-row r2"><span class="lg" style="background:#FFC72C;color:#222">E</span><span class="nm">Expedia</span><span class="pr">$112</span></div>
+              <div class="sp-row r3"><span class="lg" style="background:#D32F2F">H</span><span class="nm">Hotels.com</span><span class="pr">$109</span></div>
+            </div>
+            <div class="sp-settle"><div class="l">You owe Ana</div><div class="amt"><em>$<span class="count" data-to="54">54</span></em></div><div class="bar"><i></i></div></div>
+          </div>
+        </div>
+        <div class="s routemap" data-i="3">
+          <div class="rm-bg"></div><div class="rm-scrim"></div>
+          <div class="rm-head"><div class="rm-title">Iceland · Ring Road</div>
+            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking · day 4</div></div>
+          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice"><path class="rm-line" pathLength="100" d="M62,150 C110,175 130,185 156,205 C200,235 60,265 92,300 C120,330 180,355 168,385"/></svg>
+          <span class="rm-photo m1" style="left:74%;top:34%;background-image:url(assets/photo/positano.jpg)"></span>
+          <span class="rm-photo m2" style="left:27%;top:56%;background-image:url(assets/photo/amalfi.jpg)"></span>
+          <span class="rm-pin s1" style="left:26.3%;top:30.9%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:66.1%;top:42.3%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:39%;top:61.9%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:71.2%;top:79.4%"><b>4</b></span>
+          <span class="rm-pulse" style="left:71.2%;top:79.4%"></span>
+        </div>
+        <div class="s routemap" data-i="4">
+          <div class="rm-bg"></div><div class="rm-scrim"></div>
+          <div class="rm-head"><div class="rm-title">Near you · Ao Nang</div><div class="rm-sub">Ask Drift what&rsquo;s good nearby</div></div>
+          <span class="disc-pin p1" style="left:34%;top:36%"></span>
+          <span class="disc-pin p2" style="left:62%;top:30%"></span>
+          <span class="disc-pin p3" style="left:70%;top:52%"></span>
+          <span class="disc-pin p4" style="left:44%;top:56%"></span>
+          <span class="disc-pin p5" style="left:26%;top:50%"></span>
+          <span class="rm-pulse" style="left:50%;top:44%"></span>
+          <div class="disc-card"><div class="dp" style="background-image:url(assets/photo/phiphi.jpg)"></div><div><div class="dn">Monkey Beach</div><div class="dm">★ 4.8 · 1.2 mi · snorkel spot</div></div><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
+        </div>
+        <div class="s stat" data-i="5">
+          <img class="stat-globe" src="assets/app/onboard-globe-anim.webp" alt="Your globe filling in">
+          <div class="stat-card">
+            <div class="big"><span class="count" data-to="24">24</span><em>countries</em></div>
+            <div class="row"><div><b><span class="count" data-to="12">12</span>%</b><span>of the world</span></div><div><b><span class="count" data-to="47">47</span></b><span>cities</span></div><div><b><span class="count" data-to="9">9</span></b><span>trips</span></div></div>
+          </div>
+        </div>
+        <img class="s" data-i="6" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trip photos, rotating">
+        <img class="s" data-i="7" src="assets/app/onboard-globe-anim.webp" alt="Everywhere you have been">
       </div></div>
     </div>
     <!-- chapter text blocks -->
@@ -269,7 +451,7 @@
 <!-- ============ BENTO ============ -->
 <section class="bento">
   <div class="wrap">
-    <h2 data-r>And the best part&hellip;</h2>
+    <h2 data-ghost>And the best part&hellip;</h2>
     <div class="grid">
       <div class="bcard navy tall" data-r><span class="ic">🔒</span><h3>Private by default</h3><p>Your trips are yours. Share a plan with your crew — or no one at all.</p></div>
       <div class="bcard coralc wide" data-r><span class="ic">👋</span><h3>Proudly ad-free</h3><p>No ads, no selling your location. Just you and your people.</p></div>
@@ -283,7 +465,7 @@
 
 <!-- ============ CAROUSEL (destinations) ============ -->
 <section class="caro">
-  <div class="head"><span class="eyebrow" data-r>Where to next</span><h2 data-r>Wherever your<br>people are headed.</h2></div>
+  <div class="head"><span class="eyebrow" data-r>Where to next</span><h2 data-ghost>Wherever your<br>people are headed.</h2></div>
   <div class="track" id="caroTrack">
     <div class="dcard"><img src="assets/photo/amalfi.jpg" alt="Amalfi Coast"><div class="cap"><div class="k">Italy</div><div class="n">Amalfi Coast</div></div></div>
     <div class="dcard"><img src="assets/photo/phiphi.jpg" alt="Phi Phi Islands"><div class="cap"><div class="k">Thailand</div><div class="n">Phi Phi Islands</div></div></div>
@@ -329,7 +511,7 @@
   var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---- reveals ---- */
-  var rev=[].slice.call(document.querySelectorAll('[data-r]'));
+  var rev=[].slice.call(document.querySelectorAll('[data-r],[data-ghost]'));
   function reveal(el){el.classList.add('rvld');}
   if(reduce||!('IntersectionObserver'in window)){rev.forEach(reveal);}
   else{
@@ -363,13 +545,19 @@
     return 'rgb(245,234,218)';
   }
   var cur=-1;
+  function storyCount(el){var to=+el.getAttribute('data-to'),t0=null;
+    function step(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/1100,1);el.textContent=Math.round((1-Math.pow(1-p,3))*to);if(p<1)requestAnimationFrame(step);}
+    requestAnimationFrame(step);}
   function setChapter(i,p){
     if(i!==cur){
       cur=i;
       screens.forEach(function(s,k){s.classList.toggle('on',k===i);});
       chaps.forEach(function(c,k){c.classList.toggle('on',k===i);});
+      // count up any numbers inside the newly-active screen
+      if(!reduce){var act=screens[i];if(act){act.querySelectorAll('.count').forEach(function(c){
+        c.dataset.done='';c.textContent='0';setTimeout(function(){storyCount(c);},420);});}}
       // phone tilt alternates
-      stagePhone.style.transform='perspective(1400px) rotateY('+((i%2)?-5:5)+'deg) translateX('+((i%2)?-8:8)+'px)';
+      stagePhone.style.transform='perspective(1300px) rotateY('+((i%2)?-13:13)+'deg) rotateZ('+((i%2)?1.4:-1.4)+'deg) translateX('+((i%2)?-14:14)+'px)';
       // active tab phase
       var phase = i<3?'plan':(i<6?'track':'relive');
       tabs.forEach(function(t){t.classList.toggle('on',t.dataset.phase===phase);});
