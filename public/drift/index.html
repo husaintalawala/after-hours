@@ -4,254 +4,302 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drift — Every trip, together</title>
+<meta name="description" content="The group-trip app. Plan it with your people, book the best price and split every cost — then watch every journey fill a globe you keep for life.">
+<meta property="og:title" content="Drift — Every trip, together">
+<meta property="og:description" content="Plan with your crew, book & split every cost, and watch your world fill in. The group-trip app for iPhone.">
+<meta property="og:image" content="assets/photo/og-image.jpg">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FBF7F0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
-    --ink:#1C1811; --paper:#FFFFFF; --paper2:#F5F1E9; --muted:#6E6559; --line:#EAE3D6;
-    --coral:#CB5A38; --coralDeep:#AE4526; --coralSoft:#FBE6DB;
-    --dark:#0C1020; --night:#0A0D1C;
-    --f:"Plus Jakarta Sans",system-ui,sans-serif;
-    --e:cubic-bezier(.16,1,.3,1); --mx:1200px;
+    --paper:#FBF7F0; --paper2:#F2EADC; --card:#FFFFFF;
+    --ink:#1A160F; --muted:#6C6255; --line:#E8DFCF;
+    --coral:#CB5A38; --coralDeep:#A8421F; --coralSoft:#FAE7DC;
+    --night:#080B18; --nightHi:#173A6E;
+    --sans:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;
+    --serif:"Fraunces",Georgia,"Times New Roman",serif;
+    --e:cubic-bezier(.16,1,.3,1); --mx:1120px;
   }
-  html{-webkit-text-size-adjust:100%}
-  body{font-family:var(--f);background:var(--paper);color:var(--ink);line-height:1.55;font-weight:500;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.55;font-weight:500;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   img{display:block;max-width:100%}
   a{color:inherit;text-decoration:none}
-  h1,h2,h3{font-weight:800;letter-spacing:-.028em;line-height:1.02}
-  .wrap{max-width:var(--mx);margin:0 auto;padding:0 clamp(20px,4vw,40px)}
-  .btn{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:16px;background:var(--coral);color:#fff;padding:15px 26px;border-radius:100px;box-shadow:0 12px 26px -10px rgba(203,90,56,.6);transition:transform .22s var(--e),background .22s}
+  p{text-wrap:pretty}
+  h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.01em;line-height:1.02;text-wrap:balance}
+  .wrap{max-width:var(--mx);margin:0 auto;padding:0 clamp(20px,5vw,40px)}
+
+  /* type helpers */
+  .eye{font-family:var(--sans);font-weight:800;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--coralDeep)}
+  .lead{font-size:clamp(16.5px,1.15vw,18.5px);color:var(--muted);line-height:1.6;font-weight:500}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;gap:11px;font-family:var(--sans);font-weight:700;font-size:16px;background:var(--coral);color:#fff;padding:15px 26px;border-radius:100px;box-shadow:0 14px 30px -12px rgba(203,90,56,.65);transition:transform .22s var(--e),background .22s}
   .btn:hover{background:var(--coralDeep);transform:translateY(-2px)}
-  .btn.white{background:#fff;color:var(--ink);box-shadow:0 14px 34px -14px rgba(0,0,0,.5)}
-  .btn .ic{width:22px;height:22px;border-radius:7px;background:#fff;display:grid;place-items:center;flex-shrink:0}
-  .btn.white .ic{background:var(--coral)}
-  .btn .ic svg{width:12px;height:12px}
-  .eye{font-weight:800;font-size:13px;letter-spacing:.03em;color:var(--coralDeep);text-transform:uppercase}
+  .btn svg{width:19px;height:19px;flex-shrink:0}
+  .btn.ghost{background:#fff;color:var(--ink);box-shadow:0 12px 30px -16px rgba(0,0,0,.4);border:1px solid var(--line)}
+  .btn.on-dark{background:#fff;color:var(--ink);box-shadow:0 18px 44px -18px rgba(0,0,0,.55)}
 
   /* NAV */
-  .nav{position:absolute;top:0;left:0;right:0;z-index:20}
-  .nav .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:24px;padding-bottom:24px}
-  .brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:23px;color:#fff;letter-spacing:-.02em}
-  .brand .logo{width:30px;height:30px;border-radius:9px;background:var(--coral);display:grid;place-items:center;box-shadow:0 4px 14px rgba(203,90,56,.5)}
-  .brand .logo svg{width:17px;height:17px}
-  .njoin{color:#fff;font-weight:700;font-size:15px;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);padding:11px 20px;border-radius:100px;transition:background .2s}
-  .njoin:hover{background:rgba(255,255,255,.28)}
+  .nav{position:relative;z-index:20}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:22px;padding-bottom:6px}
+  .brand{display:inline-flex;align-items:center;gap:9px;font-family:var(--sans);font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--ink)}
+  .brand .mk{width:30px;height:30px;border-radius:9px;background:var(--coral);display:grid;place-items:center;box-shadow:0 6px 16px -4px rgba(203,90,56,.55)}
+  .brand .mk svg{width:17px;height:17px}
+  .navcta{font-family:var(--sans);font-weight:700;font-size:14.5px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:10px 18px;border-radius:100px;display:inline-flex;align-items:center;gap:8px;transition:border-color .2s,transform .2s}
+  .navcta:hover{border-color:var(--coral);transform:translateY(-1px)}
+  .navcta svg{width:15px;height:15px}
 
-  /* HERO */
-  .hero{position:relative;min-height:780px;height:100svh;max-height:980px;overflow:hidden;color:#fff}
-  .hero .bg{position:absolute;inset:-6% 0;z-index:0;will-change:transform}
-  .hero .bg img{width:100%;height:100%;object-fit:cover;object-position:center 32%}
-  .hero .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,22,.5) 0%,rgba(8,10,22,.14) 24%,rgba(8,10,22,.24) 58%,rgba(8,10,22,.82) 100%)}
-  .hero .inner{position:relative;z-index:3;height:100%;display:flex;flex-direction:column;align-items:center;text-align:center}
-  .hero-copy{margin-top:clamp(104px,14vh,142px);padding:0 20px;max-width:920px}
-  .badge{display:inline-flex;align-items:center;gap:9px;font-weight:700;font-size:13.5px;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);padding:8px 15px;border-radius:100px}
-  .badge b{color:#FFD9C9}
-  .hero h1{font-size:clamp(46px,7.8vw,98px);margin:20px 0 0;text-shadow:0 2px 34px rgba(0,0,0,.3)}
-  .hero .sub{font-size:clamp(17px,1.7vw,22px);font-weight:600;margin:20px auto 0;max-width:33ch;color:rgba(255,255,255,.94);text-shadow:0 1px 16px rgba(0,0,0,.4)}
-  .hero .cta{margin-top:28px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
-  .hero-phone{margin-top:auto;width:min(300px,72vw);flex-shrink:0;will-change:transform}
-  .phone{border-radius:40px 40px 0 0;padding:9px 9px 0;background:linear-gradient(160deg,#2a241c,#0e0b08);box-shadow:0 -10px 70px -10px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.05)}
-  .phone .scr{border-radius:33px 33px 0 0;overflow:hidden;background:#0a0d1c}
-  .phone .scr img{width:100%;display:block}
-  .phone .live{position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:4;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.06em;color:#fff;background:rgba(10,13,28,.6);backdrop-filter:blur(6px);padding:6px 12px;border-radius:100px}
-  .phone .live i{width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 8px #4ADE80;animation:pulse 1.8s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  /* ===== DEVICE — one treatment, everywhere ===== */
+  .device{position:relative;width:var(--dw,270px);max-width:82vw;padding:7px;border-radius:44px;
+    background:linear-gradient(158deg,#241f17,#0c0a07);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.10),0 46px 70px -34px rgba(28,18,8,.55),0 14px 30px -18px rgba(0,0,0,.35)}
+  .device .scr{position:relative;border-radius:38px;overflow:hidden;background:#0a0d1c;aspect-ratio:.493}
+  .device .scr img{width:100%;display:block}
+  .device.g .scr img{width:130%;margin-left:-15%;margin-top:-11%;transform-origin:52% 40%;animation:drift-breathe 16s var(--e) infinite}
+  .hero-stage .device.g .scr img{margin-top:-16%}
+  @keyframes drift-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 
-  /* SECTION */
-  .sec{padding:clamp(72px,10vw,128px) 0}
-  .sec.gray{background:var(--paper2)}
-  .feat{display:grid;grid-template-columns:1.02fr 1fr;gap:clamp(32px,6vw,80px);align-items:center}
-  .feat.flip .ftext{order:2}
-  .ftext h2{font-size:clamp(32px,4.4vw,58px);margin:16px 0 0}
-  .ftext .lead{font-size:clamp(17px,1.3vw,20px);color:var(--muted);margin:18px 0 0;max-width:40ch}
-  .bl{list-style:none;margin:26px 0 0;display:flex;flex-direction:column;gap:15px}
-  .bl li{display:flex;align-items:flex-start;gap:13px;font-weight:600;font-size:16.5px}
-  .bl .ic{width:34px;height:34px;border-radius:11px;background:var(--coralSoft);color:var(--coralDeep);display:grid;place-items:center;flex-shrink:0}
-  .bl .ic svg{width:18px;height:18px}
-  .fvisual{display:flex;justify-content:center}
+  /* ===== HERO ===== */
+  .hero{position:relative;background:
+     radial-gradient(120% 80% at 78% -6%,rgba(203,90,56,.10),transparent 46%),
+     radial-gradient(90% 70% at -8% 8%,rgba(23,58,110,.07),transparent 50%),
+     var(--paper);
+     overflow:hidden;padding-bottom:clamp(40px,7vw,72px)}
+  .hero-in{padding-top:clamp(26px,5vw,44px);text-align:center;display:flex;flex-direction:column;align-items:center}
+  .hcopy{display:flex;flex-direction:column;align-items:center;width:100%}
+  .pill{display:inline-flex;align-items:center;gap:9px;font-weight:700;font-size:13px;color:var(--coralDeep);background:var(--coralSoft);border:1px solid rgba(203,90,56,.18);padding:7px 15px;border-radius:100px}
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px rgba(203,90,56,.16)}
+  .hero h1{font-size:clamp(46px,10.5vw,84px);margin:18px 0 0;letter-spacing:-.02em}
+  .hero h1 em{font-style:italic;color:var(--coralDeep)}
+  .hero .sub{font-size:clamp(16.5px,2.1vw,20px);color:var(--muted);margin:18px auto 0;max-width:30ch;font-weight:500}
+  .hero .cta{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .faces{margin-top:22px;display:inline-flex;align-items:center;gap:12px}
+  .faces .av{display:flex}
+  .faces .av span{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--paper);margin-left:-11px;background-size:cover;background-position:center;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+  .faces .av span:first-child{margin-left:0}
+  .faces em{font-style:normal;font-size:13.5px;font-weight:600;color:var(--muted);text-align:left;line-height:1.3}
+  .faces em b{color:var(--ink);font-weight:700}
+  .hero-stage{position:relative;margin-top:clamp(30px,5vw,44px)}
+  .hero-stage .device{--dw:280px}
+  .hero-stage .halo{position:absolute;left:50%;top:44%;width:150%;height:60%;transform:translate(-50%,-50%);z-index:-1;
+     background:radial-gradient(closest-side,rgba(23,58,110,.16),transparent 72%);filter:blur(6px)}
 
-  /* PLAN — animated route timeline in a device */
-  .devL{position:relative;width:290px;max-width:86vw;border-radius:40px;padding:9px;background:linear-gradient(160deg,#2a241c,#0e0b08);box-shadow:0 50px 90px -40px rgba(40,26,12,.45)}
-  .devL .scr{border-radius:32px;overflow:hidden;background:#fff;padding:20px 18px 24px}
-  .planhead{font-weight:800;font-size:17px;letter-spacing:-.02em}
-  .plansub{font-size:12.5px;color:var(--muted);margin-top:1px}
-  .tl{position:relative;margin-top:20px;padding-left:38px}
-  .tl svg.rail{position:absolute;left:0;top:6px;width:34px;height:calc(100% - 12px);overflow:visible}
-  .tl svg.rail path{fill:none;stroke:var(--coral);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);transition:stroke-dashoffset 1.5s var(--e) .2s}
-  .in .tl svg.rail path{stroke-dashoffset:0}
-  .stop{position:relative;padding:0 0 20px}.stop:last-child{padding-bottom:0}
-  .stop .pin{position:absolute;left:-38px;top:2px;width:22px;height:22px;border-radius:50%;background:#fff;border:2.6px solid var(--coral);display:grid;place-items:center;transform:scale(0);transition:transform .5s var(--e)}
-  .stop .pin::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--coral)}
-  .in .stop .pin{transform:scale(1)}
-  .in .stop:nth-child(2) .pin{transition-delay:.35s}.in .stop:nth-child(3) .pin{transition-delay:.7s}.in .stop:nth-child(4) .pin{transition-delay:1.05s}.in .stop:nth-child(5) .pin{transition-delay:1.4s}
-  .stop .t{font-size:11px;font-weight:800;color:var(--coralDeep);letter-spacing:.03em}
-  .stop .n{font-weight:700;font-size:15px;margin-top:1px}
-  .stop .m{font-size:12px;color:var(--muted)}
-  .stop .thumb{width:38px;height:38px;border-radius:10px;object-fit:cover;position:absolute;right:0;top:2px}
-  .avrow{display:flex;align-items:center;margin-top:18px}
-  .avrow span{width:30px;height:30px;border-radius:50%;border:2.5px solid #fff;margin-left:-9px;background-size:cover;background-position:center}
-  .avrow span:first-child{margin-left:0}
-  .avrow em{margin-left:12px;font-style:normal;font-size:12.5px;font-weight:700;color:var(--muted)}
+  /* ===== SECTION SCAFFOLD ===== */
+  .sec{padding:clamp(72px,11vw,124px) 0}
+  .sec.tint{background:var(--paper2)}
+  .split{display:grid;grid-template-columns:1fr;gap:clamp(34px,6vw,72px);align-items:center}
+  .copy{max-width:34ch;margin:0 auto;text-align:center}
+  .copy h2{font-size:clamp(33px,7vw,52px);margin:14px 0 0;letter-spacing:-.015em}
+  .copy .lead{margin:16px auto 0}
+  .checks{list-style:none;margin:24px auto 0;display:flex;flex-direction:column;gap:13px;max-width:32ch;text-align:left}
+  .checks li{display:flex;align-items:flex-start;gap:12px;font-weight:600;font-size:15.5px;color:var(--ink)}
+  .checks .tk{width:26px;height:26px;border-radius:9px;background:var(--coralSoft);color:var(--coralDeep);display:grid;place-items:center;flex-shrink:0;margin-top:1px}
+  .checks .tk svg{width:15px;height:15px}
+  .stage{display:flex;justify-content:center}
 
-  /* BOOK & SPLIT cards */
-  .stack2{position:relative;width:100%;max-width:380px;margin:0 auto}
-  .card{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 40px 80px -40px rgba(40,26,12,.4)}
-  .cmp{padding:20px 20px 10px}
-  .cmp .h{font-weight:800;font-size:20px;letter-spacing:-.02em}
-  .cmp .s{font-size:13px;color:var(--muted);margin-top:2px;font-weight:500}
-  .row{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
-  .row:first-of-type{border-top:0}
-  .row .lg{width:36px;height:36px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff}
-  .row .nm{font-weight:700;font-size:15px}.row .mt{font-size:12px;color:var(--muted);font-weight:500}
-  .row .pr{margin-left:auto;text-align:right}.row .pr b{font-size:17px;font-weight:800}.row .pr span{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:600}
-  .row.best{background:var(--coralSoft);margin:0 -10px;padding:13px 10px;border-radius:14px;border:0}
-  .row.best .pr b{color:var(--coralDeep)}
-  .tag{font-size:10px;font-weight:800;letter-spacing:.05em;color:var(--coralDeep);background:#fff;padding:4px 9px;border-radius:7px}
-  .settle{margin-top:14px;background:var(--ink);color:#fff;border-radius:20px;padding:20px 22px;overflow:hidden}
-  .settle .l{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:700}
-  .settle .big{font-weight:800;font-size:34px;margin-top:3px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-  .settle .big em{color:#FFB59A;font-style:normal}
-  .settle .bar{height:7px;border-radius:100px;background:rgba(255,255,255,.14);margin-top:14px;overflow:hidden}
-  .settle .bar i{display:block;height:100%;width:0;border-radius:100px;background:linear-gradient(90deg,#FFB59A,var(--coral));transition:width 1.4s var(--e) .3s}
-  .in .settle .bar i{width:100%}
-  .settle .s2{font-size:13px;color:rgba(255,255,255,.62);margin-top:10px;font-weight:500}
-  .sticker{position:absolute;width:58px;height:58px;background:#fff;border-radius:17px;display:grid;place-items:center;font-size:29px;box-shadow:0 20px 38px -14px rgba(40,26,12,.5);z-index:3}
+  /* ===== FLOATING MECHANIC CARDS (never phone-shaped) ===== */
+  .mech{position:relative;width:100%;max-width:392px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+  .uicard{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:0 44px 80px -46px rgba(40,26,12,.42),0 10px 24px -18px rgba(40,26,12,.25)}
+  .cmp{padding:18px 18px 12px}
+  .cmp .hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .cmp .hd b{font-family:var(--serif);font-weight:500;font-size:20px;letter-spacing:-.01em}
+  .cmp .hd span{font-size:12px;color:var(--muted);font-weight:600}
+  .cmp .rows{margin-top:12px}
+  .r{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+  .r:first-child{border-top:0}
+  .r .lg{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff}
+  .r .nm{font-weight:700;font-size:14.5px}
+  .r .mt{font-size:11.5px;color:var(--muted);font-weight:500}
+  .r .pr{margin-left:auto;text-align:right}
+  .r .pr b{font-size:16px;font-weight:800}
+  .r .pr small{display:block;font-size:9.5px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+  .r.best{background:var(--coralSoft);margin:2px -8px;padding:12px 10px;border-radius:13px;border:0}
+  .r.best .pr b{color:var(--coralDeep)}
+  .flag{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--coral);padding:4px 8px;border-radius:6px}
+  .settle{background:var(--ink);color:#fff;border-radius:22px;padding:20px 22px}
+  .settle .l{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.5);font-weight:800}
+  .settle .amt{font-family:var(--serif);font-weight:500;font-size:38px;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .settle .amt em{color:#FFB59A;font-style:normal}
+  .settle .bar{height:7px;border-radius:100px;background:rgba(255,255,255,.14);margin-top:15px;overflow:hidden}
+  .settle .bar i{display:block;height:100%;width:8%;border-radius:100px;background:linear-gradient(90deg,#FFB59A,var(--coral));transition:width 1.5s var(--e) .2s}
+  .rvld .settle .bar i{width:100%}
+  .settle .s2{font-size:12.5px;color:rgba(255,255,255,.62);margin-top:11px;font-weight:500}
+  .chip{position:absolute;z-index:3;background:#fff;border:1px solid var(--line);border-radius:100px;padding:9px 14px 9px 10px;display:inline-flex;align-items:center;gap:9px;box-shadow:0 20px 40px -18px rgba(40,26,12,.4);font-weight:700;font-size:13px}
+  .chip .av2{display:flex}
+  .chip .av2 span{width:24px;height:24px;border-radius:50%;border:2px solid #fff;margin-left:-8px;background-size:cover;background-position:center}
+  .chip .av2 span:first-child{margin-left:0}
 
-  /* RELIVE — big living globe payoff (dark) */
-  .relive{padding:clamp(24px,5vw,56px) 0}
-  .relive .card-xl{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 8%,#16305e 0%,#0d1734 42%,var(--night) 100%);color:#fff;border-radius:clamp(26px,4vw,42px);padding:clamp(56px,7vw,100px) clamp(24px,5vw,64px) 0;text-align:center}
-  .relive .stars{position:absolute;inset:0;background-image:radial-gradient(1.4px 1.4px at 14% 22%,rgba(255,255,255,.7),transparent),radial-gradient(1.2px 1.2px at 80% 16%,rgba(255,255,255,.6),transparent),radial-gradient(1.5px 1.5px at 62% 60%,rgba(255,255,255,.5),transparent),radial-gradient(1px 1px at 30% 72%,rgba(255,255,255,.5),transparent),radial-gradient(1.3px 1.3px at 90% 44%,rgba(255,255,255,.55),transparent)}
-  .relive .in-c{position:relative;z-index:2;max-width:760px;margin:0 auto}
+  /* group chip anchored to a device */
+  .stage.withchip{position:relative}
+  .stage.withchip .chip{bottom:24px;right:2px}
+
+  /* ===== RELIVE — the one dark, full-bleed globe payoff ===== */
+  .relive{position:relative;overflow:hidden;color:#fff;text-align:center;
+     background:radial-gradient(125% 85% at 50% 6%,#1c3f75 0%,#102450 40%,var(--night) 100%);
+     padding:clamp(74px,11vw,122px) 0 0}
+  .relive .stars{position:absolute;inset:0;z-index:0;background-image:
+     radial-gradient(1.4px 1.4px at 12% 20%,rgba(255,255,255,.7),transparent),
+     radial-gradient(1.2px 1.2px at 82% 15%,rgba(255,255,255,.6),transparent),
+     radial-gradient(1.5px 1.5px at 66% 54%,rgba(255,255,255,.5),transparent),
+     radial-gradient(1px 1px at 28% 68%,rgba(255,255,255,.5),transparent),
+     radial-gradient(1.3px 1.3px at 90% 40%,rgba(255,255,255,.55),transparent),
+     radial-gradient(1px 1px at 46% 32%,rgba(255,255,255,.4),transparent)}
+  .relive .in-c{position:relative;z-index:2;max-width:640px;margin:0 auto;padding:0 24px}
   .relive .eye{color:#8FB4FF}
-  .relive h2{font-size:clamp(34px,5vw,66px);margin:16px 0 0;color:#fff}
-  .relive p{font-size:clamp(17px,1.4vw,20px);color:rgba(255,255,255,.74);margin:20px auto 0;max-width:48ch;font-weight:500}
-  .globe-big{position:relative;z-index:2;width:min(360px,82%);margin:36px auto 0}
-  .globe-big .fade{border-radius:36px 36px 0 0;overflow:hidden;-webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent)}
-  .globe-big img{width:100%;display:block}
+  .relive h2{font-size:clamp(34px,8vw,60px);margin:14px 0 0;color:#fff;letter-spacing:-.015em}
+  .relive h2 em{font-style:italic;color:#FFB59A}
+  .relive p{font-size:clamp(16.5px,1.4vw,19px);color:rgba(255,255,255,.72);margin:18px auto 0;max-width:40ch;font-weight:500}
+  .relive-stage{position:relative;z-index:2;margin-top:clamp(40px,6vw,60px);padding-bottom:clamp(56px,8vw,84px);display:flex;justify-content:center}
+  .relive-stage .glow{position:absolute;left:50%;top:46%;width:min(560px,120%);height:70%;transform:translate(-50%,-50%);z-index:0;
+     background:radial-gradient(closest-side,rgba(96,150,255,.34),rgba(96,150,255,.10) 55%,transparent 74%);filter:blur(10px)}
+  .relive-stage .device{--dw:302px;position:relative;z-index:2;box-shadow:inset 0 1px 1px rgba(255,255,255,.12),0 60px 90px -40px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05)}
 
-  /* TRUST */
-  .trust{text-align:center;padding:clamp(48px,7vw,84px) 0}
-  .trust p{font-weight:700;font-size:14px;color:var(--muted)}
-  .logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:20px 38px;margin-top:24px}
-  .logos span{font-weight:800;font-size:19px;color:#B7AC9B;letter-spacing:-.01em}
+  /* ===== TRUST ===== */
+  .trust{text-align:center;padding:clamp(46px,7vw,72px) 0}
+  .trust p{font-weight:700;font-size:13.5px;color:var(--muted);letter-spacing:.01em}
+  .logos{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:16px 30px;margin-top:20px}
+  .logos span{font-family:var(--serif);font-weight:500;font-size:19px;color:#B4A896;letter-spacing:-.01em}
 
-  /* FINAL */
-  .final{position:relative;overflow:hidden;text-align:center;color:#fff;padding:clamp(90px,12vw,150px) 0}
+  /* ===== FINAL CTA ===== */
+  .final{position:relative;overflow:hidden;text-align:center;color:#fff;padding:clamp(88px,13vw,150px) 0}
   .final .bg{position:absolute;inset:0;z-index:0}
-  .final .bg img{width:100%;height:100%;object-fit:cover;object-position:center 45%}
-  .final .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(174,69,38,.88),rgba(12,16,32,.9))}
-  .final .in-c{position:relative;z-index:2}
-  .final h2{font-size:clamp(38px,6vw,80px)}
-  .final p{font-size:18px;color:rgba(255,255,255,.9);margin-top:16px;font-weight:600}
-  .final .btn{margin-top:32px}
+  .final .bg img{width:100%;height:100%;object-fit:cover;object-position:center 42%}
+  .final .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(168,66,31,.82),rgba(12,16,32,.9))}
+  .final .in-c{position:relative;z-index:2;padding:0 24px}
+  .final h2{font-size:clamp(38px,9vw,72px);color:#fff}
+  .final h2 em{font-style:italic}
+  .final p{font-size:16.5px;color:rgba(255,255,255,.9);margin-top:14px;font-weight:600}
+  .final .btn{margin-top:30px}
 
-  footer{background:var(--night);color:rgba(255,255,255,.55);padding:40px 0 40px}
+  footer{background:var(--night);color:rgba(255,255,255,.55);padding:44px 0}
   .foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px 30px}
-  .foot .brand{font-size:19px}
-  .flinks{display:flex;flex-wrap:wrap;gap:8px 26px}
-  .flinks a{font-size:14.5px;font-weight:600}.flinks a:hover{color:#fff}
-  .fcopy{margin-top:24px;padding-top:22px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:rgba(255,255,255,.4);font-weight:500}
+  .foot .brand{color:#fff;font-size:19px}
+  .foot .brand .mk{background:rgba(255,255,255,.12)}
+  .flinks{display:flex;flex-wrap:wrap;gap:8px 24px}
+  .flinks a{font-size:14px;font-weight:600}
+  .flinks a:hover{color:#fff}
+  .fcopy{margin-top:22px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);font-size:12.5px;color:rgba(255,255,255,.4);font-weight:500}
 
-  [data-rise]{opacity:0;transform:translateY(22px);transition:opacity .8s var(--e),transform .8s var(--e)}
-  [data-rise].in{opacity:1;transform:none}
+  /* reveal (namespaced: data-r / .rvld — no generic .in/.play) */
+  [data-r]{opacity:0;transform:translateY(20px);transition:opacity .8s var(--e),transform .8s var(--e)}
+  [data-r].rvld{opacity:1;transform:none}
 
-  @media(max-width:860px){
-    .feat{grid-template-columns:1fr;gap:40px}
-    .feat.flip .ftext{order:0}.feat .fvisual{order:-1}
-    .ftext{text-align:center}.ftext .lead{margin-left:auto;margin-right:auto}
-    .bl{max-width:340px;margin-left:auto;margin-right:auto;text-align:left}
+  /* ===== DESKTOP ===== */
+  @media(min-width:880px){
+    .hero-in{padding-top:20px}
+    .hero{padding-bottom:0}
+    .hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:clamp(28px,5vw,64px);align-items:center;text-align:left}
+    .hero-in{text-align:left;padding-top:clamp(40px,6vw,72px)}
+    .hcopy{align-items:flex-start;text-align:left;justify-content:center}
+    .hero h1{margin-top:20px}
+    .hero .sub{margin-left:0;max-width:26ch}
+    .hero .cta{justify-content:flex-start}
+    .hero-stage{margin-top:0;align-self:center;justify-self:end}
+    .hero-stage .device{--dw:308px;margin-left:auto}
+    .split{grid-template-columns:1.05fr 1fr;text-align:left}
+    .copy{margin:0;text-align:left;max-width:none}
+    .copy .lead{margin-left:0}
+    .checks{margin-left:0}
+    .split.flip .copy{order:2}
+    .split.flip .stage{order:1}
+    .logos span{font-size:22px}
   }
-  @media(max-width:520px){
-    .hero{max-height:none}.hero-phone{width:min(270px,78vw)}
-    .stack2{max-width:min(90vw,330px)}
-    .logos span{font-size:16px}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important}
+    [data-r]{opacity:1;transform:none;transition:none}
+    .settle .bar i{width:100%}
+    html{scroll-behavior:auto}
   }
-  @media(prefers-reduced-motion:reduce){*{animation:none!important}[data-rise]{opacity:1;transform:none;transition:none}.tl svg.rail path{stroke-dashoffset:0}.stop .pin{transform:scale(1)}.settle .bar i{width:100%}}
 </style>
 </head>
 <body>
 
 <header class="nav"><div class="wrap">
-  <a class="brand" href="#top"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></span>Drift</a>
-  <a class="njoin" href="#beta">Get the app</a>
+  <a class="brand" href="#top"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></span>Drift</a>
+  <a class="navcta" href="#beta"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get the app</a>
 </div></header>
 
 <!-- ============ HERO ============ -->
-<section class="hero" id="top">
-  <div class="bg" data-px="0.06"><picture><source type="image/webp" srcset="assets/photo/hero.webp"><img src="assets/photo/hero.jpg" alt="Two friends on a boat in the Phi Phi islands" width="1180" height="1573"></picture></div>
-  <div class="inner">
-    <div class="hero-copy">
-      <span class="badge"><b>New</b> · the group-trip app · iPhone</span>
-      <h1>Every trip,<br>together.</h1>
-      <p class="sub">Plan it with your people, book the stays, split every cost — and watch every journey fill a globe you'll keep forever.</p>
-      <div class="cta"><a class="btn white" href="#beta"><span class="ic"><svg viewBox="0 0 24 24" fill="#fff"><path d="M5 3l14 9-14 9z"/></svg></span>Get the app</a></div>
+<section class="hero" id="top"><div class="wrap">
+  <div class="hero-in hero-grid">
+    <div class="hcopy">
+    <span class="pill" data-r><i></i>New · the group-trip app · iPhone</span>
+    <h1>Every trip,<br><em>together.</em></h1>
+    <p class="sub">Plan it with your people, book the best price and split every cost — then watch it map itself.</p>
+    <div class="cta" data-r>
+      <a class="btn" href="#beta"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get it on TestFlight</a>
     </div>
-    <div class="hero-phone" data-px="-0.05">
-      <div class="phone" style="position:relative">
-        <span class="live"><i></i>YOUR WORLD</span>
-        <div class="scr"><picture><source type="image/webp" srcset="assets/app/onboard-globe-anim.webp"><img src="assets/app/onboard-globe.jpg" alt="Your travels pinned across a living, rotating globe in the Drift app" width="620" height="1348"></picture></div>
+    <div class="faces" data-r>
+      <span class="av">
+        <span style="background-image:url(assets/photo/friends-kl.jpg)"></span>
+        <span style="background-image:url(assets/photo/friends-bali.jpg)"></span>
+        <span style="background-image:url(assets/photo/hero.jpg)"></span>
+      </span>
+      <em><b>Real trips, real people.</b><br>Free while it&rsquo;s in beta.</em>
+    </div>
+    </div>
+    <div class="hero-stage" data-r data-par="-0.03">
+      <div class="halo"></div>
+      <div class="device g">
+        <div class="scr"><picture><source type="image/webp" srcset="assets/app/onboard-globe.webp"><img src="assets/app/onboard-globe.jpg" alt="Your travels pinned across a living globe in the Drift app" width="620" height="1348"></picture></div>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ PLAN TOGETHER (animated route) ============ -->
-<section class="sec"><div class="wrap">
-  <div class="feat">
-    <div class="ftext" data-rise>
-      <span class="eye">Plan together</span>
-      <h2>Your crew,<br>one shared plan.</h2>
-      <p class="lead">No more screenshots and 200-message group chats. Everyone builds the trip in one place — the route and the days fill in live for the whole crew.</p>
-      <ul class="bl">
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Add spots, vote, pick the days together</li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>One live plan — no version anyone missed</li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Ask Drift for a real local take, any time</li>
-      </ul>
-    </div>
-    <div class="fvisual" data-rise>
-      <div class="devL"><div class="scr">
-        <div class="planhead">Iceland · Ring Road</div>
-        <div class="plansub">Day 2 · South Coast</div>
-        <div class="tl">
-          <svg class="rail" viewBox="0 0 34 250" preserveAspectRatio="none" style="--len:280"><path d="M11 8 C 26 60, -4 120, 11 178 S 26 236, 11 244"/></svg>
-          <div class="stop"><span class="pin"></span><div class="t">8:30 AM · DRIVE 2H</div><div class="n">Seljalandsfoss</div><div class="m">Waterfall · walk behind it</div><img class="thumb" src="assets/photo/sunset.jpg" alt=""></div>
-          <div class="stop"><span class="pin"></span><div class="t">11:00 AM</div><div class="n">Skógafoss hike</div><div class="m">Tour · 2 hrs</div><img class="thumb" src="assets/photo/swing.jpg" alt=""></div>
-          <div class="stop"><span class="pin"></span><div class="t">2:00 PM · LUNCH</div><div class="n">Black Beach Café</div><div class="m">Reynisfjara · $$</div><img class="thumb" src="assets/photo/positano.jpg" alt=""></div>
-          <div class="stop"><span class="pin"></span><div class="t">7:00 PM · STAY</div><div class="n">Hótel Vík</div><div class="m">Booked · 2 nights</div><img class="thumb" src="assets/photo/amalfi.jpg" alt=""></div>
-        </div>
-        <div class="avrow"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><em>You + 3 planning</em></div>
-      </div></div>
     </div>
   </div>
 </div></section>
 
-<!-- ============ BOOK & SPLIT (count-up) ============ -->
-<section class="sec gray"><div class="wrap">
-  <div class="feat flip">
-    <div class="ftext" data-rise>
-      <span class="eye">Book &amp; split</span>
-      <h2>Book the best price.<br>Split the tab.</h2>
-      <p class="lead">Compare Booking, Expedia, Hotels.com and Vrbo in one tap and grab the best rate. Then Drift keeps score all trip — so it ends square, with one number to send.</p>
-      <ul class="bl">
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Four booking sites compared side by side</li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Every shared cost tracked as it happens</li>
-        <li><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>One transfer settles the whole trip</li>
+<!-- ============ PLAN TOGETHER ============ -->
+<section class="sec"><div class="wrap">
+  <div class="split">
+    <div class="copy">
+      <span class="eye" data-r>Plan together</span>
+      <h2 data-r>One trip. One<br>shared plan.</h2>
+      <p class="lead" data-r>No more 200-message group chats and screenshots no one can find. Everyone adds spots, votes and picks the days in one place — and the plan fills in live for the whole&nbsp;crew.</p>
+      <ul class="checks" data-r>
+        <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Add spots, vote and pick the days together</li>
+        <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>One live plan — no version anyone missed</li>
+        <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Ask Drift for a real local take, any time</li>
       </ul>
     </div>
-    <div class="fvisual" data-rise>
-      <div class="stack2">
-        <div class="sticker" style="top:-22px;right:4px">💸</div>
-        <div class="card cmp">
-          <div class="h">Casa Verde</div><div class="s">San José · Aug 12–16 · 4 guests</div>
-          <div class="row best"><span class="lg" style="background:#003580">B.</span><div><div class="nm">Booking.com</div><div class="mt">Free cancellation</div></div><span class="tag">BEST</span><span class="pr"><b>$104</b><span>/NIGHT</span></span></div>
-          <div class="row"><span class="lg" style="background:#FFC72C;color:#222">E</span><div><div class="nm">Expedia</div><div class="mt">+ One Key points</div></div><span class="pr"><b>$112</b><span>/NIGHT</span></span></div>
-          <div class="row"><span class="lg" style="background:#D32F2F">H</span><div><div class="nm">Hotels.com</div><div class="mt">Collect 1 free night</div></div><span class="pr"><b>$109</b><span>/NIGHT</span></span></div>
+    <div class="stage withchip" data-r data-par="-0.02">
+      <div class="device">
+        <div class="scr"><picture><source type="image/webp" srcset="assets/app/hero-discover.webp"><img src="assets/app/hero-discover.jpg" alt="Adding places to a shared trip on the Drift map" width="520" height="1054"></picture></div>
+      </div>
+      <span class="chip"><span class="av2"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You&nbsp;+&nbsp;3 planning</span>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============ BOOK & SPLIT ============ -->
+<section class="sec tint"><div class="wrap">
+  <div class="split flip">
+    <div class="copy">
+      <span class="eye" data-r>Book &amp; split</span>
+      <h2 data-r>Best price in.<br>Even at the end.</h2>
+      <p class="lead" data-r>Compare Booking, Expedia, Hotels.com and Vrbo in one tap and grab the best rate. Drift keeps score of every shared cost all trip — so it ends square, with a single number to&nbsp;send.</p>
+      <ul class="checks" data-r>
+        <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Four booking sites compared side by side</li>
+        <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>Every shared cost tracked as it happens</li>
+        <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>One transfer settles the whole trip</li>
+      </ul>
+    </div>
+    <div class="stage" data-r data-par="-0.02">
+      <div class="mech">
+        <div class="uicard cmp">
+          <div class="hd"><b>Casa Verde</b><span>San José · Aug 12–16</span></div>
+          <div class="rows">
+            <div class="r best"><span class="lg" style="background:#003580">B.</span><div><div class="nm">Booking.com</div><div class="mt">Free cancellation</div></div><span class="flag">BEST</span><span class="pr"><b>$104</b><small>/NIGHT</small></span></div>
+            <div class="r"><span class="lg" style="background:#FFC72C;color:#222">E</span><div><div class="nm">Expedia</div><div class="mt">+ One Key points</div></div><span class="pr"><b>$112</b><small>/NIGHT</small></span></div>
+            <div class="r"><span class="lg" style="background:#D32F2F">H</span><div><div class="nm">Hotels.com</div><div class="mt">Collect a free night</div></div><span class="pr"><b>$109</b><small>/NIGHT</small></span></div>
+          </div>
         </div>
-        <div class="settle">
+        <div class="uicard settle">
           <div class="l">You owe Ana</div>
-          <div class="big"><em>$<span class="count" data-to="54">54</span></em></div>
+          <div class="amt"><em>$<span class="count" data-to="54">54</span></em></div>
           <div class="bar"><i></i></div>
           <div class="s2">One transfer and the whole trip is settled up.</div>
         </div>
@@ -260,63 +308,65 @@
   </div>
 </div></section>
 
-<!-- ============ RELIVE — the living globe ============ -->
-<section class="relive"><div class="wrap">
-  <div class="card-xl">
-    <div class="stars"></div>
-    <div class="in-c">
-      <span class="eye" data-rise>Relive it</span>
-      <h2 data-rise>Every trip fills<br>your world.</h2>
-      <p data-rise>Drift pins your route and your photos to the map as you go. A year of trips becomes a living globe of everywhere you've been — and everyone you went with.</p>
-    </div>
-    <div class="globe-big" data-rise>
-      <div class="fade"><picture><source type="image/webp" srcset="assets/app/onboard-globe.webp"><img src="assets/app/onboard-globe.jpg" alt="A living globe filled with your trip photos" width="620" height="1348"></picture></div>
+<!-- ============ RELIVE — the living globe (the one dark beat) ============ -->
+<section class="relive">
+  <div class="stars"></div>
+  <div class="in-c">
+    <span class="eye" data-r>Relive it</span>
+    <h2 data-r>Watch your world<br><em>fill in.</em></h2>
+    <p data-r>Drift pins your route and your photos to the map as you go. A year of trips becomes a living globe of everywhere you&rsquo;ve been — and everyone you went&nbsp;with.</p>
+  </div>
+  <div class="relive-stage" data-r data-par="-0.04">
+    <div class="glow"></div>
+    <div class="device g">
+      <div class="scr"><picture><source type="image/webp" srcset="assets/app/onboard-globe.webp"><img src="assets/app/onboard-globe.jpg" alt="A living globe filled with your trip photos and routes" width="620" height="1348"></picture></div>
     </div>
   </div>
-</div></section>
+</section>
 
 <!-- ============ TRUST ============ -->
 <section class="trust"><div class="wrap">
-  <p>Book with the names you already trust</p>
-  <div class="logos"><span>Booking.com</span><span>Expedia</span><span>Hotels.com</span><span>Vrbo</span><span>Viator</span><span>Klook</span></div>
+  <p data-r>Book with the names you already trust</p>
+  <div class="logos" data-r><span>Booking.com</span><span>Expedia</span><span>Hotels.com</span><span>Vrbo</span><span>Viator</span><span>Klook</span></div>
 </div></section>
 
 <!-- ============ FINAL ============ -->
 <section class="final" id="beta">
   <div class="bg"><picture><source type="image/webp" srcset="assets/photo/sunset.webp"><img src="assets/photo/sunset.jpg" alt="" width="360" height="480"></picture></div>
-  <div class="in-c wrap">
-    <h2 data-rise>Your next trip<br>starts here.</h2>
-    <p data-rise>Free during the beta · iPhone</p>
-    <a class="btn white" href="#" data-rise><span class="ic"><svg viewBox="0 0 24 24" fill="#fff"><path d="M5 3l14 9-14 9z"/></svg></span>Join the beta on TestFlight</a>
+  <div class="in-c">
+    <h2 data-r>Your next trip<br>starts <em>here.</em></h2>
+    <p data-r>Free during the beta · iPhone</p>
+    <a class="btn on-dark" href="#" data-r><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Join the beta on TestFlight</a>
   </div>
 </section>
 
 <footer><div class="wrap">
   <div class="foot">
-    <a class="brand" href="#top"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></span>Drift</a>
-    <div class="flinks"><a href="#top">Features</a><a href="#beta">Join the beta</a><a href="#">Privacy</a><a href="#">Terms</a><a href="#">hello@after-hours.app</a></div>
+    <a class="brand" href="#top"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></span>Drift</a>
+    <div class="flinks"><a href="#top">Features</a><a href="#beta">Join the beta</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="mailto:hello@after-hours.app">hello@after-hours.app</a></div>
   </div>
-  <div class="fcopy">© 2026 Drift · The group-trip app — plan, book, and split every cost with your people.</div>
+  <div class="fcopy">© 2026 Drift · The group-trip app — plan, book and split every cost with your people.</div>
 </div></footer>
 
 <script>
   (function(){
     var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var els=[].slice.call(document.querySelectorAll('[data-rise]'));
+    var els=[].slice.call(document.querySelectorAll('[data-r]'));
+    if(/[?&]cap\b/.test(location.search)){document.querySelectorAll('.count').forEach(function(c){c.textContent=c.getAttribute('data-to');});els.forEach(function(e){e.classList.add('rvld');});return;}
     function countUp(el){var to=+el.getAttribute('data-to'),t0=null;function step(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/1100,1);el.textContent=Math.round((1-Math.pow(1-p,3))*to);if(p<1)requestAnimationFrame(step);}requestAnimationFrame(step);}
-    function reveal(el){el.classList.add('in');var c=el.querySelector('.count');if(c&&!c.dataset.done){c.dataset.done=1;var to=+c.getAttribute('data-to');c.textContent='0';setTimeout(function(){countUp(c)},350);setTimeout(function(){c.textContent=to;},1700);}}
+    function reveal(el){el.classList.add('rvld');var c=el.querySelector('.count');if(c&&!c.dataset.done){c.dataset.done=1;c.textContent='0';setTimeout(function(){countUp(c);},380);setTimeout(function(){c.textContent=c.getAttribute('data-to');},1900);}}
     if(reduce||!('IntersectionObserver'in window)){els.forEach(reveal);return;}
     var vh=innerHeight;
-    els.forEach(function(e){if(e.getBoundingClientRect().top<vh*0.9)reveal(e);});
-    var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){reveal(x.target);io.unobserve(x.target);}})},{rootMargin:'0px 0px -8% 0px'});
-    els.forEach(function(e){if(!e.classList.contains('in'))io.observe(e);});
-    setTimeout(function(){els.forEach(reveal);},3500);
-    // restrained parallax (desktop, motion-on)
+    els.forEach(function(e){if(e.getBoundingClientRect().top<vh*0.92)reveal(e);});
+    var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){reveal(x.target);io.unobserve(x.target);}});},{rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(e){if(!e.classList.contains('rvld'))io.observe(e);});
+    setTimeout(function(){els.forEach(reveal);},3600);
+    // restrained parallax (fine pointer only, a few px)
     if(matchMedia('(pointer:fine)').matches){
-      var px=[].slice.call(document.querySelectorAll('[data-px]'));
+      var px=[].slice.call(document.querySelectorAll('[data-par]'));
       var ticking=false;
       addEventListener('scroll',function(){if(ticking)return;ticking=true;requestAnimationFrame(function(){
-        var y=scrollY;px.forEach(function(el){var r=+el.getAttribute('data-px');var off=Math.max(-40,Math.min(40,(y-innerHeight*0.3)*r));el.style.transform='translate3d(0,'+off.toFixed(1)+'px,0)';});ticking=false;});
+        var y=scrollY;px.forEach(function(el){var r=+el.getAttribute('data-par');var off=Math.max(-30,Math.min(30,(y-innerHeight*0.4)*r));el.style.transform='translate3d(0,'+off.toFixed(1)+'px,0)';});ticking=false;});
       },{passive:true});
     }
   })();
