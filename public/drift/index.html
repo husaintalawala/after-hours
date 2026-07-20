@@ -41,10 +41,9 @@
   .btn.light{background:#fff;color:var(--ink);box-shadow:0 16px 40px -16px rgba(0,0,0,.5)}
 
   /* ============ NAVBAR (floating pill, morphs) ============ */
-  .nav{position:fixed;top:16px;left:0;right:0;z-index:100;transition:top .3s var(--e)}
-  .nav-in{max-width:var(--mx);margin:0 auto;padding:12px clamp(16px,4vw,22px);display:flex;align-items:center;justify-content:space-between;
-     border-radius:100px;transition:background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e),margin .3s var(--e);
-     margin-left:clamp(12px,4vw,24px);margin-right:clamp(12px,4vw,24px)}
+  .nav{position:fixed;top:16px;left:0;right:0;z-index:100;padding:0 clamp(12px,4vw,24px);transition:top .3s var(--e)}
+  .nav-in{max-width:920px;margin:0 auto;padding:12px clamp(16px,4vw,22px);display:flex;align-items:center;justify-content:space-between;
+     border-radius:100px;transition:background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
   .nav.solid .nav-in{background:rgba(255,255,255,.82);backdrop-filter:blur(14px);box-shadow:0 10px 34px -14px rgba(20,14,6,.32)}
   .brand{display:inline-flex;align-items:center;gap:9px;font-family:var(--sans);font-weight:800;font-size:21px;letter-spacing:-.02em;color:#fff;transition:color .35s}
   .nav.solid .brand{color:var(--ink)}
@@ -184,8 +183,8 @@
 
   /* ============ STORY (sticky-phone scrollytelling) ============ */
   .story{position:relative;height:860vh;background:var(--cream)}
-  .stage{position:sticky;top:0;height:100svh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
-  .stage-phone{position:relative;z-index:3;transition:transform .7s var(--e)}
+  .stage{position:sticky;top:0;height:100svh;height:100dvh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
+  .stage-phone{position:relative;z-index:3;transition:transform .7s var(--e);will-change:transform;backface-visibility:hidden}
   .stage-phone .phone{--pw:270px}
   .stage-screens .s{opacity:0;transition:opacity .6s var(--e);transform:scale(1.02)}
   .stage-screens .s.on{opacity:1;transform:scale(1)}
@@ -195,9 +194,11 @@
   /* mobile: text sits ABOVE the phone (phone pushed down), no overlap */
   @media(max-width:899px){
     .stage{align-items:flex-start}
-    .stage-phone{margin-top:30vh}
-    .stage-phone .phone{--pw:236px}
-    .chap{top:6%}
+    .stage-phone{margin-top:25vh}
+    .stage-phone .phone{--pw:218px}
+    .chap{top:5%}
+    .tabs{bottom:14px}
+    .tab{font-size:18px;padding:4px 12px}
   }
   .chap .eyebrow{font-size:21px}
   .chap h2{font-size:clamp(30px,4.6vw,50px);margin:8px 0 0}
@@ -585,9 +586,9 @@
         <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
         <div class="crow bot anim k3"><div class="bub">Three stunners near you — all 15 min from the villa:</div></div>
         <div class="pcards anim k4">
-          <div class="pcard"><div class="im" style="background-image:url(assets/photo/sunset.jpg)"></div><div class="tx"><div class="nm">Tegal Wangi</div><div class="mt"><span class="st">★</span> 4.8 · hidden cove</div></div></div>
-          <div class="pcard"><div class="im" style="background-image:url(assets/photo/phiphi.jpg)"></div><div class="tx"><div class="nm">Karma Beach</div><div class="mt"><span class="st">★</span> 4.7 · cliff bar</div></div></div>
-          <div class="pcard"><div class="im" style="background-image:url(assets/photo/amalfi.jpg)"></div><div class="tx"><div class="nm">La Brisa</div><div class="mt"><span class="st">★</span> 4.6 · beach club</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/loc-tegal.webp)"></div><div class="tx"><div class="nm">Tegal Wangi</div><div class="mt"><span class="st">★</span> 4.8 · hidden cove</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/loc-karma.webp)"></div><div class="tx"><div class="nm">Karma Beach</div><div class="mt"><span class="st">★</span> 4.7 · cliff bar</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/loc-labrisa.webp)"></div><div class="tx"><div class="nm">La Brisa</div><div class="mt"><span class="st">★</span> 4.6 · beach club</div></div></div>
         </div>
         <div class="crow bot anim k5"><div class="bub">Karma Beach has live music at 6 — want it on tonight's plan?</div></div>
         <div class="qchips anim k6"><b>+ Add to tonight</b><b>Show on map</b></div>
@@ -724,15 +725,18 @@
       tabs.forEach(function(t){t.classList.toggle('on',t.dataset.phase===phase);});
     }
   }
+  // cache viewport + story metrics so the mobile URL-bar hide/show doesn't jolt the scroll math
+  var VH=innerHeight, ST=story.offsetTop, TOTAL=story.offsetHeight-innerHeight;
+  function measure(){VH=innerHeight;ST=story.offsetTop;TOTAL=story.offsetHeight-innerHeight;}
   function phoneTransform(i,rise){
     var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
-    var riseVH=innerWidth<900?54:66;   // at rest the phone sits low, peeking only a sliver
-    stagePhone.style.transform='perspective(1300px) translateY('+(rise*riseVH).toFixed(1)+'vh) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg) translateX('+(tx*tilt).toFixed(1)+'px)';
+    var riseF=(innerWidth<900?52:66)/100;                 // fraction of viewport, in px (stable vs vh units)
+    var ty=(rise*riseF*VH).toFixed(1);
+    stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)';
   }
   function onStory(){
     var r=story.getBoundingClientRect();
-    var total=story.offsetHeight-innerHeight;
-    var p=clamp01(-r.top/total);
+    var p=clamp01(-r.top/(TOTAL||1));
     stage.style.backgroundColor=bgAt(p);
     stage.classList.toggle('night',p>0.44&&p<0.97);
     // hero intro: full-bleed photo persists behind a rising phone, then wipes away
@@ -754,8 +758,8 @@
   }
   // tab click -> scroll to phase (accounting for the hero slice)
   tabs.forEach(function(t){t.addEventListener('click',function(){
-    var to=+t.dataset.to; var total=story.offsetHeight-innerHeight;
-    var y=story.offsetTop + (HERO_END + (to/N + 0.5/N)*(1-HERO_END))*total;
+    var to=+t.dataset.to;
+    var y=ST + (HERO_END + (to/N + 0.5/N)*(1-HERO_END))*TOTAL;
     scrollTo({top:y,behavior:reduce?'auto':'smooth'});
   });});
 
@@ -764,7 +768,8 @@
     onStory();
   }
   addEventListener('scroll',onScroll,{passive:true});
-  addEventListener('resize',onStory);
+  var lastW=innerWidth;
+  addEventListener('resize',function(){ if(innerWidth!==lastW || Math.abs(innerHeight-VH)>140){ lastW=innerWidth; measure(); onStory(); } });
   onStory();
 
   /* ---- outro word-by-word ---- */
