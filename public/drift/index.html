@@ -223,23 +223,93 @@
   .tab.on.track{background:var(--coral)}
   .tab.on.relive{background:var(--green)}
 
+  /* ============ CHAT (Ask Drift) ============ */
+  .chatsec{position:relative;overflow:hidden;padding:clamp(74px,10vw,124px) 0;background:var(--paper)}
+  .cs-wrap{max-width:var(--mx);margin:0 auto;padding:0 clamp(22px,5vw,40px);display:grid;grid-template-columns:1fr;gap:44px;align-items:center}
+  .cs-copy{text-align:center}
+  .cs-copy h2{font-size:clamp(34px,5.2vw,56px);margin-top:6px}
+  .cs-copy h2 em{font-style:italic;color:var(--coralDeep)}
+  .cs-copy .lead{font-size:clamp(16px,1.2vw,18.5px);color:var(--muted);margin:18px auto 0;line-height:1.6;max-width:38ch}
+  .cs-chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;justify-content:center}
+  .cs-chips span{font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:9px 15px;border-radius:100px;box-shadow:0 6px 16px -12px rgba(40,26,12,.4)}
+  .cs-stage{display:flex;justify-content:center}
+  .cphone{position:relative;width:min(300px,80vw);padding:8px;border-radius:46px;background:linear-gradient(160deg,#26211a,#0c0a07);box-shadow:0 50px 90px -40px rgba(20,14,6,.55),0 16px 34px -20px rgba(0,0,0,.35)}
+  .cscr{position:relative;border-radius:38px;overflow:hidden;height:0;padding-bottom:210%;background:#F4EFE7}
+  .cin{position:absolute;inset:0;display:flex;flex-direction:column}
+  .ctop{padding:14px 16px 12px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;z-index:2}
+  .ctop .mk{width:30px;height:30px;border-radius:9px;background:linear-gradient(150deg,#E8613A,#CB5A38);display:grid;place-items:center;color:#fff;flex-shrink:0}
+  .ctop .mk svg{width:17px;height:17px}
+  .ctop .t{font-weight:800;font-size:14.5px}
+  .ctop .s{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:-1px}
+  .cbody{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:9px;overflow:hidden}
+  .crow{display:flex;max-width:86%}
+  .crow.me{align-self:flex-end}.crow.bot{align-self:flex-start}
+  .bub{padding:9px 13px;border-radius:17px;font-size:12.5px;line-height:1.35;font-weight:500}
+  .me .bub{background:var(--coral);color:#fff;border-bottom-right-radius:5px}
+  .bot .bub{background:#fff;color:var(--ink);border:1px solid var(--line);border-bottom-left-radius:5px}
+  .typ{display:inline-flex;gap:4px;align-items:center;padding:11px 14px}
+  .typ i{width:6px;height:6px;border-radius:50%;background:#B7AC9B;animation:cbounce 1.3s infinite}
+  .typ i:nth-child(2){animation-delay:.16s}.typ i:nth-child(3){animation-delay:.32s}
+  @keyframes cbounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+  .pcards{display:flex;gap:8px;align-self:flex-start;width:100%;overflow:hidden}
+  .pcard{flex:0 0 47%;border-radius:13px;overflow:hidden;background:#fff;border:1px solid var(--line);box-shadow:0 8px 18px -12px rgba(40,26,12,.4)}
+  .pcard .im{height:66px;background-size:cover;background-position:center}
+  .pcard .tx{padding:7px 8px 8px}
+  .pcard .nm{font-weight:700;font-size:11px;line-height:1.1}
+  .pcard .mt{font-size:9px;color:var(--muted);font-weight:600;margin-top:2px}
+  .pcard .st{color:#E8A33A}
+  .qchips{display:flex;gap:6px;align-self:flex-start;flex-wrap:wrap}
+  .qchips b{font-weight:700;font-size:10.5px;color:var(--coralDeep);background:var(--paper);border:1px solid rgba(203,90,56,.3);padding:6px 11px;border-radius:100px}
+  .cinput{margin:0 12px 12px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:9px 9px 9px 15px;display:flex;align-items:center;gap:8px}
+  .cinput span{flex:1;font-size:11.5px;color:#A99E8C;font-weight:500}
+  .cinput .send{width:30px;height:30px;border-radius:50%;background:var(--coral);display:grid;place-items:center;flex-shrink:0}
+  .cinput .send svg{width:15px;height:15px}
+  .anim{opacity:0}
+  .k1{animation:cs1 15s var(--e) infinite}.k2{animation:cs2 15s var(--e) infinite}.k3{animation:cs3 15s var(--e) infinite}
+  .k4{animation:cs4 15s var(--e) infinite}.k5{animation:cs5 15s var(--e) infinite}.k6{animation:cs6 15s var(--e) infinite}
+  @keyframes cs1{0%{opacity:0;transform:translateY(8px)}3%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  @keyframes cs2{0%,12%{opacity:0}15%{opacity:1}26%{opacity:1}29%{opacity:0}100%{opacity:0}}
+  @keyframes cs3{0%,29%{opacity:0;transform:translateY(8px)}33%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  @keyframes cs4{0%,37%{opacity:0;transform:translateY(10px)}43%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  @keyframes cs5{0%,58%{opacity:0;transform:translateY(8px)}63%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  @keyframes cs6{0%,70%{opacity:0;transform:translateY(6px)}75%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  @media(min-width:900px){.cs-wrap{grid-template-columns:1fr 1fr;gap:64px}.cs-copy{text-align:left}.cs-copy .lead{margin-left:0}.cs-chips{justify-content:flex-start}}
+  @media(prefers-reduced-motion:reduce){.anim{opacity:1;animation:none}.typ i{animation:none}}
+
   /* ============ BENTO GRID ============ */
   .bento{position:relative;background:var(--gray);padding:clamp(96px,13vw,150px) 0 clamp(78px,10vw,120px);
      clip-path:polygon(0 46px,100% 0,100% 100%,0 100%)}
   .bento h2{text-align:center;font-size:clamp(34px,5.6vw,58px);color:var(--navy);max-width:20ch;margin:0 auto}
   .bento .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:clamp(40px,6vw,60px)}
   .bcard{border-radius:24px;padding:26px;position:relative;overflow:hidden;min-height:190px;display:flex;flex-direction:column;justify-content:flex-end}
-  .bcard h3{font-size:23px;letter-spacing:-.01em}
-  .bcard p{font-size:14px;margin-top:8px;font-weight:500}
-  .bcard .ic{position:absolute;top:22px;left:26px;font-size:30px}
-  .bcard.navy{background:var(--navy);color:#fff}.bcard.navy p{color:rgba(255,255,255,.66)}
-  .bcard.dark{background:var(--night);color:#fff}.bcard.dark p{color:rgba(255,255,255,.66)}
-  .bcard.greenc{background:var(--greenDeep);color:#fff}.bcard.greenc p{color:rgba(255,255,255,.72)}
-  .bcard.coralc{background:var(--coral);color:#fff}.bcard.coralc p{color:rgba(255,255,255,.86)}
+  .bcard .z{position:relative;z-index:2}
+  .bcard h3{font-family:var(--sans);font-weight:800;font-size:clamp(21px,2vw,26px);letter-spacing:-.02em;line-height:1.05}
+  .bcard p{font-size:14px;margin-top:8px;font-weight:500;line-height:1.5}
+  .bcard.navy{background:var(--navy);color:#fff}.bcard.navy p{color:rgba(255,255,255,.68)}
+  .bcard.dark{background:var(--night);color:#fff}.bcard.dark p{color:rgba(255,255,255,.68)}
+  .bcard.greenc{background:var(--greenDeep);color:#fff}.bcard.greenc p{color:rgba(255,255,255,.74)}
+  .bcard.coralc{background:var(--coral);color:#fff}.bcard.coralc p{color:rgba(255,255,255,.88)}
   .bcard.lite{background:#fff;color:var(--ink);border:1px solid var(--line)}.bcard.lite p{color:var(--muted)}
-  .bcard.mute{background:#E4DED2;color:var(--ink)}.bcard.mute p{color:var(--muted)}
-  .bcard .names{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px}
-  .bcard .names span{font-family:var(--serif);font-size:18px;color:#9AA7AF}
+  .bcard.photo{color:#fff}
+  .bcard .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;transform:scale(1.02)}
+  .bcard.photo::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(6,12,20,.12),rgba(6,12,20,.35) 45%,rgba(6,12,20,.82))}
+  .bcard.photo p{color:rgba(255,255,255,.85)}
+  /* avatar cluster */
+  .bfaces{position:absolute;top:24px;left:26px;z-index:1;display:flex}
+  .bfaces span{width:44px;height:44px;border-radius:50%;border:2.5px solid rgba(255,255,255,.9);background-size:cover;background-position:center;margin-left:-13px;box-shadow:0 6px 14px rgba(0,0,0,.28)}
+  .bfaces span:first-child{margin-left:0}
+  .bfaces em{align-self:center;margin-left:12px;font-style:normal;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.85)}
+  /* battery graphic */
+  .bbatt{position:absolute;top:24px;right:28px;width:52px;height:92px;border:4px solid rgba(255,255,255,.92);border-radius:11px;z-index:1}
+  .bbatt::before{content:"";position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:22px;height:6px;background:rgba(255,255,255,.92);border-radius:3px}
+  .bbatt i{position:absolute;left:4px;right:4px;bottom:4px;top:14%;background:linear-gradient(#84E892,#37C466);border-radius:6px;display:grid;place-items:center;font-weight:800;color:#0C3B22;font-size:13px}
+  /* world graphic */
+  .bworld{position:absolute;right:-6%;top:-14%;width:58%;z-index:0;opacity:.55;-webkit-mask-image:radial-gradient(circle at 60% 40%,#000 52%,transparent 72%);mask-image:radial-gradient(circle at 60% 40%,#000 52%,transparent 72%)}
+  .bworld img{width:100%;display:block}
+  .bwave{position:absolute;top:20px;right:28px;font-size:42px;z-index:1}
+  .bhotel{position:absolute;top:22px;left:26px;font-size:28px;z-index:1}
+  .bcard .names{display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:8px}
+  .bcard .names span{font-family:var(--serif);font-size:17px;color:#9AA7AF}
   @media(min-width:760px){
     .bento .grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:200px}
     .bcard.wide{grid-column:span 2}
@@ -458,17 +528,48 @@
   </div>
 </section>
 
+<!-- ============ CHAT (Ask Drift) ============ -->
+<section class="chatsec"><div class="cs-wrap">
+  <div class="cs-copy">
+    <span class="eyebrow" data-r>Your local, in your pocket</span>
+    <h2 data-ghost>Ask Drift <em>anything.</em></h2>
+    <p class="lead" data-r>A travel buddy who actually knows the place — ask for sunset spots, cheap eats or a rainy-day plan, and drop it straight into the trip.</p>
+    <div class="cs-chips" data-r><span>🌅 Best sunset spots?</span><span>🍜 Cheap eats nearby</span><span>☔ Rainy-day ideas</span><span>🏝️ Hidden beaches</span></div>
+  </div>
+  <div class="cs-stage" data-r>
+    <div class="cphone"><div class="cscr"><div class="cin">
+      <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Bali · with the crew</div></div></div>
+      <div class="cbody">
+        <div class="crow me anim k1"><div class="bub">Where should we watch sunset tonight? 🌅</div></div>
+        <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
+        <div class="crow bot anim k3"><div class="bub">Three stunners near you — all 15 min from the villa:</div></div>
+        <div class="pcards anim k4">
+          <div class="pcard"><div class="im" style="background-image:url(assets/photo/sunset.jpg)"></div><div class="tx"><div class="nm">Tegal Wangi</div><div class="mt"><span class="st">★</span> 4.8 · hidden cove</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/photo/phiphi.jpg)"></div><div class="tx"><div class="nm">Karma Beach</div><div class="mt"><span class="st">★</span> 4.7 · cliff bar</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/photo/amalfi.jpg)"></div><div class="tx"><div class="nm">La Brisa</div><div class="mt"><span class="st">★</span> 4.6 · beach club</div></div></div>
+        </div>
+        <div class="crow bot anim k5"><div class="bub">Karma Beach has live music at 6 — want it on tonight's plan?</div></div>
+        <div class="qchips anim k6"><b>+ Add to tonight</b><b>Show on map</b></div>
+      </div>
+      <div class="cinput anim k6"><span>Ask Drift anything…</span><span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+    </div></div></div>
+  </div>
+</div></section>
+
 <!-- ============ BENTO ============ -->
 <section class="bento">
   <div class="wrap">
     <h2 data-ghost>And the best part&hellip;</h2>
     <div class="grid">
-      <div class="bcard navy tall" data-r><span class="ic">🔒</span><h3>Private by default</h3><p>Your trips are yours. Share a plan with your crew — or no one at all.</p></div>
-      <div class="bcard coralc wide" data-r><span class="ic">👋</span><h3>Proudly ad-free</h3><p>No ads, no selling your location. Just you and your people.</p></div>
-      <div class="bcard lite" data-r><span class="ic">🏨</span><h3>Book with the best</h3><div class="names"><span>Booking.com</span><span>Expedia</span><span>Vrbo</span><span>Hotels.com</span></div></div>
-      <div class="bcard greenc" data-r><span class="ic">🔋</span><h3>Battery-light</h3><p>Tracks your route sipping barely any battery a day.</p></div>
-      <div class="bcard mute" data-r><span class="ic">📡</span><h3>Works offline</h3><p>Keeps tracking even when you're off-grid, deep in the mountains.</p></div>
-      <div class="bcard dark wide" data-r><span class="ic">🌍</span><h3>By travelers, for travelers</h3><p>Built for group trips — shared plans, split costs, one living map.</p></div>
+      <div class="bcard navy tall" data-r>
+        <div class="bfaces"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span><span style="background-image:url(assets/photo/swing.jpg)"></span></div>
+        <div class="z"><h3>Private by default</h3><p>You decide who sees your trips — the whole crew, or no one at all.</p></div>
+      </div>
+      <div class="bcard coralc wide" data-r><span class="bwave">👋</span><div class="z"><h3>Proudly ad-free</h3><p>No ads. No selling your location. Just you and your people.</p></div></div>
+      <div class="bcard lite" data-r><span class="bhotel">🏨</span><div class="z"><h3>Book with the best</h3><div class="names"><span>Booking.com</span><span>Expedia</span><span>Vrbo</span><span>Hotels.com</span></div></div></div>
+      <div class="bcard greenc" data-r><div class="bbatt"><i>96%</i></div><div class="z"><h3>Battery-light</h3><p>All-day tracking that sips barely any battery.</p></div></div>
+      <div class="bcard photo" data-r><div class="bg" style="background-image:url(assets/photo/hero.jpg)"></div><div class="z"><h3>Works offline</h3><p>Keeps tracking even off-grid, deep in the mountains.</p></div></div>
+      <div class="bcard dark wide" data-r><div class="bworld"><img src="assets/app/onboard-globe.webp" alt=""></div><div class="z"><h3>By travelers, for travelers</h3><p>Built for group trips — shared plans, split costs, one living map.</p></div></div>
     </div>
   </div>
 </section>
