@@ -232,8 +232,16 @@
   .cs-copy .lead{font-size:clamp(16px,1.2vw,18.5px);color:var(--muted);margin:18px auto 0;line-height:1.6;max-width:38ch}
   .cs-chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;justify-content:center}
   .cs-chips span{font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:9px 15px;border-radius:100px;box-shadow:0 6px 16px -12px rgba(40,26,12,.4)}
-  .cs-stage{display:flex;justify-content:center}
-  .cphone{position:relative;width:min(300px,80vw);padding:8px;border-radius:46px;background:linear-gradient(160deg,#26211a,#0c0a07);box-shadow:0 50px 90px -40px rgba(20,14,6,.55),0 16px 34px -20px rgba(0,0,0,.35)}
+  .cs-stage{display:flex;justify-content:center;position:relative}
+  .cs-stage .cglow{position:absolute;left:50%;top:48%;width:min(520px,124%);height:82%;transform:translate(-50%,-50%);z-index:0;background:radial-gradient(closest-side,rgba(203,90,56,.18),rgba(203,90,56,.05) 55%,transparent 74%);filter:blur(8px)}
+  .cphone{position:relative;z-index:2;width:min(300px,80vw);padding:8px;border-radius:46px;background:linear-gradient(160deg,#26211a,#0c0a07);box-shadow:0 50px 90px -40px rgba(20,14,6,.55),0 16px 34px -20px rgba(0,0,0,.35);transform:perspective(1500px) rotateY(-7deg) rotateZ(.6deg);transition:transform .55s var(--e)}
+  .cs-stage:hover .cphone{transform:perspective(1500px) rotateY(0) rotateZ(0)}
+  .cfloat{position:absolute;z-index:3;font-weight:700;font-size:12.5px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:9px 14px;border-radius:100px 100px 100px 5px;box-shadow:0 14px 30px -14px rgba(40,26,12,.4);animation:cfl 7s ease-in-out infinite;white-space:nowrap}
+  .cfloat.f1{top:-5%;left:-7%;color:var(--coralDeep)}
+  .cfloat.f2{bottom:16%;left:-9%;animation-delay:1.6s}
+  .cfloat.f3{top:26%;right:-7%;animation-delay:.9s}
+  @keyframes cfl{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @media(max-width:900px){.cfloat{display:none}.cphone{transform:none}.cs-stage .cglow{opacity:.7}}
   .cscr{position:relative;border-radius:38px;overflow:hidden;height:0;padding-bottom:210%;background:#F4EFE7}
   .cin{position:absolute;inset:0;display:flex;flex-direction:column}
   .ctop{padding:14px 16px 12px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;z-index:2}
@@ -304,12 +312,30 @@
   .bbatt::before{content:"";position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:22px;height:6px;background:rgba(255,255,255,.92);border-radius:3px}
   .bbatt i{position:absolute;left:4px;right:4px;bottom:4px;top:14%;background:linear-gradient(#84E892,#37C466);border-radius:6px;display:grid;place-items:center;font-weight:800;color:#0C3B22;font-size:13px}
   /* world graphic */
-  .bworld{position:absolute;right:-6%;top:-14%;width:58%;z-index:0;opacity:.55;-webkit-mask-image:radial-gradient(circle at 60% 40%,#000 52%,transparent 72%);mask-image:radial-gradient(circle at 60% 40%,#000 52%,transparent 72%)}
+  .bworld{position:absolute;right:-6%;top:-14%;width:58%;z-index:0;opacity:.6;-webkit-mask-image:radial-gradient(circle at 60% 40%,#000 52%,transparent 72%);mask-image:radial-gradient(circle at 60% 40%,#000 52%,transparent 72%)}
   .bworld img{width:100%;display:block}
+  /* bento motion */
+  .bcard{transition:transform .35s var(--e),box-shadow .35s var(--e)}
+  .bcard:hover{transform:translateY(-5px);box-shadow:0 30px 60px -34px rgba(20,14,6,.45)}
+  .bbatt i{top:100%}                                   /* starts empty */
+  .bcard.rvld .bbatt i{animation:bfill 1.5s var(--e) .25s forwards}
+  @keyframes bfill{0%{top:100%}100%{top:14%}}
+  .bfaces span{transform:scale(0)}
+  .bcard.rvld .bfaces span{animation:bpop .5s var(--e) forwards}
+  .bfaces span:nth-child(2){animation-delay:.1s}.bfaces span:nth-child(3){animation-delay:.2s}.bfaces span:nth-child(4){animation-delay:.3s}
+  @keyframes bpop{0%{transform:scale(0)}62%{transform:scale(1.14)}100%{transform:scale(1)}}
+  .bwave{transform-origin:70% 80%}
+  .bcard.rvld .bwave{animation:bwaves 2.4s var(--e) .4s 2}
+  @keyframes bwaves{0%,100%{transform:rotate(0)}12%{transform:rotate(16deg)}24%{transform:rotate(-8deg)}36%{transform:rotate(14deg)}48%{transform:rotate(0)}}
+  @media(prefers-reduced-motion:reduce){.bcard.rvld .bbatt i{animation:none;top:14%}.bcard.rvld .bfaces span,.bcard.rvld .blogos b{animation:none;transform:none;opacity:1}.bcard.rvld .bwave{animation:none}}
   .bwave{position:absolute;top:20px;right:28px;font-size:42px;z-index:1}
   .bhotel{position:absolute;top:22px;left:26px;font-size:28px;z-index:1}
-  .bcard .names{display:flex;flex-wrap:wrap;gap:7px 14px;margin-top:8px}
-  .bcard .names span{font-family:var(--serif);font-size:17px;color:#9AA7AF}
+  .blogos{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .blogos b{font-weight:800;font-size:12.5px;letter-spacing:-.01em;padding:7px 12px;border-radius:9px;color:#fff;box-shadow:0 6px 14px -8px rgba(0,0,0,.35);transform:scale(.6);opacity:0}
+  .bcard.rvld .blogos b{animation:blogo .5s var(--e) forwards}
+  .blogos b.b1{animation-delay:.15s}.blogos b.b2{animation-delay:.3s}.blogos b.b3{animation-delay:.45s}.blogos b.b4{animation-delay:.6s}
+  @keyframes blogo{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  .blogos .bk{background:#003580}.blogos .ex{background:#FDBB2B;color:#00284D}.blogos .vr{background:#1668E3}.blogos .ho{background:#D32F2F}
   @media(min-width:760px){
     .bento .grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:200px}
     .bcard.wide{grid-column:span 2}
@@ -320,7 +346,7 @@
   .relivec{position:relative;overflow:hidden;background:var(--paper);padding:clamp(70px,10vw,120px) 0 clamp(80px,11vw,130px);text-align:center}
   .relivec h2{font-size:clamp(34px,5.6vw,58px);margin-top:6px}
   .relivec h2 em{font-style:italic;color:var(--coralDeep)}
-  .rc-stage{position:relative;height:660px;margin-top:22px}
+  .rc-stage{position:relative;height:600px;margin-top:14px;max-width:920px;margin-left:auto;margin-right:auto}
   .rc-phone{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:270px;padding:8px;border-radius:44px;background:linear-gradient(160deg,#26211a,#0c0a07);box-shadow:0 50px 90px -40px rgba(20,14,6,.6),0 14px 30px -18px rgba(0,0,0,.35)}
   .rc-scr{position:relative;border-radius:37px;overflow:hidden;height:0;padding-bottom:203%;background:#0a0d1c}
   .rc-m{position:absolute;inset:0;opacity:0;animation:rcstory 18s var(--e) infinite}
@@ -345,12 +371,12 @@
   .rc-card .c .p{font-family:var(--serif);font-weight:500;font-size:16px;line-height:1.05;margin-top:2px}
   .rc-card .c .mt{font-size:9px;font-weight:600;opacity:.85;margin-top:2px}
   @keyframes rcfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-  .rc-card.a{left:6%;top:14%;width:158px;height:300px;rotate:-3deg;animation-delay:0s}
-  .rc-card.b{left:1%;top:56%;width:172px;height:326px;rotate:2.5deg;animation-delay:1.2s}
-  .rc-card.c{left:20%;top:84%;width:140px;height:250px;rotate:-1.5deg;opacity:.9;animation-delay:2.4s}
-  .rc-card.d{right:7%;top:11%;width:156px;height:296px;rotate:3deg;animation-delay:.6s}
-  .rc-card.e{right:1.5%;top:50%;width:170px;height:322px;rotate:-2.5deg;animation-delay:1.8s}
-  .rc-card.f{right:19%;top:82%;width:134px;height:240px;rotate:2deg;opacity:.88;animation-delay:3s}
+  .rc-card.a{left:8%;top:6%;width:158px;height:300px;rotate:-3deg;animation-delay:0s}
+  .rc-card.b{left:3%;top:46%;width:168px;height:318px;rotate:2.5deg;animation-delay:1.2s}
+  .rc-card.c{left:23%;top:74%;width:138px;height:246px;rotate:-1.5deg;opacity:.92;animation-delay:2.4s}
+  .rc-card.d{right:9%;top:4%;width:156px;height:296px;rotate:3deg;animation-delay:.6s}
+  .rc-card.e{right:3%;top:42%;width:166px;height:314px;rotate:-2.5deg;animation-delay:1.8s}
+  .rc-card.f{right:22%;top:72%;width:132px;height:236px;rotate:2deg;opacity:.9;animation-delay:3s}
   @media(max-width:820px){
     .relivec h2{font-size:31px;max-width:12ch;margin-left:auto;margin-right:auto}
     .rc-stage{height:720px}
@@ -537,6 +563,10 @@
     <div class="cs-chips" data-r><span>🌅 Best sunset spots?</span><span>🍜 Cheap eats nearby</span><span>☔ Rainy-day ideas</span><span>🏝️ Hidden beaches</span></div>
   </div>
   <div class="cs-stage" data-r>
+    <div class="cglow"></div>
+    <span class="cfloat f1">🍜 Where's the best ramen?</span>
+    <span class="cfloat f2">🚤 Day trip ideas?</span>
+    <span class="cfloat f3">💸 Split tonight's dinner</span>
     <div class="cphone"><div class="cscr"><div class="cin">
       <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Bali · with the crew</div></div></div>
       <div class="cbody">
@@ -566,10 +596,10 @@
         <div class="z"><h3>Private by default</h3><p>You decide who sees your trips — the whole crew, or no one at all.</p></div>
       </div>
       <div class="bcard coralc wide" data-r><span class="bwave">👋</span><div class="z"><h3>Proudly ad-free</h3><p>No ads. No selling your location. Just you and your people.</p></div></div>
-      <div class="bcard lite" data-r><span class="bhotel">🏨</span><div class="z"><h3>Book with the best</h3><div class="names"><span>Booking.com</span><span>Expedia</span><span>Vrbo</span><span>Hotels.com</span></div></div></div>
+      <div class="bcard lite" data-r><span class="bhotel">🏨</span><div class="z"><h3>Book with the best</h3><div class="blogos"><b class="bk b1">Booking.com</b><b class="ex b2">Expedia</b><b class="vr b3">Vrbo</b><b class="ho b4">Hotels.com</b></div></div></div>
       <div class="bcard greenc" data-r><div class="bbatt"><i>96%</i></div><div class="z"><h3>Battery-light</h3><p>All-day tracking that sips barely any battery.</p></div></div>
       <div class="bcard photo" data-r><div class="bg" style="background-image:url(assets/photo/hero.jpg)"></div><div class="z"><h3>Works offline</h3><p>Keeps tracking even off-grid, deep in the mountains.</p></div></div>
-      <div class="bcard dark wide" data-r><div class="bworld"><img src="assets/app/onboard-globe.webp" alt=""></div><div class="z"><h3>By travelers, for travelers</h3><p>Built for group trips — shared plans, split costs, one living map.</p></div></div>
+      <div class="bcard dark wide" data-r><div class="bworld"><img src="assets/app/onboard-globe-anim.webp" alt=""></div><div class="z"><h3>By travelers, for travelers</h3><p>Built for group trips — shared plans, split costs, one living map.</p></div></div>
     </div>
   </div>
 </section>
