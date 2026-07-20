@@ -224,7 +224,8 @@
   .tab.on.relive{background:var(--green)}
 
   /* ============ CHAT (Ask Drift) ============ */
-  .chatsec{position:relative;overflow:hidden;padding:clamp(74px,10vw,124px) 0;background:var(--paper)}
+  .chatsec{position:relative;background:var(--paper)}
+  .cs-sticky{overflow:hidden}
   .cs-wrap{max-width:var(--mx);margin:0 auto;padding:0 clamp(22px,5vw,40px);display:grid;grid-template-columns:1fr;gap:44px;align-items:center}
   .cs-copy{text-align:center}
   .cs-copy h2{font-size:clamp(34px,5.2vw,56px);margin-top:6px}
@@ -269,20 +270,16 @@
   .qchips{display:flex;gap:6px;align-self:flex-start;flex-wrap:wrap}
   .qchips b{font-weight:700;font-size:10.5px;color:var(--coralDeep);background:var(--paper);border:1px solid rgba(203,90,56,.3);padding:6px 11px;border-radius:100px}
   .cinput{margin:0 12px 12px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:9px 9px 9px 15px;display:flex;align-items:center;gap:8px}
-  .cinput span{flex:1;font-size:11.5px;color:#A99E8C;font-weight:500}
-  .cinput .send{width:30px;height:30px;border-radius:50%;background:var(--coral);display:grid;place-items:center;flex-shrink:0}
+  .cinput span:first-child{flex:1;font-size:11.5px;color:#A99E8C;font-weight:500}
+  .cinput .send{flex:0 0 32px;width:32px;height:32px;border-radius:50%;background:var(--coral);display:grid;place-items:center}
   .cinput .send svg{width:15px;height:15px}
-  .anim{opacity:0}
-  .k1{animation:cs1 15s var(--e) infinite}.k2{animation:cs2 15s var(--e) infinite}.k3{animation:cs3 15s var(--e) infinite}
-  .k4{animation:cs4 15s var(--e) infinite}.k5{animation:cs5 15s var(--e) infinite}.k6{animation:cs6 15s var(--e) infinite}
-  @keyframes cs1{0%{opacity:0;transform:translateY(8px)}3%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
-  @keyframes cs2{0%,12%{opacity:0}15%{opacity:1}26%{opacity:1}29%{opacity:0}100%{opacity:0}}
-  @keyframes cs3{0%,29%{opacity:0;transform:translateY(8px)}33%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
-  @keyframes cs4{0%,37%{opacity:0;transform:translateY(10px)}43%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
-  @keyframes cs5{0%,58%{opacity:0;transform:translateY(8px)}63%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
-  @keyframes cs6{0%,70%{opacity:0;transform:translateY(6px)}75%{opacity:1;transform:none}90%{opacity:1}96%{opacity:0}100%{opacity:0}}
+  /* scroll-driven reveal — messages appear as you scroll through the section */
+  .chatsec{height:210vh}
+  .cs-sticky{position:sticky;top:0;min-height:100vh;display:flex;align-items:center;padding:70px 0}
+  .anim{opacity:0;transform:translateY(12px);transition:opacity .55s var(--e),transform .55s var(--e)}
+  .anim.shown{opacity:1;transform:none}
   @media(min-width:900px){.cs-wrap{grid-template-columns:1fr 1fr;gap:64px}.cs-copy{text-align:left}.cs-copy .lead{margin-left:0}.cs-chips{justify-content:flex-start}}
-  @media(prefers-reduced-motion:reduce){.anim{opacity:1;animation:none}.typ i{animation:none}}
+  @media(prefers-reduced-motion:reduce){.anim{opacity:1;transform:none}.typ i{animation:none}.chatsec{height:auto}.cs-sticky{position:static;min-height:0}}
 
   /* ============ BENTO GRID ============ */
   .bento{position:relative;background:var(--gray);padding:clamp(96px,13vw,150px) 0 clamp(78px,10vw,120px);
@@ -328,8 +325,22 @@
   .bcard.rvld .bwave{animation:bwaves 2.4s var(--e) .4s 2}
   @keyframes bwaves{0%,100%{transform:rotate(0)}12%{transform:rotate(16deg)}24%{transform:rotate(-8deg)}36%{transform:rotate(14deg)}48%{transform:rotate(0)}}
   @media(prefers-reduced-motion:reduce){.bcard.rvld .bbatt i{animation:none;top:14%}.bcard.rvld .bfaces span,.bcard.rvld .blogos b{animation:none;transform:none;opacity:1}.bcard.rvld .bwave{animation:none}}
-  .bwave{position:absolute;top:20px;right:28px;font-size:42px;z-index:1}
-  .bhotel{position:absolute;top:22px;left:26px;font-size:28px;z-index:1}
+  .bwave{position:absolute;top:22px;right:28px;z-index:1;color:rgba(255,255,255,.94);display:grid;place-items:center}
+  .bwave svg{width:42px;height:42px}
+  .bhotel{position:absolute;top:24px;left:26px;z-index:1;color:var(--coralDeep);display:grid;place-items:center}
+  .bhotel svg{width:30px;height:30px}
+  /* privacy card cluster */
+  .bcluster{position:absolute;inset:0;z-index:1}
+  .bcluster .av{position:absolute;border-radius:50%;background-size:cover;background-position:center;border:2.5px solid rgba(255,255,255,.9);box-shadow:0 10px 22px -8px rgba(0,0,0,.4);transform:scale(0)}
+  .bcard.rvld .bcluster .av{animation:bpop .55s var(--e) forwards}
+  .bcluster .av.a1{width:54px;height:54px;top:7%;left:9%}
+  .bcluster .av.a2{width:44px;height:44px;top:13%;right:13%;animation-delay:.08s}
+  .bcluster .av.a3{width:62px;height:62px;top:30%;left:20%;animation-delay:.16s}
+  .bcluster .av.a4{width:40px;height:40px;top:25%;right:20%;animation-delay:.24s}
+  .bcluster .av.a5{width:50px;height:50px;top:45%;right:9%;animation-delay:.32s}
+  .bcluster .av.a6{width:38px;height:38px;top:49%;left:11%;animation-delay:.4s}
+  .bpill{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.15);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.24);color:#fff;font-weight:700;font-size:13px;padding:9px 15px;border-radius:100px;z-index:3;white-space:nowrap;box-shadow:0 10px 26px -12px rgba(0,0,0,.5)}
+  .bpill svg{width:15px;height:15px;opacity:.9}
   .blogos{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
   .blogos b{font-weight:800;font-size:12.5px;letter-spacing:-.01em;padding:7px 12px;border-radius:9px;color:#fff;box-shadow:0 6px 14px -8px rgba(0,0,0,.35);transform:scale(.6);opacity:0}
   .bcard.rvld .blogos b{animation:blogo .5s var(--e) forwards}
@@ -555,22 +566,22 @@
 </section>
 
 <!-- ============ CHAT (Ask Drift) ============ -->
-<section class="chatsec"><div class="cs-wrap">
+<section class="chatsec"><div class="cs-sticky"><div class="cs-wrap">
   <div class="cs-copy">
     <span class="eyebrow" data-r>Your local, in your pocket</span>
     <h2 data-ghost>Ask Drift <em>anything.</em></h2>
     <p class="lead" data-r>A travel buddy who actually knows the place — ask for sunset spots, cheap eats or a rainy-day plan, and drop it straight into the trip.</p>
-    <div class="cs-chips" data-r><span>🌅 Best sunset spots?</span><span>🍜 Cheap eats nearby</span><span>☔ Rainy-day ideas</span><span>🏝️ Hidden beaches</span></div>
+    <div class="cs-chips" data-r><span>Best sunset spots?</span><span>Cheap eats nearby</span><span>Rainy-day ideas</span><span>Hidden beaches</span></div>
   </div>
   <div class="cs-stage" data-r>
     <div class="cglow"></div>
-    <span class="cfloat f1">🍜 Where's the best ramen?</span>
-    <span class="cfloat f2">🚤 Day trip ideas?</span>
-    <span class="cfloat f3">💸 Split tonight's dinner</span>
+    <span class="cfloat f1">Where&rsquo;s the best ramen?</span>
+    <span class="cfloat f2">A rainy-day plan?</span>
+    <span class="cfloat f3">Split tonight&rsquo;s dinner</span>
     <div class="cphone"><div class="cscr"><div class="cin">
       <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Bali · with the crew</div></div></div>
       <div class="cbody">
-        <div class="crow me anim k1"><div class="bub">Where should we watch sunset tonight? 🌅</div></div>
+        <div class="crow me anim k1"><div class="bub">Where should we watch sunset tonight?</div></div>
         <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
         <div class="crow bot anim k3"><div class="bub">Three stunners near you — all 15 min from the villa:</div></div>
         <div class="pcards anim k4">
@@ -584,7 +595,7 @@
       <div class="cinput anim k6"><span>Ask Drift anything…</span><span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
     </div></div></div>
   </div>
-</div></section>
+</div></div></section>
 
 <!-- ============ BENTO ============ -->
 <section class="bento">
@@ -592,11 +603,19 @@
     <h2 data-ghost>And the best part&hellip;</h2>
     <div class="grid">
       <div class="bcard navy tall" data-r>
-        <div class="bfaces"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span><span style="background-image:url(assets/photo/swing.jpg)"></span></div>
+        <div class="bcluster">
+          <span class="av a1" style="background-image:url(assets/photo/friends-kl.jpg)"></span>
+          <span class="av a2" style="background-image:url(assets/photo/friends-bali.jpg)"></span>
+          <span class="av a3" style="background-image:url(assets/photo/hero.jpg)"></span>
+          <span class="av a4" style="background-image:url(assets/photo/swing.jpg)"></span>
+          <span class="av a5" style="background-image:url(assets/photo/sunset.jpg)"></span>
+          <span class="av a6" style="background-image:url(assets/photo/amalfi.jpg)"></span>
+          <span class="bpill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Just the crew</span>
+        </div>
         <div class="z"><h3>Private by default</h3><p>You decide who sees your trips — the whole crew, or no one at all.</p></div>
       </div>
-      <div class="bcard coralc wide" data-r><span class="bwave">👋</span><div class="z"><h3>Proudly ad-free</h3><p>No ads. No selling your location. Just you and your people.</p></div></div>
-      <div class="bcard lite" data-r><span class="bhotel">🏨</span><div class="z"><h3>Book with the best</h3><div class="blogos"><b class="bk b1">Booking.com</b><b class="ex b2">Expedia</b><b class="vr b3">Vrbo</b><b class="ho b4">Hotels.com</b></div></div></div>
+      <div class="bcard coralc wide" data-r><span class="bwave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.6a1.5 1.5 0 013 0V12"/><path d="M11 12V4.5a1.5 1.5 0 013 0V12"/><path d="M14 12.5V6a1.5 1.5 0 013 0v6"/><path d="M17 9.6a1.5 1.5 0 013 0V15a7 7 0 01-7 7 7 7 0 01-5.9-3.2l-2.3-3.6a1.55 1.55 0 012.5-1.9l1.2 1.3"/></svg></span><div class="z"><h3>Proudly ad-free</h3><p>No ads. No selling your location. Just you and your people.</p></div></div>
+      <div class="bcard lite" data-r><span class="bhotel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20v-6a2 2 0 012-2h14a2 2 0 012 2v6M3 20v1M21 20v1M3 14V7a2 2 0 012-2h4a2 2 0 012 2v5"/><path d="M7 9h.5"/></svg></span><div class="z"><h3>Book with the best</h3><div class="blogos"><b class="bk b1">Booking.com</b><b class="ex b2">Expedia</b><b class="vr b3">Vrbo</b><b class="ho b4">Hotels.com</b></div></div></div>
       <div class="bcard greenc" data-r><div class="bbatt"><i>96%</i></div><div class="z"><h3>Battery-light</h3><p>All-day tracking that sips barely any battery.</p></div></div>
       <div class="bcard photo" data-r><div class="bg" style="background-image:url(assets/photo/hero.jpg)"></div><div class="z"><h3>Works offline</h3><p>Keeps tracking even off-grid, deep in the mountains.</p></div></div>
       <div class="bcard dark wide" data-r><div class="bworld"><img src="assets/app/onboard-globe-anim.webp" alt=""></div><div class="z"><h3>By travelers, for travelers</h3><p>Built for group trips — shared plans, split costs, one living map.</p></div></div>
@@ -608,17 +627,17 @@
 <section class="relivec">
   <div class="head"><span class="eyebrow" data-r>A recap of your trip</span><h2 data-ghost>Relive every <em>moment.</em></h2></div>
   <div class="rc-stage" data-r>
-    <div class="rc-card a"><img src="assets/photo/amalfi.jpg" alt="Amalfi"><div class="c"><div class="d">DAY 8</div><div class="p">Amalfi</div><div class="mt">🇮🇹 Italy · 24°</div></div></div>
-    <div class="rc-card b"><img src="assets/photo/phiphi.jpg" alt="Maya Bay"><div class="c"><div class="d">DAY 3</div><div class="p">Maya Bay</div><div class="mt">🇹🇭 Thailand · 31°</div></div></div>
-    <div class="rc-card c"><img src="assets/photo/sunset.jpg" alt="Golden hour"><div class="c"><div class="d">DAY 26</div><div class="p">Golden hour</div><div class="mt">🌅 · 21°</div></div></div>
-    <div class="rc-card d"><img src="assets/photo/positano.jpg" alt="Positano"><div class="c"><div class="d">DAY 10</div><div class="p">Positano</div><div class="mt">🇮🇹 Italy · 25°</div></div></div>
-    <div class="rc-card e"><img src="assets/photo/alhambra.jpg" alt="Granada"><div class="c"><div class="d">DAY 21</div><div class="p">Granada</div><div class="mt">🇪🇸 Spain · 22°</div></div></div>
-    <div class="rc-card f"><img src="assets/photo/friends-bali.jpg" alt="The crew in Bali"><div class="c"><div class="d">DAY 14</div><div class="p">The crew</div><div class="mt">🇮🇩 Bali · 29°</div></div></div>
+    <div class="rc-card a"><img src="assets/photo/amalfi.jpg" alt="Amalfi"><div class="c"><div class="d">DAY 8</div><div class="p">Amalfi</div><div class="mt">Italy · 24°</div></div></div>
+    <div class="rc-card b"><img src="assets/photo/phiphi.jpg" alt="Maya Bay"><div class="c"><div class="d">DAY 3</div><div class="p">Maya Bay</div><div class="mt">Thailand · 31°</div></div></div>
+    <div class="rc-card c"><img src="assets/photo/sunset.jpg" alt="Golden hour"><div class="c"><div class="d">DAY 26</div><div class="p">Golden hour</div><div class="mt">Sunset · 21°</div></div></div>
+    <div class="rc-card d"><img src="assets/photo/positano.jpg" alt="Positano"><div class="c"><div class="d">DAY 10</div><div class="p">Positano</div><div class="mt">Italy · 25°</div></div></div>
+    <div class="rc-card e"><img src="assets/photo/alhambra.jpg" alt="Granada"><div class="c"><div class="d">DAY 21</div><div class="p">Granada</div><div class="mt">Spain · 22°</div></div></div>
+    <div class="rc-card f"><img src="assets/photo/friends-bali.jpg" alt="The crew in Bali"><div class="c"><div class="d">DAY 14</div><div class="p">The crew</div><div class="mt">Bali · 29°</div></div></div>
     <div class="rc-phone"><div class="rc-scr">
-      <div class="rc-m"><img src="assets/photo/swing.jpg" alt=""><div class="rc-cap"><div class="d">DAY 14</div><div class="p">Ubud swings</div><div class="mt">🇮🇩 Bali · 29°</div></div></div>
-      <div class="rc-m"><img src="assets/photo/hero.jpg" alt=""><div class="rc-cap"><div class="d">DAY 3</div><div class="p">Maya Bay</div><div class="mt">🇹🇭 Thailand · 31°</div></div></div>
-      <div class="rc-m"><img src="assets/photo/positano.jpg" alt=""><div class="rc-cap"><div class="d">DAY 10</div><div class="p">Positano</div><div class="mt">🇮🇹 Italy · 25°</div></div></div>
-      <div class="rc-m"><img src="assets/photo/alhambra.jpg" alt=""><div class="rc-cap"><div class="d">DAY 21</div><div class="p">Granada</div><div class="mt">🇪🇸 Spain · 22°</div></div></div>
+      <div class="rc-m"><img src="assets/photo/swing.jpg" alt=""><div class="rc-cap"><div class="d">DAY 14</div><div class="p">Ubud swings</div><div class="mt">Bali · 29°</div></div></div>
+      <div class="rc-m"><img src="assets/photo/hero.jpg" alt=""><div class="rc-cap"><div class="d">DAY 3</div><div class="p">Maya Bay</div><div class="mt">Thailand · 31°</div></div></div>
+      <div class="rc-m"><img src="assets/photo/positano.jpg" alt=""><div class="rc-cap"><div class="d">DAY 10</div><div class="p">Positano</div><div class="mt">Italy · 25°</div></div></div>
+      <div class="rc-m"><img src="assets/photo/alhambra.jpg" alt=""><div class="rc-cap"><div class="d">DAY 21</div><div class="p">Granada</div><div class="mt">Spain · 22°</div></div></div>
       <div class="rc-bars"><i></i><i></i><i></i><i></i></div>
     </div></div>
   </div>
@@ -762,6 +781,24 @@
   }
   if(reduce){ws.forEach(function(w){w.classList.add('lit');});}
   else{addEventListener('scroll',onOutro,{passive:true});onOutro();}
+
+  /* ---- chat: scroll-driven conversation reveal ---- */
+  var chatsec=document.querySelector('.chatsec');
+  var chatEls=[].slice.call(document.querySelectorAll('.chatsec .anim'));
+  var chatTh={k1:.06,k2:.15,k3:.26,k4:.4,k5:.58,k6:.7};
+  function elK(el){for(var k in chatTh){if(el.classList.contains(k))return k;}return null;}
+  function onChat(){
+    if(!chatsec)return;
+    var total=chatsec.offsetHeight-innerHeight;
+    var cp=clamp01(-chatsec.getBoundingClientRect().top/(total||1));
+    chatEls.forEach(function(el){
+      var k=elK(el);if(!k)return;
+      var show = (k==='k2') ? (cp>=chatTh.k2 && cp<chatTh.k3) : (cp>=chatTh[k]);
+      el.classList.toggle('shown',show);
+    });
+  }
+  if(reduce){chatEls.forEach(function(el){if(!el.classList.contains('k2'))el.classList.add('shown');});}
+  else{addEventListener('scroll',onChat,{passive:true});onChat();}
 
 })();
 </script>
