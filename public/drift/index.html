@@ -199,7 +199,7 @@
 
   /* ============ STORY (sticky-phone scrollytelling) ============ */
   .story{position:relative;height:680vh;background:var(--cream)}
-  .stage{position:sticky;top:0;height:100svh;height:100dvh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
+  .stage{position:sticky;top:0;height:100svh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
   .stage-phone{position:relative;z-index:3;transition:transform .7s var(--e);will-change:transform;backface-visibility:hidden}
   .stage-phone .phone{--pw:270px}
   .stage-screens .s{opacity:0;transition:opacity .6s var(--e);transform:scale(1.02)}
@@ -304,15 +304,19 @@
      clip-path:polygon(0 46px,100% 0,100% 100%,0 100%)}
   .bento h2{text-align:center;font-size:clamp(34px,5.6vw,58px);color:var(--navy);max-width:20ch;margin:0 auto}
   .bento .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:clamp(40px,6vw,60px)}
-  .bcard{border-radius:24px;padding:26px;position:relative;overflow:hidden;min-height:190px;display:flex;flex-direction:column;justify-content:flex-end}
+  .bcard{border-radius:26px;padding:26px;position:relative;overflow:hidden;min-height:190px;display:flex;flex-direction:column;justify-content:flex-end;
+     box-shadow:0 28px 60px -34px rgba(18,12,6,.5), inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.05)}
+  .bcard::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(130% 80% at 24% -10%,rgba(255,255,255,.16),transparent 52%)}
+  .bcard.lite{box-shadow:0 28px 60px -34px rgba(18,12,6,.28), inset 0 1px 0 rgba(255,255,255,.9)}
+  .bcard.lite::before{background:radial-gradient(130% 80% at 24% -10%,rgba(255,255,255,.7),transparent 55%)}
   .bcard .z{position:relative;z-index:2}
   .bcard h3{font-family:var(--sans);font-weight:800;font-size:clamp(21px,2vw,26px);letter-spacing:-.02em;line-height:1.05}
   .bcard p{font-size:14px;margin-top:8px;font-weight:500;line-height:1.5}
-  .bcard.navy{background:var(--navy);color:#fff}.bcard.navy p{color:rgba(255,255,255,.68)}
-  .bcard.dark{background:var(--night);color:#fff}.bcard.dark p{color:rgba(255,255,255,.68)}
-  .bcard.greenc{background:var(--greenDeep);color:#fff}.bcard.greenc p{color:rgba(255,255,255,.74)}
-  .bcard.coralc{background:var(--coral);color:#fff}.bcard.coralc p{color:rgba(255,255,255,.88)}
-  .bcard.lite{background:#fff;color:var(--ink);border:1px solid var(--line)}.bcard.lite p{color:var(--muted)}
+  .bcard.navy{background:linear-gradient(158deg,#173C56 0%,#0C2739 46%,#061621 100%);color:#fff}.bcard.navy p{color:rgba(255,255,255,.7)}
+  .bcard.dark{background:linear-gradient(158deg,#15264A 0%,#0B1830 48%,#05101E 100%);color:#fff}.bcard.dark p{color:rgba(255,255,255,.7)}
+  .bcard.greenc{background:linear-gradient(158deg,#2E8A64 0%,#166046 45%,#0B4A31 100%);color:#fff}.bcard.greenc p{color:rgba(255,255,255,.78)}
+  .bcard.coralc{background:linear-gradient(150deg,#E06B44 0%,#C1502A 50%,#A5421F 100%);color:#fff}.bcard.coralc p{color:rgba(255,255,255,.9)}
+  .bcard.lite{background:linear-gradient(160deg,#FFFFFF 0%,#F7F1E7 100%);color:var(--ink);border:1px solid var(--line)}.bcard.lite p{color:var(--muted)}
   .bcard.photo{color:#fff}
   .bcard .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;transform:scale(1.02)}
   .bcard.photo::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(6,12,20,.12),rgba(6,12,20,.35) 45%,rgba(6,12,20,.82))}
@@ -359,6 +363,16 @@
   .bcluster .av.a6{width:38px;height:38px;top:49%;left:11%;animation-delay:.4s}
   .bpill{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.15);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.24);color:#fff;font-weight:700;font-size:13px;padding:9px 15px;border-radius:100px;z-index:3;white-space:nowrap;box-shadow:0 10px 26px -12px rgba(0,0,0,.5)}
   .bpill svg{width:15px;height:15px;opacity:.9}
+  /* mobile bento: clean avatar row (no clash) + globe repositioned so it isn't cut */
+  @media(max-width:759px){
+    .bcard.navy{min-height:224px}
+    .bcluster{position:absolute;inset:0;z-index:1;display:flex;align-items:flex-start;padding:24px 26px;gap:0}
+    .bcluster .av{position:static!important;width:46px!important;height:46px!important;margin-left:-12px}
+    .bcluster .av:first-child{margin-left:0}
+    .bcluster .av.a5,.bcluster .av.a6{display:none}
+    .bpill{position:static!important;transform:none!important;align-self:center;margin-left:14px}
+    .bworld{right:-8%;top:50%;bottom:auto;transform:translateY(-48%);width:50%}
+  }
   .blogos{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
   .blogos b{font-weight:800;font-size:12.5px;letter-spacing:-.01em;padding:7px 12px;border-radius:9px;color:#fff;box-shadow:0 6px 14px -8px rgba(0,0,0,.35);transform:scale(.6);opacity:0}
   .bcard.rvld .blogos b{animation:blogo .5s var(--e) forwards}
@@ -504,16 +518,7 @@
           <span class="rm-pin s4" style="left:69.4%;top:70.9%"><b>4</b></span>
           <span class="rm-pulse" style="left:69.4%;top:70.9%"></span>
         </div>
-        <div class="s appscr" data-i="1">
-          <div class="top"><div class="t">Barcelona · 5 days</div>
-            <div class="u"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 building the plan</div></div>
-          <div class="pl-list">
-            <div class="pl-card k1"><div class="th" style="background-image:url(assets/photo/positano.jpg)"></div><div><div class="d">DAY 1 · GOTHIC QUARTER</div><div class="n">Tapas &amp; back-alley bars</div><div class="by"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i>added by Ana</div></div></div>
-            <div class="pl-card k2"><div class="th" style="background-image:url(assets/app/bcn-sagrada.webp)"></div><div><div class="d">DAY 2 · EIXAMPLE</div><div class="n">The Gaudí day</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Sam</div></div></div>
-            <div class="pl-card k3"><div class="th" style="background-image:url(assets/photo/amalfi.jpg)"></div><div><div class="d">DAY 3 · GRÀCIA</div><div class="n">Coffee &amp; slow markets</div><div class="by"><i style="background-image:url(assets/photo/hero.jpg)"></i>added by you</div></div></div>
-            <div class="pl-card k4"><div class="th" style="background-image:url(assets/photo/sunset.jpg)"></div><div><div class="d">DAY 4 · BARCELONETA</div><div class="n">Beach + sunset paella</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Mia</div></div></div>
-          </div>
-        </div>
+        <img class="s" data-i="1" src="assets/app/hero-plan.jpg" alt="A shared trip plan in Drift — day-by-day itinerary with the crew" width="600" height="1216">
         <div class="s appscr" data-i="2">
           <div class="top"><div class="t">Barcelona · from your inbox</div><div class="u">Drift found &amp; added these automatically</div></div>
           <div class="res-scan"><span class="dot"></span>Scanned 4 confirmations</div>
@@ -609,7 +614,7 @@
       <div class="bcard coralc wide" data-r><span class="bwave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.6a1.5 1.5 0 013 0V12"/><path d="M11 12V4.5a1.5 1.5 0 013 0V12"/><path d="M14 12.5V6a1.5 1.5 0 013 0v6"/><path d="M17 9.6a1.5 1.5 0 013 0V15a7 7 0 01-7 7 7 7 0 01-5.9-3.2l-2.3-3.6a1.55 1.55 0 012.5-1.9l1.2 1.3"/></svg></span><div class="z"><h3>Proudly ad-free</h3><p>No ads. No selling your location. Just you and your people.</p></div></div>
       <div class="bcard lite" data-r><span class="bhotel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20v-6a2 2 0 012-2h14a2 2 0 012 2v6M3 20v1M21 20v1M3 14V7a2 2 0 012-2h4a2 2 0 012 2v5"/><path d="M7 9h.5"/></svg></span><div class="z"><h3>Book with the best</h3><div class="blogos"><b class="bk b1">Booking.com</b><b class="ex b2">Expedia</b><b class="vr b3">Vrbo</b><b class="ho b4">Hotels.com</b></div></div></div>
       <div class="bcard greenc" data-r><div class="bbatt"><i>96%</i></div><div class="z"><h3>Battery-light</h3><p>All-day tracking that sips barely any battery.</p></div></div>
-      <div class="bcard photo" data-r><div class="bg" style="background-image:url(assets/photo/hero.jpg)"></div><div class="z"><h3>Works offline</h3><p>Keeps tracking even off-grid, deep in the mountains.</p></div></div>
+      <div class="bcard photo" data-r><div class="bg" style="background-image:url(assets/photo/hero.jpg)"></div><div class="z"><h3>No signal, no worries</h3><p>Your route keeps recording with zero bars — mountains, metros, middle of nowhere.</p></div></div>
       <div class="bcard dark wide" data-r><div class="bworld"><img src="assets/app/onboard-globe-anim.webp" alt=""></div><div class="z"><h3>By travelers, for travelers</h3><p>Built for group trips — shared plans, split costs, one living map.</p></div></div>
     </div>
   </div>
@@ -728,7 +733,7 @@
   function onStory(){
     var r=story.getBoundingClientRect();
     var p=clamp01(-r.top/(TOTAL||1));
-    stage.style.backgroundColor=bgAt(p);
+    var bg=bgAt(p);stage.style.backgroundColor=bg;story.style.backgroundColor=bg;
     stage.classList.toggle('night',p>0.44&&p<0.97);
     // hero intro: full-bleed photo persists behind a rising phone, then wipes away
     var photoOp=1-clamp01((p-0.17)/0.10);          // photo holds through hero + first chapter, then fades
