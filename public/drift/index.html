@@ -87,9 +87,9 @@
   .phone .scr img{width:100%;height:100%;object-fit:cover;object-position:center top}
 
   /* ===== SELF-DRAWING ROUTE MAP (live phone screen) ===== */
-  .routemap{position:absolute;inset:0;overflow:hidden;background:#8fc6c9}
-  .rm-lbl{position:absolute;z-index:3;font-size:9px;font-weight:700;color:#3c584f;text-shadow:0 1px 2px rgba(255,255,255,.55);transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none}
-  .rm-head{position:absolute;top:0;left:0;right:0;z-index:5;padding:15px 16px 28px;background:linear-gradient(180deg,rgba(10,26,34,.5),transparent);color:#fff}
+  .routemap{position:absolute;inset:0;overflow:hidden;background:#3f6f7a}
+  .rm-mb{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center}
+  .rm-head{position:absolute;top:0;left:0;right:0;z-index:5;padding:16px 16px 34px;background:linear-gradient(180deg,rgba(8,20,28,.82) 0%,rgba(8,20,28,.5) 45%,transparent);color:#fff}
   .rm-title{font-family:var(--serif);font-size:16px;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,.6)}
   .rm-sub{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 1px 6px rgba(0,0,0,.5)}
   .rm-sub .a{display:flex}
@@ -300,11 +300,6 @@
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-  <linearGradient id="rm-sea" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="#c7ebe4"/><stop offset="0.5" stop-color="#86c8cd"/><stop offset="1" stop-color="#4f9fb2"/></linearGradient>
-  <radialGradient id="rm-glow" cx="0.5" cy="0.32" r="0.7"><stop offset="0" stop-color="#e6f6f0" stop-opacity=".5"/><stop offset="1" stop-color="#e6f6f0" stop-opacity="0"/></radialGradient>
-  <filter id="rm-soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="14"/></filter>
-</defs></svg>
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav"><div class="nav-in">
@@ -336,27 +331,20 @@
     <div class="stage-phone" id="stagePhone">
       <div class="phone"><div class="scr stage-screens" id="screens">
         <div class="s routemap on" data-i="0">
-          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice">
-            <rect width="236" height="485" fill="url(#rm-sea)"/><rect width="236" height="485" fill="url(#rm-glow)"/>
-            <g filter="url(#rm-soft)" opacity=".5"><ellipse cx="55" cy="255" rx="86" ry="70" fill="#3f92a6"/><ellipse cx="205" cy="120" rx="66" ry="58" fill="#3f92a6"/><ellipse cx="180" cy="415" rx="78" ry="66" fill="#3f92a6"/><ellipse cx="120" cy="60" rx="70" ry="40" fill="#a7dcd8"/></g>
-            <g><path d="M36,150 C34,112 66,88 100,98 C138,109 140,150 120,182 C102,212 52,208 42,176 C37,166 37,158 36,150 Z" fill="#ecdfba"/><path d="M44,150 C42,118 70,97 99,106 C132,116 132,150 114,178 C98,204 58,201 49,173 C45,164 45,157 44,150 Z" fill="#8fbb7e"/><path d="M60,138 C70,120 95,122 104,142 C112,160 98,180 78,178 C58,175 52,155 60,138 Z" fill="#7aa96b"/></g>
-            <g><path d="M150,196 C148,168 172,150 198,158 C226,167 228,200 212,224 C196,248 158,244 150,220 C146,210 150,204 150,196 Z" fill="#ecdfba"/><path d="M157,196 C155,172 176,157 197,164 C221,172 221,200 207,220 C193,241 162,238 156,216 C153,208 156,203 157,196 Z" fill="#8fbb7e"/></g>
-            <g><path d="M34,320 C32,292 56,272 84,280 C114,289 118,322 100,346 C84,368 48,364 40,340 C36,330 34,326 34,320 Z" fill="#ecdfba"/><path d="M41,320 C39,297 60,281 82,288 C108,296 110,322 96,342 C82,361 52,358 46,336 C42,328 41,325 41,320 Z" fill="#8fbb7e"/><path d="M55,312 C64,298 84,300 90,316 C96,332 84,346 68,344 C52,341 48,325 55,312 Z" fill="#7aa96b"/></g>
-            <path d="M138,414 C136,400 150,392 164,398 C180,405 178,424 164,430 C150,436 140,428 138,414 Z" fill="#ecdfba"/><path d="M143,414 C141,403 152,397 163,402 C176,408 174,422 163,427 C151,432 145,424 143,414 Z" fill="#8fbb7e"/>
-            <circle cx="200" cy="300" r="7" fill="#ecdfba"/><circle cx="200" cy="300" r="4.5" fill="#8fbb7e"/><circle cx="30" cy="230" r="6" fill="#ecdfba"/><circle cx="30" cy="230" r="3.8" fill="#8fbb7e"/>
-            <path class="rm-line cap" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
-            <path class="rm-line" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
+          <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
+          <svg class="rm-svg" viewBox="0 0 300 620" preserveAspectRatio="none">
+            <path class="rm-line cap" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
+            <path class="rm-line" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
           </svg>
-          <span class="rm-lbl" style="left:32%;top:39%">Ko Phi Phi</span><span class="rm-lbl" style="left:74%;top:53%">Laem Tong</span><span class="rm-lbl" style="left:30%;top:79%">Nui Bay</span>
           <div class="rm-head"><div class="rm-title">Ko Phi Phi · with the crew</div>
             <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 · 6 stops</div></div>
-          <span class="rm-photo m1" style="left:84%;top:40%;background-image:url(assets/photo/swing.jpg)"></span>
-          <span class="rm-photo m2" style="left:16%;top:62%;background-image:url(assets/photo/sunset.jpg)"></span>
-          <span class="rm-pin s1" style="left:33%;top:30.9%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:70.3%;top:48.7%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:32.2%;top:68%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:63.6%;top:86.6%"><b>4</b></span>
-          <span class="rm-pulse" style="left:63.6%;top:86.6%"></span>
+          <span class="rm-photo m1" style="left:62%;top:41%;background-image:url(assets/photo/swing.jpg)"></span>
+          <span class="rm-photo m2" style="left:24%;top:63%;background-image:url(assets/photo/sunset.jpg)"></span>
+          <span class="rm-pin s1" style="left:71.4%;top:29.1%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:50%;top:47.2%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:38.3%;top:57.6%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:69.4%;top:70.9%"><b>4</b></span>
+          <span class="rm-pulse" style="left:69.4%;top:70.9%"></span>
         </div>
         <div class="s appscr" data-i="1">
           <div class="top"><div class="t">Costa Rica · 8 days</div>
@@ -381,45 +369,30 @@
           </div>
         </div>
         <div class="s routemap" data-i="3">
-          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice">
-            <rect width="236" height="485" fill="url(#rm-sea)"/><rect width="236" height="485" fill="url(#rm-glow)"/>
-            <g filter="url(#rm-soft)" opacity=".5"><ellipse cx="55" cy="255" rx="86" ry="70" fill="#3f92a6"/><ellipse cx="205" cy="120" rx="66" ry="58" fill="#3f92a6"/><ellipse cx="180" cy="415" rx="78" ry="66" fill="#3f92a6"/><ellipse cx="120" cy="60" rx="70" ry="40" fill="#a7dcd8"/></g>
-            <g><path d="M36,150 C34,112 66,88 100,98 C138,109 140,150 120,182 C102,212 52,208 42,176 C37,166 37,158 36,150 Z" fill="#ecdfba"/><path d="M44,150 C42,118 70,97 99,106 C132,116 132,150 114,178 C98,204 58,201 49,173 C45,164 45,157 44,150 Z" fill="#8fbb7e"/><path d="M60,138 C70,120 95,122 104,142 C112,160 98,180 78,178 C58,175 52,155 60,138 Z" fill="#7aa96b"/></g>
-            <g><path d="M150,196 C148,168 172,150 198,158 C226,167 228,200 212,224 C196,248 158,244 150,220 C146,210 150,204 150,196 Z" fill="#ecdfba"/><path d="M157,196 C155,172 176,157 197,164 C221,172 221,200 207,220 C193,241 162,238 156,216 C153,208 156,203 157,196 Z" fill="#8fbb7e"/></g>
-            <g><path d="M34,320 C32,292 56,272 84,280 C114,289 118,322 100,346 C84,368 48,364 40,340 C36,330 34,326 34,320 Z" fill="#ecdfba"/><path d="M41,320 C39,297 60,281 82,288 C108,296 110,322 96,342 C82,361 52,358 46,336 C42,328 41,325 41,320 Z" fill="#8fbb7e"/><path d="M55,312 C64,298 84,300 90,316 C96,332 84,346 68,344 C52,341 48,325 55,312 Z" fill="#7aa96b"/></g>
-            <path d="M138,414 C136,400 150,392 164,398 C180,405 178,424 164,430 C150,436 140,428 138,414 Z" fill="#ecdfba"/><path d="M143,414 C141,403 152,397 163,402 C176,408 174,422 163,427 C151,432 145,424 143,414 Z" fill="#8fbb7e"/>
-            <circle cx="200" cy="300" r="7" fill="#ecdfba"/><circle cx="200" cy="300" r="4.5" fill="#8fbb7e"/><circle cx="30" cy="230" r="6" fill="#ecdfba"/><circle cx="30" cy="230" r="3.8" fill="#8fbb7e"/>
-            <path class="rm-line cap" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
-            <path class="rm-line" pathLength="100" d="M78,150 C118,175 138,196 166,236 C196,286 60,300 76,330 C92,360 176,388 150,420"/>
+          <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
+          <svg class="rm-svg" viewBox="0 0 300 620" preserveAspectRatio="none">
+            <path class="rm-line cap" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
+            <path class="rm-line" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
           </svg>
-          <span class="rm-lbl" style="left:32%;top:39%">Maya Bay</span><span class="rm-lbl" style="left:74%;top:53%">Bamboo Is.</span><span class="rm-lbl" style="left:30%;top:79%">Railay</span>
-          <div class="rm-head"><div class="rm-title">Krabi · the long way</div>
-            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking · day 4 of 9</div></div>
-          <span class="rm-photo m1" style="left:84%;top:40%;background-image:url(assets/photo/positano.jpg)"></span>
-          <span class="rm-photo m2" style="left:16%;top:62%;background-image:url(assets/photo/amalfi.jpg)"></span>
-          <span class="rm-pin s1" style="left:33%;top:30.9%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:70.3%;top:48.7%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:32.2%;top:68%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:63.6%;top:86.6%"><b>4</b></span>
-          <span class="rm-pulse" style="left:63.6%;top:86.6%"></span>
+          <div class="rm-head"><div class="rm-title">Ko Phi Phi · day 4 of 9</div>
+            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking your route</div></div>
+          <span class="rm-photo m1" style="left:62%;top:41%;background-image:url(assets/photo/positano.jpg)"></span>
+          <span class="rm-photo m2" style="left:24%;top:63%;background-image:url(assets/photo/amalfi.jpg)"></span>
+          <span class="rm-pin s1" style="left:71.4%;top:29.1%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:50%;top:47.2%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:38.3%;top:57.6%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:69.4%;top:70.9%"><b>4</b></span>
+          <span class="rm-pulse" style="left:69.4%;top:70.9%"></span>
         </div>
         <div class="s routemap" data-i="4">
-          <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice">
-            <rect width="236" height="485" fill="url(#rm-sea)"/><rect width="236" height="485" fill="url(#rm-glow)"/>
-            <g filter="url(#rm-soft)" opacity=".5"><ellipse cx="55" cy="255" rx="86" ry="70" fill="#3f92a6"/><ellipse cx="205" cy="120" rx="66" ry="58" fill="#3f92a6"/><ellipse cx="180" cy="415" rx="78" ry="66" fill="#3f92a6"/><ellipse cx="120" cy="60" rx="70" ry="40" fill="#a7dcd8"/></g>
-            <g><path d="M36,150 C34,112 66,88 100,98 C138,109 140,150 120,182 C102,212 52,208 42,176 C37,166 37,158 36,150 Z" fill="#ecdfba"/><path d="M44,150 C42,118 70,97 99,106 C132,116 132,150 114,178 C98,204 58,201 49,173 C45,164 45,157 44,150 Z" fill="#8fbb7e"/><path d="M60,138 C70,120 95,122 104,142 C112,160 98,180 78,178 C58,175 52,155 60,138 Z" fill="#7aa96b"/></g>
-            <g><path d="M150,196 C148,168 172,150 198,158 C226,167 228,200 212,224 C196,248 158,244 150,220 C146,210 150,204 150,196 Z" fill="#ecdfba"/><path d="M157,196 C155,172 176,157 197,164 C221,172 221,200 207,220 C193,241 162,238 156,216 C153,208 156,203 157,196 Z" fill="#8fbb7e"/></g>
-            <g><path d="M34,320 C32,292 56,272 84,280 C114,289 118,322 100,346 C84,368 48,364 40,340 C36,330 34,326 34,320 Z" fill="#ecdfba"/><path d="M41,320 C39,297 60,281 82,288 C108,296 110,322 96,342 C82,361 52,358 46,336 C42,328 41,325 41,320 Z" fill="#8fbb7e"/><path d="M55,312 C64,298 84,300 90,316 C96,332 84,346 68,344 C52,341 48,325 55,312 Z" fill="#7aa96b"/></g>
-            <circle cx="200" cy="300" r="7" fill="#ecdfba"/><circle cx="200" cy="300" r="4.5" fill="#8fbb7e"/><circle cx="30" cy="230" r="6" fill="#ecdfba"/><circle cx="30" cy="230" r="3.8" fill="#8fbb7e"/>
-          </svg>
-          <span class="rm-lbl" style="left:32%;top:39%">Ko Phi Phi</span><span class="rm-lbl" style="left:74%;top:53%">Laem Tong</span>
-          <div class="rm-head"><div class="rm-title">Near you · Ao Nang</div><div class="rm-sub">Ask Drift what&rsquo;s good nearby</div></div>
-          <span class="disc-pin p1" style="left:32%;top:31%"></span>
-          <span class="disc-pin p2" style="left:70%;top:40%"></span>
-          <span class="disc-pin p3" style="left:33%;top:66%"></span>
-          <span class="disc-pin p4" style="left:64%;top:75%"></span>
-          <span class="disc-pin p5" style="left:20%;top:48%"></span>
-          <span class="rm-pulse" style="left:52%;top:56%"></span>
+          <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
+          <div class="rm-head"><div class="rm-title">Near you · Ton Sai</div><div class="rm-sub">Ask Drift what&rsquo;s good nearby</div></div>
+          <span class="disc-pin p1" style="left:58%;top:34%"></span>
+          <span class="disc-pin p2" style="left:44%;top:48%"></span>
+          <span class="disc-pin p3" style="left:36%;top:60%"></span>
+          <span class="disc-pin p4" style="left:54%;top:66%"></span>
+          <span class="disc-pin p5" style="left:66%;top:42%"></span>
+          <span class="rm-pulse" style="left:50%;top:52%"></span>
           <div class="disc-card"><div class="dp" style="background-image:url(assets/photo/phiphi.jpg)"></div><div><div class="dn">Monkey Beach</div><div class="dm">★ 4.8 · 1.2 mi · snorkel spot</div></div><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
         </div>
         <div class="s stat" data-i="5">
@@ -507,7 +480,7 @@
   </div>
   <div class="fbot">
     <span>© 2026 Drift · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a></span>
-    <span>Made for people who travel together.</span>
+    <span>Made for people who travel together. · Maps © Mapbox, © OpenStreetMap</span>
   </div>
 </div></footer>
 
