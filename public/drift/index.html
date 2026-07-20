@@ -58,29 +58,25 @@
   .nav-cta svg{width:14px;height:14px}
   @media(max-width:560px){.nav-login{display:none}}
 
-  /* ============ HERO (cinematic full-bleed) ============ */
-  .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;text-align:center;color:#fff;overflow:hidden}
-  .hero-bg{position:absolute;inset:0;z-index:0;will-change:transform}
-  .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 30%;transform:scale(1.04)}
-  /* cinematic, moody grade — dark for legibility, immersive, fading into cream */
-  .hero-bg::after{content:"";position:absolute;inset:0;background:
-     radial-gradient(120% 80% at 50% 34%,rgba(6,11,18,0) 30%,rgba(6,11,18,.34) 100%),
-     linear-gradient(180deg,rgba(6,11,18,.66) 0%,rgba(6,11,18,.26) 20%,rgba(6,11,18,.30) 50%,rgba(6,11,18,.60) 78%,var(--cream) 100%)}
-  /* diagonal cream wedge into the next section */
-  .hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:92px;z-index:1;background:var(--cream);clip-path:polygon(0 58px,100% 0,100% 100%,0 100%)}
-  .hero-copy{position:relative;z-index:2;margin-top:clamp(120px,17vh,168px);padding:0 22px;max-width:860px}
-  .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 15px;border-radius:100px}
+  /* ============ EPIC HERO — persistent photo backdrop + rising phone ============ */
+  .stage-photo{position:absolute;inset:0;z-index:0;will-change:opacity}
+  .stage-photo img{width:100%;height:100%;object-fit:cover;object-position:center 30%;transform:scale(1.05)}
+  .stage-scrim{position:absolute;inset:0;z-index:1;will-change:opacity;background:
+     radial-gradient(120% 80% at 50% 32%,rgba(6,11,18,0) 26%,rgba(6,11,18,.30) 100%),
+     linear-gradient(180deg,rgba(6,11,18,.68) 0%,rgba(6,11,18,.24) 24%,rgba(6,11,18,.28) 54%,rgba(6,11,18,.66) 100%)}
+  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(104px,16vh,168px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
+  .stage-hero>*{pointer-events:auto}
+  .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);padding:7px 15px;border-radius:100px}
   .laurel i{width:7px;height:7px;border-radius:50%;background:#FF7A52;box-shadow:0 0 10px #FF7A52}
-  .hero h1{font-size:clamp(52px,10vw,116px);margin:20px 0 0;line-height:.98;text-shadow:0 2px 50px rgba(0,0,0,.4)}
-  .hero h1 em{font-style:italic}
-  .hero .sub{font-size:clamp(16.5px,1.7vw,21px);color:rgba(255,255,255,.94);margin:18px auto 0;max-width:32ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.4)}
-  .hero .cta{margin-top:26px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
-  .hero .rate{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.9);display:inline-flex;align-items:center;gap:8px}
-  .hero .rate .av{display:flex}
-  .hero .rate .av span{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.85);margin-left:-8px;background-size:cover;background-position:center}
-  .hero .rate .av span:first-child{margin-left:0}
-  .hero-phone{position:relative;z-index:2;margin-top:clamp(30px,5vh,52px);margin-bottom:-90px}
-  .hero-cap{position:relative;z-index:2;margin-top:14px;color:var(--coralDeep);font-family:var(--hand);font-weight:700;font-size:21px;letter-spacing:.04em}
+  .stage-hero h1{font-size:clamp(50px,9.4vw,112px);margin:18px 0 0;line-height:.98;text-shadow:0 2px 50px rgba(0,0,0,.45)}
+  .stage-hero h1 em{font-style:italic}
+  .stage-hero .sub{font-size:clamp(16px,1.7vw,20px);color:rgba(255,255,255,.94);margin:16px auto 0;max-width:30ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.45)}
+  .stage-hero .cta{margin-top:24px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
+  .stage-hero .rate{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.92);display:inline-flex;align-items:center;gap:8px}
+  .stage-hero .rate .av{display:flex}
+  .stage-hero .rate .av span{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.85);margin-left:-8px;background-size:cover;background-position:center}
+  .stage-hero .rate .av span:first-child{margin-left:0}
+  .hero-cap{margin-top:18px;color:#FFD9C9;font-family:var(--hand);font-weight:700;font-size:20px;letter-spacing:.04em;text-shadow:0 1px 10px rgba(0,0,0,.4)}
 
   /* ============ PHONE (one crisp device, native-res screens) ============ */
   .phone{position:relative;width:var(--pw,274px);padding:7px;border-radius:44px;
@@ -191,7 +187,7 @@
   .stat-card .row div span{display:block;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:700}
 
   /* ============ STORY (sticky-phone scrollytelling) ============ */
-  .story{position:relative;height:760vh;background:var(--cream)}
+  .story{position:relative;height:860vh;background:var(--cream)}
   .stage{position:sticky;top:0;height:100svh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
   .stage-phone{position:relative;z-index:3;transition:transform .7s var(--e)}
   .stage-phone .phone{--pw:270px}
@@ -320,42 +316,24 @@
   </div>
 </div></header>
 
-<!-- ============ HERO ============ -->
-<section class="hero" id="top">
-  <div class="hero-bg" data-px="0.08"><picture><source type="image/webp" srcset="assets/photo/hero.webp"><img src="assets/photo/hero.jpg" alt="Friends on a boat in the Phi Phi islands" width="1180" height="1573"></picture></div>
-  <div class="hero-copy">
-    <span class="laurel"><i></i>The group-trip app · iPhone</span>
-    <h1 data-ghost>Every trip,<br><em>together.</em></h1>
-    <p class="sub">Plan it with your people, track the journey and split every cost — then watch it map itself.</p>
-    <div class="cta">
-      <a class="btn light" href="#beta"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get it on TestFlight</a>
-      <span class="rate"><span class="av"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Free during the beta</span>
-    </div>
-  </div>
-  <div class="hero-phone" data-px="-0.05">
-    <div class="phone"><div class="scr">
-      <div class="routemap on" id="heroRoute">
-        <div class="rm-bg"></div><div class="rm-scrim"></div>
-        <div class="rm-head"><div class="rm-title">Bali · with the crew</div>
-          <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 · 6 stops</div></div>
-        <svg class="rm-svg" viewBox="0 0 236 485" preserveAspectRatio="xMidYMid slice"><path class="rm-line" pathLength="100" d="M62,150 C110,175 130,185 156,205 C200,235 60,265 92,300 C120,330 180,355 168,385"/></svg>
-        <span class="rm-photo m1" style="left:74%;top:34%;background-image:url(assets/photo/swing.jpg)"></span>
-        <span class="rm-photo m2" style="left:27%;top:56%;background-image:url(assets/photo/sunset.jpg)"></span>
-        <span class="rm-pin s1" style="left:26.3%;top:30.9%"><b>1</b></span>
-        <span class="rm-pin s2" style="left:66.1%;top:42.3%"><b>2</b></span>
-        <span class="rm-pin s3" style="left:39%;top:61.9%"><b>3</b></span>
-        <span class="rm-pin s4" style="left:71.2%;top:79.4%"><b>4</b></span>
-        <span class="rm-pulse" style="left:71.2%;top:79.4%"></span>
-      </div>
-    </div></div>
-  </div>
-  <div class="hero-cap">↓&nbsp;&nbsp;Explore the app</div>
-</section>
-
-<!-- ============ STORY (sticky scrollytelling) ============ -->
-<section class="story" id="story">
+<!-- ============ EPIC — photo hero backdrop + sticky scrollytelling ============ -->
+<section class="story" id="story"><span id="top"></span>
   <div class="stage" id="stage">
-    <!-- pinned phone with crossfading screens -->
+    <!-- persistent full-bleed photo backdrop (fades out as the phone rises) -->
+    <div class="stage-photo" id="ephoto"><picture><source type="image/webp" srcset="assets/photo/hero.webp"><img src="assets/photo/hero.jpg" alt="Aerial view of the Phi Phi islands" width="1180" height="1573"></picture></div>
+    <div class="stage-scrim" id="escrim"></div>
+    <!-- hero copy — fades away as the phone rises into frame -->
+    <div class="stage-hero" id="ehero">
+      <span class="laurel"><i></i>The group-trip app · iPhone</span>
+      <h1 data-ghost>Every trip,<br><em>together.</em></h1>
+      <p class="sub">Plan it with your people, track the journey and split every cost — then watch it map itself.</p>
+      <div class="cta">
+        <a class="btn light" href="#beta"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get it on TestFlight</a>
+        <span class="rate"><span class="av"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Free during the beta</span>
+      </div>
+      <div class="hero-cap">↓&nbsp;&nbsp;Explore the app</div>
+    </div>
+    <!-- pinned phone — rises from the bottom, screens evolve as you scroll -->
     <div class="stage-phone" id="stagePhone">
       <div class="phone"><div class="scr stage-screens" id="screens">
         <div class="s routemap on" data-i="0">
@@ -544,38 +522,51 @@
     }
     return 'rgb(245,234,218)';
   }
-  var cur=-1;
+  var cur=-1, HERO_END=0.15;
+  var ephoto=document.getElementById('ephoto'),escrim=document.getElementById('escrim'),ehero=document.getElementById('ehero');
+  function clamp01(x){return x<0?0:x>1?1:x;}
   function storyCount(el){var to=+el.getAttribute('data-to'),t0=null;
-    function step(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/1100,1);el.textContent=Math.round((1-Math.pow(1-p,3))*to);if(p<1)requestAnimationFrame(step);}
+    function step(ts){if(!t0)t0=ts;var q=Math.min((ts-t0)/1100,1);el.textContent=Math.round((1-Math.pow(1-q,3))*to);if(q<1)requestAnimationFrame(step);}
     requestAnimationFrame(step);}
-  function setChapter(i,p){
+  function setChapter(i){
     if(i!==cur){
       cur=i;
       screens.forEach(function(s,k){s.classList.toggle('on',k===i);});
-      chaps.forEach(function(c,k){c.classList.toggle('on',k===i);});
-      // count up any numbers inside the newly-active screen
       if(!reduce){var act=screens[i];if(act){act.querySelectorAll('.count').forEach(function(c){
         c.dataset.done='';c.textContent='0';setTimeout(function(){storyCount(c);},420);});}}
-      // phone tilt alternates
-      stagePhone.style.transform='perspective(1300px) rotateY('+((i%2)?-13:13)+'deg) rotateZ('+((i%2)?1.4:-1.4)+'deg) translateX('+((i%2)?-14:14)+'px)';
-      // active tab phase
       var phase = i<3?'plan':(i<6?'track':'relive');
       tabs.forEach(function(t){t.classList.toggle('on',t.dataset.phase===phase);});
     }
   }
+  function phoneTransform(i,rise){
+    var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
+    stagePhone.style.transform='perspective(1300px) translateY('+(rise*46).toFixed(1)+'vh) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg) translateX('+(tx*tilt).toFixed(1)+'px)';
+  }
   function onStory(){
     var r=story.getBoundingClientRect();
     var total=story.offsetHeight-innerHeight;
-    var p=Math.min(Math.max(-r.top/total,0),1);
+    var p=clamp01(-r.top/total);
     stage.style.backgroundColor=bgAt(p);
     stage.classList.toggle('night',p>0.44&&p<0.97);
-    var idx=Math.min(Math.floor(p*N),N-1);
-    setChapter(idx,p);
+    // hero intro: full-bleed photo persists behind a rising phone, then wipes away
+    var photoOp=1-clamp01((p-0.17)/0.10);          // photo holds through hero + first chapter, then fades
+    var heroOp=1-clamp01((p-0.03)/0.08);           // hero copy gone by ~p.11
+    var rise=clamp01(1-p/0.13);                    // phone rises from the bottom, seated by p.13
+    if(ephoto)ephoto.style.opacity=photoOp;
+    if(escrim)escrim.style.opacity=photoOp*(1-clamp01((p-0.03)/0.09));
+    if(ehero){ehero.style.opacity=heroOp;ehero.style.transform='translateY('+(-(1-heroOp)*22).toFixed(1)+'px)';ehero.style.pointerEvents=heroOp>0.5?'auto':'none';}
+    // chapters mapped to the range AFTER the hero slice
+    var heroMode=p<HERO_END;
+    var cp=clamp01((p-HERO_END)/(1-HERO_END));
+    var idx=Math.min(Math.floor(cp*N),N-1);
+    setChapter(idx);
+    chaps.forEach(function(c,k){c.classList.toggle('on',!heroMode&&k===idx);});
+    phoneTransform(idx,rise);
   }
-  // tab click -> scroll to phase
+  // tab click -> scroll to phase (accounting for the hero slice)
   tabs.forEach(function(t){t.addEventListener('click',function(){
     var to=+t.dataset.to; var total=story.offsetHeight-innerHeight;
-    var y=story.offsetTop + (to/N + 0.5/N)*total;
+    var y=story.offsetTop + (HERO_END + (to/N + 0.5/N)*(1-HERO_END))*total;
     scrollTo({top:y,behavior:reduce?'auto':'smooth'});
   });});
 
