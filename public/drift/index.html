@@ -140,6 +140,22 @@
   .s.on .pl-card{animation:appin .5s var(--e) forwards}
   .pl-card.k2{animation-delay:.28s}.pl-card.k3{animation-delay:.56s}.pl-card.k4{animation-delay:.84s}
   @keyframes appin{to{opacity:1;transform:none}}
+  /* RESERVATIONS — inbox bookings parsed + dropped into the trip */
+  .res-scan{margin:2px 14px 0;font-size:10.5px;font-weight:700;color:var(--coralDeep);display:flex;align-items:center;gap:6px}
+  .res-scan .dot{width:6px;height:6px;border-radius:50%;background:var(--coral);animation:cbounce 1.3s infinite}
+  .res-list{padding:8px 13px 0;display:flex;flex-direction:column;gap:8px}
+  .res-row{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px 11px;box-shadow:0 8px 18px -14px rgba(40,26,12,.4);opacity:0;transform:translateY(16px)}
+  .s.on .res-row{animation:appin .5s var(--e) forwards}
+  .res-row.d2{animation-delay:.35s}.res-row.d3{animation-delay:.7s}.res-row.d4{animation-delay:1.05s}
+  .res-row .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;color:#fff}
+  .res-row .ic svg{width:19px;height:19px}
+  .res-row .ic.fl{background:#2C6FE0}.res-row .ic.st{background:#1F7A5E}.res-row .ic.ac{background:var(--coral)}.res-row .ic.tr{background:#7A5AA8}
+  .res-row .d{font-size:9px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  .res-row .n{font-weight:700;font-size:12.5px;margin-top:1px;color:var(--ink)}
+  .res-row .chk{margin-left:auto;width:22px;height:22px;border-radius:50%;background:#22B36B;color:#fff;display:grid;place-items:center;flex-shrink:0;transform:scale(0)}
+  .res-row .chk svg{width:13px}
+  .s.on .res-row .chk{animation:rm-drop .4s var(--e) forwards}
+  .res-row.d1 .chk{animation-delay:.4s}.res-row.d2 .chk{animation-delay:.75s}.res-row.d3 .chk{animation-delay:1.1s}.res-row.d4 .chk{animation-delay:1.45s}
   /* SPLIT — rows appear, BEST highlights, settle bar fills, count animates */
   .sp-wrap{padding:6px 14px;display:flex;flex-direction:column;gap:10px}
   .sp-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:11px 12px 6px}
@@ -182,7 +198,7 @@
   .stat-card .row div span{display:block;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:700}
 
   /* ============ STORY (sticky-phone scrollytelling) ============ */
-  .story{position:relative;height:860vh;background:var(--cream)}
+  .story{position:relative;height:680vh;background:var(--cream)}
   .stage{position:sticky;top:0;height:100svh;height:100dvh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
   .stage-phone{position:relative;z-index:3;transition:transform .7s var(--e);will-change:transform;backface-visibility:hidden}
   .stage-phone .phone{--pw:270px}
@@ -221,7 +237,7 @@
   .stage.night .tab{color:rgba(255,255,255,.4)}
   .tab.on{color:#fff;transform:rotate(-2.2deg)}
   .tab.on.plan{background:var(--greenDeep)}
-  .tab.on.track{background:var(--coral)}
+  .tab.on.split{background:var(--coral)}
   .tab.on.relive{background:var(--green)}
 
   /* ============ CHAT (Ask Drift) ============ */
@@ -266,6 +282,7 @@
   .pcard .im{height:66px;background-size:cover;background-position:center}
   .pcard .tx{padding:7px 8px 8px}
   .pcard .nm{font-weight:700;font-size:11px;line-height:1.1}
+  .pcard .cat{font-size:8.5px;font-weight:800;letter-spacing:.02em;color:var(--coralDeep);margin-top:2px;text-transform:uppercase}
   .pcard .mt{font-size:9px;color:var(--muted);font-weight:600;margin-top:2px}
   .pcard .st{color:#E8A33A}
   .qchips{display:flex;gap:6px;align-self:flex-start;flex-wrap:wrap}
@@ -488,17 +505,27 @@
           <span class="rm-pulse" style="left:69.4%;top:70.9%"></span>
         </div>
         <div class="s appscr" data-i="1">
-          <div class="top"><div class="t">Costa Rica · 8 days</div>
+          <div class="top"><div class="t">Barcelona · 5 days</div>
             <div class="u"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 building the plan</div></div>
           <div class="pl-list">
-            <div class="pl-card k1"><div class="th" style="background-image:url(assets/photo/positano.jpg)"></div><div><div class="d">DAY 1 · SAN JOSÉ</div><div class="n">Barrio Escalante food crawl</div><div class="by"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i>added by Ana</div></div></div>
-            <div class="pl-card k2"><div class="th" style="background-image:url(assets/photo/swing.jpg)"></div><div><div class="d">DAY 2 · MANUEL ANTONIO</div><div class="n">Rainforest &amp; the beach</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Sam</div></div></div>
-            <div class="pl-card k3"><div class="th" style="background-image:url(assets/photo/amalfi.jpg)"></div><div><div class="d">DAY 4 · MONTEVERDE</div><div class="n">Cloud-forest ziplines</div><div class="by"><i style="background-image:url(assets/photo/hero.jpg)"></i>added by you</div></div></div>
-            <div class="pl-card k4"><div class="th" style="background-image:url(assets/photo/sunset.jpg)"></div><div><div class="d">DAY 6 · ARENAL</div><div class="n">Hot springs at dusk</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Mia</div></div></div>
+            <div class="pl-card k1"><div class="th" style="background-image:url(assets/photo/positano.jpg)"></div><div><div class="d">DAY 1 · GOTHIC QUARTER</div><div class="n">Tapas &amp; back-alley bars</div><div class="by"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i>added by Ana</div></div></div>
+            <div class="pl-card k2"><div class="th" style="background-image:url(assets/app/bcn-sagrada.webp)"></div><div><div class="d">DAY 2 · EIXAMPLE</div><div class="n">The Gaudí day</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Sam</div></div></div>
+            <div class="pl-card k3"><div class="th" style="background-image:url(assets/photo/amalfi.jpg)"></div><div><div class="d">DAY 3 · GRÀCIA</div><div class="n">Coffee &amp; slow markets</div><div class="by"><i style="background-image:url(assets/photo/hero.jpg)"></i>added by you</div></div></div>
+            <div class="pl-card k4"><div class="th" style="background-image:url(assets/photo/sunset.jpg)"></div><div><div class="d">DAY 4 · BARCELONETA</div><div class="n">Beach + sunset paella</div><div class="by"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>added by Mia</div></div></div>
           </div>
         </div>
         <div class="s appscr" data-i="2">
-          <div class="top"><div class="t">Casa Verde · Aug 12–16</div><div class="u">Best rate &amp; who owes what</div></div>
+          <div class="top"><div class="t">Barcelona · from your inbox</div><div class="u">Drift found &amp; added these automatically</div></div>
+          <div class="res-scan"><span class="dot"></span>Scanned 4 confirmations</div>
+          <div class="res-list">
+            <div class="res-row d1"><span class="ic fl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2L13.5 9V4a1.5 1.5 0 00-3 0v5L3 13.5v2l7.5-2v4l-2 1.4V20l3.5-1 3.5 1v-1.1l-2-1.4v-4l7.5 2z"/></svg></span><div><div class="d">Flight · Aug 12</div><div class="n">SFO → Barcelona</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
+            <div class="res-row d2"><span class="ic st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19v-5a2 2 0 012-2h14a2 2 0 012 2v5M3 19v1M21 19v1M3 13V8a2 2 0 012-2h4a2 2 0 012 2v4"/></svg></span><div><div class="d">Stay · Aug 12–16</div><div class="n">Casa Gràcia</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
+            <div class="res-row d3"><span class="ic ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 012-2h12a2 2 0 012 2 2 2 0 000 4 2 2 0 000 4 2 2 0 01-2 2H6a2 2 0 01-2-2 2 2 0 000-4 2 2 0 000-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/></svg></span><div><div class="d">Ticket · Aug 13, 10:00</div><div class="n">Sagrada Família</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
+            <div class="res-row d4"><span class="ic tr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M9 20l-2 2M15 20l2 2"/></svg></span><div><div class="d">Train · Aug 15</div><div class="n">Barcelona → Girona</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
+          </div>
+        </div>
+        <div class="s appscr" data-i="3">
+          <div class="top"><div class="t">Casa Gràcia · Aug 12–16</div><div class="u">Best rate &amp; who owes what</div></div>
           <div class="sp-wrap">
             <div class="sp-card">
               <div class="h">4 sites compared</div>
@@ -509,59 +536,23 @@
             <div class="sp-settle"><div class="l">You owe Ana</div><div class="amt"><em>$<span class="count" data-to="54">54</span></em></div><div class="bar"><i></i></div></div>
           </div>
         </div>
-        <div class="s routemap" data-i="3">
-          <div class="rm-mb" style="background-image:url(assets/app/mb-railay.webp)"></div>
-          <svg class="rm-svg" viewBox="0 0 300 620" preserveAspectRatio="none">
-            <path class="rm-line cap" pathLength="100" d="M57.8,129.9 C76.7,151.6 147.4,216.9 171.5,260.3 C195.6,303.8 192.0,352.4 202.3,390.7 C212.5,429.0 227.9,473.5 233.0,490.1"/>
-            <path class="rm-line" pathLength="100" d="M57.8,129.9 C76.7,151.6 147.4,216.9 171.5,260.3 C195.6,303.8 192.0,352.4 202.3,390.7 C212.5,429.0 227.9,473.5 233.0,490.1"/>
-          </svg>
-          <div class="rm-head"><div class="rm-title">Railay · day 4 of 9</div>
-            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking your route</div></div>
-          <span class="rm-photo m1" style="left:75%;top:36%;background-image:url(assets/photo/positano.jpg)"></span>
-          <span class="rm-photo m2" style="left:47%;top:57%;background-image:url(assets/photo/amalfi.jpg)"></span>
-          <span class="rm-pin s1" style="left:19.3%;top:21%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:57.2%;top:42%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:67.4%;top:63%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:77.7%;top:79%"><b>4</b></span>
-          <span class="rm-pulse" style="left:77.7%;top:79%"></span>
-        </div>
-        <div class="s routemap" data-i="4">
-          <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
-          <div class="rm-head"><div class="rm-title">Near you · Ton Sai</div><div class="rm-sub">Ask Drift what&rsquo;s good nearby</div></div>
-          <span class="disc-pin p1" style="left:58%;top:34%"></span>
-          <span class="disc-pin p2" style="left:44%;top:48%"></span>
-          <span class="disc-pin p3" style="left:36%;top:60%"></span>
-          <span class="disc-pin p4" style="left:54%;top:66%"></span>
-          <span class="disc-pin p5" style="left:66%;top:42%"></span>
-          <span class="rm-pulse" style="left:50%;top:52%"></span>
-          <div class="disc-card"><div class="dp" style="background-image:url(assets/photo/phiphi.jpg)"></div><div><div class="dn">Monkey Beach</div><div class="dm">★ 4.8 · 1.2 mi · snorkel spot</div></div><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span></div>
-        </div>
-        <div class="s stat" data-i="5">
-          <img class="stat-globe" src="assets/app/onboard-globe-anim.webp" alt="Your globe filling in">
-          <div class="stat-card">
-            <div class="big"><span class="count" data-to="24">24</span><em>countries</em></div>
-            <div class="row"><div><b><span class="count" data-to="12">12</span>%</b><span>of the world</span></div><div><b><span class="count" data-to="47">47</span></b><span>cities</span></div><div><b><span class="count" data-to="9">9</span></b><span>trips</span></div></div>
-          </div>
-        </div>
-        <img class="s" data-i="6" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trip photos, rotating">
+        <img class="s" data-i="4" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trip photos, rotating">
         <div class="hero-globe" id="heroGlobe"><img src="assets/app/onboard-globe-anim.webp" alt="Your living globe, filling with every trip"></div>
       </div></div>
     </div>
     <!-- chapter text blocks -->
     <div class="chapters" id="chapters">
-      <div class="chap on right" data-i="0"><div class="eyebrow">Trip planner</div><h2>Plan it <em>together.</em></h2><p>Everyone drops pins on one shared map — the route builds itself as your crew adds spots.</p></div>
+      <div class="chap on right" data-i="0"><div class="eyebrow">Plan together</div><h2>Plan it <em>together.</em></h2><p>Everyone drops pins on one shared map — the route builds itself as your crew adds spots.</p></div>
       <div class="chap left" data-i="1"><div class="eyebrow">One shared plan</div><h2>Everyone on the<br>same page.</h2><p>Days, stays and the running plan, live for the whole group. No more 200-message chat.</p></div>
-      <div class="chap right" data-i="2"><div class="eyebrow">Book &amp; split</div><h2>Best price in.<br><em>Even</em> at the end.</h2><p>Compare Booking, Expedia and more, then Drift keeps score so the trip ends square.</p></div>
-      <div class="chap left" data-i="3"><div class="eyebrow">Trip tracker</div><h2>Your route, drawn<br>as you go.</h2><p>Drift quietly tracks where you wander and counts down the days to your next escape.</p></div>
-      <div class="chap right" data-i="4"><div class="eyebrow">Along the way</div><h2>Discover as<br>you wander.</h2><p>Real local takes and the best spots nearby — ask Drift anything, anytime.</p></div>
-      <div class="chap left" data-i="5"><div class="eyebrow">Countries add up</div><h2>Watch your<br>map grow.</h2><p>Every trip adds a country. Your world fills in, one journey at a time.</p></div>
-      <div class="chap right" data-i="6"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Your routes and photos pin themselves to a living globe of everywhere you&rsquo;ve been — and everyone you went with.</p></div>
+      <div class="chap right" data-i="2"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Drift reads your inbox and drops flights, stays and tickets straight onto the right day — no forwarding, no copy-paste.</p></div>
+      <div class="chap left" data-i="3"><div class="eyebrow">Book &amp; split</div><h2>Best price in.<br><em>Even</em> at the end.</h2><p>Compare Booking, Expedia and more, then Drift keeps score so the trip ends square.</p></div>
+      <div class="chap right" data-i="4"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Your routes and photos pin themselves to a living globe of everywhere you&rsquo;ve been — and everyone you went with.</p></div>
     </div>
     <!-- tab indicator -->
     <div class="tabs" id="tabs">
       <span class="tab plan on" data-phase="plan" data-to="0">Plan</span>
-      <span class="tab track" data-phase="track" data-to="3">Track</span>
-      <span class="tab relive" data-phase="relive" data-to="6">Relive</span>
+      <span class="tab split" data-phase="split" data-to="3">Split</span>
+      <span class="tab relive" data-phase="relive" data-to="4">Relive</span>
     </div>
   </div>
 </section>
@@ -571,27 +562,27 @@
   <div class="cs-copy">
     <span class="eyebrow" data-r>Your local, in your pocket</span>
     <h2 data-ghost>Ask Drift <em>anything.</em></h2>
-    <p class="lead" data-r>A travel buddy who actually knows the place — ask for sunset spots, cheap eats or a rainy-day plan, and drop it straight into the trip.</p>
-    <div class="cs-chips" data-r><span>Best sunset spots?</span><span>Cheap eats nearby</span><span>Rainy-day ideas</span><span>Hidden beaches</span></div>
+    <p class="lead" data-r>A travel buddy who actually knows the place — ask for the must-sees, the best coffee or a rainy-day plan, and drop it straight into the trip.</p>
+    <div class="cs-chips" data-r><span>What can&rsquo;t we miss?</span><span>Best coffee nearby</span><span>Rainy-day ideas</span><span>Skip-the-line tips</span></div>
   </div>
   <div class="cs-stage" data-r>
     <div class="cglow"></div>
-    <span class="cfloat f1">Where&rsquo;s the best ramen?</span>
+    <span class="cfloat f1">Best tapas near us?</span>
     <span class="cfloat f2">A rainy-day plan?</span>
     <span class="cfloat f3">Split tonight&rsquo;s dinner</span>
     <div class="cphone"><div class="cscr"><div class="cin">
-      <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Bali · with the crew</div></div></div>
+      <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Barcelona · with the crew</div></div></div>
       <div class="cbody">
-        <div class="crow me anim k1"><div class="bub">Where should we watch sunset tonight?</div></div>
+        <div class="crow me anim k1"><div class="bub">What can&rsquo;t we miss in Barcelona?</div></div>
         <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
-        <div class="crow bot anim k3"><div class="bub">Three stunners near you — all 15 min from the villa:</div></div>
+        <div class="crow bot anim k3"><div class="bub">A perfect first day — all in Eixample &amp; Gràcia:</div></div>
         <div class="pcards anim k4">
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/loc-tegal.webp)"></div><div class="tx"><div class="nm">Tegal Wangi</div><div class="mt"><span class="st">★</span> 4.8 · hidden cove</div></div></div>
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/loc-karma.webp)"></div><div class="tx"><div class="nm">Karma Beach</div><div class="mt"><span class="st">★</span> 4.7 · cliff bar</div></div></div>
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/loc-labrisa.webp)"></div><div class="tx"><div class="nm">La Brisa</div><div class="mt"><span class="st">★</span> 4.6 · beach club</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/bcn-sagrada.webp)"></div><div class="tx"><div class="nm">Sagrada Família</div><div class="cat">Gaudí basilica</div><div class="mt"><span class="st">★</span> 4.8 · 2 hr · book ahead</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/bcn-parkguell.webp)"></div><div class="tx"><div class="nm">Park Güell</div><div class="cat">Gaudí park</div><div class="mt"><span class="st">★</span> 4.7 · timed entry</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/bcn-coffee.webp)"></div><div class="tx"><div class="nm">Satan&rsquo;s Coffee</div><div class="cat">Specialty coffee</div><div class="mt"><span class="st">★</span> 4.6 · Gràcia</div></div></div>
         </div>
-        <div class="crow bot anim k5"><div class="bub">Karma Beach has live music at 6 — want it on tonight's plan?</div></div>
-        <div class="qchips anim k6"><b>+ Add to tonight</b><b>Show on map</b></div>
+        <div class="crow bot anim k5"><div class="bub">Sagrada sells out fast — want me to grab 10am tickets?</div></div>
+        <div class="qchips anim k6"><b>+ Add all to Day 2</b><b>Book tickets</b></div>
       </div>
       <div class="cinput anim k6"><span>Ask Drift anything…</span><span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
     </div></div></div>
@@ -721,7 +712,7 @@
       screens.forEach(function(s,k){s.classList.toggle('on',k===i);});
       if(!reduce){var act=screens[i];if(act){act.querySelectorAll('.count').forEach(function(c){
         c.dataset.done='';c.textContent='0';setTimeout(function(){storyCount(c);},420);});}}
-      var phase = i<3?'plan':(i<6?'track':'relive');
+      var phase = i<3?'plan':(i===3?'split':'relive');
       tabs.forEach(function(t){t.classList.toggle('on',t.dataset.phase===phase);});
     }
   }
