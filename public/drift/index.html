@@ -89,6 +89,8 @@
   /* ===== SELF-DRAWING ROUTE MAP (live phone screen) ===== */
   .routemap{position:absolute;inset:0;overflow:hidden;background:#3f6f7a}
   .rm-mb{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center}
+  .hero-globe{position:absolute;inset:0;z-index:6;opacity:0;transition:opacity .4s var(--e)}
+  .hero-globe img{width:100%;height:100%;object-fit:cover;object-position:center 40%}
   .rm-head{position:absolute;top:0;left:0;right:0;z-index:5;padding:16px 16px 34px;background:linear-gradient(180deg,rgba(8,20,28,.82) 0%,rgba(8,20,28,.5) 45%,transparent);color:#fff}
   .rm-title{font-family:var(--serif);font-size:16px;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,.6)}
   .rm-sub{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.92);text-shadow:0 1px 6px rgba(0,0,0,.5)}
@@ -400,20 +402,20 @@
           </div>
         </div>
         <div class="s routemap" data-i="3">
-          <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
+          <div class="rm-mb" style="background-image:url(assets/app/mb-railay.webp)"></div>
           <svg class="rm-svg" viewBox="0 0 300 620" preserveAspectRatio="none">
-            <path class="rm-line cap" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
-            <path class="rm-line" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
+            <path class="rm-line cap" pathLength="100" d="M57.8,129.9 C76.7,151.6 147.4,216.9 171.5,260.3 C195.6,303.8 192.0,352.4 202.3,390.7 C212.5,429.0 227.9,473.5 233.0,490.1"/>
+            <path class="rm-line" pathLength="100" d="M57.8,129.9 C76.7,151.6 147.4,216.9 171.5,260.3 C195.6,303.8 192.0,352.4 202.3,390.7 C212.5,429.0 227.9,473.5 233.0,490.1"/>
           </svg>
-          <div class="rm-head"><div class="rm-title">Ko Phi Phi · day 4 of 9</div>
+          <div class="rm-head"><div class="rm-title">Railay · day 4 of 9</div>
             <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Tracking your route</div></div>
-          <span class="rm-photo m1" style="left:62%;top:41%;background-image:url(assets/photo/positano.jpg)"></span>
-          <span class="rm-photo m2" style="left:24%;top:63%;background-image:url(assets/photo/amalfi.jpg)"></span>
-          <span class="rm-pin s1" style="left:71.4%;top:29.1%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:50%;top:47.2%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:38.3%;top:57.6%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:69.4%;top:70.9%"><b>4</b></span>
-          <span class="rm-pulse" style="left:69.4%;top:70.9%"></span>
+          <span class="rm-photo m1" style="left:75%;top:36%;background-image:url(assets/photo/positano.jpg)"></span>
+          <span class="rm-photo m2" style="left:47%;top:57%;background-image:url(assets/photo/amalfi.jpg)"></span>
+          <span class="rm-pin s1" style="left:19.3%;top:21%"><b>1</b></span>
+          <span class="rm-pin s2" style="left:57.2%;top:42%"><b>2</b></span>
+          <span class="rm-pin s3" style="left:67.4%;top:63%"><b>3</b></span>
+          <span class="rm-pin s4" style="left:77.7%;top:79%"><b>4</b></span>
+          <span class="rm-pulse" style="left:77.7%;top:79%"></span>
         </div>
         <div class="s routemap" data-i="4">
           <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
@@ -435,6 +437,7 @@
         </div>
         <img class="s" data-i="6" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trip photos, rotating">
         <img class="s" data-i="7" src="assets/app/onboard-globe-anim.webp" alt="Everywhere you have been">
+        <div class="hero-globe" id="heroGlobe"><img src="assets/app/onboard-globe-anim.webp" alt="Your living globe, filling with every trip"></div>
       </div></div>
     </div>
     <!-- chapter text blocks -->
@@ -557,7 +560,7 @@
     return 'rgb(245,234,218)';
   }
   var cur=-1, HERO_END=0.15;
-  var ephoto=document.getElementById('ephoto'),escrim=document.getElementById('escrim'),ehero=document.getElementById('ehero'),tabsWrap=document.getElementById('tabs');
+  var ephoto=document.getElementById('ephoto'),escrim=document.getElementById('escrim'),ehero=document.getElementById('ehero'),tabsWrap=document.getElementById('tabs'),heroGlobe=document.getElementById('heroGlobe');
   if(tabsWrap)tabsWrap.style.transition='opacity .45s var(--e)';
   function clamp01(x){return x<0?0:x>1?1:x;}
   function storyCount(el){var to=+el.getAttribute('data-to'),t0=null;
@@ -586,11 +589,12 @@
     stage.classList.toggle('night',p>0.44&&p<0.97);
     // hero intro: full-bleed photo persists behind a rising phone, then wipes away
     var photoOp=1-clamp01((p-0.17)/0.10);          // photo holds through hero + first chapter, then fades
-    var heroOp=1-clamp01((p-0.03)/0.08);           // hero copy gone by ~p.11
-    var rise=clamp01(1-p/0.13);                    // phone rises from the bottom, seated by p.13
+    var heroOp=1-clamp01((p-0.01)/0.045);          // copy fades FAST so it clears before the phone rises
+    var rise=clamp01((0.17-p)/0.12);               // phone holds low until ~p.05, then rises, seated by p.17
     if(ephoto)ephoto.style.opacity=photoOp;
     if(escrim)escrim.style.opacity=photoOp*(1-clamp01((p-0.03)/0.09));
     if(ehero){ehero.style.opacity=heroOp;ehero.style.transform='translateY('+(-(1-heroOp)*22).toFixed(1)+'px)';ehero.style.pointerEvents=heroOp>0.5?'auto':'none';}
+    if(heroGlobe)heroGlobe.style.opacity=1-clamp01((p-0.11)/0.05);  // real globe in the hero, crossfades to the plan map
     // chapters mapped to the range AFTER the hero slice
     var heroMode=p<HERO_END;
     if(tabsWrap)tabsWrap.style.opacity=heroMode?'0':'1';
