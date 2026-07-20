@@ -200,7 +200,7 @@
   /* ============ STORY (sticky-phone scrollytelling) ============ */
   .story{position:relative;height:680vh;background:var(--cream)}
   .stage{position:sticky;top:0;height:100svh;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:background-color .2s linear}
-  .stage-phone{position:relative;z-index:3;transition:transform .7s var(--e);will-change:transform;backface-visibility:hidden}
+  .stage-phone{position:relative;z-index:3;will-change:transform;backface-visibility:hidden;transform:translateZ(0)}
   .stage-phone .phone{--pw:270px}
   .stage-screens .s{opacity:0;transition:opacity .6s var(--e);transform:scale(1.02)}
   .stage-screens .s.on{opacity:1;transform:scale(1)}
@@ -210,9 +210,10 @@
   /* mobile: text sits ABOVE the phone (phone pushed down), no overlap */
   @media(max-width:899px){
     .stage{align-items:flex-start}
-    .stage-phone{margin-top:25vh}
-    .stage-phone .phone{--pw:218px}
-    .chap{top:5%}
+    .stage-phone{margin-top:27.5vh}
+    .stage-phone .phone{--pw:212px}
+    .chap{top:4.5%}
+    .chap p{font-size:14.5px}
     .tabs{bottom:14px}
     .tab{font-size:18px;padding:4px 12px}
   }
@@ -502,35 +503,11 @@
     <!-- pinned phone — rises from the bottom, screens evolve as you scroll -->
     <div class="stage-phone" id="stagePhone">
       <div class="phone"><div class="scr stage-screens" id="screens">
-        <div class="s routemap on" data-i="0">
-          <div class="rm-mb" style="background-image:url(assets/app/mb-phiphi.webp)"></div>
-          <svg class="rm-svg" viewBox="0 0 300 620" preserveAspectRatio="none">
-            <path class="rm-line cap" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
-            <path class="rm-line" pathLength="100" d="M214.1,180.7 C203.4,199.3 166.5,263.0 150.0,292.4 C133.5,321.8 105.3,332.5 115.0,357.0 C124.8,381.5 192.7,425.6 208.3,439.3"/>
-          </svg>
-          <div class="rm-head"><div class="rm-title">Ko Phi Phi · with the crew</div>
-            <div class="rm-sub"><span class="a"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>You + 3 · 6 stops</div></div>
-          <span class="rm-photo m1" style="left:62%;top:41%;background-image:url(assets/photo/swing.jpg)"></span>
-          <span class="rm-photo m2" style="left:24%;top:63%;background-image:url(assets/photo/sunset.jpg)"></span>
-          <span class="rm-pin s1" style="left:71.4%;top:29.1%"><b>1</b></span>
-          <span class="rm-pin s2" style="left:50%;top:47.2%"><b>2</b></span>
-          <span class="rm-pin s3" style="left:38.3%;top:57.6%"><b>3</b></span>
-          <span class="rm-pin s4" style="left:69.4%;top:70.9%"><b>4</b></span>
-          <span class="rm-pulse" style="left:69.4%;top:70.9%"></span>
-        </div>
-        <img class="s" data-i="1" src="assets/app/hero-plan.jpg" alt="A shared trip plan in Drift — day-by-day itinerary with the crew" width="600" height="1216">
-        <div class="s appscr" data-i="2">
-          <div class="top"><div class="t">Barcelona · from your inbox</div><div class="u">Drift found &amp; added these automatically</div></div>
-          <div class="res-scan"><span class="dot"></span>Scanned 4 confirmations</div>
-          <div class="res-list">
-            <div class="res-row d1"><span class="ic fl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2L13.5 9V4a1.5 1.5 0 00-3 0v5L3 13.5v2l7.5-2v4l-2 1.4V20l3.5-1 3.5 1v-1.1l-2-1.4v-4l7.5 2z"/></svg></span><div><div class="d">Flight · Aug 12</div><div class="n">SFO → Barcelona</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
-            <div class="res-row d2"><span class="ic st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19v-5a2 2 0 012-2h14a2 2 0 012 2v5M3 19v1M21 19v1M3 13V8a2 2 0 012-2h4a2 2 0 012 2v4"/></svg></span><div><div class="d">Stay · Aug 12–16</div><div class="n">Casa Gràcia</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
-            <div class="res-row d3"><span class="ic ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 012-2h12a2 2 0 012 2 2 2 0 000 4 2 2 0 000 4 2 2 0 01-2 2H6a2 2 0 01-2-2 2 2 0 000-4 2 2 0 000-4z"/><path d="M14 6v12" stroke-dasharray="2 2.5"/></svg></span><div><div class="d">Ticket · Aug 13, 10:00</div><div class="n">Sagrada Família</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
-            <div class="res-row d4"><span class="ic tr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M9 20l-2 2M15 20l2 2"/></svg></span><div><div class="d">Train · Aug 15</div><div class="n">Barcelona → Girona</div></div><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span></div>
-          </div>
-        </div>
+        <img class="s on" data-i="0" src="assets/app/it-stops.webp" alt="A shared Iceland trip plan in Drift — every stop and day, for the whole crew" width="1206" height="2494">
+        <img class="s" data-i="1" src="assets/app/it-day.webp" alt="A day-by-day itinerary in Drift with flights and hotels imported automatically" width="1206" height="2494">
+        <img class="s" data-i="2" src="assets/app/it-guide.webp" alt="Drift's trip guide — top things to do and tours, with real photos" width="1206" height="2494">
         <div class="s appscr" data-i="3">
-          <div class="top"><div class="t">Casa Gràcia · Aug 12–16</div><div class="u">Best rate &amp; who owes what</div></div>
+          <div class="top"><div class="t">Kvosin Downtown · Jul 2–5</div><div class="u">Best rate &amp; who owes what</div></div>
           <div class="sp-wrap">
             <div class="sp-card">
               <div class="h">4 sites compared</div>
@@ -548,8 +525,8 @@
     <!-- chapter text blocks -->
     <div class="chapters" id="chapters">
       <div class="chap on right" data-i="0"><div class="eyebrow">Plan together</div><h2>Plan it <em>together.</em></h2><p>Everyone drops pins on one shared map — the route builds itself as your crew adds spots.</p></div>
-      <div class="chap left" data-i="1"><div class="eyebrow">One shared plan</div><h2>Everyone on the<br>same page.</h2><p>Days, stays and the running plan, live for the whole group. No more 200-message chat.</p></div>
-      <div class="chap right" data-i="2"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Drift reads your inbox and drops flights, stays and tickets straight onto the right day — no forwarding, no copy-paste.</p></div>
+      <div class="chap left" data-i="1"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Drift reads your inbox and drops every flight, stay and ticket onto the right day.</p></div>
+      <div class="chap right" data-i="2"><div class="eyebrow">Know what to do</div><h2>A local guide,<br><em>built in.</em></h2><p>Top sights, tours and hidden gems for every stop — add any in a tap.</p></div>
       <div class="chap left" data-i="3"><div class="eyebrow">Book &amp; split</div><h2>Best price in.<br><em>Even</em> at the end.</h2><p>Compare Booking, Expedia and more, then Drift keeps score so the trip ends square.</p></div>
       <div class="chap right" data-i="4"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Your routes and photos pin themselves to a living globe of everywhere you&rsquo;ve been — and everyone you went with.</p></div>
     </div>
@@ -572,22 +549,22 @@
   </div>
   <div class="cs-stage" data-r>
     <div class="cglow"></div>
-    <span class="cfloat f1">Best tapas near us?</span>
+    <span class="cfloat f1">Best hot springs near us?</span>
     <span class="cfloat f2">A rainy-day plan?</span>
     <span class="cfloat f3">Split tonight&rsquo;s dinner</span>
     <div class="cphone"><div class="cscr"><div class="cin">
-      <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Barcelona · with the crew</div></div></div>
+      <div class="ctop"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><div><div class="t">Ask Drift</div><div class="s">Reykjavík · with the crew</div></div></div>
       <div class="cbody">
-        <div class="crow me anim k1"><div class="bub">What can&rsquo;t we miss in Barcelona?</div></div>
+        <div class="crow me anim k1"><div class="bub">What can&rsquo;t we miss around Reykjavík?</div></div>
         <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
-        <div class="crow bot anim k3"><div class="bub">A perfect first day — all in Eixample &amp; Gràcia:</div></div>
+        <div class="crow bot anim k3"><div class="bub">A perfect first day — hot springs, city &amp; ice:</div></div>
         <div class="pcards anim k4">
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/bcn-sagrada.webp)"></div><div class="tx"><div class="nm">Sagrada Família</div><div class="cat">Gaudí basilica</div><div class="mt"><span class="st">★</span> 4.8 · 2 hr · book ahead</div></div></div>
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/bcn-parkguell.webp)"></div><div class="tx"><div class="nm">Park Güell</div><div class="cat">Gaudí park</div><div class="mt"><span class="st">★</span> 4.7 · timed entry</div></div></div>
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/bcn-coffee.webp)"></div><div class="tx"><div class="nm">Satan&rsquo;s Coffee</div><div class="cat">Specialty coffee</div><div class="mt"><span class="st">★</span> 4.6 · Gràcia</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-lagoon.webp)"></div><div class="tx"><div class="nm">Blue Lagoon</div><div class="cat">Geothermal spa</div><div class="mt"><span class="st">★</span> 4.8 · 3 hr · book ahead</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-church.webp)"></div><div class="tx"><div class="nm">Hallgrímskirkja</div><div class="cat">Landmark church</div><div class="mt"><span class="st">★</span> 4.7 · tower views</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-cave.webp)"></div><div class="tx"><div class="nm">Katla Ice Cave</div><div class="cat">Guided tour</div><div class="mt"><span class="st">★</span> 4.9 · half-day</div></div></div>
         </div>
-        <div class="crow bot anim k5"><div class="bub">Sagrada sells out fast — want me to grab 10am tickets?</div></div>
-        <div class="qchips anim k6"><b>+ Add all to Day 2</b><b>Book tickets</b></div>
+        <div class="crow bot anim k5"><div class="bub">Blue Lagoon sells out fast — want me to grab a 5pm slot?</div></div>
+        <div class="qchips anim k6"><b>+ Add all to Day 1</b><b>Book tickets</b></div>
       </div>
       <div class="cinput anim k6"><span>Ask Drift anything…</span><span class="send"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
     </div></div></div>
@@ -763,7 +740,12 @@
     if(!reduce){var y=scrollY;px.forEach(function(el){var r=+el.getAttribute('data-px');el.style.transform='translate3d(0,'+(y*r).toFixed(1)+'px,0)';});}
     onStory();
   }
-  addEventListener('scroll',onScroll,{passive:true});
+  // single rAF-coalesced scroll ticker — one aligned frame drives every handler,
+  // so parallax + phone + chat writes never thrash layout against each other (kills first-scroll jitter)
+  var rafPending=false, scrollCbs=[onScroll];
+  function tick(){rafPending=false;for(var i=0;i<scrollCbs.length;i++)scrollCbs[i]();}
+  function onScrollTick(){if(!rafPending){rafPending=true;requestAnimationFrame(tick);}}
+  addEventListener('scroll',onScrollTick,{passive:true});
   var lastW=innerWidth;
   addEventListener('resize',function(){ if(innerWidth!==lastW || Math.abs(innerHeight-VH)>140){ lastW=innerWidth; measure(); onStory(); } });
   onStory();
@@ -781,7 +763,7 @@
     ws.forEach(function(w,k){w.classList.toggle('lit',k<lit);});
   }
   if(reduce){ws.forEach(function(w){w.classList.add('lit');});}
-  else{addEventListener('scroll',onOutro,{passive:true});onOutro();}
+  else{scrollCbs.push(onOutro);onOutro();}
 
   /* ---- chat: scroll-driven conversation reveal ---- */
   var chatsec=document.querySelector('.chatsec');
@@ -799,7 +781,7 @@
     });
   }
   if(reduce){chatEls.forEach(function(el){if(!el.classList.contains('k2'))el.classList.add('shown');});}
-  else{addEventListener('scroll',onChat,{passive:true});onChat();}
+  else{scrollCbs.push(onChat);onChat();}
 
 })();
 </script>
