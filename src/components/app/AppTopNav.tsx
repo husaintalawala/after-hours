@@ -66,25 +66,31 @@ export default function AppTopNav({
         })}
       </div>
 
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatarUrl}
-          alt=""
-          className={`h-[34px] w-[34px] rounded-full object-cover ${
-            dark
-              ? "shadow-[0_0_0_2px_rgba(255,255,255,0.9)]"
-              : "shadow-[0_0_0_2px_#fff,0_0_0_3.5px_rgba(224,86,59,0.35)]"
-          }`}
-        />
-      ) : (
-        <span
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[14px] font-bold text-white shadow-[0_0_0_2px_rgba(255,255,255,0.9)]"
-          style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
-        >
-          {initial}
-        </span>
-      )}
+      <Link
+        href="/app/settings"
+        aria-label="Settings"
+        className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-drift-coral/50"
+      >
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            className={`h-[34px] w-[34px] rounded-full object-cover ${
+              dark
+                ? "shadow-[0_0_0_2px_rgba(255,255,255,0.9)]"
+                : "shadow-[0_0_0_2px_#fff,0_0_0_3.5px_rgba(224,86,59,0.35)]"
+            }`}
+          />
+        ) : (
+          <span
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[14px] font-bold text-white shadow-[0_0_0_2px_rgba(255,255,255,0.9)]"
+            style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+          >
+            {initial}
+          </span>
+        )}
+      </Link>
     </nav>
   )
 }

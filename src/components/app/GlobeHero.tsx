@@ -66,6 +66,8 @@ export default function GlobeHero({
       logoPosition: "bottom-left",
     })
 
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right")
+
     map.on("style.load", () => {
       try {
         map.setConfigProperty("basemap", "lightPreset", "dusk")

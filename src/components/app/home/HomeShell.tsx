@@ -77,9 +77,9 @@ export default function HomeShell({ data }: { data: HomeData }) {
 
           {/* Stats */}
           <div className="mt-5 flex gap-7 border-b border-drift-divider pb-4">
-            <Stat value={data.countries} label="Countries" />
-            <Stat value={data.followers} label="Followers" />
-            <Stat value={data.following} label="Following" />
+            <Stat value={data.countries} label="Countries" href="/app/countries" />
+            <Stat value={data.followers} label="Followers" href="/app/people?tab=followers" />
+            <Stat value={data.following} label="Following" href="/app/people?tab=following" />
           </div>
 
           {/* Plan CTA */}
@@ -173,9 +173,9 @@ export default function HomeShell({ data }: { data: HomeData }) {
           </div>
 
           <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
-            <Stat value={data.countries} label="Countries" />
-            <Stat value={data.followers} label="Followers" />
-            <Stat value={data.following} label="Following" />
+            <Stat value={data.countries} label="Countries" href="/app/countries" />
+            <Stat value={data.followers} label="Followers" href="/app/people?tab=followers" />
+            <Stat value={data.following} label="Following" href="/app/people?tab=following" />
           </div>
 
           {data.featured && data.featuredHeader && (
@@ -245,12 +245,15 @@ function Avatar({
   )
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, href }: { value: number; label: string; href: string }) {
   return (
-    <div>
+    <Link
+      href={href}
+      className="rounded-lg outline-none transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-drift-coral/50"
+    >
       <p className="text-[19px] font-bold leading-tight">{value}</p>
       <p className="text-[12px] text-drift-muted">{label}</p>
-    </div>
+    </Link>
   )
 }
 

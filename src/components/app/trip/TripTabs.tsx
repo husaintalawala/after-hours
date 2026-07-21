@@ -7,6 +7,7 @@ import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
 import DestinationGuide from "./DestinationGuide"
+import FindBookings from "./FindBookings"
 
 // The trip workspace, aligned with iOS:
 //  Plan (trip level)  = trip hero + "Your stops" destination cards
@@ -298,6 +299,9 @@ export default function TripTabs({
                   </h2>
                   <span className="text-[17px] font-semibold text-drift-text-tertiary">
                     {destinations.length}
+                  </span>
+                  <span className="ml-auto">
+                    <FindBookings tripId={tripId} />
                   </span>
                 </div>
                 {destinations.length === 0 && (

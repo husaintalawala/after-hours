@@ -31,6 +31,7 @@ export default function DiscoverMap({
       zoom: anchor ? 11 : 1.5,
       attributionControl: false,
     })
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right")
     const logo = containerRef.current.querySelector(".mapboxgl-ctrl-logo") as HTMLElement | null
     if (logo) logo.style.display = "none"
     mapRef.current = map
