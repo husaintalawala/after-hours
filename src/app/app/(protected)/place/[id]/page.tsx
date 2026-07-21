@@ -60,7 +60,7 @@ export default async function PlacePage({
         </div>
         {hero ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={hero} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div
             className="absolute inset-0"
@@ -169,7 +169,7 @@ export default async function PlacePage({
           <div className="overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)]">
             {map && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={map} alt="" className="h-[170px] w-full object-cover" />
+              <img src={map} alt="" loading="lazy" decoding="async" className="h-[170px] w-full object-cover" />
             )}
             <div className="p-5">
               {place.address && (
