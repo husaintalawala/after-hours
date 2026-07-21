@@ -13,6 +13,7 @@ import {
 } from "@/lib/drift/chat"
 import { applyCreateStep, applyRemoveStep, type CreateStepOp } from "@/lib/drift/quickOp"
 import { addDays, dateOnly } from "@/lib/drift/dates"
+import { ensureTripSession, loadSessionMessages, saveMessage } from "@/lib/drift/chatStore"
 
 // Trip-scoped Ask Drift: streaming answers, photo place-card carousel
 // (hydrated via resolve-place, like DriftChatView), "You might want to ask"
@@ -82,6 +83,33 @@ export default function TripChat({
     window.addEventListener("drift:ask-about", onAsk)
     return () => window.removeEventListener("drift:ask-about", onAsk)
   }, [])
+
+  // Persistence: find-or-create the trip's chat session and hydrate history
+  // (fail-open — a persistence hiccup never blocks the conversation).
+  const sessionRef = useRef<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const sid = await ensureTripSession(tripId)
+      if (!alive || !sid) return
+      sessionRef.current = sid
+      const history = await loadSessionMessages(sid)
+      if (!alive || !history.length) return
+      setMessages((m) =>
+        m.length
+          ? m
+          : history.map((h) => ({
+              id: nextId(),
+              role: h.role === "assistant" ? "assistant" : "user",
+              text: h.text,
+            }))
+      )
+    })()
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId])
   const [busy, setBusy] = useState(false)
   const [undo, setUndo] = useState<{ label: string; stepId: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -138,6 +166,7 @@ export default function TripChat({
 
     const history = messages
     setMessages((m) => [...m, { id: nextId(), role: "user", text }])
+    if (sessionRef.current) void saveMessage(sessionRef.current, tripId, "user", text)
     const conversation: Turn[] = history.map((m) => ({ role: m.role, text: m.text }))
     let streamBuf = ""
     setStreaming("")
@@ -152,12 +181,13 @@ export default function TripChat({
         },
         onPayload: (answer: ChatAnswer) => {
           const id = nextId()
+          const finalText = answer.assistant_text || streamBuf
           setMessages((m) => [
             ...m,
             {
               id,
               role: "assistant",
-              text: answer.assistant_text || streamBuf,
+              text: finalText,
               cards: answer.cards as HydratedCard[],
               followups: answer.followups,
               replyChips: answer.reply_chips,
@@ -165,6 +195,8 @@ export default function TripChat({
           ])
           setStreaming(null)
           setStatus(null)
+          if (sessionRef.current)
+            void saveMessage(sessionRef.current, tripId, "assistant", finalText)
           if (answer.cards?.length) void hydrateCards(id, answer.cards)
         },
         onError: (msg) => {

@@ -201,6 +201,25 @@ export interface PlaceCandidate {
   source?: string | null // "google" | "osm" | "geonames"
 }
 
+export async function resolvePlaceCandidates(
+  query: string,
+  destinationName?: string,
+  country?: string
+): Promise<PlaceCandidate[]> {
+  try {
+    const res = await fetch("/api/drift/resolve-place", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, destinationName, country }),
+    })
+    if (!res.ok) return []
+    const json = (await res.json()) as { candidates?: PlaceCandidate[] }
+    return json.candidates ?? []
+  } catch {
+    return []
+  }
+}
+
 export async function resolvePlace(
   query: string,
   destinationName?: string,

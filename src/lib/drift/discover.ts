@@ -1,0 +1,140 @@
+// Discover data layer — category fetchers over the same-origin proxies.
+// Mirrors the iOS DiscoverView categories: For you / Restaurants / Things to
+// do (Viator blended first) / Stays (Stay22 multi-OTA).
+
+import { resolvePlaceCandidates, placePhotoUrl, type PlaceCandidate } from "./chat"
+
+export type DiscoverCategory = "forYou" | "restaurants" | "thingsToDo" | "stays"
+
+export const CATEGORY_META: Record<
+  DiscoverCategory,
+  { label: string; query: string }
+> = {
+  forYou: { label: "For you", query: "top attractions" },
+  restaurants: { label: "Restaurants", query: "restaurants" },
+  thingsToDo: { label: "Things to do", query: "things to do" },
+  stays: { label: "Stays", query: "hotels" },
+}
+
+export interface DiscoverResult {
+  id: string
+  name: string
+  photo: string | null
+  rating: number | null
+  reviewCount: number | null
+  priceLabel: string | null
+  subtitle: string | null
+  lat: number | null
+  lng: number | null
+  bookingUrl: string | null
+  source: "google" | "viator" | "stay22"
+}
+
+export interface DiscoverAnchor {
+  label: string
+  country: string | null
+  lat: number | null
+  lng: number | null
+}
+
+function fromGoogle(c: PlaceCandidate): DiscoverResult {
+  return {
+    id: c.id,
+    name: c.name,
+    photo: placePhotoUrl(c, 480),
+    rating: c.rating ?? null,
+    reviewCount: c.reviewCount ?? null,
+    priceLabel: null,
+    subtitle: c.primaryType ?? c.address ?? null,
+    lat: c.latitude ?? null,
+    lng: c.longitude ?? null,
+    bookingUrl: null,
+    source: "google",
+  }
+}
+
+interface VendorCandidate {
+  id: string
+  name: string
+  photoUrl?: string | null
+  photoRef?: string | null
+  rating?: number | null
+  reviewCount?: number | null
+  priceLabel?: string | null
+  address?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  bookingUrl?: string | null
+}
+
+async function vendor(kind: "activities" | "stays", payload: Record<string, unknown>) {
+  try {
+    const res = await fetch("/api/drift/discover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind, ...payload }),
+    })
+    if (!res.ok) return []
+    const json = (await res.json()) as { candidates?: VendorCandidate[] }
+    return json.candidates ?? []
+  } catch {
+    return []
+  }
+}
+
+const fromVendor = (source: "viator" | "stay22") => (c: VendorCandidate): DiscoverResult => ({
+  id: c.id,
+  name: c.name,
+  photo: c.photoUrl ?? null,
+  rating: c.rating ?? null,
+  reviewCount: c.reviewCount ?? null,
+  priceLabel: c.priceLabel ?? null,
+  subtitle: c.address ?? null,
+  lat: c.latitude ?? null,
+  lng: c.longitude ?? null,
+  bookingUrl: c.bookingUrl ?? null,
+  source,
+})
+
+/** Load a category. Bookable vendors lead, Google POIs fill in (iOS blending). */
+export async function loadCategory(
+  cat: DiscoverCategory,
+  anchor: DiscoverAnchor
+): Promise<DiscoverResult[]> {
+  const google = resolvePlaceCandidates(
+    CATEGORY_META[cat].query,
+    anchor.label,
+    anchor.country ?? undefined
+  ).then((cs) => cs.map(fromGoogle))
+
+  if (cat === "thingsToDo") {
+    const viator = vendor("activities", {
+      destinationName: anchor.label,
+      lat: anchor.lat ?? undefined,
+      lng: anchor.lng ?? undefined,
+      count: 12,
+    }).then((cs) => cs.map(fromVendor("viator")))
+    const [v, g] = await Promise.all([viator, google])
+    return dedupe([...v, ...g])
+  }
+
+  if (cat === "stays" && anchor.lat != null && anchor.lng != null) {
+    const stays = vendor("stays", { lat: anchor.lat, lng: anchor.lng, count: 15 }).then(
+      (cs) => cs.map(fromVendor("stay22"))
+    )
+    const [s, g] = await Promise.all([stays, google])
+    return dedupe([...s, ...g])
+  }
+
+  return await google
+}
+
+function dedupe(results: DiscoverResult[]): DiscoverResult[] {
+  const seen = new Set<string>()
+  return results.filter((r) => {
+    const key = r.name.toLowerCase().replace(/[^a-z0-9]/g, "")
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
