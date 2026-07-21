@@ -3,23 +3,23 @@
 import Link from "next/link"
 
 // The one back affordance for the whole logged-in app. Every non-root screen
-// (trip studio, place detail, settings, people, countries, new-trip flow) uses
-// this so the up-path is identical everywhere. `href` is the LOGICAL parent —
-// a real route, not history.back() — so back resolves correctly even when the
-// screen is loaded cold via a direct/deep link.
+// renders this so the up-path is identical everywhere: a floating white
+// squircle with a soft drop shadow and a single bold chevron — an elevated,
+// iOS-style back chip (Polarsteps reference). `href` is the LOGICAL parent —
+// a real route, not history.back() — so back resolves on cold deep links.
 //
-// Two skins, same shape: `glass` sits over a dark hero image (matches the
-// TripTabs "Your stops" drill-in pill exactly); `plain` sits on the cream
-// canvas. A chevron that nudges left on hover; coral focus ring.
+// One resting style for both contexts: the white fill + shadow reads over dark
+// hero images, and the layered shadow + hairline ring lifts it off the cream
+// canvas. Coral focus ring + coral press tint keep it on-brand.
 
 const Chevron = () => (
   <svg
     viewBox="0 0 24 24"
     aria-hidden
-    className="h-3.5 w-3.5"
+    className="h-[22px] w-[22px]"
     fill="none"
     stroke="currentColor"
-    strokeWidth={2.5}
+    strokeWidth={2.75}
     strokeLinecap="round"
     strokeLinejoin="round"
   >
@@ -30,31 +30,22 @@ const Chevron = () => (
 export default function BackLink({
   href,
   label,
-  variant = "plain",
   className = "",
 }: {
   href: string
+  /** Used as the accessible name ("Back to {label}"); not rendered visibly. */
   label: string
-  variant?: "plain" | "glass"
   className?: string
 }) {
-  const base =
-    "group inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-drift-coral/40"
-  const skin =
-    variant === "glass"
-      ? "border border-white/25 bg-white/15 text-white backdrop-blur-xl hover:bg-white/25"
-      : "border border-drift-divider bg-white/80 text-drift-muted shadow-sm backdrop-blur-sm hover:border-drift-ink/15 hover:text-drift-ink"
-
   return (
     <Link
       href={href}
       aria-label={`Back to ${label}`}
-      className={`${base} ${skin} ${className}`}
+      className={`group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-drift-ink shadow-[0_6px_16px_-4px_rgba(31,31,36,0.20),0_2px_6px_-2px_rgba(31,31,36,0.12)] ring-1 ring-black/5 outline-none transition-all duration-150 hover:shadow-[0_10px_24px_-6px_rgba(31,31,36,0.26),0_3px_8px_-2px_rgba(31,31,36,0.14)] active:scale-[0.93] active:bg-drift-coral-50 active:text-drift-coral focus-visible:ring-2 focus-visible:ring-drift-coral/60 ${className}`}
     >
-      <span className="transition-transform group-hover:-translate-x-0.5">
+      <span className="transition-transform duration-150 group-hover:-translate-x-0.5">
         <Chevron />
       </span>
-      {label}
     </Link>
   )
 }

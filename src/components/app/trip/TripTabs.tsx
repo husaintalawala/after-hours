@@ -259,7 +259,7 @@ export default function TripTabs({
           />
           <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
             <div className="flex items-start justify-between gap-3">
-              <BackLink href="/app" label="Home" variant="glass" />
+              <BackLink href="/app" label="Home" />
               {segmented(true)}
             </div>
             <div>

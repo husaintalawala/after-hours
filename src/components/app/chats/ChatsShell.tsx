@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import TripChat, { renderRich } from "@/components/app/chat/TripChat"
+import BackLink from "@/components/app/BackLink"
 import { loadSessionMessages, type StoredMessage } from "@/lib/drift/chatStore"
 
 // Chats — sidebar-and-thread layout (Husain-approved mockup). Desktop: the
@@ -87,7 +88,7 @@ export default function ChatsShell({
   // any other chat backs out to Home. Always a real route — never
   // history.back() — so it resolves even on a cold load of /app/chats.
   const backHref = sel.mode === "trip" ? `/app/trips/${sel.trip.id}` : "/app"
-  const backAria = sel.mode === "trip" ? "Back to trip" : "Back to Home"
+  const backLabel = sel.mode === "trip" ? "trip" : "Home"
 
   const sidebar = (
     <>
@@ -246,13 +247,7 @@ export default function ChatsShell({
       {/* ---------- Mobile: full-screen thread + drawer ---------- */}
       <div className="fixed inset-0 z-[60] flex flex-col bg-[#FAF8F5] lg:hidden">
         <div className="flex h-14 shrink-0 items-center gap-2 border-b border-[#EBE7E1] bg-[rgba(250,248,245,0.92)] px-3 backdrop-blur-xl">
-          <Link
-            href={backHref}
-            aria-label={backAria}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-[20px] leading-none text-drift-ink"
-          >
-            ‹
-          </Link>
+          <BackLink href={backHref} label={backLabel} />
           <button
             onClick={() => setDrawer(true)}
             aria-label="Conversations"

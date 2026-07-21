@@ -56,7 +56,7 @@ export default async function PlacePage({
       {/* Hero */}
       <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[330px] lg:mt-0">
         <div className="absolute left-4 top-4 z-10">
-          <BackLink href="/app/discover" label="Discover" variant="glass" />
+          <BackLink href="/app/discover" label="Discover" />
         </div>
         {hero ? (
           // eslint-disable-next-line @next/next/no-img-element
