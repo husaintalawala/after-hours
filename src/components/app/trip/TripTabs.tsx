@@ -1,17 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
+import DestinationGuide from "./DestinationGuide"
 
-// The trip planning studio, Apple-energy edition. Cinematic destination hero
-// (glass day pills + segmented tabs live ON the photo), upgraded timeline
-// (split times, emoji dots on a rail, info chips, hover lift), Ask Drift
-// docked right. Clicking an item flips the right pane to the inspector.
+// The trip workspace, aligned with iOS:
+//  Plan (trip level)  = trip hero + "Your stops" destination cards
+//  Plan (drill-in)    = destination hero + Overview·Guide / Day-N pills
+//  Overview           = the GUIDE (top things, tours & tickets) — not days
+//  Track              = recorded (flat) steps, read-only
+// Ask Drift stays docked right on desktop; the inspector borrows its pane.
 
 export interface DestinationVM {
   id: string
@@ -19,6 +21,11 @@ export interface DestinationVM {
   country: string | null
   nights: number
   heroUrl: string | null
+  dateRange: string
+  plansCount: number
+  bookedChip: string | null
+  lat: number | null
+  lng: number | null
   days: DestinationDay[]
 }
 
@@ -26,6 +33,15 @@ export interface TripMetaVM {
   title: string
   flag: string | null
   dateRange: string
+  statusLine: string
+  cover: string | null
+}
+
+export interface TrackStepVM {
+  id: string
+  title: string
+  subtitle: string | null
+  dateLabel: string
 }
 
 export interface StepDetailVM {
@@ -75,6 +91,14 @@ export interface LedgerVM {
   transfers: Array<{ from: string; to: string; amountMinor: number }>
 }
 
+type Tab = "plan" | "kit" | "expenses" | "track"
+const TABS: [Tab, string][] = [
+  ["plan", "Plan"],
+  ["kit", "Kit"],
+  ["expenses", "Expenses"],
+  ["track", "Track"],
+]
+
 export interface KitItemVM {
   id: string
   title: string
@@ -84,14 +108,6 @@ export interface KitItemVM {
   quantity: number
 }
 
-type Tab = "plan" | "kit" | "expenses" | "track"
-const TABS: [Tab, string][] = [
-  ["plan", "Plan"],
-  ["kit", "Kit"],
-  ["expenses", "Expenses"],
-  ["track", "Track"],
-]
-
 export default function TripTabs({
   tripId,
   tripMeta,
@@ -100,6 +116,7 @@ export default function TripTabs({
   bookingDetails,
   expenses,
   kitItems,
+  trackSteps = [],
   ledger = null,
   children,
 }: {
@@ -110,21 +127,17 @@ export default function TripTabs({
   bookingDetails: Record<string, BookingDetailVM>
   expenses: ExpenseVM[]
   kitItems: KitItemVM[]
+  trackSteps?: TrackStepVM[]
   ledger?: LedgerVM | null
   children?: React.ReactNode
 }) {
   const [tab, setTab] = useState<Tab>("plan")
-  const [destIdx, setDestIdx] = useState(0)
+  const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
   const [selected, setSelected] = useState<TimelineItem | null>(null)
 
-  const dest = destinations[Math.min(destIdx, destinations.length - 1)] ?? null
-  const days =
-    dest == null
-      ? []
-      : selectedDay === "overview"
-        ? dest.days
-        : dest.days.filter((d) => d.dayNumber === selectedDay)
+  const dest = destinations.find((d) => d.id === selectedDestId) ?? null
+  const inDest = tab === "plan" && dest != null
 
   const selStep = selected?.linkedStepId ? stepDetails[selected.linkedStepId] : null
   const selBooking = selected && !selected.linkedStepId ? bookingDetails[selected.id] : null
@@ -139,81 +152,80 @@ export default function TripTabs({
       />
     ) : null
 
+  const segmented = (glass: boolean) => (
+    <div
+      className={`hidden gap-0.5 rounded-full p-1 md:flex ${
+        glass ? "border border-white/25 bg-white/15 backdrop-blur-xl" : "bg-white/90 shadow-sm"
+      }`}
+    >
+      {TABS.map(([key, label]) => (
+        <button
+          key={key}
+          onClick={() => setTab(key)}
+          className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
+            tab === key
+              ? glass
+                ? "bg-white text-drift-ink"
+                : "bg-drift-coral text-white"
+              : glass
+                ? "text-white/85"
+                : "text-drift-muted"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+
+  const openDest = (id: string) => {
+    setSelectedDestId(id)
+    setSelectedDay("overview")
+    setSelected(null)
+  }
+
   return (
     <div>
-      {/* Mobile back link (desktop has the top nav) */}
-      <Link href="/app" className="text-sm text-drift-muted lg:hidden">
-        ← Trips
-      </Link>
-
-      {/* ---------- Cinematic hero ---------- */}
-      <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[330px] lg:mt-0">
-        {dest?.heroUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={dest.heroUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
+      {/* ---------- Hero: destination (drill-in) or trip ---------- */}
+      {inDest && dest ? (
+        <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
+          {dest.heroUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={dest.heroUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }} />
+          )}
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+            style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
           />
-        )}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)",
-          }}
-        />
-
-        <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
-          <div className="flex items-start justify-between gap-3">
-            {/* Eyebrow: trip identity (+ position in a multi-stop journey) */}
-            <div className="flex items-center gap-2 pt-1 text-[11px] font-bold tracking-[0.14em] text-white/75">
-              <span className="uppercase">
-                {tripMeta.title} {tripMeta.flag ?? ""} · {tripMeta.dateRange}
-                {destinations.length > 1 &&
-                  ` · Stop ${destIdx + 1} of ${destinations.length}`}
-              </span>
+          <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <button
+                onClick={() => setSelectedDestId(null)}
+                className="rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white backdrop-blur-xl"
+              >
+                ← Your stops
+              </button>
+              {segmented(true)}
             </div>
-
-            {/* Segmented tabs — glass, on the photo (md+) */}
-            <div className="hidden gap-0.5 rounded-full border border-white/25 bg-white/15 p-1 backdrop-blur-xl md:flex">
-              {TABS.map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setTab(key)}
-                  className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
-                    tab === key ? "bg-white text-drift-ink" : "text-white/85"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="font-drift-display text-[38px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] md:text-[56px]">
-                {dest?.label ?? tripMeta.title}
-              </h1>
-              {dest && (
-                <p className="mt-1.5 text-[14px] text-white/90 md:text-[15px]">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
+                  {tripMeta.title} {tripMeta.flag ?? ""} · {dest.dateRange}
+                </p>
+                <h1 className="mt-0.5 font-drift-display text-[36px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] md:text-[50px]">
+                  {dest.label}
+                </h1>
+                <p className="mt-1 text-[14px] text-white/90">
                   {[dest.country, `${dest.nights} night${dest.nights === 1 ? "" : "s"}`]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
-              )}
-            </div>
-
-            {/* Glass day pills */}
-            {dest && tab === "plan" && (
+              </div>
               <div className="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <GlassPill
-                  active={selectedDay === "overview"}
-                  onClick={() => setSelectedDay("overview")}
-                >
-                  Overview
+                <GlassPill active={selectedDay === "overview"} onClick={() => setSelectedDay("overview")}>
+                  Overview <span className="ml-1 text-[10.5px] font-medium opacity-75">Guide</span>
                 </GlassPill>
                 {dest.days.map((d) => (
                   <GlassPill
@@ -222,39 +234,39 @@ export default function TripTabs({
                     onClick={() => setSelectedDay(d.dayNumber)}
                   >
                     Day {d.dayNumber}
+                    <span className="ml-1 text-[10.5px] font-medium opacity-75">
+                      {shortDay(d.date)}
+                    </span>
                   </GlassPill>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Journey strip — every stop of a multi-destination trip, always visible */}
-      {destinations.length > 1 && (
-        <div className="mt-4 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {destinations.map((d, i) => (
-            <div key={d.id} className="flex shrink-0 items-center gap-1.5">
-              {i > 0 && <span className="text-[13px] text-[#C9C4BC]">→</span>}
-              <button
-                onClick={() => {
-                  setDestIdx(i)
-                  setSelectedDay("overview")
-                  setSelected(null)
-                }}
-                className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
-                  i === destIdx
-                    ? "bg-drift-coral text-white shadow-[0_6px_18px_-6px_rgba(224,86,59,0.5)]"
-                    : "border border-[#EBE7E1] bg-white text-drift-muted hover:border-drift-coral/40 hover:text-drift-ink"
-                }`}
-              >
-                {d.label}
-                <span className={`ml-1.5 text-[11px] font-medium ${i === destIdx ? "text-white/75" : "text-drift-text-tertiary"}`}>
-                  {d.nights}n
-                </span>
-              </button>
+      ) : (
+        <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
+          {tripMeta.cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={tripMeta.cover} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }} />
+          )}
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
+          />
+          <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
+            <div className="flex justify-end">{segmented(true)}</div>
+            <div>
+              <h1 className="font-drift-display text-[40px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] md:text-[54px]">
+                {tripMeta.title} {tripMeta.flag ?? ""}
+              </h1>
+              <p className="mt-1.5 text-[15px] text-white/90">{tripMeta.dateRange}</p>
+              {tripMeta.statusLine && (
+                <p className="mt-0.5 text-[13.5px] text-white/75">{tripMeta.statusLine}</p>
+              )}
             </div>
-          ))}
+          </div>
         </div>
       )}
 
@@ -273,23 +285,91 @@ export default function TripTabs({
         ))}
       </div>
 
-      {/* ---------- Studio ---------- */}
+      {/* ---------- Plan ---------- */}
       {tab === "plan" && (
         <div className="mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_430px] lg:items-start lg:gap-7">
           <div>
-            {!dest && (
-              <p className="text-drift-muted">No itinerary yet. Ask Drift to start planning.</p>
-            )}
-            {days.map((day) => (
-              <DaySection
-                key={day.dayNumber}
-                day={day}
-                selectedId={selected?.id ?? null}
-                bookingDetails={bookingDetails}
-                stepDetails={stepDetails}
-                onSelect={setSelected}
+            {!inDest ? (
+              /* -------- Your stops (trip level) -------- */
+              <div>
+                <div className="flex items-baseline gap-2.5">
+                  <h2 className="font-drift-display text-[26px] font-semibold tracking-tight">
+                    Your stops
+                  </h2>
+                  <span className="text-[17px] font-semibold text-drift-text-tertiary">
+                    {destinations.length}
+                  </span>
+                </div>
+                {destinations.length === 0 && (
+                  <p className="mt-3 text-drift-muted">
+                    No itinerary yet. Ask Drift to start planning.
+                  </p>
+                )}
+                <ul className="mt-3.5 space-y-3">
+                  {destinations.map((d) => (
+                    <li key={d.id}>
+                      <button
+                        onClick={() => openDest(d.id)}
+                        className="flex w-full items-center gap-4 rounded-[20px] border border-[#EBE7E1] bg-white p-3.5 text-left shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
+                      >
+                        {d.heroUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={d.heroUrl}
+                            alt=""
+                            loading="lazy"
+                            className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="h-[72px] w-[72px] shrink-0 rounded-2xl"
+                            style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-drift-display text-[19px] font-semibold tracking-tight">
+                            {d.label}
+                          </p>
+                          <p className="mt-0.5 text-[13.5px] text-drift-muted">{d.dateRange}</p>
+                          <p className="mt-1 text-[12.5px] text-drift-text-tertiary">
+                            {d.plansCount} plan{d.plansCount === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        {d.bookedChip && (
+                          <span className="shrink-0 rounded-full bg-[#E7F4F1] px-3 py-1.5 text-[12px] font-semibold text-[#2E7D6F]">
+                            ● {d.bookedChip}
+                          </span>
+                        )}
+                        <span className="shrink-0 text-[18px] text-[#C9C4BC]">›</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : selectedDay === "overview" && dest ? (
+              /* -------- Overview = the Guide -------- */
+              <DestinationGuide
+                label={dest.label}
+                country={dest.country}
+                lat={dest.lat}
+                lng={dest.lng}
               />
-            ))}
+            ) : (
+              /* -------- One day's timeline -------- */
+              dest &&
+              dest.days
+                .filter((d) => d.dayNumber === selectedDay)
+                .map((day) => (
+                  <DaySection
+                    key={day.dayNumber}
+                    day={day}
+                    selectedId={selected?.id ?? null}
+                    bookingDetails={bookingDetails}
+                    stepDetails={stepDetails}
+                    onSelect={setSelected}
+                  />
+                ))
+            )}
           </div>
 
           <div className="mt-8 lg:sticky lg:top-[76px] lg:mt-0 lg:h-[calc(100vh-108px)]">
@@ -310,9 +390,19 @@ export default function TripTabs({
 
       {tab === "kit" && <KitTab items={kitItems} />}
       {tab === "expenses" && <ExpensesTab expenses={expenses} ledger={ledger} />}
-      {tab === "track" && <TrackTab />}
+      {tab === "track" && <TrackTab steps={trackSteps} />}
     </div>
   )
+}
+
+function shortDay(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number)
+  if (!y) return ""
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  })
 }
 
 function GlassPill({
@@ -338,7 +428,7 @@ function GlassPill({
   )
 }
 
-// ---------- Day + timeline ----------
+// ---------- Day timeline ----------
 
 function DaySection({
   day,
@@ -356,13 +446,15 @@ function DaySection({
   const last = [...day.items].reverse().find((i) => i.startTimeMinutes != null)
   const summary = day.items.length
     ? `${day.items.length} stop${day.items.length === 1 ? "" : "s"}${
-        last?.startTimeMinutes != null ? ` · ends ${minutesLabel(last.startTimeMinutes).join(" ")}` : ""
+        last?.startTimeMinutes != null
+          ? ` · ends ${minutesLabel(last.startTimeMinutes).join(" ")}`
+          : ""
       }`
     : null
 
   return (
     <div className="mb-4">
-      <div className="mb-3.5 mt-6 flex items-baseline gap-3 first:mt-0">
+      <div className="mb-3.5 flex items-baseline gap-3">
         <span className="font-drift-display text-[26px] font-semibold tracking-tight">
           Day {day.dayNumber}
         </span>
@@ -375,7 +467,9 @@ function DaySection({
       </div>
 
       {day.items.length === 0 ? (
-        <p className="text-[14px] text-drift-text-tertiary">Nothing planned yet</p>
+        <p className="text-[14px] text-drift-text-tertiary">
+          Nothing planned yet — ask Drift for ideas.
+        </p>
       ) : (
         <ul>
           {day.items.map((item, i) => (
@@ -522,7 +616,7 @@ function minutesLabel(mins: number): [string, string] {
 function durationLabel(mins: number): string {
   const h = Math.floor(mins / 60)
   const m = mins % 60
-  if (h && m) return `${h}½ h`.replace("½", m === 30 ? "½" : `:${m}`)
+  if (h && m) return `${h}h ${m}m`
   if (h) return `${h} h`
   return `${m} min`
 }
@@ -814,7 +908,6 @@ function ExpensesTab({
         </p>
       </div>
 
-      {/* Balances + settle-up (shared ledger) */}
       {ledger && (
         <div className="mt-4 rounded-[22px] border border-[#EBE7E1] bg-white p-5">
           <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
@@ -823,9 +916,7 @@ function ExpensesTab({
           <ul className="mt-2.5 space-y-2">
             {ledger.rows.map((r) => (
               <li key={r.label} className="flex items-baseline justify-between">
-                <span className={`text-[15px] ${r.mine ? "font-semibold" : ""}`}>
-                  {r.label}
-                </span>
+                <span className={`text-[15px] ${r.mine ? "font-semibold" : ""}`}>{r.label}</span>
                 <span
                   className={`text-[15px] font-semibold tabular-nums ${
                     r.netMinor > 0
@@ -865,13 +956,14 @@ function ExpensesTab({
                 ))}
               </ul>
               <p className="mt-3 text-[11.5px] leading-snug text-drift-text-tertiary">
-                Drift never moves money — settle over Venmo, Cash App or cash,
-                then record it in the iOS app.
+                Drift never moves money — settle over Venmo, Cash App or cash, then
+                record it in the iOS app.
               </p>
             </>
           )}
         </div>
       )}
+
       <ul className="mt-4 space-y-1.5">
         {sorted.map((e) => (
           <li
@@ -934,19 +1026,62 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-// ---------- Track ----------
+// ---------- Track: the recorded journey ----------
 
-function TrackTab() {
+function TrackTab({ steps }: { steps: TrackStepVM[] }) {
+  if (!steps.length) {
+    return (
+      <div className="mt-10 text-center">
+        <p className="text-4xl opacity-40">📍</p>
+        <p className="mt-3 font-drift-display text-[19px] font-semibold">
+          Tracking happens on your phone
+        </p>
+        <p className="mx-auto mt-1 max-w-xs text-[14px] text-drift-muted">
+          Record your route with the Drift iOS app — the trip&rsquo;s recorded
+          moments show up here.
+        </p>
+      </div>
+    )
+  }
+
+  // Group recorded steps by day.
+  const byDay = new Map<string, TrackStepVM[]>()
+  for (const s of steps) {
+    const arr = byDay.get(s.dateLabel) ?? []
+    arr.push(s)
+    byDay.set(s.dateLabel, arr)
+  }
+
   return (
-    <div className="mt-10 text-center">
-      <p className="text-4xl opacity-40">📍</p>
-      <p className="mt-3 font-drift-display text-[19px] font-semibold">
-        Tracking happens on your phone
+    <div className="mt-6 lg:max-w-2xl">
+      <p className="text-[13.5px] text-drift-muted">
+        Recorded with the Drift tracker on your phone.
       </p>
-      <p className="mx-auto mt-1 max-w-xs text-[14px] text-drift-muted">
-        Record your route with the Drift iOS app — the trip&rsquo;s story and
-        globe pins fill in here automatically.
-      </p>
+      <div className="mt-4 space-y-6">
+        {[...byDay.entries()].map(([dateLabel, items]) => (
+          <div key={dateLabel}>
+            <h3 className="font-drift-display text-[17px] font-semibold">{dateLabel}</h3>
+            <ul className="mt-2 space-y-1.5">
+              {items.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-2xl border border-[#EBE7E1] bg-white px-4 py-3"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FEEDE8] text-[15px]">
+                    📍
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-medium">{s.title}</p>
+                    {s.subtitle && s.subtitle !== s.title && (
+                      <p className="truncate text-[12.5px] text-drift-muted">{s.subtitle}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

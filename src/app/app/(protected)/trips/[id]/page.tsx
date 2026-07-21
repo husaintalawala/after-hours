@@ -65,6 +65,20 @@ export default async function TripDetailPage({
   const transportRows = (transportRaw ?? []) as TransportBookingRow[]
   const expenseRows = (expensesRaw ?? []) as ExpenseRow[]
   const kitRows = (kitRaw ?? []) as KitItemRow[]
+
+  // Trip hero cover: explicit cover → first photo media (iOS cover chain).
+  let tripCover: string | null = trip.cover_url
+  if (!tripCover) {
+    const { data: media } = await supabase
+      .from("media")
+      .select("url,type,created_at")
+      .eq("trip_id", trip.id)
+      .eq("type", "photo")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .returns<Array<{ url: string }>>()
+    tripCover = media?.[0]?.url ?? null
+  }
   const destinations = steps
     .filter((s) => s.step_type === "destination" && !s.parent_step_id)
     .sort((a, b) => compareDate(dateOnly(a.date) ?? "", dateOnly(b.date) ?? ""))
@@ -86,22 +100,32 @@ export default async function TripDetailPage({
   }))
 
   // Destination view-models: hero photo (shared POI cache) + day timeline.
+  const fmtShort = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number)
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+      month: "short", day: "numeric", timeZone: "UTC",
+    })
+  }
   const destVMs: DestinationVM[] = await Promise.all(
     destinations.map(async (destination) => {
       const label = destination.title || destination.location_name || "Destination"
       const children = steps.filter((s) => s.parent_step_id === destination.id)
       const timeline = buildDestinationTimeline(destination, children, transport)
-      const days = groupTimelineByDay(
-        timeline,
-        dateOnly(destination.date) ?? "1970-01-01",
-        destination.nights ?? 0
-      )
+      const start = dateOnly(destination.date) ?? "1970-01-01"
+      const nights = destination.nights ?? 0
+      const days = groupTimelineByDay(timeline, start, nights)
+      const arriving = transportRows.find((b) => b.to_destination_id === destination.id)
       return {
         id: destination.id,
         label,
         country: destination.country,
-        nights: destination.nights ?? 0,
+        nights,
         heroUrl: await destinationPhotoUrl(label, destination.country),
+        dateRange: `${fmtShort(start)} – ${fmtShort(addDaysStr(start, nights))}`,
+        plansCount: children.length,
+        bookedChip: arriving ? `${(MODE_LABEL[arriving.mode] ?? arriving.mode).toLowerCase()} booked` : null,
+        lat: destination.latitude,
+        lng: destination.longitude,
         days,
       }
     })
@@ -111,11 +135,23 @@ export default async function TripDetailPage({
   // chat-added items whose destination was deleted) must not vanish — they
   // get a synthetic bucket at the end of the journey strip.
   const destIdSet = new Set(destinations.map((d) => d.id))
+  // Dangling-parent steps (their destination was deleted) go to a synthetic
+  // bucket. FLAT steps (no parent) are Track recordings on iOS — never Plan.
   const unassigned = steps.filter(
     (s) =>
       s.step_type !== "destination" &&
-      (!s.parent_step_id || !destIdSet.has(s.parent_step_id))
+      s.parent_step_id != null &&
+      !destIdSet.has(s.parent_step_id)
   )
+  const trackSteps = steps
+    .filter((s) => s.step_type !== "destination" && s.parent_step_id == null)
+    .sort((a, b) => (dateOnly(a.date) ?? "").localeCompare(dateOnly(b.date) ?? ""))
+    .map((s) => ({
+      id: s.id,
+      title: s.title || s.location_name || "Moment",
+      subtitle: s.location_name,
+      dateLabel: dateOnly(s.date) ? fmtShort(dateOnly(s.date)!) : "",
+    }))
   if (unassigned.length) {
     const startD = dateOnly(trip.start_date) ?? dateOnly(unassigned[0].date) ?? "1970-01-01"
     const endD = dateOnly(trip.end_date) ?? startD
@@ -160,9 +196,12 @@ export default async function TripDetailPage({
       label: synthDest.title as string,
       country: synthDest.country,
       nights: spanNights,
-      heroUrl: destinations.length
-        ? null
-        : await destinationPhotoUrl(trip.cities?.[0] ?? trip.title, trip.countries?.[0]),
+      heroUrl: null,
+      dateRange: `${fmtShort(startD)} – ${fmtShort(endD)}`,
+      plansCount: unassigned.length,
+      bookedChip: null,
+      lat: null,
+      lng: null,
       days: groupTimelineByDay(timeline, startD, spanNights),
     })
   }
@@ -344,7 +383,10 @@ export default async function TripDetailPage({
           title: trip.title || "Untitled trip",
           flag,
           dateRange: tripSubtitle(trip),
+          statusLine: tripStatusLine(trip.start_date, trip.end_date),
+          cover: tripCover,
         }}
+        trackSteps={trackSteps}
         ledger={ledger}
         destinations={destVMs}
         stepDetails={stepDetails}
@@ -374,6 +416,33 @@ export default async function TripDetailPage({
       </TripTabs>
     </main>
   )
+}
+
+function addDaysStr(date: string, n: number): string {
+  const [y, m, d] = date.split("-").map(Number)
+  const t = Date.UTC(y, m - 1, d) + n * 86_400_000
+  const dt = new Date(t)
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`
+}
+
+function tripStatusLine(start: string | null, end: string | null): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const s = start?.slice(0, 10)
+  const e = end?.slice(0, 10)
+  if (!s || !e) return ""
+  const days =
+    Math.round((Date.parse(e) - Date.parse(s)) / 86_400_000) + 1
+  const lenLabel = `${days}-day trip`
+  if (today < s) {
+    const inDays = Math.round((Date.parse(s) - Date.parse(today)) / 86_400_000)
+    return `Starts in ${inDays} day${inDays === 1 ? "" : "s"} · ${lenLabel}`
+  }
+  if (today > e) {
+    const ago = Math.round((Date.parse(today) - Date.parse(e)) / 86_400_000)
+    return `Ended ${ago} day${ago === 1 ? "" : "s"} ago · ${lenLabel}`
+  }
+  const dayN = Math.round((Date.parse(today) - Date.parse(s)) / 86_400_000) + 1
+  return `Day ${dayN} of ${days}`
 }
 
 function tripSubtitle(trip: {
