@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import type { Database } from "@/lib/database.types"
+import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options"
 
 // PKCE code-exchange endpoint for magic-link + OAuth (Google/Apple). Supabase
 // redirects here with ?code=...; we swap it for a session and write the auth
@@ -44,6 +45,10 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Persist the login cookies with the same Secure/SameSite/maxAge every
+      // other writer uses, so the very first session cookie is durable (Safari/
+      // iOS ITP restricts non-Secure, script-written cookies).
+      cookieOptions: AUTH_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll()
