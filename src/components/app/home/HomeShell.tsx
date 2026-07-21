@@ -2,7 +2,15 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import GlobeHero, { type GlobeTripPin } from "@/components/app/GlobeHero"
+import dynamic from "next/dynamic"
+import type { GlobeTripPin } from "@/components/app/GlobeHero"
+
+// mapbox-gl is ~1.7MB of JS — load it after the shell paints instead of
+// blocking first render.
+const GlobeHero = dynamic(() => import("@/components/app/GlobeHero"), {
+  ssr: false,
+  loading: () => <div className="h-full w-full" style={{ background: "rgb(4,4,8)" }} />,
+})
 import SignOutButton from "@/components/app/SignOutButton"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
@@ -49,7 +57,7 @@ export default function HomeShell({ data }: { data: HomeData }) {
       </div>
 
       {/* ---------- Desktop: floating glass trip rail ---------- */}
-      <aside className="fixed bottom-8 left-6 top-[76px] z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-white/90 shadow-2xl backdrop-blur-xl lg:flex">
+      <aside className="fixed bottom-8 left-6 top-[76px] z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-white/[0.97] shadow-2xl lg:flex">
         <div className="overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
           {/* Header */}
           <div className="flex items-center gap-3.5">
@@ -133,7 +141,7 @@ export default function HomeShell({ data }: { data: HomeData }) {
       {data.featured && (
         <Link
           href={`/app/trips/${data.featured.id}`}
-          className="fixed bottom-8 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white/90 py-3 pl-4 pr-5 shadow-2xl backdrop-blur-xl transition-transform hover:scale-[1.02] lg:flex"
+          className="fixed bottom-8 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white py-3 pl-4 pr-5 shadow-2xl transition-transform hover:scale-[1.02] lg:flex"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
             ✦

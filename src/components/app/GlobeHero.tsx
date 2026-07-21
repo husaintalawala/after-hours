@@ -123,12 +123,26 @@ export default function GlobeHero({
         .addTo(map)
     })
 
-    // Auto-rotation — iOS: +0.3°/tick @20fps, pause on interaction, resume 3s.
+    // Auto-rotation — rAF-driven at ~30fps (half the render load of the old
+    // 20fps setInterval, and frame-aligned so it doesn't fight React for the
+    // main thread). ~5°/s like iOS; pauses on interaction (3s resume) and
+    // whenever the tab is hidden.
     let paused = false
     let resumeTimer: ReturnType<typeof setTimeout> | null = null
-    const spin = setInterval(() => {
-      if (!paused) map.setBearing(map.getBearing() + 0.3)
-    }, 50)
+    let raf = 0
+    let lastT = 0
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick)
+      if (paused || document.hidden) {
+        lastT = t
+        return
+      }
+      const dt = t - lastT
+      if (dt < 33) return // ~30fps cap
+      lastT = t
+      map.setBearing(map.getBearing() + (5 * dt) / 1000)
+    }
+    raf = requestAnimationFrame(tick)
     const pause = () => {
       paused = true
       if (resumeTimer) clearTimeout(resumeTimer)
@@ -147,7 +161,7 @@ export default function GlobeHero({
     if (logo) logo.style.display = "none"
 
     return () => {
-      clearInterval(spin)
+      cancelAnimationFrame(raf)
       if (resumeTimer) clearTimeout(resumeTimer)
       markers.forEach((m) => m.remove())
       map.remove()
