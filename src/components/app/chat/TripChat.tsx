@@ -46,6 +46,7 @@ export default function TripChat({
   destinations,
   country,
   fill = false,
+  bare = false,
   prefill,
   onPrefillConsumed,
 }: {
@@ -56,6 +57,9 @@ export default function TripChat({
   country?: string | null
   /** Fill the parent's height (desktop docked-panel mode). */
   fill?: boolean
+  /** Chrome-less thread mode (Chats tab): no card shell/header, centered
+   *  column, floating rounded composer. */
+  bare?: boolean
   /** When set, loads into the composer (e.g. "Ask Drift about this" from the inspector). */
   prefill?: string | null
   onPrefillConsumed?: () => void
@@ -264,34 +268,44 @@ export default function TripChat({
 
   return (
     <section
-      className={`overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)] ${
-        fill ? "flex h-full flex-col" : ""
-      }`}
+      className={
+        bare
+          ? "flex h-full flex-col"
+          : `overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)] ${
+              fill ? "flex h-full flex-col" : ""
+            }`
+      }
     >
-      <div
-        className="flex shrink-0 items-center gap-3 border-b border-[#EBE7E1] px-5 py-4"
-        style={{ background: "linear-gradient(180deg,#FFFDFB,#FFF)" }}
-      >
-        <span
-          className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-[17px] text-white shadow-[0_6px_16px_-6px_rgba(224,86,59,0.6)]"
-          style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+      {!bare && (
+        <div
+          className="flex shrink-0 items-center gap-3 border-b border-[#EBE7E1] px-5 py-4"
+          style={{ background: "linear-gradient(180deg,#FFFDFB,#FFF)" }}
         >
-          ✦
-        </span>
-        <div>
-          <p className="font-drift-display text-[19px] font-semibold tracking-tight">
-            Ask Drift
-          </p>
-          <p className="text-[12.5px] text-drift-text-tertiary">
-            Your co-planner for {tripTitle}
-          </p>
+          <span
+            className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-[17px] text-white shadow-[0_6px_16px_-6px_rgba(224,86,59,0.6)]"
+            style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+          >
+            ✦
+          </span>
+          <div>
+            <p className="font-drift-display text-[19px] font-semibold tracking-tight">
+              Ask Drift
+            </p>
+            <p className="text-[12.5px] text-drift-text-tertiary">
+              Your co-planner for {tripTitle}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div
-        className={`space-y-4 overflow-y-auto px-5 py-5 ${
-          fill ? "min-h-0 max-h-[480px] flex-1 lg:max-h-none" : "max-h-[480px]"
-        }`}
+        className={
+          bare
+            ? "mx-auto w-full max-w-[780px] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6"
+            : `space-y-4 overflow-y-auto px-5 py-5 ${
+                fill ? "min-h-0 max-h-[480px] flex-1 lg:max-h-none" : "max-h-[480px]"
+              }`
+        }
       >
         {messages.length === 0 && streaming === null && (
           <p className="text-sm text-drift-text-tertiary">
@@ -395,8 +409,12 @@ export default function TripChat({
       )}
 
       <div
-        className="flex shrink-0 items-center gap-2.5 border-t border-[#EBE7E1] px-4 py-3.5"
-        style={{ background: "#FFFDFB" }}
+        className={
+          bare
+            ? "mx-auto mb-5 flex w-[calc(100%-40px)] max-w-[780px] shrink-0 items-center gap-2.5 rounded-[24px] border border-[#EBE7E1] bg-white px-4 py-3 shadow-[0_14px_40px_-18px_rgba(31,31,36,0.22)]"
+            : "flex shrink-0 items-center gap-2.5 border-t border-[#EBE7E1] px-4 py-3.5"
+        }
+        style={bare ? undefined : { background: "#FFFDFB" }}
       >
         <input
           value={input}
@@ -522,7 +540,7 @@ function normalizeType(t: string): CreateStepOp["type"] {
 // coral tappable spans (tap → prefill "Tell me about {label}"), http links as
 // real anchors. Paragraphs split on blank lines.
 
-function renderRich(text: string): React.ReactNode {
+export function renderRich(text: string): React.ReactNode {
   const paragraphs = text.split(/\n{2,}/)
   return paragraphs.map((para, pi) => (
     <p key={pi} className={pi > 0 ? "mt-2.5" : undefined}>
