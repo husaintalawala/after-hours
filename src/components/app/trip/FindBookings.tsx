@@ -5,13 +5,19 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { extractPdfText } from "@/lib/drift/pdfText"
 import { icsToEventTexts } from "@/lib/drift/ics"
+import {
+  requestGoogleAccessToken,
+  fetchUpcomingCalendarTexts,
+  GMAIL_SCOPE,
+  CALENDAR_SCOPE,
+} from "@/lib/drift/google"
+import { openPlaidLink, PLAID_CANCELLED } from "@/lib/drift/plaid"
 
 // Find my bookings — web port of the iOS booking-import surface. One card
-// language, one line-icon set (no emoji), consistent collapsed-by-default
-// rows. Two clear groups: "Add bookings" (methods wired end-to-end through
-// parse-text — Forward · Upload PDF · Paste · Import .ics) and "Needs setup"
-// (credentialed methods — Gmail scan, Google Calendar, Plaid — shown as honest
-// expandable tiles until the Drift team provisions their OAuth / bank creds).
+// language, one line-icon set (no emoji), consistent rows. Two groups:
+// "Add bookings" (Forward · Upload PDF · Paste · Import .ics — all through
+// parse-text) and "Connect accounts" (Gmail scan + Google Calendar via the GIS
+// token flow, and card linking via Plaid — all wired to their edge functions).
 
 interface SegmentVM {
   id: string
@@ -22,7 +28,7 @@ interface SegmentVM {
   needsReview: boolean
 }
 
-type Busy = null | "paste" | "pdf" | "ics"
+type Busy = null | "paste" | "pdf" | "ics" | "gmail" | "calendar" | "plaid"
 
 const CATEGORY_ICON: Record<string, string> = {
   flight: "✈️",
@@ -78,6 +84,7 @@ function FindBookingsSheet({
   const [applying, setApplying] = useState(false)
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [plaidStatus, setPlaidStatus] = useState<string | null>(null)
   const didApply = useMemo(() => appliedCount != null && appliedCount > 0, [appliedCount])
   const pdfInput = useRef<HTMLInputElement>(null)
   const icsInput = useRef<HTMLInputElement>(null)
@@ -221,6 +228,83 @@ function FindBookingsSheet({
     setBusy(null)
   }
 
+  // Gmail scan: Google token (gmail.readonly) → gmail-scan edge fn → segments.
+  async function handleGmailScan() {
+    if (busy) return
+    setBusy("gmail")
+    setError(null)
+    try {
+      const accessToken = await requestGoogleAccessToken(GMAIL_SCOPE)
+      const res = await fetch("/api/drift/gmail-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trip_id: tripId, access_token: accessToken }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Gmail scan failed")
+      await loadSegments()
+      if (!json.parsed) setError("Scanned your inbox but found no bookings for this trip.")
+    } catch (e) {
+      setError(gmailErr(e))
+    }
+    setBusy(null)
+  }
+
+  // Google Calendar: token (calendar.readonly) → events → same parse path as .ics.
+  async function handleCalendar() {
+    if (busy) return
+    setBusy("calendar")
+    setError(null)
+    try {
+      const accessToken = await requestGoogleAccessToken(CALENDAR_SCOPE)
+      const texts = await fetchUpcomingCalendarTexts(accessToken)
+      if (!texts.length) setError("No upcoming events found in your Google Calendar.")
+      else await postParse({ source: "calendar", texts }, "calendar")
+    } catch (e) {
+      setError(gmailErr(e))
+    }
+    setBusy(null)
+  }
+
+  // Plaid: link-token → Plaid Link → exchange (creates plaid_items + kicks the
+  // transactions sync that lands expenses on the trip).
+  async function handlePlaid() {
+    if (busy) return
+    setBusy("plaid")
+    setError(null)
+    setPlaidStatus(null)
+    try {
+      const tokRes = await fetch("/api/drift/plaid-link-token", { method: "POST" })
+      const tok = await tokRes.json().catch(() => null)
+      if (tokRes.status === 403) {
+        throw new Error("Card linking isn't enabled for your account yet.")
+      }
+      if (!tokRes.ok || !tok?.link_token) throw new Error(tok?.error ?? "Couldn't start card linking")
+
+      const { public_token, institution } = await openPlaidLink(tok.link_token)
+      const exRes = await fetch("/api/drift/plaid-exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ public_token, institution }),
+      })
+      const ex = await exRes.json().catch(() => null)
+      if (!exRes.ok || !ex?.item_id) throw new Error(ex?.error ?? "Couldn't link that account")
+      const n = Array.isArray(ex.accounts) ? ex.accounts.length : 0
+      setPlaidStatus(
+        `Linked ${institution?.name ?? "your bank"}${
+          n ? ` · ${n} account${n === 1 ? "" : "s"}` : ""
+        }. Trip expenses will appear as transactions sync.`
+      )
+    } catch (e) {
+      if (e instanceof Error && e.message === PLAID_CANCELLED) {
+        // user closed Link without connecting — no error
+      } else {
+        setError(msg(e))
+      }
+    }
+    setBusy(null)
+  }
+
   async function applySelected() {
     if (applying || selected.size === 0) return
     setApplying(true)
@@ -346,28 +430,39 @@ function FindBookingsSheet({
             />
           </div>
 
-          {/* Credentialed methods — grouped together, honest state */}
-          <SectionLabel>Needs setup</SectionLabel>
+          {/* Credentialed methods — now live (Google sign-in + Plaid). */}
+          <SectionLabel>Connect accounts</SectionLabel>
           <div className="space-y-2.5">
-            <SetupRow
+            <ConnectRow
               icon="inbox"
               title="Scan Gmail"
               desc="Auto-find flights, hotels & tours from your inbox"
-              note="Scanning Gmail on the web needs a Google sign-in the Drift team is still configuring. For now, forward a confirmation or paste one — same result."
+              cta="Scan"
+              busy={busy === "gmail"}
+              onClick={handleGmailScan}
             />
-            <SetupRow
+            <ConnectRow
               icon="calendar"
               title="Connect Google Calendar"
-              desc="Sync events straight from your Google account"
-              note="A one-tap Google Calendar connection needs a Google sign-in the Drift team is configuring. For now, export your calendar as an .ics file and use “Import calendar (.ics)” above."
+              desc="Pull upcoming events straight from your Google account"
+              cta="Connect"
+              busy={busy === "calendar"}
+              onClick={handleCalendar}
             />
-            <SetupRow
+            <ConnectRow
               icon="card"
               title="Connect a card"
               desc="Auto-import trip expenses from your bank"
-              note="Card linking (via Plaid) needs bank credentials the Drift team is setting up. It'll appear here as a live connection once enabled."
+              cta="Connect"
+              busy={busy === "plaid"}
+              onClick={handlePlaid}
             />
           </div>
+          {plaidStatus && (
+            <p className="mt-2.5 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-700">
+              {plaidStatus}
+            </p>
+          )}
 
           {/* Review list */}
           <div className="mt-6 flex items-baseline justify-between">
@@ -656,48 +751,42 @@ function ExpandRow({
   )
 }
 
-// "Needs setup" tile — same shell + an amber pill, expandable to explain what
-// it will do. Never a live-looking dead button.
-function SetupRow({
+// Live "connect" tile — same card shell as ActionRow, a coral CTA pill on the
+// right, spinner while busy. Failures surface in the shared error banner below
+// the review list (Gmail errors point back to Forward/Paste).
+function ConnectRow({
   icon,
   title,
   desc,
-  note,
+  cta,
+  busy,
+  onClick,
 }: {
   icon: IconName
   title: string
   desc: string
-  note: string
+  cta: string
+  busy: boolean
+  onClick: () => void
 }) {
-  const [open, setOpen] = useState(false)
   return (
-    <div className="overflow-hidden rounded-2xl border border-drift-divider bg-white">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 p-3.5 text-left"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-drift-alt-bg text-drift-muted">
-          <Icon name={icon} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[14.5px] font-semibold text-drift-ink">{title}</span>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-              Needs setup
+    <div className="rounded-2xl border border-drift-divider bg-white transition-colors hover:border-drift-coral/40">
+      <RowShell
+        icon={icon}
+        title={title}
+        desc={busy ? "Working…" : desc}
+        onClick={onClick}
+        disabled={busy}
+        trailing={
+          busy ? (
+            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-drift-coral/30 border-t-drift-coral" />
+          ) : (
+            <span className="shrink-0 rounded-full bg-drift-coral px-3 py-1.5 text-[12px] font-bold text-white">
+              {cta}
             </span>
-          </span>
-          <span className="mt-0.5 block truncate text-[12.5px] text-drift-muted">{desc}</span>
-        </span>
-        <Icon
-          name="chevron"
-          className={`h-4 w-4 shrink-0 text-drift-text-tertiary transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-      {open && (
-        <p className="px-3.5 pb-3.5 text-[12.5px] leading-relaxed text-drift-muted">{note}</p>
-      )}
+          )
+        }
+      />
     </div>
   )
 }
@@ -709,4 +798,12 @@ function cap(s: string | null): string | null {
 
 function msg(e: unknown): string {
   return e instanceof Error ? e.message : "Import failed"
+}
+
+// Google flows can be blocked (unverified app / access denied) or cancelled —
+// always leave the user a path forward via Forward or Paste.
+function gmailErr(e: unknown): string {
+  const m = e instanceof Error ? e.message : "Google sign-in failed."
+  if (/cancel|popup|closed|didn't complete/i.test(m)) return m
+  return `${m} You can still forward or paste a confirmation above.`
 }
