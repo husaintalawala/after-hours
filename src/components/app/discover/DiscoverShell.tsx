@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import {
   CATEGORY_META,
@@ -23,17 +23,29 @@ const DiscoverMap = dynamic(() => import("./DiscoverMap"), {
 
 const CATS: DiscoverCategory[] = ["forYou", "restaurants", "thingsToDo", "stays"]
 
+// A quick-select place in the location picker — a destination across the
+// user's trips (mirrors iOS "your destinations grouped by your timeline").
+export interface DiscoverPlace {
+  id: string
+  label: string
+  country: string | null
+  lat: number | null
+  lng: number | null
+  bucket: "now" | "upcoming" | "past"
+  subtitle: string
+}
+
 export default function DiscoverShell({
   initialAnchor,
+  places,
 }: {
   initialAnchor: DiscoverAnchor | null
+  places: DiscoverPlace[]
 }) {
   const [anchor, setAnchor] = useState<DiscoverAnchor | null>(initialAnchor)
   const [cat, setCat] = useState<DiscoverCategory>("forYou")
   const [results, setResults] = useState<DiscoverResult[]>([])
   const [loading, setLoading] = useState(false)
-  const [search, setSearch] = useState("")
-  const [searching, setSearching] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const reqSeq = useRef(0)
 
@@ -50,25 +62,6 @@ export default function DiscoverShell({
     })
   }, [cat, anchor])
 
-  async function searchCity(e: React.FormEvent) {
-    e.preventDefault()
-    const q = search.trim()
-    if (!q || searching) return
-    setSearching(true)
-    const cands = await resolvePlaceCandidates(q, q)
-    setSearching(false)
-    const c = cands[0]
-    if (c?.latitude != null && c?.longitude != null) {
-      setAnchor({
-        label: c.name,
-        country: null,
-        lat: c.latitude,
-        lng: c.longitude,
-      })
-      setSearch("")
-    }
-  }
-
   return (
     <div className="lg:fixed lg:inset-0 lg:top-0">
       <div className="mx-auto h-full w-full max-w-2xl px-5 pt-6 lg:max-w-none lg:px-0 lg:pt-0">
@@ -79,22 +72,10 @@ export default function DiscoverShell({
               Discover
             </h1>
 
-            {/* Location search */}
-            <form onSubmit={searchCity} className="mt-4 flex gap-2">
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={anchor ? `Near ${anchor.label} — search another city` : "Where to?"}
-                className="min-w-0 flex-1 rounded-full border border-drift-divider bg-drift-alt-bg px-4 py-2.5 text-[14.5px] outline-none focus:border-drift-coral"
-              />
-              <button
-                type="submit"
-                disabled={searching || !search.trim()}
-                className="shrink-0 rounded-full bg-drift-coral px-4 py-2.5 text-[14px] font-semibold text-white disabled:opacity-50"
-              >
-                {searching ? "…" : "Go"}
-              </button>
-            </form>
+            {/* Location picker — current location + your trip places + city search */}
+            <div className="mt-4">
+              <LocationPicker anchor={anchor} places={places} onSelect={setAnchor} />
+            </div>
 
             {/* Category chips */}
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -146,6 +127,214 @@ export default function DiscoverShell({
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Location picker — the web port of the iOS Discover location selector. A
+// dropdown offering "Current location" (browser geolocation), the user's trip
+// destinations grouped by timeline, and free-text city search as the fallback.
+function LocationPicker({
+  anchor,
+  places,
+  onSelect,
+}: {
+  anchor: DiscoverAnchor | null
+  places: DiscoverPlace[]
+  onSelect: (a: DiscoverAnchor) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [searching, setSearching] = useState(false)
+  const [results, setResults] = useState<
+    Array<{ name: string; address: string | null; lat: number; lng: number }>
+  >([])
+  const [geoState, setGeoState] = useState<"idle" | "locating" | "denied">("idle")
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close on outside click / Escape.
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+    document.addEventListener("mousedown", onDoc)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDoc)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  const grouped = useMemo(() => {
+    const order: DiscoverPlace["bucket"][] = ["now", "upcoming", "past"]
+    const titles: Record<DiscoverPlace["bucket"], string> = {
+      now: "Traveling now",
+      upcoming: "Upcoming",
+      past: "Past trips",
+    }
+    return order
+      .map((b) => ({ bucket: b, title: titles[b], items: places.filter((p) => p.bucket === b) }))
+      .filter((g) => g.items.length > 0)
+  }, [places])
+
+  async function runSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const q = search.trim()
+    if (!q || searching) return
+    setSearching(true)
+    const cands = await resolvePlaceCandidates(q, q)
+    setSearching(false)
+    setResults(
+      cands
+        .filter((c) => c.latitude != null && c.longitude != null)
+        .slice(0, 6)
+        .map((c) => ({ name: c.name, address: c.address ?? null, lat: c.latitude!, lng: c.longitude! }))
+    )
+  }
+
+  function pickCurrentLocation() {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      setGeoState("denied")
+      return
+    }
+    setGeoState("locating")
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeoState("idle")
+        onSelect({
+          label: "Current location",
+          country: null,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        })
+        setOpen(false)
+      },
+      () => setGeoState("denied"),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    )
+  }
+
+  const rowBase =
+    "flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-drift-coral-50"
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 rounded-full border border-drift-divider bg-drift-alt-bg px-4 py-2.5 text-left text-[14.5px] outline-none transition-colors focus-visible:border-drift-coral"
+      >
+        <span className="text-[15px]">📍</span>
+        <span className="min-w-0 flex-1 truncate font-semibold text-drift-ink">
+          {anchor?.label ?? "Choose a place"}
+        </span>
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden
+          className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 max-h-[60vh] overflow-y-auto overscroll-contain rounded-2xl border border-drift-divider bg-white p-2 shadow-[0_24px_60px_-24px_rgba(31,31,36,0.4)]">
+          {/* City search */}
+          <form onSubmit={runSearch} className="flex gap-2 p-1">
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search another city…"
+              className="min-w-0 flex-1 rounded-full border border-drift-divider bg-drift-alt-bg px-3.5 py-2 text-[14px] outline-none focus:border-drift-coral"
+            />
+            <button
+              type="submit"
+              disabled={searching || !search.trim()}
+              className="shrink-0 rounded-full bg-drift-coral px-3.5 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+            >
+              {searching ? "…" : "Go"}
+            </button>
+          </form>
+
+          {results.length > 0 && (
+            <div className="mt-1">
+              {results.map((r, i) => (
+                <button key={i} onClick={() => { onSelect({ label: r.name, country: null, lat: r.lat, lng: r.lng }); setSearch(""); setResults([]); setOpen(false) }} className={rowBase}>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-drift-alt-bg text-[15px]">🔎</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14px] font-semibold">{r.name}</span>
+                    {r.address && (
+                      <span className="block truncate text-[12px] text-drift-muted">{r.address}</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Current location */}
+          <button onClick={pickCurrentLocation} className={`mt-1 ${rowBase}`}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-drift-coral text-[15px] text-white">
+              📍
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[14px] font-semibold">
+                {geoState === "locating" ? "Locating…" : "Current location"}
+              </span>
+              <span className="block truncate text-[12px] text-drift-muted">
+                {geoState === "denied" ? "Location permission denied" : "Explore where you are now"}
+              </span>
+            </span>
+          </button>
+
+          {/* Your trip places, grouped by timeline */}
+          {grouped.map((g) => (
+            <div key={g.bucket} className="mt-1">
+              <p className="px-2.5 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-drift-text-tertiary">
+                {g.title}
+              </p>
+              {g.items.map((p) => {
+                const active = anchor?.lat === p.lat && anchor?.lng === p.lng
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => { onSelect({ label: p.label, country: p.country, lat: p.lat, lng: p.lng }); setOpen(false) }}
+                    className={active ? `${rowBase} bg-drift-coral-50` : rowBase}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-drift-alt-bg text-[15px]">
+                      📍
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold">{p.label}</span>
+                      {p.subtitle && (
+                        <span className="block truncate text-[12px] text-drift-muted">{p.subtitle}</span>
+                      )}
+                    </span>
+                    {active && <span className="shrink-0 text-drift-coral">✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+
+          {grouped.length === 0 && (
+            <p className="px-2.5 py-3 text-center text-[13px] text-drift-muted">
+              No trip places yet — search a city above.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import type { DiscoverAnchor } from "@/lib/drift/discover"
-import DiscoverShell from "@/components/app/discover/DiscoverShell"
+import DiscoverShell, { type DiscoverPlace } from "@/components/app/discover/DiscoverShell"
 
 // Discover — anchors to the user's featured trip's first destination when one
 // exists (iOS trip-anchored mode); otherwise opens in search-first mode.
@@ -61,5 +61,37 @@ export default async function DiscoverPage() {
     }
   }
 
-  return <DiscoverShell initialAnchor={anchor} />
+  // All destination places across the user's trips → quick-select options in
+  // the Discover location picker (mirrors iOS "your destinations grouped by
+  // your timeline"). Current location is added client-side via geolocation.
+  const tripIds = trips.map((t) => t.id)
+  let places: DiscoverPlace[] = []
+  if (tripIds.length) {
+    const { data: destRows } = await supabase
+      .from("steps")
+      .select("id,trip_id,title,location_name,country,latitude,longitude,date")
+      .in("trip_id", tripIds)
+      .eq("step_type", "destination")
+      .is("parent_step_id", null)
+      .returns<StepRow[]>()
+    const tripById = new Map(trips.map((t) => [t.id, t]))
+    const bucketFor = (t: TripRow): DiscoverPlace["bucket"] =>
+      t.is_active ? "now" : (t.start_date ?? "") > today ? "upcoming" : "past"
+    places = (destRows ?? [])
+      .filter((d) => d.latitude != null && d.longitude != null)
+      .map((d) => {
+        const t = d.trip_id ? tripById.get(d.trip_id) : undefined
+        return {
+          id: d.id,
+          label: d.title || d.location_name || t?.cities?.[0] || "Destination",
+          country: d.country ?? t?.countries?.[0] ?? null,
+          lat: d.latitude,
+          lng: d.longitude,
+          bucket: t ? bucketFor(t) : "past",
+          subtitle: t?.title || "",
+        } satisfies DiscoverPlace
+      })
+  }
+
+  return <DiscoverShell initialAnchor={anchor} places={places} />
 }
