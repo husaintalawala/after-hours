@@ -182,6 +182,58 @@ function handleFrame(frame: string, handlers: AskHandlers): boolean {
   return false
 }
 
+// ---- Place resolution (resolve-place via same-origin proxy) ----
+// Used to hydrate chat cards with a photo + coordinates, and to attach
+// resolved_place (name/lat/lng/place_id) when the user confirms an Add.
+
+export interface PlaceCandidate {
+  id: string
+  name: string
+  rating?: number | null
+  reviewCount?: number | null
+  address?: string | null
+  photoRef?: string | null
+  heroImageURL?: string | null
+  photoUrl?: string | null
+  primaryType?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  source?: string | null // "google" | "osm" | "geonames"
+}
+
+export async function resolvePlace(
+  query: string,
+  destinationName?: string,
+  country?: string
+): Promise<PlaceCandidate | null> {
+  try {
+    const res = await fetch("/api/drift/resolve-place", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, destinationName, country }),
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as { ok?: boolean; candidates?: PlaceCandidate[] }
+    return json.candidates?.[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Build a browser-loadable place-photo URL. maps-photo is a public image
+ *  endpoint gated by the anon apikey (same pattern as the iOS GoogleMapsProxy). */
+export function placePhotoUrl(c: PlaceCandidate | null, width = 640): string | null {
+  if (!c) return null
+  if (c.heroImageURL) return c.heroImageURL
+  if (c.photoUrl) return c.photoUrl
+  if (c.photoRef) {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    return `${base}/functions/v1/maps-photo?ref=${encodeURIComponent(c.photoRef)}&w=${width}&apikey=${anon}`
+  }
+  return null
+}
+
 async function blockingAsk(body: AskRequestBody): Promise<ChatAnswer> {
   const res = await fetch(ASK_URL, {
     method: "POST",

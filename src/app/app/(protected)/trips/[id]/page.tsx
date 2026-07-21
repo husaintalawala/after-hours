@@ -1,10 +1,36 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { fetchTripDetail, destinationLabel } from "@/lib/drift/trip"
-import { formatDayLabel } from "@/lib/drift/dates"
-import type { TimelineItem } from "@/lib/drift/timeline"
+import type {
+  StepRow,
+  TripRow,
+  TransportBookingRow,
+  ExpenseRow,
+  KitItemRow,
+} from "@/lib/db-types"
+import {
+  buildDestinationTimeline,
+  groupTimelineByDay,
+  type TransportBookingLike,
+} from "@/lib/drift/timeline"
+import { compareDate, dateOnly } from "@/lib/drift/dates"
+import { destinationPhotoUrl } from "@/lib/drift/placePhoto"
+import { countryFlagEmoji } from "@/lib/drift/flags"
+import TripTabs, {
+  type DestinationVM,
+  type ExpenseVM,
+  type KitItemVM,
+} from "@/components/app/trip/TripTabs"
 import TripChat from "@/components/app/chat/TripChat"
+
+// Trip workspace — web port of TripStepScrollView: title header, 4-tab strip
+// (Plan · Kit · Expenses · Track), DestinationDaysView-style Plan tab (hero +
+// day filmstrip + timeline incl. transport legs), embedded Ask-Drift chat.
+
+const MODE_LABEL: Record<string, string> = {
+  car: "Drive", motorbike: "Motorbike", bike: "Bike", hike: "Hike",
+  bus: "Bus", train: "Train", flight: "Flight", sailboat: "Ferry", direct: "Travel",
+}
 
 export default async function TripDetailPage({
   params,
@@ -12,10 +38,91 @@ export default async function TripDetailPage({
   params: { id: string }
 }) {
   const supabase = createClient()
-  const detail = await fetchTripDetail(supabase, params.id)
-  if (!detail) notFound()
 
-  const { trip, destinations } = detail
+  const { data: tripRaw } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", params.id)
+    .maybeSingle()
+  const trip = tripRaw as TripRow | null
+  if (!trip) notFound()
+
+  const [{ data: stepsRaw }, { data: transportRaw }, { data: expensesRaw }, { data: kitRaw }] =
+    await Promise.all([
+      supabase.from("steps").select("*").eq("trip_id", trip.id),
+      supabase.from("transport_bookings").select("*").eq("trip_id", trip.id),
+      supabase.from("expenses").select("*").eq("trip_id", trip.id),
+      supabase.from("kit_items").select("*").eq("trip_id", trip.id),
+    ])
+
+  const steps = (stepsRaw ?? []) as StepRow[]
+  const transportRows = (transportRaw ?? []) as TransportBookingRow[]
+  const expenseRows = (expensesRaw ?? []) as ExpenseRow[]
+  const kitRows = (kitRaw ?? []) as KitItemRow[]
+  const destinations = steps
+    .filter((s) => s.step_type === "destination" && !s.parent_step_id)
+    .sort((a, b) => compareDate(dateOnly(a.date) ?? "", dateOnly(b.date) ?? ""))
+
+  const transport: TransportBookingLike[] = transportRows.map((b) => ({
+    id: b.id,
+    to_destination_id: b.to_destination_id,
+    from_destination_id: b.from_destination_id,
+    arrival_at: b.arrival_at,
+    departure_at: b.departure_at,
+    modeDisplayName: MODE_LABEL[b.mode] ?? b.mode,
+    title:
+      b.title ||
+      [b.operator_name, b.flight_number].filter(Boolean).join(" ") ||
+      MODE_LABEL[b.mode] ||
+      "Travel",
+    departure_location: b.departure_location,
+    arrival_location: b.arrival_location,
+  }))
+
+  // Destination view-models: hero photo (shared POI cache) + day timeline.
+  const destVMs: DestinationVM[] = await Promise.all(
+    destinations.map(async (destination) => {
+      const label = destination.title || destination.location_name || "Destination"
+      const children = steps.filter((s) => s.parent_step_id === destination.id)
+      const timeline = buildDestinationTimeline(destination, children, transport)
+      const days = groupTimelineByDay(
+        timeline,
+        dateOnly(destination.date) ?? "1970-01-01",
+        destination.nights ?? 0
+      )
+      return {
+        id: destination.id,
+        label,
+        country: destination.country,
+        nights: destination.nights ?? 0,
+        heroUrl: await destinationPhotoUrl(label, destination.country),
+        days,
+      }
+    })
+  )
+
+  const expenseVMs: ExpenseVM[] = expenseRows.map((e) => ({
+    id: e.id,
+    label: e.label,
+    subtitle: e.subtitle,
+    amount: e.amount,
+    currency: e.currency,
+    category: e.category,
+    expense_date: e.expense_date,
+  }))
+
+  const kitVMs: KitItemVM[] = kitRows
+    .filter((k) => k.state !== "dismissed")
+    .map((k) => ({
+      id: k.id,
+      title: k.title,
+      category: k.category,
+      phase: k.phase,
+      state: k.state,
+      quantity: k.quantity,
+    }))
+
+  const flag = countryFlagEmoji(trip.countries?.[0])
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pt-6">
@@ -25,104 +132,30 @@ export default async function TripDetailPage({
 
       <header className="mt-3">
         <h1 className="font-drift-display text-3xl font-medium tracking-tight">
-          {trip.title || "Untitled trip"}
+          {trip.title || "Untitled trip"} {flag && <span className="text-2xl">{flag}</span>}
         </h1>
         <p className="mt-1 text-drift-muted">{tripSubtitle(trip)}</p>
       </header>
 
-      {destinations.length === 0 && (
-        <p className="mt-8 text-drift-muted">
-          No itinerary yet. Ask Drift below to start planning.
-        </p>
-      )}
-
-      <div className="mt-6 space-y-8">
-        {destinations.map(({ destination, days }) => (
-          <section key={destination.id}>
-            <h2 className="font-drift-display text-xl font-medium">
-              {destinationLabel(destination)}
-            </h2>
-            <p className="text-sm text-drift-text-tertiary">
-              {[
-                destination.country,
-                `${destination.nights ?? 0} night${
-                  (destination.nights ?? 0) === 1 ? "" : "s"
-                }`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-
-            <div className="mt-4 space-y-6">
-              {days.map((day) => (
-                <div key={day.dayNumber}>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-drift-display text-base font-medium">
-                      Day {day.dayNumber}
-                    </span>
-                    <span className="text-sm text-drift-text-tertiary">
-                      {formatDayLabel(day.date)}
-                    </span>
-                  </div>
-
-                  {day.items.length === 0 ? (
-                    <p className="mt-2 text-sm text-drift-text-tertiary">
-                      Nothing planned yet
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-2">
-                      {day.items.map((item) => (
-                        <TimelineRow key={item.id} item={item} />
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      <TripChat
-        tripId={trip.id}
-        tripTitle={trip.title || "your trip"}
-        tripStart={trip.start_date ?? null}
-        destinations={destinations.map(({ destination }) => ({
-          id: destination.id,
-          date: destination.date,
-          nights: destination.nights ?? 0,
-          label: destinationLabel(destination),
-        }))}
-      />
+      <TripTabs destinations={destVMs} expenses={expenseVMs} kitItems={kitVMs}>
+        <TripChat
+          tripId={trip.id}
+          tripTitle={trip.title || "your trip"}
+          tripStart={trip.start_date ?? null}
+          country={trip.countries?.[0] ?? null}
+          destinations={destVMs.map((d) => {
+            const src = destinations.find((x) => x.id === d.id)!
+            return {
+              id: d.id,
+              date: src.date,
+              nights: d.nights,
+              label: d.label,
+            }
+          })}
+        />
+      </TripTabs>
     </main>
   )
-}
-
-function TimelineRow({ item }: { item: TimelineItem }) {
-  return (
-    <li className="flex gap-3 rounded-xl border border-drift-divider bg-white p-3">
-      <div className="w-12 shrink-0 pt-0.5 text-right text-xs tabular-nums text-drift-text-tertiary">
-        {item.startTimeMinutes != null ? minutesToLabel(item.startTimeMinutes) : "—"}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-drift-coral">
-          {item.badge}
-        </p>
-        <p className="truncate font-medium">{item.title}</p>
-        {item.subtitle && (
-          <p className="truncate text-sm text-drift-muted">{item.subtitle}</p>
-        )}
-      </div>
-    </li>
-  )
-}
-
-function minutesToLabel(mins: number): string {
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
-  const ampm = h < 12 ? "am" : "pm"
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  return m === 0 ? `${h12}${ampm}` : `${h12}:${String(m).padStart(2, "0")}${ampm}`
 }
 
 function tripSubtitle(trip: {
