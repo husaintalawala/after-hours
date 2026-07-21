@@ -2,6 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import type { TripRow, TripBuddyRow } from "@/lib/db-types"
 import { countryFlagEmoji } from "@/lib/drift/flags"
+import BackLink from "@/components/app/BackLink"
 
 // Countries visited — reached from the home profile stats. Aggregates the
 // countries across your trips (owned + accepted-buddy, same scope as home)
@@ -49,6 +50,7 @@ export default async function CountriesPage() {
 
   return (
     <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-8 lg:pt-12">
+      <BackLink href="/app" label="Home" className="mb-5" />
       <h1 className="font-drift-display text-[28px] font-bold">Countries</h1>
       <p className="mt-1 text-[14px] text-drift-muted">
         {countries.length} {countries.length === 1 ? "country" : "countries"} across your

@@ -8,6 +8,7 @@ import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
 import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
+import BackLink from "@/components/app/BackLink"
 
 // The trip workspace, aligned with iOS:
 //  Plan (trip level)  = trip hero + "Your stops" destination cards
@@ -257,7 +258,10 @@ export default function TripTabs({
             style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
           />
           <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
-            <div className="flex justify-end">{segmented(true)}</div>
+            <div className="flex items-start justify-between gap-3">
+              <BackLink href="/app" label="Home" variant="glass" />
+              {segmented(true)}
+            </div>
             <div>
               <h1 className="font-drift-display text-[40px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] md:text-[54px]">
                 {tripMeta.title} {tripMeta.flag ?? ""}

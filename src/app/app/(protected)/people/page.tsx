@@ -2,6 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import type { ProfileRow } from "@/lib/db-types"
 import FollowButton from "@/components/app/people/FollowButton"
+import BackLink from "@/components/app/BackLink"
 
 // Followers / Following — web port of the iOS follower-list screens, reached
 // from the home profile stats. Tabbed list with follow/unfollow.
@@ -62,6 +63,7 @@ export default async function PeoplePage({
 
   return (
     <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-8 lg:pt-12">
+      <BackLink href="/app" label="Home" className="mb-5" />
       <h1 className="font-drift-display text-[28px] font-bold">People</h1>
 
       {/* Tabs */}

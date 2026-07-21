@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import BackLink from "@/components/app/BackLink"
 
 // Web port of the iOS SettingsView: profile header, preferences (default
 // trip privacy — stored locally like iOS UserDefaults), account (sign out),
@@ -80,6 +81,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
   return (
     <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-8 lg:pt-12">
+      <BackLink href="/app" label="Home" className="mb-5" />
       <h1 className="font-drift-display text-[28px] font-bold">Settings</h1>
 
       {/* Profile */}

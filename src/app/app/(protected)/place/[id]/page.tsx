@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { fetchPlaceDetails, placesPhotoUrl } from "@/lib/drift/placeDetails"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import type { TripRow } from "@/lib/db-types"
+import BackLink from "@/components/app/BackLink"
 
 // Place detail — cinematic hero, About / Hours / Reviews, and a sticky action
 // card with mini-map + "Ask Drift about this" (prefills the featured trip's
@@ -52,12 +53,11 @@ export default async function PlacePage({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pt-4 lg:max-w-[1400px] lg:px-8 lg:pt-6">
-      <Link href="/app/discover" className="text-sm text-drift-muted lg:hidden">
-        ← Discover
-      </Link>
-
       {/* Hero */}
       <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[330px] lg:mt-0">
+        <div className="absolute left-4 top-4 z-10">
+          <BackLink href="/app/discover" label="Discover" variant="glass" />
+        </div>
         {hero ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />

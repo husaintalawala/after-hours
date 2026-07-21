@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
+import BackLink from "@/components/app/BackLink"
 
 // Web port of the iOS new-trip flow: TripTypeSheet ("What kind of trip?" —
 // past / currently traveling / future) → destination search → title + dates →
@@ -146,6 +147,7 @@ export default function NewTripFlow() {
       {/* ---------- Step 0: What kind of trip? ---------- */}
       {step === 0 && (
         <>
+          <BackLink href="/app" label="Home" className="mb-5" />
           <h1 className="text-center font-drift-display text-[26px] font-bold">
             What kind of trip?
           </h1>
