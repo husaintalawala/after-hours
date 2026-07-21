@@ -237,7 +237,7 @@ function FindBookingsSheet({
         className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:rounded-[24px]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-drift-divider px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-drift-divider px-5 py-4">
           <h2 className="font-drift-display text-[20px] font-bold">Find my bookings</h2>
           <button
             onClick={() => onClose(didApply)}
@@ -248,7 +248,7 @@ function FindBookingsSheet({
           </button>
         </div>
 
-        <div className="overflow-y-auto px-5 pb-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
           {/* Forwarding address */}
           <p className="mt-4 text-[12px] font-bold uppercase tracking-wide text-drift-muted">
             Forward confirmation emails
