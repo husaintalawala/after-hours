@@ -1,0 +1,196 @@
+// Ask-Drift trip chat — shapes + browser SSE client. Ports the Swift
+// DriftChatSemanticService workarounds: manual \n\n frame split with CRLF
+// normalization, a 12s first-token watchdog that aborts to a blocking retry,
+// and a non-streaming fallback decoding the identical ChatAnswer.
+//
+// Calls flow through a same-origin Next proxy (/api/drift/ask) that attaches the
+// user's Supabase access token server-side — so the token never touches JS and
+// there's no CORS dependency on the edge function. (Accept-Encoding: identity is
+// a forbidden header in browser fetch; the proxy sets it upstream instead.)
+
+export interface Turn {
+  role: string
+  text: string
+}
+
+export interface ProposedOp {
+  op: string // always "create_step"
+  type: string // spot | activity | food | stay
+  title: string
+  destination_ref: string | null
+  date: string | null // "yyyy-MM-dd"
+  time: string | null // "HH:MM"
+  duration_minutes: number | null
+  notes: string | null
+}
+
+export interface ChatCard {
+  title: string
+  subtitle: string
+  body: string
+  chips: string[]
+  place_query: string
+  map_query: string
+  expected_name?: string | null
+  locality?: string | null
+  proposed_op?: ProposedOp | null
+}
+
+export interface ChatAnswer {
+  assistant_text: string
+  title: string
+  subtitle: string
+  mode: "answer_only" | "answer_with_cards" | "clarification"
+  is_clarification?: boolean
+  cards: ChatCard[]
+  followups: string[]
+  reply_chips?: string[]
+}
+
+export interface AskRequestBody {
+  tripId: string
+  message: string
+  conversation: Turn[]
+  image?: string | null
+}
+
+export interface AskHandlers {
+  onStatus?: (state: string) => void
+  onDelta?: (delta: string) => void
+  onPayload?: (answer: ChatAnswer) => void
+  onError?: (message: string) => void
+}
+
+const ASK_URL = "/api/drift/ask"
+const FIRST_TOKEN_TIMEOUT_MS = 12_000
+
+/**
+ * Run one Ask-Drift turn: stream via SSE, and if no first token lands within
+ * 12s (or the stream errors), transparently fall back to the blocking call.
+ * Resolves when the turn is fully handled (payload delivered or error reported).
+ */
+export async function askDrift(
+  body: AskRequestBody,
+  handlers: AskHandlers
+): Promise<void> {
+  try {
+    await streamAsk(body, handlers)
+  } catch (err) {
+    // Watchdog abort (code -5 analog) or transport error → blocking retry.
+    try {
+      const answer = await blockingAsk(body)
+      handlers.onPayload?.(answer)
+    } catch (e) {
+      handlers.onError?.(
+        e instanceof Error ? e.message : "Couldn't reach Drift. Try again."
+      )
+    }
+  }
+}
+
+async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<void> {
+  const controller = new AbortController()
+  let gotFirstToken = false
+
+  const watchdog = setTimeout(() => {
+    if (!gotFirstToken) controller.abort() // → caller falls back to blockingAsk
+  }, FIRST_TOKEN_TIMEOUT_MS)
+
+  try {
+    const res = await fetch(ASK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify({ ...body, stream: true }),
+      signal: controller.signal,
+    })
+    if (!res.ok || !res.body) {
+      throw new Error(`ask stream failed: ${res.status}`)
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+
+    // Split frames on \n\n ourselves (CRLF normalized to LF first), joining
+    // multiple data: lines with \n — matching the Swift byte-buffer parser.
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true }).replace(/\r/g, "")
+      let idx: number
+      while ((idx = buffer.indexOf("\n\n")) >= 0) {
+        const frame = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        if (handleFrame(frame, handlers)) {
+          gotFirstToken = true
+          clearTimeout(watchdog)
+        }
+      }
+    }
+    if (buffer.trim()) handleFrame(buffer, handlers)
+
+    if (!gotFirstToken) {
+      // Stream closed with no delta — treat as hollow and retry blocking.
+      throw new Error("no first token")
+    }
+  } finally {
+    clearTimeout(watchdog)
+  }
+}
+
+/** Parse one SSE frame. Returns true iff it was a text_delta (first-token mark). */
+function handleFrame(frame: string, handlers: AskHandlers): boolean {
+  let ev = ""
+  const dataParts: string[] = []
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("event:")) ev = line.slice(6).trim()
+    else if (line.startsWith("data:")) dataParts.push(line.slice(5).trim())
+  }
+  const dataStr = dataParts.join("\n")
+  if (!dataStr) return false
+
+  try {
+    switch (ev) {
+      case "text_delta": {
+        const obj = JSON.parse(dataStr) as { delta?: string }
+        if (typeof obj.delta === "string") {
+          handlers.onDelta?.(obj.delta)
+          return true
+        }
+        break
+      }
+      case "payload": {
+        handlers.onPayload?.(JSON.parse(dataStr) as ChatAnswer)
+        break
+      }
+      case "status": {
+        const obj = JSON.parse(dataStr) as { state?: string }
+        if (obj.state) handlers.onStatus?.(obj.state)
+        break
+      }
+      case "error": {
+        const obj = JSON.parse(dataStr) as { message?: string }
+        handlers.onError?.(obj.message ?? "Something went wrong.")
+        break
+      }
+      default:
+        break // ignore unknown events (e.g. `perf`)
+    }
+  } catch {
+    // Malformed frame — skip.
+  }
+  return false
+}
+
+async function blockingAsk(body: AskRequestBody): Promise<ChatAnswer> {
+  const res = await fetch(ASK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, stream: false }),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    throw new Error(text.slice(0, 300) || `ask failed: ${res.status}`)
+  }
+  return (await res.json()) as ChatAnswer
+}
