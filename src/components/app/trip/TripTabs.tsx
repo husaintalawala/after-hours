@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
@@ -139,6 +140,31 @@ export default function TripTabs({
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
   const [selected, setSelected] = useState<TimelineItem | null>(null)
 
+  // Lazy destination hero photos. The SSR page no longer blocks on a
+  // resolve-place→Google lookup per destination (that made opening a trip
+  // slow); we hydrate the heroes here after mount instead, so the page paints
+  // immediately with the amber gradient and photos fill in. Keyed by dest id.
+  const [lazyHeroes, setLazyHeroes] = useState<Record<string, string | null>>({})
+  useEffect(() => {
+    let cancelled = false
+    const toResolve = destinations.filter(
+      (d) => !d.heroUrl && d.id !== "unassigned" && lazyHeroes[d.id] === undefined
+    )
+    if (toResolve.length === 0) return
+    ;(async () => {
+      for (const d of toResolve) {
+        const cand = await resolvePlace(d.label, d.label, d.country ?? undefined)
+        if (cancelled) return
+        setLazyHeroes((prev) => ({ ...prev, [d.id]: placePhotoUrl(cand, 1200) }))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinations])
+  const heroFor = (d: DestinationVM): string | null => d.heroUrl ?? lazyHeroes[d.id] ?? null
+
   const dest = destinations.find((d) => d.id === selectedDestId) ?? null
   const inDest = tab === "plan" && dest != null
 
@@ -192,9 +218,9 @@ export default function TripTabs({
       {/* ---------- Hero: destination (drill-in) or trip ---------- */}
       {inDest && dest ? (
         <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
-          {dest.heroUrl ? (
+          {heroFor(dest) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={dest.heroUrl} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={heroFor(dest)!} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }} />
           )}
@@ -327,10 +353,10 @@ export default function TripTabs({
                         onClick={() => openDest(d.id)}
                         className="flex w-full items-center gap-4 rounded-[20px] border border-[#EBE7E1] bg-white p-3.5 text-left shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
                       >
-                        {d.heroUrl ? (
+                        {heroFor(d) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={d.heroUrl}
+                            src={heroFor(d)!}
                             alt=""
                             loading="lazy"
                             className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover"

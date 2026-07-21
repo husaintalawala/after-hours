@@ -14,7 +14,6 @@ import {
   type TransportBookingLike,
 } from "@/lib/drift/timeline"
 import { compareDate, dateOnly } from "@/lib/drift/dates"
-import { destinationPhotoUrl } from "@/lib/drift/placePhoto"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 import TripTabs, {
   type DestinationVM,
@@ -99,37 +98,40 @@ export default async function TripDetailPage({
     arrival_location: b.arrival_location,
   }))
 
-  // Destination view-models: hero photo (shared POI cache) + day timeline.
+  // Destination view-models: day timeline. Hero photo is intentionally NOT
+  // resolved here — a per-destination resolve-place→Google lookup (cache:
+  // no-store) on the SSR path blocked opening a trip for 1-3s on a cold
+  // lambda (same cause as the slow Chats list). heroUrl starts null and is
+  // hydrated lazily on the client (TripTabs), falling back to the amber
+  // gradient until it loads.
   const fmtShort = (iso: string) => {
     const [y, m, d] = iso.split("-").map(Number)
     return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
       month: "short", day: "numeric", timeZone: "UTC",
     })
   }
-  const destVMs: DestinationVM[] = await Promise.all(
-    destinations.map(async (destination) => {
-      const label = destination.title || destination.location_name || "Destination"
-      const children = steps.filter((s) => s.parent_step_id === destination.id)
-      const timeline = buildDestinationTimeline(destination, children, transport)
-      const start = dateOnly(destination.date) ?? "1970-01-01"
-      const nights = destination.nights ?? 0
-      const days = groupTimelineByDay(timeline, start, nights)
-      const arriving = transportRows.find((b) => b.to_destination_id === destination.id)
-      return {
-        id: destination.id,
-        label,
-        country: destination.country,
-        nights,
-        heroUrl: await destinationPhotoUrl(label, destination.country),
-        dateRange: `${fmtShort(start)} – ${fmtShort(addDaysStr(start, nights))}`,
-        plansCount: children.length,
-        bookedChip: arriving ? `${(MODE_LABEL[arriving.mode] ?? arriving.mode).toLowerCase()} booked` : null,
-        lat: destination.latitude,
-        lng: destination.longitude,
-        days,
-      }
-    })
-  )
+  const destVMs: DestinationVM[] = destinations.map((destination) => {
+    const label = destination.title || destination.location_name || "Destination"
+    const children = steps.filter((s) => s.parent_step_id === destination.id)
+    const timeline = buildDestinationTimeline(destination, children, transport)
+    const start = dateOnly(destination.date) ?? "1970-01-01"
+    const nights = destination.nights ?? 0
+    const days = groupTimelineByDay(timeline, start, nights)
+    const arriving = transportRows.find((b) => b.to_destination_id === destination.id)
+    return {
+      id: destination.id,
+      label,
+      country: destination.country,
+      nights,
+      heroUrl: null,
+      dateRange: `${fmtShort(start)} – ${fmtShort(addDaysStr(start, nights))}`,
+      plansCount: children.length,
+      bookedChip: arriving ? `${(MODE_LABEL[arriving.mode] ?? arriving.mode).toLowerCase()} booked` : null,
+      lat: destination.latitude,
+      lng: destination.longitude,
+      days,
+    }
+  })
 
   // Steps that aren't parented to a known destination (flat/legacy trips, or
   // chat-added items whose destination was deleted) must not vanish — they
