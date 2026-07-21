@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import TripChat, { renderRich } from "@/components/app/chat/TripChat"
 import BackLink from "@/components/app/BackLink"
@@ -90,6 +90,33 @@ export default function ChatsShell({
   const backHref = sel.mode === "trip" ? `/app/trips/${sel.trip.id}` : "/app"
   const backLabel = sel.mode === "trip" ? "trip" : "Home"
 
+  // Consolidate trip conversations under their trip: each trip appears ONCE
+  // (its most-recent thread is the representative), with any extra threads
+  // collapsed behind a "+N" expander. `sessions` arrives ordered by
+  // last_message_at desc, so items[0] is the canonical/most-recent thread —
+  // the same one ensureTripSession reuses going forward. Once the duplicate
+  // threads are merged server-side, every group is size 1 and this renders as
+  // a plain one-row-per-trip list with no expander.
+  const tripGroups = useMemo(() => {
+    const map = new Map<string, ChatSessionVM[]>()
+    for (const s of sessions) {
+      if (s.kind !== "trip") continue
+      const key = s.tripId ?? s.id
+      const arr = map.get(key) ?? []
+      arr.push(s)
+      map.set(key, arr)
+    }
+    return [...map.entries()].map(([tripId, items]) => ({ tripId, items }))
+  }, [sessions])
+  const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set())
+  const toggleTrip = (tripId: string) =>
+    setExpandedTrips((prev) => {
+      const next = new Set(prev)
+      if (next.has(tripId)) next.delete(tripId)
+      else next.add(tripId)
+      return next
+    })
+
   const sidebar = (
     <>
       <div className="p-3 pb-1.5">
@@ -111,40 +138,103 @@ export default function ChatsShell({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-        {(["trip", "place", "general"] as const).map((kind) => {
+        {/* TRIPS — one row per trip; extra threads collapse under "+N". */}
+        {tripGroups.length > 0 && (
+          <div>
+            <p className="mx-1.5 mb-1.5 mt-3.5 text-[11px] font-bold tracking-[0.1em] text-drift-text-tertiary">
+              TRIPS
+            </p>
+            {tripGroups.map(({ tripId, items }) => {
+              const rep = items[0]
+              const extra = items.length - 1
+              const active = tripId === activeTripId
+              const expanded = expandedTrips.has(tripId)
+              return (
+                <div key={tripId}>
+                  <div
+                    className={`flex items-center rounded-xl transition-colors ${
+                      active ? "bg-drift-coral-50" : "hover:bg-white/85"
+                    }`}
+                  >
+                    <button
+                      onClick={() => openSession(rep)}
+                      className={`flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-[7px] text-left text-[13.5px] ${
+                        active ? "font-semibold text-drift-coral-deep" : "text-drift-ink"
+                      }`}
+                    >
+                      <SessionThumb photo={rep.photo} kind="trip" />
+                      <span className="min-w-0 flex-1 truncate">{rep.title}</span>
+                      <span className="shrink-0 text-[11px] font-normal text-drift-text-tertiary">
+                        {rep.when}
+                      </span>
+                    </button>
+                    {extra > 0 && (
+                      <button
+                        onClick={() => toggleTrip(tripId)}
+                        aria-label={`${extra} more ${extra === 1 ? "thread" : "threads"}`}
+                        className="mr-1.5 flex shrink-0 items-center gap-0.5 rounded-full px-2 py-1 text-[10.5px] font-bold text-drift-text-tertiary transition-colors hover:bg-white hover:text-drift-ink"
+                      >
+                        +{extra}
+                        <svg
+                          viewBox="0 0 24 24"
+                          aria-hidden
+                          className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.4}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {expanded &&
+                    items.slice(1).map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => openSession(s)}
+                        className={`flex w-full items-center gap-2 rounded-xl py-[6px] pl-11 pr-2.5 text-left text-[12.5px] transition-colors ${
+                          s.id === activeSessionId
+                            ? "font-semibold text-drift-coral-deep"
+                            : "text-drift-muted hover:bg-white/85"
+                        }`}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{s.subtitle || s.title}</span>
+                        <span className="shrink-0 text-[10.5px] text-drift-text-tertiary">
+                          {s.when}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* PLACES / EARLIER — non-trip chats, flat as before. */}
+        {(["place", "general"] as const).map((kind) => {
           const group = sessions.filter((s) => s.kind === kind)
           if (!group.length) return null
           return (
             <div key={kind}>
               <p className="mx-1.5 mb-1.5 mt-3.5 text-[11px] font-bold tracking-[0.1em] text-drift-text-tertiary">
-                {kind === "trip" ? "TRIPS" : kind === "place" ? "PLACES" : "EARLIER"}
+                {kind === "place" ? "PLACES" : "EARLIER"}
               </p>
               {group.map((s) => {
-                const active =
-                  (s.kind === "trip" && s.tripId === activeTripId) || s.id === activeSessionId
+                const active = s.id === activeSessionId
                 return (
                   <button
                     key={s.id}
                     onClick={() => openSession(s)}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-left text-[13.5px] transition-colors lg:gap-2.5 ${
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-left text-[13.5px] transition-colors ${
                       active
                         ? "bg-drift-coral-50 font-semibold text-drift-coral-deep"
                         : "text-drift-ink hover:bg-white/85"
                     }`}
                   >
-                    {s.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={s.photo}
-                        alt=""
-                        loading="lazy"
-                        className="h-[34px] w-[34px] shrink-0 rounded-[10px] object-cover shadow-[inset_0_0_0_1px_rgba(31,31,36,0.08)] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl"
-                      />
-                    ) : (
-                      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[14px] shadow-[inset_0_0_0_1px_#EBE7E1] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl">
-                        {kind === "trip" ? "🧭" : kind === "place" ? "📍" : "✦"}
-                      </span>
-                    )}
+                    <SessionThumb photo={s.photo} kind={kind} />
                     <span className="min-w-0 flex-1 truncate">{s.title}</span>
                     <span className="shrink-0 text-[11px] font-normal text-drift-text-tertiary">
                       {s.when}
@@ -282,6 +372,25 @@ export default function ChatsShell({
         )}
       </div>
     </>
+  )
+}
+
+function SessionThumb({ photo, kind }: { photo: string | null; kind: string }) {
+  if (photo) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photo}
+        alt=""
+        loading="lazy"
+        className="h-[34px] w-[34px] shrink-0 rounded-[10px] object-cover shadow-[inset_0_0_0_1px_rgba(31,31,36,0.08)] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl"
+      />
+    )
+  }
+  return (
+    <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[14px] shadow-[inset_0_0_0_1px_#EBE7E1] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl">
+      {kind === "trip" ? "🧭" : kind === "place" ? "📍" : "✦"}
+    </span>
   )
 }
 
