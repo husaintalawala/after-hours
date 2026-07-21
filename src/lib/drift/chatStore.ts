@@ -30,6 +30,7 @@ export async function ensureTripSession(tripId: string): Promise<string | null> 
       .eq("user_id", user.id)
       .eq("anchor_type", "trip")
       .eq("anchor_id", tripId)
+      .is("merged_into", null) // never reopen a merged-away duplicate thread
       .order("last_message_at", { ascending: false })
       .limit(1)
       .maybeSingle()
