@@ -22,7 +22,9 @@ import TripTabs, {
   type KitItemVM,
   type StepDetailVM,
   type BookingDetailVM,
+  type LedgerVM,
 } from "@/components/app/trip/TripTabs"
+import { balances, minimalTransfers } from "@/lib/drift/balances"
 import TripChat from "@/components/app/chat/TripChat"
 
 // Trip workspace — web port of TripStepScrollView: title header, 4-tab strip
@@ -36,8 +38,10 @@ const MODE_LABEL: Record<string, string> = {
 
 export default async function TripDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string }
+  searchParams?: { ask?: string }
 }) {
   const supabase = createClient()
 
@@ -163,6 +167,45 @@ export default async function TripDetailPage({
     })
   }
 
+  // ---- Shared-ledger balances (ExpenseBalances port) ----
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const meId = session?.user?.id ?? ""
+  const expenseIds = expenseRows.map((e) => e.id)
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const sb: any = supabase
+  const [splitsRes, householdsRes, settlementsRes] = await Promise.all([
+    expenseIds.length
+      ? sb.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
+      : Promise.resolve({ data: [] }),
+    sb.from("households").select("id,name,member_user_ids").eq("trip_id", trip.id),
+    sb.from("settlements").select("from_household,to_household,amount_minor,status").eq("trip_id", trip.id).eq("status", "recorded"),
+  ])
+  const splitRows: Array<{ expense_id: string; household_id: string; share_minor: number }> =
+    splitsRes.data ?? []
+  const householdRows: Array<{ id: string; name: string | null; member_user_ids: string[] }> =
+    householdsRes.data ?? []
+  const settlementRows: Array<{ from_household: string; to_household: string; amount_minor: number }> =
+    settlementsRes.data ?? []
+
+  // Member display names for household labels + payer attribution.
+  const memberIds = [...new Set(householdRows.flatMap((h) => h.member_user_ids ?? []))]
+  const memberNames = new Map<string, string>()
+  if (memberIds.length) {
+    const { data: profs } = await sb
+      .from("profiles")
+      .select("id,display_name,username")
+      .in("id", memberIds)
+    for (const p of profs ?? []) {
+      memberNames.set(p.id, (p.display_name || p.username || "Traveler").split(" ")[0])
+    }
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  const payerLabel = (uid: string | null): string | null =>
+    !uid ? null : uid === meId ? "You" : memberNames.get(uid) ?? null
+
   const expenseVMs: ExpenseVM[] = expenseRows.map((e) => ({
     id: e.id,
     label: e.label,
@@ -171,7 +214,51 @@ export default async function TripDetailPage({
     currency: e.currency,
     category: e.category,
     expense_date: e.expense_date,
+    payer: payerLabel(e.payer_user_id),
   }))
+
+  let ledger: LedgerVM | null = null
+  if (householdRows.length >= 2 && splitRows.length) {
+    const bhs = householdRows.map((h) => ({
+      id: h.id,
+      memberUserIds: new Set(h.member_user_ids ?? []),
+    }))
+    // Paid per expense = the sum of its materialized splits (Σpaid = Σshare
+    // by construction, so the zero-sum invariant holds without FX concerns).
+    const shareByExpense = new Map<string, number>()
+    for (const s of splitRows) {
+      shareByExpense.set(s.expense_id, (shareByExpense.get(s.expense_id) ?? 0) + s.share_minor)
+    }
+    const paidByPayer = expenseRows.map((e) => ({
+      payerUserId: e.payer_user_id,
+      amountMinor: shareByExpense.get(e.id) ?? 0,
+    }))
+    const bals = balances(
+      bhs,
+      paidByPayer,
+      splitRows.map((s) => ({ householdId: s.household_id, shareMinor: s.share_minor })),
+      settlementRows.map((s) => ({
+        fromHousehold: s.from_household,
+        toHousehold: s.to_household,
+        amountMinor: s.amount_minor,
+      }))
+    )
+    const hLabel = (id: string): { label: string; mine: boolean } => {
+      const h = householdRows.find((x) => x.id === id)
+      const mine = !!h?.member_user_ids?.includes(meId)
+      if (mine) return { label: "You", mine }
+      const names = (h?.member_user_ids ?? []).map((m) => memberNames.get(m)).filter(Boolean)
+      return { label: h?.name || names.join(" & ") || "Household", mine }
+    }
+    ledger = {
+      rows: bals.map((b) => ({ ...hLabel(b.householdId), netMinor: b.netMinor })),
+      transfers: minimalTransfers(bals).map((t) => ({
+        from: hLabel(t.fromHousehold).label,
+        to: hLabel(t.toHousehold).label,
+        amountMinor: t.amountMinor,
+      })),
+    }
+  }
 
   const kitVMs: KitItemVM[] = kitRows
     .filter((k) => k.state !== "dismissed")
@@ -258,6 +345,7 @@ export default async function TripDetailPage({
           flag,
           dateRange: tripSubtitle(trip),
         }}
+        ledger={ledger}
         destinations={destVMs}
         stepDetails={stepDetails}
         bookingDetails={bookingDetails}
@@ -270,6 +358,7 @@ export default async function TripDetailPage({
           tripStart={trip.start_date ?? null}
           country={trip.countries?.[0] ?? null}
           fill
+          prefill={searchParams?.ask ?? null}
           destinations={destVMs.map((d) => {
             // The synthetic "More stops" bucket has no steps row — fall back
             // to the trip's start date for its day math.

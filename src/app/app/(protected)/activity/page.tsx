@@ -93,8 +93,10 @@ export default async function ActivityPage() {
                 return (
                   <li
                     key={n.id}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${
-                      n.read ? "" : "bg-drift-coral-50/50"
+                    className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 ${
+                      n.read
+                        ? "border-transparent"
+                        : "border-drift-coral/20 bg-drift-coral-50/50"
                     }`}
                   >
                     {actor?.avatar_url ? (

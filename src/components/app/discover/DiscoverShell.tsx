@@ -152,22 +152,39 @@ export default function DiscoverShell({
 
 function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) {
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
+  // Google-sourced places have a rich detail page; vendor results deep-link out.
+  const detailHref =
+    r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
+      ? `/app/place/${encodeURIComponent(r.id)}`
+      : null
+  const photoEl = r.photo ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={r.photo}
+      alt=""
+      loading="lazy"
+      className="h-24 w-24 shrink-0 rounded-xl object-cover"
+    />
+  ) : (
+    <div
+      className="h-24 w-24 shrink-0 rounded-xl"
+      style={{ background: "linear-gradient(135deg,#FEEDE8,#F7F7F8)" }}
+    />
+  )
   return (
     <div
       onMouseEnter={onHover}
-      className="flex gap-3 rounded-2xl border border-drift-divider bg-white p-2.5 transition-colors hover:border-drift-coral/40"
+      className="flex gap-3 rounded-2xl border border-[#EBE7E1] bg-white p-2.5 shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
     >
-      {r.photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={r.photo} alt="" className="h-24 w-24 shrink-0 rounded-xl object-cover" />
-      ) : (
-        <div
-          className="h-24 w-24 shrink-0 rounded-xl"
-          style={{ background: "linear-gradient(135deg,#FEEDE8,#F7F7F8)" }}
-        />
-      )}
+      {detailHref ? <a href={detailHref}>{photoEl}</a> : photoEl}
       <div className="min-w-0 flex-1 py-0.5">
-        <p className="truncate text-[15px] font-semibold">{r.name}</p>
+        {detailHref ? (
+          <a href={detailHref} className="block truncate text-[15px] font-semibold hover:text-drift-coral">
+            {r.name}
+          </a>
+        ) : (
+          <p className="truncate text-[15px] font-semibold">{r.name}</p>
+        )}
         <p className="mt-0.5 text-[12.5px] text-drift-muted">
           {r.rating != null && r.rating > 0 && (
             <>

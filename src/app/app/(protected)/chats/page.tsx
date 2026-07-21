@@ -84,12 +84,12 @@ export default async function ChatsPage() {
                 s.anchor_label ??
                 "Chat"
               const row = (
-                <div className="flex items-center gap-3 rounded-xl border border-drift-divider bg-white px-3.5 py-3 transition-colors hover:border-drift-coral/40">
+                <div className="flex items-center gap-3 rounded-2xl border border-[#EBE7E1] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-drift-coral-50 text-[16px]">
                     {g.label === "Trips" ? "🧭" : g.label === "Places" ? "📍" : "✦"}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14.5px] font-semibold">{label}</p>
+                    <p className="truncate text-[15px] font-semibold">{label}</p>
                     <p className="truncate text-[12.5px] text-drift-muted">
                       {s.title ?? "New conversation"}
                     </p>

@@ -67,6 +67,12 @@ export interface ExpenseVM {
   currency: string
   category: string
   expense_date: string
+  payer?: string | null
+}
+
+export interface LedgerVM {
+  rows: Array<{ label: string; mine: boolean; netMinor: number }>
+  transfers: Array<{ from: string; to: string; amountMinor: number }>
 }
 
 export interface KitItemVM {
@@ -94,6 +100,7 @@ export default function TripTabs({
   bookingDetails,
   expenses,
   kitItems,
+  ledger = null,
   children,
 }: {
   tripId: string
@@ -103,6 +110,7 @@ export default function TripTabs({
   bookingDetails: Record<string, BookingDetailVM>
   expenses: ExpenseVM[]
   kitItems: KitItemVM[]
+  ledger?: LedgerVM | null
   children?: React.ReactNode
 }) {
   const [tab, setTab] = useState<Tab>("plan")
@@ -301,7 +309,7 @@ export default function TripTabs({
       )}
 
       {tab === "kit" && <KitTab items={kitItems} />}
-      {tab === "expenses" && <ExpensesTab expenses={expenses} />}
+      {tab === "expenses" && <ExpensesTab expenses={expenses} ledger={ledger} />}
       {tab === "track" && <TrackTab />}
     </div>
   )
@@ -776,7 +784,13 @@ const CATEGORY_EMOJI: Record<string, string> = {
   other: "💳",
 }
 
-function ExpensesTab({ expenses }: { expenses: ExpenseVM[] }) {
+function ExpensesTab({
+  expenses,
+  ledger,
+}: {
+  expenses: ExpenseVM[]
+  ledger: LedgerVM | null
+}) {
   if (!expenses.length) {
     return (
       <p className="mt-6 text-drift-muted">
@@ -799,6 +813,65 @@ function ExpensesTab({ expenses }: { expenses: ExpenseVM[] }) {
           {[...totals.entries()].map(([cur, amt]) => formatMoney(amt, cur)).join(" + ")}
         </p>
       </div>
+
+      {/* Balances + settle-up (shared ledger) */}
+      {ledger && (
+        <div className="mt-4 rounded-[22px] border border-[#EBE7E1] bg-white p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
+            Balances
+          </p>
+          <ul className="mt-2.5 space-y-2">
+            {ledger.rows.map((r) => (
+              <li key={r.label} className="flex items-baseline justify-between">
+                <span className={`text-[15px] ${r.mine ? "font-semibold" : ""}`}>
+                  {r.label}
+                </span>
+                <span
+                  className={`text-[15px] font-semibold tabular-nums ${
+                    r.netMinor > 0
+                      ? "text-[#3E9B5F]"
+                      : r.netMinor < 0
+                        ? "text-drift-coral-deep"
+                        : "text-drift-text-tertiary"
+                  }`}
+                >
+                  {r.netMinor === 0
+                    ? "settled"
+                    : `${r.netMinor > 0 ? "gets back" : "owes"} ${usd(Math.abs(r.netMinor))}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {ledger.transfers.length > 0 && (
+            <>
+              <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
+                Settle up
+              </p>
+              <ul className="mt-2.5 space-y-2">
+                {ledger.transfers.map((t, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between rounded-xl bg-[#FAF8F5] px-3.5 py-2.5"
+                  >
+                    <span className="text-[14.5px]">
+                      <span className="font-semibold">{t.from}</span> pays{" "}
+                      <span className="font-semibold">{t.to}</span>
+                    </span>
+                    <span className="text-[15px] font-bold tabular-nums">
+                      {usd(t.amountMinor)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-[11.5px] leading-snug text-drift-text-tertiary">
+                Drift never moves money — settle over Venmo, Cash App or cash,
+                then record it in the iOS app.
+              </p>
+            </>
+          )}
+        </div>
+      )}
       <ul className="mt-4 space-y-1.5">
         {sorted.map((e) => (
           <li
@@ -811,7 +884,13 @@ function ExpensesTab({ expenses }: { expenses: ExpenseVM[] }) {
             <div className="min-w-0 flex-1">
               <p className="truncate text-[15px] font-semibold">{e.label}</p>
               <p className="truncate text-[12.5px] text-drift-muted">
-                {[e.subtitle, shortExpenseDate(e.expense_date)].filter(Boolean).join(" · ")}
+                {[
+                  e.payer ? `${e.payer} paid` : null,
+                  e.subtitle,
+                  shortExpenseDate(e.expense_date),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             </div>
             <span className="text-[15px] font-semibold tabular-nums">
@@ -833,6 +912,14 @@ function shortExpenseDate(iso: string): string {
     day: "numeric",
     timeZone: "UTC",
   })
+}
+
+function usd(minor: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: minor % 100 === 0 ? 0 : 2,
+  }).format(minor / 100)
 }
 
 function formatMoney(amount: number, currency: string): string {
