@@ -23,9 +23,32 @@ export interface GlobeTripPin {
 // iOS route palette equivalent — distinct saturated hues per trip.
 const ROUTE_COLORS = ["#E0563B", "#F2A33C", "#4FA3D1", "#7BC47F", "#C77DD8", "#E86E8A"]
 
-export default function GlobeHero({ pins }: { pins: GlobeTripPin[] }) {
+export default function GlobeHero({
+  pins,
+  focusTripId,
+}: {
+  pins: GlobeTripPin[]
+  /** When set/changed, the globe flies to that trip's pin (desktop rail hover). */
+  focusTripId?: string | null
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const pauseRef = useRef<(() => void) | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    if (!focusTripId || !mapRef.current) return
+    const pin = pins.find((p) => p.tripId === focusTripId)
+    if (!pin) return
+    pauseRef.current?.()
+    mapRef.current.flyTo({
+      center: [pin.lng, pin.lat],
+      zoom: 3.1,
+      duration: 1400,
+      essential: true,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusTripId])
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
@@ -114,6 +137,8 @@ export default function GlobeHero({ pins }: { pins: GlobeTripPin[] }) {
     map.on("mousedown", pause)
     map.on("touchstart", pause)
     map.on("wheel", pause)
+    mapRef.current = map
+    pauseRef.current = pause
 
     // Hide the logo ornament (attribution is on the About page).
     const logo = containerRef.current.querySelector(
