@@ -9,6 +9,7 @@ import { applyRemoveStep } from "@/lib/drift/quickOp"
 import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
 import BackLink from "@/components/app/BackLink"
+import OptimizedImg from "@/components/app/OptimizedImg"
 
 // The trip workspace, aligned with iOS:
 //  Plan (trip level)  = trip hero + "Your stops" destination cards
@@ -249,7 +250,13 @@ export default function TripTabs({
         <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
           {tripMeta.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={tripMeta.cover} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+            <OptimizedImg
+              src={tripMeta.cover}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 700px"
+              className="object-cover"
+            />
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }} />
           )}
@@ -700,7 +707,13 @@ function Inspector({
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         {map && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={map} alt="" loading="lazy" decoding="async" className="h-[150px] w-full rounded-2xl object-cover" />
+          <OptimizedImg
+            src={map}
+            width={600}
+            height={280}
+            sizes="(max-width: 1024px) 100vw, 380px"
+            className="h-[150px] w-full rounded-2xl object-cover"
+          />
         )}
 
         <dl className="mt-4 space-y-3.5">

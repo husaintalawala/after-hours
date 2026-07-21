@@ -5,6 +5,7 @@ import { fetchPlaceDetails, placesPhotoUrl } from "@/lib/drift/placeDetails"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import type { TripRow } from "@/lib/db-types"
 import BackLink from "@/components/app/BackLink"
+import OptimizedImg from "@/components/app/OptimizedImg"
 
 // Place detail — cinematic hero, About / Hours / Reviews, and a sticky action
 // card with mini-map + "Ask Drift about this" (prefills the featured trip's
@@ -168,8 +169,13 @@ export default async function PlacePage({
         <aside className="mt-8 lg:sticky lg:top-[76px] lg:mt-0">
           <div className="overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)]">
             {map && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={map} alt="" loading="lazy" decoding="async" className="h-[170px] w-full object-cover" />
+              <OptimizedImg
+                src={map}
+                width={600}
+                height={280}
+                sizes="(max-width: 1024px) 100vw, 400px"
+                className="h-[170px] w-full object-cover"
+              />
             )}
             <div className="p-5">
               {place.address && (

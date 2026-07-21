@@ -12,6 +12,7 @@ const GlobeHero = dynamic(() => import("@/components/app/GlobeHero"), {
   loading: () => <div className="h-full w-full" style={{ background: "rgb(4,4,8)" }} />,
 })
 import SignOutButton from "@/components/app/SignOutButton"
+import OptimizedImg from "@/components/app/OptimizedImg"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
 // Logged-in home. The globe is the room: it fills the entire viewport on
@@ -287,10 +288,11 @@ function TripRow({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
         className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-drift-alt-bg"
       >
         {trip.cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <OptimizedImg
             src={trip.cover}
-            alt=""
+            width={96}
+            height={96}
+            sizes="48px"
             className="h-12 w-12 shrink-0 rounded-xl object-cover"
           />
         ) : (
@@ -335,11 +337,11 @@ function CardCover({ trip }: { trip: HomeTrip }) {
   return (
     <>
       {trip.cover ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <OptimizedImg
           src={trip.cover}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          sizes="(max-width: 1024px) 100vw, 420px"
+          className="object-cover"
         />
       ) : (
         <div
