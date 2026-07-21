@@ -190,20 +190,14 @@ export default async function TripDetailPage({
   const flag = countryFlagEmoji(trip.countries?.[0])
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 pt-6 lg:max-w-6xl lg:px-8">
-      <Link href="/app" className="text-sm text-drift-muted hover:text-drift-ink">
-        ← Trips
-      </Link>
-
-      <header className="mt-3">
-        <h1 className="font-drift-display text-3xl font-medium tracking-tight">
-          {trip.title || "Untitled trip"} {flag && <span className="text-2xl">{flag}</span>}
-        </h1>
-        <p className="mt-1 text-drift-muted">{tripSubtitle(trip)}</p>
-      </header>
-
+    <main className="mx-auto w-full max-w-2xl px-5 pt-4 lg:max-w-[1400px] lg:px-8 lg:pt-6">
       <TripTabs
         tripId={trip.id}
+        tripMeta={{
+          title: trip.title || "Untitled trip",
+          flag,
+          dateRange: tripSubtitle(trip),
+        }}
         destinations={destVMs}
         stepDetails={stepDetails}
         bookingDetails={bookingDetails}

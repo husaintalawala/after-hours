@@ -264,20 +264,33 @@ export default function TripChat({
 
   return (
     <section
-      className={`rounded-2xl border border-drift-divider bg-drift-alt-bg ${
+      className={`overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)] ${
         fill ? "flex h-full flex-col" : ""
       }`}
     >
-      <div className="shrink-0 border-b border-drift-divider px-4 py-3">
-        <p className="font-drift-display text-lg font-medium">Ask Drift</p>
-        <p className="text-sm text-drift-muted">
-          Plan {tripTitle} — try &ldquo;add dinner at Dill on day 2&rdquo;.
-        </p>
+      <div
+        className="flex shrink-0 items-center gap-3 border-b border-[#EBE7E1] px-5 py-4"
+        style={{ background: "linear-gradient(180deg,#FFFDFB,#FFF)" }}
+      >
+        <span
+          className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-[17px] text-white shadow-[0_6px_16px_-6px_rgba(224,86,59,0.6)]"
+          style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+        >
+          ✦
+        </span>
+        <div>
+          <p className="font-drift-display text-[19px] font-semibold tracking-tight">
+            Ask Drift
+          </p>
+          <p className="text-[12.5px] text-drift-text-tertiary">
+            Your co-planner for {tripTitle}
+          </p>
+        </div>
       </div>
 
       <div
-        className={`space-y-3 overflow-y-auto px-4 py-4 ${
-          fill ? "min-h-0 flex-1" : "max-h-[480px]"
+        className={`space-y-4 overflow-y-auto px-5 py-5 ${
+          fill ? "min-h-0 max-h-[480px] flex-1 lg:max-h-none" : "max-h-[480px]"
         }`}
       >
         {messages.length === 0 && streaming === null && (
@@ -290,14 +303,17 @@ export default function TripChat({
           <div key={m.id}>
             {m.role === "user" ? (
               <div className="text-right">
-                <div className="inline-block max-w-[85%] rounded-2xl bg-drift-coral px-3.5 py-2 text-left text-white">
+                <div
+                  className="inline-block max-w-[85%] rounded-[18px] rounded-br-[4px] px-4 py-3 text-left text-[14.5px] leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(224,86,59,0.5)]"
+                  style={{ background: "linear-gradient(135deg,#E0563B,#D14A2F)" }}
+                >
                   {m.text}
                 </div>
               </div>
             ) : (
               <div>
-                <div className="max-w-[95%] whitespace-pre-wrap text-[15px] leading-relaxed text-drift-ink">
-                  {m.text}
+                <div className="max-w-full text-[15px] leading-[1.65] text-drift-ink">
+                  {renderRich(m.text)}
                 </div>
 
                 {/* Place-card carousel */}
@@ -353,8 +369,10 @@ export default function TripChat({
         ))}
 
         {streaming !== null && (
-          <div className="max-w-[95%] whitespace-pre-wrap text-[15px] leading-relaxed text-drift-ink">
-            {streaming || (
+          <div className="max-w-full text-[15px] leading-[1.65] text-drift-ink">
+            {streaming ? (
+              renderRich(streaming)
+            ) : (
               <span className="text-drift-text-tertiary">{status ?? "Thinking…"}</span>
             )}
           </div>
@@ -376,7 +394,10 @@ export default function TripChat({
         </div>
       )}
 
-      <div className="flex items-center gap-2 border-t border-drift-divider p-3">
+      <div
+        className="flex shrink-0 items-center gap-2.5 border-t border-[#EBE7E1] px-4 py-3.5"
+        style={{ background: "#FFFDFB" }}
+      >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -387,15 +408,16 @@ export default function TripChat({
             }
           }}
           disabled={busy}
-          placeholder="Message Drift…"
-          className="min-w-0 flex-1 rounded-full border border-drift-divider bg-white px-4 py-2 outline-none focus:border-drift-coral disabled:opacity-60"
+          placeholder="Plan with Drift…"
+          className="h-[46px] min-w-0 flex-1 rounded-full border border-[#EBE7E1] bg-[#FAF8F5] px-5 text-[14.5px] outline-none transition-colors focus:border-drift-coral disabled:opacity-60"
         />
         <button
           onClick={() => send()}
           disabled={busy || !input.trim()}
-          className="shrink-0 rounded-full bg-drift-coral px-4 py-2 font-medium text-white disabled:opacity-50"
+          aria-label="Send"
+          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-[17px] text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)] disabled:opacity-50"
         >
-          Send
+          ↑
         </button>
       </div>
     </section>
@@ -492,4 +514,76 @@ function shortDate(iso: string): string {
 
 function normalizeType(t: string): CreateStepOp["type"] {
   return t === "activity" || t === "food" || t === "stay" ? t : "spot"
+}
+
+// ---- Rich text renderer for assistant messages ----
+// The model emits markdown-ish text: **bold**, and [label](places:?q=...) place
+// links (plus occasional http links). Render bold as <strong>, place links as
+// coral tappable spans (tap → prefill "Tell me about {label}"), http links as
+// real anchors. Paragraphs split on blank lines.
+
+function renderRich(text: string): React.ReactNode {
+  const paragraphs = text.split(/\n{2,}/)
+  return paragraphs.map((para, pi) => (
+    <p key={pi} className={pi > 0 ? "mt-2.5" : undefined}>
+      {renderInline(para)}
+    </p>
+  ))
+}
+
+function renderInline(text: string): React.ReactNode[] {
+  const out: React.ReactNode[] = []
+  // Tokenize links first, then bold within the remaining text.
+  const linkRe = /\[([^\]]+)\]\(([^)]+)\)/g
+  let last = 0
+  let m: RegExpExecArray | null
+  let key = 0
+  const pushText = (t: string) => {
+    // Bold segments within plain text.
+    const parts = t.split(/\*\*([^*]+)\*\*/g)
+    parts.forEach((part, i) => {
+      if (!part) return
+      if (i % 2 === 1) out.push(<strong key={`b${key++}`}>{part}</strong>)
+      else
+        part.split("\n").forEach((line, li, arr) => {
+          out.push(<span key={`t${key++}`}>{line}</span>)
+          if (li < arr.length - 1) out.push(<br key={`br${key++}`} />)
+        })
+    })
+  }
+  while ((m = linkRe.exec(text))) {
+    pushText(text.slice(last, m.index))
+    const [, label, href] = m
+    if (href.startsWith("http")) {
+      out.push(
+        <a
+          key={`l${key++}`}
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-drift-coral underline decoration-drift-coral/50 underline-offset-2"
+        >
+          {label}
+        </a>
+      )
+    } else {
+      // places:?q=… (or any app link): coral tappable → ask Drift about it.
+      out.push(
+        <button
+          key={`p${key++}`}
+          onClick={() =>
+            window.dispatchEvent(
+              new CustomEvent("drift:ask-about", { detail: `Tell me about ${label}` })
+            )
+          }
+          className="font-semibold text-drift-coral [border-bottom:1.5px_dotted_rgba(224,86,59,0.5)]"
+        >
+          {label}
+        </button>
+      )
+    }
+    last = m.index + m[0].length
+  }
+  pushText(text.slice(last))
+  return out
 }
