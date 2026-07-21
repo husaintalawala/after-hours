@@ -20,6 +20,8 @@ import TripTabs, {
   type DestinationVM,
   type ExpenseVM,
   type KitItemVM,
+  type StepDetailVM,
+  type BookingDetailVM,
 } from "@/components/app/trip/TripTabs"
 import TripChat from "@/components/app/chat/TripChat"
 
@@ -122,10 +124,73 @@ export default async function TripDetailPage({
       quantity: k.quantity,
     }))
 
+  // Inspector detail maps.
+  const fmtDate = (iso: string | null) => {
+    const d = dateOnly(iso)
+    if (!d) return null
+    const [y, mo, day] = d.split("-").map(Number)
+    return new Date(Date.UTC(y, mo - 1, day)).toLocaleDateString("en-US", {
+      weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+    })
+  }
+  const fmtTime = (iso: string | null) => {
+    const m = iso ? /T(\d{2}):(\d{2})/.exec(iso) : null
+    if (!m) return null
+    const h = Number(m[1]), min = m[2]
+    const ampm = h < 12 ? "am" : "pm"
+    const h12 = h % 12 === 0 ? 12 : h % 12
+    return `${h12}:${min}${ampm}`
+  }
+  const stepDetails: Record<string, StepDetailVM> = {}
+  for (const s of steps) {
+    if (s.step_type === "destination") continue
+    stepDetails[s.id] = {
+      id: s.id,
+      title: s.title || s.location_name || "Untitled",
+      badge: s.place_category || s.step_type || "",
+      dateLabel: fmtDate(s.date),
+      timeLabel: fmtTime(s.scheduled_at),
+      durationMinutes: s.duration_minutes,
+      notes: s.notes,
+      address: s.address,
+      lat: s.latitude,
+      lng: s.longitude,
+      bookingUrl: s.booking_url,
+      websiteUrl: s.website_url,
+      importProvider: s.import_source_provider,
+      confirmationNumber: s.confirmation_number,
+      guestCount: s.guest_count,
+    }
+  }
+  const bookingDetails: Record<string, BookingDetailVM> = {}
+  for (const b of transportRows) {
+    const route = [b.departure_location, b.arrival_location]
+      .filter(Boolean)
+      .join(" → ")
+    const fmtDT = (iso: string | null) =>
+      iso ? [fmtDate(iso), fmtTime(iso)].filter(Boolean).join(" · ") : null
+    bookingDetails[b.id] = {
+      id: b.id,
+      title:
+        b.title ||
+        [b.operator_name, b.flight_number].filter(Boolean).join(" ") ||
+        MODE_LABEL[b.mode] ||
+        "Travel",
+      modeLabel: MODE_LABEL[b.mode] ?? b.mode,
+      route: route || null,
+      departLabel: fmtDT(b.departure_at),
+      arriveLabel: fmtDT(b.arrival_at),
+      confirmation: b.confirmation_number,
+      seat: b.seat,
+      provider: b.provider ?? b.operator_name,
+      bookingUrl: b.booking_url,
+    }
+  }
+
   const flag = countryFlagEmoji(trip.countries?.[0])
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 pt-6">
+    <main className="mx-auto w-full max-w-2xl px-5 pt-6 lg:max-w-6xl lg:px-8">
       <Link href="/app" className="text-sm text-drift-muted hover:text-drift-ink">
         ← Trips
       </Link>
@@ -137,12 +202,20 @@ export default async function TripDetailPage({
         <p className="mt-1 text-drift-muted">{tripSubtitle(trip)}</p>
       </header>
 
-      <TripTabs destinations={destVMs} expenses={expenseVMs} kitItems={kitVMs}>
+      <TripTabs
+        tripId={trip.id}
+        destinations={destVMs}
+        stepDetails={stepDetails}
+        bookingDetails={bookingDetails}
+        expenses={expenseVMs}
+        kitItems={kitVMs}
+      >
         <TripChat
           tripId={trip.id}
           tripTitle={trip.title || "your trip"}
           tripStart={trip.start_date ?? null}
           country={trip.countries?.[0] ?? null}
+          fill
           destinations={destVMs.map((d) => {
             const src = destinations.find((x) => x.id === d.id)!
             return {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   askDrift,
@@ -44,18 +44,44 @@ export default function TripChat({
   tripTitle,
   destinations,
   country,
+  fill = false,
+  prefill,
+  onPrefillConsumed,
 }: {
   tripId: string
   tripTitle: string
   tripStart: string | null
   destinations: DestinationLite[]
   country?: string | null
+  /** Fill the parent's height (desktop docked-panel mode). */
+  fill?: boolean
+  /** When set, loads into the composer (e.g. "Ask Drift about this" from the inspector). */
+  prefill?: string | null
+  onPrefillConsumed?: () => void
 }) {
   const router = useRouter()
   const [messages, setMessages] = useState<Msg[]>([])
   const [streaming, setStreaming] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [input, setInput] = useState("")
+
+  // Inspector "Ask Drift about this" → load the question into the composer.
+  useEffect(() => {
+    if (prefill) {
+      setInput(prefill)
+      onPrefillConsumed?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill])
+
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail
+      if (typeof detail === "string") setInput(detail)
+    }
+    window.addEventListener("drift:ask-about", onAsk)
+    return () => window.removeEventListener("drift:ask-about", onAsk)
+  }, [])
   const [busy, setBusy] = useState(false)
   const [undo, setUndo] = useState<{ label: string; stepId: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -205,15 +231,23 @@ export default function TripChat({
   }
 
   return (
-    <section className="rounded-2xl border border-drift-divider bg-drift-alt-bg">
-      <div className="border-b border-drift-divider px-4 py-3">
+    <section
+      className={`rounded-2xl border border-drift-divider bg-drift-alt-bg ${
+        fill ? "flex h-full flex-col" : ""
+      }`}
+    >
+      <div className="shrink-0 border-b border-drift-divider px-4 py-3">
         <p className="font-drift-display text-lg font-medium">Ask Drift</p>
         <p className="text-sm text-drift-muted">
           Plan {tripTitle} — try &ldquo;add dinner at Dill on day 2&rdquo;.
         </p>
       </div>
 
-      <div className="max-h-[480px] space-y-3 overflow-y-auto px-4 py-4">
+      <div
+        className={`space-y-3 overflow-y-auto px-4 py-4 ${
+          fill ? "min-h-0 flex-1" : "max-h-[480px]"
+        }`}
+      >
         {messages.length === 0 && streaming === null && (
           <p className="text-sm text-drift-text-tertiary">
             Ask about the trip, or add a place to a day.
