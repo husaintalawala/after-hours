@@ -6,14 +6,12 @@ import { createClient } from "@/lib/supabase/client"
 import { extractPdfText } from "@/lib/drift/pdfText"
 import { icsToEventTexts } from "@/lib/drift/ics"
 
-// Find my bookings — web port of the iOS booking-import surface, grouped the
-// same way: a Gmail entry, a "Find reservations" section (Forward · Upload PDF ·
-// Paste · Calendar .ics · Google Calendar), and a "Track spending" section
-// (Plaid). Methods that need no credentials are wired end-to-end through the
-// existing parse-text edge fn (Forward · Paste · PDF · .ics). The credentialed
-// ones (Gmail scan, native Google Calendar, Plaid) show an honest "Needs setup"
-// tile — clearly labelled, expandable to explain, never a dead live-looking
-// button — until the Drift team provisions their OAuth / bank credentials.
+// Find my bookings — web port of the iOS booking-import surface. One card
+// language, one line-icon set (no emoji), consistent collapsed-by-default
+// rows. Two clear groups: "Add bookings" (methods wired end-to-end through
+// parse-text — Forward · Upload PDF · Paste · Import .ics) and "Needs setup"
+// (credentialed methods — Gmail scan, Google Calendar, Plaid — shown as honest
+// expandable tiles until the Drift team provisions their OAuth / bank creds).
 
 interface SegmentVM {
   id: string
@@ -48,7 +46,7 @@ export default function FindBookings({ tripId }: { tripId: string }) {
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-full border border-drift-coral/40 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-drift-coral transition-colors hover:bg-drift-coral-50"
       >
-        ✉️ Find bookings
+        <Icon name="send" className="h-3.5 w-3.5" /> Find bookings
       </button>
       {open && (
         <FindBookingsSheet
@@ -73,7 +71,6 @@ function FindBookingsSheet({
   const [alias, setAlias] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [pasteText, setPasteText] = useState("")
-  const [pasteOpen, setPasteOpen] = useState(false)
   const [busy, setBusy] = useState<Busy>(null)
   const [segments, setSegments] = useState<SegmentVM[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -103,7 +100,6 @@ function FindBookingsSheet({
     setLoadingSegments(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = createClient() as any
-    // All unapplied segments for the trip (from every source).
     const { data: segs } = await db
       .from("reservation_segments")
       .select(
@@ -116,7 +112,6 @@ function FindBookingsSheet({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: any[] = segs ?? []
 
-    // Map each segment to its batch via parsed_reservations.batch_id.
     const resIds = [...new Set(rows.map((r) => r.parsed_reservation_id).filter(Boolean))]
     const batchByRes = new Map<string, string | null>()
     if (resIds.length > 0) {
@@ -167,7 +162,6 @@ function FindBookingsSheet({
     }
   }
 
-  // Shared parse → reload. Body carries source + text|texts.
   async function postParse(body: Record<string, unknown>, noun: string) {
     const res = await fetch("/api/drift/parse-text", {
       method: "POST",
@@ -188,7 +182,6 @@ function FindBookingsSheet({
     try {
       await postParse({ source: "paste", text }, "confirmation")
       setPasteText("")
-      setPasteOpen(false)
     } catch (e) {
       setError(msg(e))
     }
@@ -275,43 +268,35 @@ function FindBookingsSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:rounded-[24px]"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[88vh] sm:rounded-[24px]"
       >
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-drift-divider px-5 py-4">
-          <div>
-            <h2 className="font-drift-display text-[20px] font-bold">Find my bookings</h2>
-            <p className="text-[12.5px] text-drift-muted">Bring your plans into Drift in seconds.</p>
+        {/* Header — generous top padding + safe-area inset so the display-font
+            title is never clipped at the top edge. */}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-drift-divider px-5 pb-4 pt-[max(1.35rem,calc(env(safe-area-inset-top)+0.5rem))]">
+          <div className="min-w-0">
+            <h2 className="font-drift-display text-[21px] font-bold leading-[1.15]">
+              Find my bookings
+            </h2>
+            <p className="mt-1 text-[12.5px] text-drift-muted">
+              Bring your plans into Drift in seconds.
+            </p>
           </div>
           <button
             onClick={() => onClose(didApply)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-drift-alt-bg text-[14px] text-drift-muted"
+            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-drift-alt-bg text-drift-muted transition-colors hover:bg-drift-divider"
             aria-label="Close"
           >
-            ✕
+            <Icon name="close" className="h-4 w-4" />
           </button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
-          {/* Gmail — needs setup (the iOS primary; on web needs Google OAuth) */}
-          <div className="mt-4">
-            <SetupTile
-              accent
-              icon="✉️"
-              title="Scan Gmail"
-              desc="Auto-find flights, hotels, restaurants & tours from your inbox."
-              note="Scanning Gmail on the web needs a Google sign-in that the Drift team is still configuring. For now, forward a confirmation or paste one below — same result."
-            />
-          </div>
-
-          {/* Find reservations */}
-          <SectionLabel>Find reservations</SectionLabel>
+          {/* Working methods */}
+          <SectionLabel>Add bookings</SectionLabel>
           <div className="space-y-2.5">
-            {/* Forward email — works today */}
-            <div className="rounded-2xl border border-drift-divider bg-white p-3.5">
-              <TileHead icon="📧" title="Forward email" desc="Use your trip's Drift address" />
+            <ExpandRow icon="send" title="Forward email" desc="Use your trip's Drift address">
               {alias ? (
-                <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-drift-alt-bg p-2.5">
+                <div className="flex items-center gap-2 rounded-xl bg-drift-alt-bg p-2.5">
                   <span className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{alias}</span>
                   <button
                     onClick={copyAlias}
@@ -321,81 +306,72 @@ function FindBookingsSheet({
                   </button>
                 </div>
               ) : (
-                <p className="mt-2 text-[12.5px] text-drift-muted">
+                <p className="text-[12.5px] text-drift-muted">
                   This trip doesn&apos;t have a forwarding address yet.
                 </p>
               )}
-            </div>
+            </ExpandRow>
 
-            {/* Upload PDF — wired via pdf.js → parse-text */}
-            <ActionTile
-              icon="📄"
+            <ActionRow
+              icon="file"
               title="Upload PDF"
               desc="Flight, hotel or ticket PDFs"
               busy={busy === "pdf"}
               onClick={() => pdfInput.current?.click()}
             />
 
-            {/* Paste — works today */}
-            <div className="overflow-hidden rounded-2xl border border-drift-divider bg-white">
+            <ExpandRow icon="clipboard" title="Paste confirmation" desc="Copy booking text from anywhere">
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={4}
+                placeholder="Paste the text of a booking confirmation email…"
+                className="w-full resize-none rounded-xl border border-drift-divider bg-white p-3 text-[13.5px] outline-none focus:border-drift-coral"
+              />
               <button
-                onClick={() => setPasteOpen((v) => !v)}
-                className="flex w-full items-center gap-3 p-3.5 text-left"
+                onClick={parsePaste}
+                disabled={busy === "paste" || !pasteText.trim()}
+                className="mt-2 rounded-full bg-drift-ink px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40"
               >
-                <TileIcon>📋</TileIcon>
-                <TileText title="Paste confirmation" desc="Copy booking text from anywhere" />
-                <Chevron open={pasteOpen} />
+                {busy === "paste" ? "Reading…" : "Read bookings"}
               </button>
-              {pasteOpen && (
-                <div className="px-3.5 pb-3.5">
-                  <textarea
-                    value={pasteText}
-                    onChange={(e) => setPasteText(e.target.value)}
-                    rows={4}
-                    placeholder="Paste the text of a booking confirmation email…"
-                    className="w-full resize-none rounded-xl border border-drift-divider bg-white p-3 text-[13.5px] outline-none focus:border-drift-coral"
-                  />
-                  <button
-                    onClick={parsePaste}
-                    disabled={busy === "paste" || !pasteText.trim()}
-                    className="mt-2 rounded-full bg-drift-ink px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40"
-                  >
-                    {busy === "paste" ? "Reading…" : "Read bookings"}
-                  </button>
-                </div>
-              )}
-            </div>
+            </ExpandRow>
 
-            {/* Calendar .ics — wired via the .ics parser → parse-text batch */}
-            <ActionTile
-              icon="📅"
+            <ActionRow
+              icon="calendar"
               title="Import calendar (.ics)"
               desc="Apple or Google Calendar export"
               busy={busy === "ics"}
               onClick={() => icsInput.current?.click()}
             />
+          </div>
 
-            {/* Native Google Calendar — needs setup (Google OAuth) */}
-            <SetupTile
-              icon="🗓"
+          {/* Credentialed methods — grouped together, honest state */}
+          <SectionLabel>Needs setup</SectionLabel>
+          <div className="space-y-2.5">
+            <SetupRow
+              icon="inbox"
+              title="Scan Gmail"
+              desc="Auto-find flights, hotels & tours from your inbox"
+              note="Scanning Gmail on the web needs a Google sign-in the Drift team is still configuring. For now, forward a confirmation or paste one — same result."
+            />
+            <SetupRow
+              icon="calendar"
               title="Connect Google Calendar"
               desc="Sync events straight from your Google account"
-              note="A one-tap Google Calendar connection needs a Google sign-in the Drift team is configuring. For now, export your calendar as an .ics file and use “Import calendar” above."
+              note="A one-tap Google Calendar connection needs a Google sign-in the Drift team is configuring. For now, export your calendar as an .ics file and use “Import calendar (.ics)” above."
+            />
+            <SetupRow
+              icon="card"
+              title="Connect a card"
+              desc="Auto-import trip expenses from your bank"
+              note="Card linking (via Plaid) needs bank credentials the Drift team is setting up. It'll appear here as a live connection once enabled."
             />
           </div>
 
-          {/* Track spending */}
-          <SectionLabel>Track spending</SectionLabel>
-          <SetupTile
-            icon="💳"
-            title="Connect a card"
-            desc="Auto-import trip expenses from your bank"
-            note="Card linking (via Plaid) needs bank credentials the Drift team is setting up. It'll appear here as a live connection once enabled."
-          />
-
           {/* Review list */}
           <div className="mt-6 flex items-baseline justify-between">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-drift-muted">
+            <p className="text-[11.5px] font-bold uppercase tracking-wide text-drift-muted">
               Ready to add
             </p>
             {segments.length > 0 && (
@@ -472,7 +448,7 @@ function FindBookingsSheet({
             </button>
           )}
 
-          {/* Hidden pickers driving the PDF / .ics tiles */}
+          {/* Hidden pickers driving the PDF / .ics action rows */}
           <input
             ref={pdfInput}
             type="file"
@@ -499,126 +475,225 @@ function FindBookingsSheet({
   )
 }
 
-// ---- small presentational helpers ----
+// ---- one coherent line-icon set (Feather-style, 24px stroke) ----
+
+type IconName =
+  | "send"
+  | "inbox"
+  | "file"
+  | "clipboard"
+  | "calendar"
+  | "card"
+  | "chevron"
+  | "close"
+
+function Icon({ name, className = "h-[19px] w-[19px]" }: { name: IconName; className?: string }) {
+  const p = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.75,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  }
+  const paths: Record<IconName, React.ReactNode> = {
+    send: (
+      <>
+        <path d="M22 2 11 13" />
+        <path d="M22 2 15 22 11 13 2 9 22 2Z" />
+      </>
+    ),
+    inbox: (
+      <>
+        <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+        <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z" />
+      </>
+    ),
+    file: (
+      <>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 2v6h6" />
+        <path d="M16 13H8M16 17H8M10 9H8" />
+      </>
+    ),
+    clipboard: (
+      <>
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        <rect x="8" y="2" width="8" height="4" rx="1" />
+      </>
+    ),
+    calendar: (
+      <>
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </>
+    ),
+    card: (
+      <>
+        <rect x="1" y="4" width="22" height="16" rx="2" />
+        <path d="M1 10h22" />
+      </>
+    ),
+    chevron: <path d="m6 9 6 6 6-6" />,
+    close: <path d="M18 6 6 18M6 6l12 12" />,
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={className} {...p}>
+      {paths[name]}
+    </svg>
+  )
+}
+
+// ---- one card language ----
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 mt-6 text-[12px] font-bold uppercase tracking-wide text-drift-muted">
+    <p className="mb-2 mt-6 text-[11.5px] font-bold uppercase tracking-wide text-drift-muted">
       {children}
     </p>
   )
 }
 
-function TileIcon({ children }: { children: React.ReactNode }) {
+function RowShell({
+  icon,
+  title,
+  desc,
+  trailing,
+  onClick,
+  disabled,
+}: {
+  icon: IconName
+  title: string
+  desc: string
+  trailing?: React.ReactNode
+  onClick?: () => void
+  disabled?: boolean
+}) {
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-drift-alt-bg text-[18px]">
-      {children}
-    </span>
-  )
-}
-
-function TileText({ title, desc }: { title: string; desc: string }) {
-  return (
-    <span className="min-w-0 flex-1">
-      <span className="block text-[14.5px] font-semibold">{title}</span>
-      <span className="block truncate text-[12.5px] text-drift-muted">{desc}</span>
-    </span>
-  )
-}
-
-function TileHead({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <TileIcon>{icon}</TileIcon>
-      <TileText title={title} desc={desc} />
-    </div>
-  )
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden
-      className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex w-full items-center gap-3 p-3.5 text-left disabled:opacity-60"
     >
-      <path d="M6 9l6 6 6-6" />
-    </svg>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-drift-coral-50 text-drift-coral">
+        <Icon name={icon} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14.5px] font-semibold text-drift-ink">{title}</span>
+        <span className="block truncate text-[12.5px] text-drift-muted">{desc}</span>
+      </span>
+      {trailing}
+    </button>
   )
 }
 
-function ActionTile({
+// Direct action (opens a file dialog); no chevron, spinner while busy.
+function ActionRow({
   icon,
   title,
   desc,
   onClick,
   busy = false,
 }: {
-  icon: string
+  icon: IconName
   title: string
   desc: string
   onClick: () => void
   busy?: boolean
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={busy}
-      className="flex w-full items-center gap-3 rounded-2xl border border-drift-divider bg-white p-3.5 text-left transition-colors hover:border-drift-coral/40 disabled:opacity-60"
-    >
-      <TileIcon>{icon}</TileIcon>
-      <TileText title={title} desc={busy ? "Reading…" : desc} />
-      {busy ? (
-        <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-drift-coral/30 border-t-drift-coral" />
-      ) : (
-        <span className="shrink-0 text-[18px] text-drift-text-tertiary">›</span>
-      )}
-    </button>
+    <div className="rounded-2xl border border-drift-divider bg-white transition-colors hover:border-drift-coral/40">
+      <RowShell
+        icon={icon}
+        title={title}
+        desc={busy ? "Reading…" : desc}
+        onClick={onClick}
+        disabled={busy}
+        trailing={
+          busy ? (
+            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-drift-coral/30 border-t-drift-coral" />
+          ) : (
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-drift-text-tertiary">
+              Choose
+            </span>
+          )
+        }
+      />
+    </div>
   )
 }
 
-// "Needs setup" tile — expandable, clearly labelled, never a live-looking dead
-// button. Tapping reveals what it will do and that it needs configuration.
-function SetupTile({
+// Expandable row — down chevron, COLLAPSED by default, reveals children.
+function ExpandRow({
+  icon,
+  title,
+  desc,
+  children,
+}: {
+  icon: IconName
+  title: string
+  desc: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="overflow-hidden rounded-2xl border border-drift-divider bg-white transition-colors hover:border-drift-coral/40">
+      <RowShell
+        icon={icon}
+        title={title}
+        desc={desc}
+        onClick={() => setOpen((v) => !v)}
+        trailing={
+          <Icon
+            name="chevron"
+            className={`h-4 w-4 shrink-0 text-drift-text-tertiary transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        }
+      />
+      {open && <div className="px-3.5 pb-3.5">{children}</div>}
+    </div>
+  )
+}
+
+// "Needs setup" tile — same shell + an amber pill, expandable to explain what
+// it will do. Never a live-looking dead button.
+function SetupRow({
   icon,
   title,
   desc,
   note,
-  accent = false,
 }: {
-  icon: string
+  icon: IconName
   title: string
   desc: string
   note: string
-  accent?: boolean
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <div
-      className={`overflow-hidden rounded-2xl border ${
-        accent ? "border-drift-coral/25 bg-drift-coral-50/50" : "border-drift-divider bg-white"
-      }`}
-    >
+    <div className="overflow-hidden rounded-2xl border border-drift-divider bg-white">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-3 p-3.5 text-left"
       >
-        <TileIcon>{icon}</TileIcon>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-drift-alt-bg text-drift-muted">
+          <Icon name={icon} />
+        </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[14.5px] font-semibold">{title}</span>
+            <span className="text-[14.5px] font-semibold text-drift-ink">{title}</span>
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
               Needs setup
             </span>
           </span>
-          <span className="mt-0.5 block text-[12.5px] text-drift-muted">{desc}</span>
+          <span className="mt-0.5 block truncate text-[12.5px] text-drift-muted">{desc}</span>
         </span>
-        <Chevron open={open} />
+        <Icon
+          name="chevron"
+          className={`h-4 w-4 shrink-0 text-drift-text-tertiary transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
       </button>
       {open && (
         <p className="px-3.5 pb-3.5 text-[12.5px] leading-relaxed text-drift-muted">{note}</p>
