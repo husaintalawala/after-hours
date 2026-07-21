@@ -82,6 +82,13 @@ export default function ChatsShell({
         ? sel.session.photo
         : null
 
+  // Deep-link-safe exit from the full-screen mobile chat surface (which sits
+  // at z-[60], covering the dock). A trip chat backs out to its trip studio;
+  // any other chat backs out to Home. Always a real route — never
+  // history.back() — so it resolves even on a cold load of /app/chats.
+  const backHref = sel.mode === "trip" ? `/app/trips/${sel.trip.id}` : "/app"
+  const backAria = sel.mode === "trip" ? "Back to trip" : "Back to Home"
+
   const sidebar = (
     <>
       <div className="p-3 pb-1.5">
@@ -172,6 +179,15 @@ export default function ChatsShell({
             <p className="truncate text-[11.5px] text-drift-text-tertiary">@{me.username}</p>
           )}
         </div>
+        {/* The mobile chat surface covers the dock, so the drawer needs its
+            own route back into the app. Hidden on desktop (top nav handles it). */}
+        <Link
+          href="/app"
+          aria-label="Back to Home"
+          className="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-[#EBE7E1] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-drift-ink lg:hidden"
+        >
+          ‹ Home
+        </Link>
       </div>
     </>
   )
@@ -229,11 +245,18 @@ export default function ChatsShell({
 
       {/* ---------- Mobile: full-screen thread + drawer ---------- */}
       <div className="fixed inset-0 z-[60] flex flex-col bg-[#FAF8F5] lg:hidden">
-        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-[#EBE7E1] bg-[rgba(250,248,245,0.92)] px-3 backdrop-blur-xl">
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-[#EBE7E1] bg-[rgba(250,248,245,0.92)] px-3 backdrop-blur-xl">
+          <Link
+            href={backHref}
+            aria-label={backAria}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-[20px] leading-none text-drift-ink"
+          >
+            ‹
+          </Link>
           <button
             onClick={() => setDrawer(true)}
             aria-label="Conversations"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-[16px]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-[16px]"
           >
             ☰
           </button>
