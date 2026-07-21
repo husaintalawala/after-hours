@@ -17,9 +17,11 @@ interface SessionRow {
 
 export default async function ChatsPage() {
   const supabase = createClient()
+  // Middleware already verified this request's user; cookie read is enough here.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return null
 
   const { data: sessionsRaw } = await supabase

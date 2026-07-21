@@ -9,23 +9,29 @@ import HomeShell, { type HomeData, type HomeTrip } from "@/components/app/home/H
 
 export default async function TripsHome() {
   const supabase = createClient()
+  // Middleware already verified this request's user; cookie read is enough here.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single<ProfileRow>()
-
-  const { data: buddyRows } = await supabase
-    .from("trip_buddies")
-    .select("trip_id")
-    .eq("user_id", user.id)
-    .eq("status", "accepted")
-    .returns<{ trip_id: string }[]>()
+  // Parallelize the independent lookups — every serial await here is felt
+  // as navigation latency.
+  const [{ data: profile }, { data: buddyRows }, followCounts] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single<ProfileRow>(),
+    supabase
+      .from("trip_buddies")
+      .select("trip_id")
+      .eq("user_id", user.id)
+      .eq("status", "accepted")
+      .returns<{ trip_id: string }[]>(),
+    Promise.all([
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id),
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id),
+    ]),
+  ])
+  const [{ count: followers }, { count: following }] = followCounts
   const buddyIds = (buddyRows ?? []).map((r) => r.trip_id).filter(Boolean)
 
   let tripsQuery = supabase.from("trips").select("*")
@@ -41,24 +47,25 @@ export default async function TripsHome() {
   let stepsWithCoords: StepRow[] = []
   const mediaCovers = new Map<string, string>()
   if (tripIds.length) {
-    const { data: steps } = await supabase
-      .from("steps")
-      .select("id,trip_id,latitude,longitude,date,created_at,step_type")
-      .in("trip_id", tripIds)
-      .not("latitude", "is", null)
-      .not("longitude", "is", null)
-      .returns<StepRow[]>()
+    const [{ data: steps }, { data: media }] = await Promise.all([
+      supabase
+        .from("steps")
+        .select("id,trip_id,latitude,longitude,date,created_at,step_type")
+        .in("trip_id", tripIds)
+        .not("latitude", "is", null)
+        .not("longitude", "is", null)
+        .returns<StepRow[]>(),
+      supabase
+        .from("media")
+        .select("trip_id,url,type,created_at")
+        .in("trip_id", tripIds)
+        .eq("type", "photo")
+        .order("created_at", { ascending: true })
+        .returns<{ trip_id: string | null; url: string }[]>(),
+    ])
     stepsWithCoords = ((steps ?? []) as StepRow[]).sort((a, b) =>
       (dateOnly(a.date) ?? "").localeCompare(dateOnly(b.date) ?? "")
     )
-
-    const { data: media } = await supabase
-      .from("media")
-      .select("trip_id,url,type,created_at")
-      .in("trip_id", tripIds)
-      .eq("type", "photo")
-      .order("created_at", { ascending: true })
-      .returns<{ trip_id: string | null; url: string }[]>()
     for (const m of media ?? []) {
       if (m.trip_id && m.url && !mediaCovers.has(m.trip_id)) {
         mediaCovers.set(m.trip_id, m.url)
@@ -85,10 +92,6 @@ export default async function TripsHome() {
 
   const countries = new Set<string>()
   for (const t of trips) (t.countries ?? []).forEach((c) => c && countries.add(c))
-  const [{ count: followers }, { count: following }] = await Promise.all([
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id),
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id),
-  ])
 
   const today = new Date().toISOString().slice(0, 10)
   const featuredRow =

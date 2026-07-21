@@ -13,9 +13,14 @@ export default async function ProtectedLayout({
   children: React.ReactNode
 }) {
   const supabase = createClient()
+  // Fast gate: middleware already verified this request's user against
+  // Supabase (updateSession → getUser network call). Re-verifying here on
+  // every navigation added a second auth round-trip per click — read the
+  // session from the cookie instead.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
 
   if (!user) redirect("/app/login")
 

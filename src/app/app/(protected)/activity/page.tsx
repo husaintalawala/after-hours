@@ -15,9 +15,11 @@ interface NotifRow {
 
 export default async function ActivityPage() {
   const supabase = createClient()
+  // Middleware already verified this request's user; cookie read is enough here.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return null
 
   const { data: notifsRaw } = await supabase
