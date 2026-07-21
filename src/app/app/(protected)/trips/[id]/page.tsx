@@ -103,6 +103,66 @@ export default async function TripDetailPage({
     })
   )
 
+  // Steps that aren't parented to a known destination (flat/legacy trips, or
+  // chat-added items whose destination was deleted) must not vanish — they
+  // get a synthetic bucket at the end of the journey strip.
+  const destIdSet = new Set(destinations.map((d) => d.id))
+  const unassigned = steps.filter(
+    (s) =>
+      s.step_type !== "destination" &&
+      (!s.parent_step_id || !destIdSet.has(s.parent_step_id))
+  )
+  if (unassigned.length) {
+    const startD = dateOnly(trip.start_date) ?? dateOnly(unassigned[0].date) ?? "1970-01-01"
+    const endD = dateOnly(trip.end_date) ?? startD
+    const [sy, sm, sd] = startD.split("-").map(Number)
+    const [ey, em, ed] = endD.split("-").map(Number)
+    const spanNights = Math.max(
+      0,
+      Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86_400_000)
+    )
+    const synthDest = {
+      id: "unassigned",
+      trip_id: trip.id,
+      step_type: "destination",
+      parent_step_id: null,
+      title: destinations.length ? "More stops" : trip.cities?.[0] ?? "Itinerary",
+      location_name: null,
+      country: trip.countries?.[0] ?? null,
+      date: startD,
+      nights: spanNights,
+    } as unknown as StepRow
+    // Transport legs pointing at destinations that no longer exist land here too.
+    const orphanTransport = transport
+      .filter(
+        (b) =>
+          (b.to_destination_id && !destIdSet.has(b.to_destination_id)) ||
+          (b.from_destination_id && !destIdSet.has(b.from_destination_id))
+      )
+      .map((b) => ({
+        ...b,
+        to_destination_id:
+          b.to_destination_id && !destIdSet.has(b.to_destination_id)
+            ? "unassigned"
+            : b.to_destination_id,
+        from_destination_id:
+          b.from_destination_id && !destIdSet.has(b.from_destination_id)
+            ? "unassigned"
+            : b.from_destination_id,
+      }))
+    const timeline = buildDestinationTimeline(synthDest, unassigned, orphanTransport)
+    destVMs.push({
+      id: "unassigned",
+      label: synthDest.title as string,
+      country: synthDest.country,
+      nights: spanNights,
+      heroUrl: destinations.length
+        ? null
+        : await destinationPhotoUrl(trip.cities?.[0] ?? trip.title, trip.countries?.[0]),
+      days: groupTimelineByDay(timeline, startD, spanNights),
+    })
+  }
+
   const expenseVMs: ExpenseVM[] = expenseRows.map((e) => ({
     id: e.id,
     label: e.label,
@@ -211,10 +271,12 @@ export default async function TripDetailPage({
           country={trip.countries?.[0] ?? null}
           fill
           destinations={destVMs.map((d) => {
-            const src = destinations.find((x) => x.id === d.id)!
+            // The synthetic "More stops" bucket has no steps row — fall back
+            // to the trip's start date for its day math.
+            const src = destinations.find((x) => x.id === d.id)
             return {
               id: d.id,
-              date: src.date,
+              date: src?.date ?? trip.start_date ?? "",
               nights: d.nights,
               label: d.label,
             }
