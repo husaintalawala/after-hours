@@ -49,7 +49,7 @@ export default function HomeShell({ data }: { data: HomeData }) {
       </div>
 
       {/* ---------- Desktop: floating glass trip rail ---------- */}
-      <aside className="fixed bottom-28 left-6 top-6 z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-white/90 shadow-2xl backdrop-blur-xl lg:flex">
+      <aside className="fixed bottom-8 left-6 top-[76px] z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-white/90 shadow-2xl backdrop-blur-xl lg:flex">
         <div className="overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
           {/* Header */}
           <div className="flex items-center gap-3.5">
