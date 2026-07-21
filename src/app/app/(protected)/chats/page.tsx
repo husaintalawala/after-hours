@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
-import { destinationPhotoUrl } from "@/lib/drift/placePhoto"
 import ChatsShell, {
   type ChatSessionVM,
   type MeVM,
@@ -113,56 +112,49 @@ export default async function ChatsPage() {
     })
   }
 
-  const tripCover = async (t: TripRow): Promise<string | null> =>
-    t.cover_url ||
-    mediaCovers.get(t.id) ||
-    (await destinationPhotoUrl(
-      destByTrip.get(t.id)?.[0]?.title || t.cities?.[0] || t.title,
-      t.countries?.[0],
-      240
-    ))
+  // Cover = stored user photo only (cover_url → first photo media). We do NOT
+  // fall back to a resolve-place/Google destination photo here: that made the
+  // Chats SSR block on a Google Places round-trip per uncovered trip + place
+  // chat (the "chats takes forever to load" bug — resolve-place is cache:
+  // no-store, so every render paid it). Rows without a stored cover render the
+  // compass/pin placeholder in ChatsShell instead. Home already works this way.
+  const tripCover = (t: TripRow): string | null =>
+    t.cover_url || mediaCovers.get(t.id) || null
 
-  const tripVMs: TripPickVM[] = await Promise.all(
-    trips.map(async (t) => ({
-      id: t.id,
-      title: t.title,
-      photo: await tripCover(t),
-      start: t.start_date,
-      dateRange: [fmtShort(t.start_date), fmtShort(t.end_date)].filter(Boolean).join(" – "),
-      destinations: (destByTrip.get(t.id) ?? []).map((d) => ({
-        id: d.id,
-        date: d.date,
-        nights: d.nights ?? 0,
-        label: d.title || d.location_name || "Destination",
-      })),
-      country: t.countries?.[0] ?? null,
-      stops: destByTrip.get(t.id)?.length ?? 0,
-    }))
-  )
+  const tripVMs: TripPickVM[] = trips.map((t) => ({
+    id: t.id,
+    title: t.title,
+    photo: tripCover(t),
+    start: t.start_date,
+    dateRange: [fmtShort(t.start_date), fmtShort(t.end_date)].filter(Boolean).join(" – "),
+    destinations: (destByTrip.get(t.id) ?? []).map((d) => ({
+      id: d.id,
+      date: d.date,
+      nights: d.nights ?? 0,
+      label: d.title || d.location_name || "Destination",
+    })),
+    country: t.countries?.[0] ?? null,
+    stops: destByTrip.get(t.id)?.length ?? 0,
+  }))
   const tripVMById = new Map(tripVMs.map((t) => [t.id, t]))
 
-  const sessionVMs: ChatSessionVM[] = await Promise.all(
-    sessions.map(async (s) => {
-      const kind =
-        s.anchor_type === "trip" ? "trip" : s.anchor_type === "place" ? "place" : "general"
-      const trip = kind === "trip" && s.anchor_id ? tripVMById.get(s.anchor_id) : null
-      const photo =
-        kind === "trip"
-          ? trip?.photo ?? null
-          : kind === "place" && s.anchor_label
-            ? await destinationPhotoUrl(s.anchor_label, null, 240)
-            : null
-      return {
-        id: s.id,
-        kind,
-        tripId: kind === "trip" ? s.anchor_id : null,
-        title: trip?.title ?? s.anchor_label ?? s.title ?? "Chat",
-        subtitle: s.title,
-        when: relativeTime(s.last_message_at),
-        photo,
-      } as ChatSessionVM
-    })
-  )
+  const sessionVMs: ChatSessionVM[] = sessions.map((s) => {
+    const kind =
+      s.anchor_type === "trip" ? "trip" : s.anchor_type === "place" ? "place" : "general"
+    const trip = kind === "trip" && s.anchor_id ? tripVMById.get(s.anchor_id) : null
+    // Trip chats reuse the trip's stored cover; place/general chats fall to the
+    // placeholder — no blocking Google photo fetch (see tripCover note above).
+    const photo = kind === "trip" ? trip?.photo ?? null : null
+    return {
+      id: s.id,
+      kind,
+      tripId: kind === "trip" ? s.anchor_id : null,
+      title: trip?.title ?? s.anchor_label ?? s.title ?? "Chat",
+      subtitle: s.title,
+      when: relativeTime(s.last_message_at),
+      photo,
+    } as ChatSessionVM
+  })
 
   const me: MeVM = {
     name: profile?.display_name || profile?.username || "Traveler",
