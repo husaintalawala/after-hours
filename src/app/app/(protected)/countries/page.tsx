@@ -74,6 +74,36 @@ export default async function CountriesPage() {
     ...new Set(countries.map(([c]) => countryCode(c)).filter((x): x is string => !!x)),
   ]
 
+  // Furthest from home — needs a home location (Settings → Home city) + the
+  // farthest visited step by great-circle distance.
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("home_city,home_lat,home_lng")
+    .eq("id", user.id)
+    .maybeSingle()
+  const home = profileRow as
+    | { home_city?: string | null; home_lat?: number | null; home_lng?: number | null }
+    | null
+  let furthest: { name: string; km: number } | null = null
+  if (home?.home_lat != null && home?.home_lng != null && tripIds.length) {
+    const { data: stepRows } = await supabase
+      .from("steps")
+      .select("title,location_name,latitude,longitude")
+      .in("trip_id", tripIds)
+      .returns<Array<{ title: string | null; location_name: string | null; latitude: number | null; longitude: number | null }>>()
+    let best = 0
+    let bestName = ""
+    for (const s of stepRows ?? []) {
+      if (s.latitude == null || s.longitude == null) continue
+      const km = haversineKm(home.home_lat, home.home_lng, s.latitude, s.longitude)
+      if (km > best) {
+        best = km
+        bestName = s.location_name || s.title || ""
+      }
+    }
+    if (best > 0 && bestName) furthest = { name: bestName, km: Math.round(best) }
+  }
+
   return (
     <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-8 lg:pt-12">
       <BackLink href="/app" label="Home" className="mb-5" />
@@ -161,6 +191,29 @@ export default async function CountriesPage() {
         <StatCard value={cities.size} label="Cities" />
       </section>
 
+      {/* Furthest from home */}
+      {furthest && home?.home_city ? (
+        <section className="mt-8">
+          <h2 className="font-drift-display text-[22px] font-bold">Furthest from home</h2>
+          <FurthestArc from={home.home_city} to={furthest.name} km={furthest.km} />
+        </section>
+      ) : (
+        !home?.home_city && (
+          <section className="mt-8">
+            <h2 className="font-drift-display text-[22px] font-bold">Furthest from home</h2>
+            <Link
+              href="/app/settings"
+              className="mt-3 flex items-center justify-between rounded-2xl bg-drift-alt-bg p-4 transition-colors hover:bg-drift-divider"
+            >
+              <span className="text-[13.5px] text-drift-muted">
+                Set your home city to see how far you&apos;ve roamed.
+              </span>
+              <span className="shrink-0 text-[13px] font-semibold text-drift-coral">Set home →</span>
+            </Link>
+          </section>
+        )
+      )}
+
       {/* Countries visited — the tap-through list */}
       {countries.length > 0 && (
         <section className="mt-8">
@@ -200,6 +253,37 @@ export default async function CountriesPage() {
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+function haversineKm(la1: number, lo1: number, la2: number, lo2: number): number {
+  const R = 6371
+  const dLa = ((la2 - la1) * Math.PI) / 180
+  const dLo = ((lo2 - lo1) * Math.PI) / 180
+  const x =
+    Math.sin(dLa / 2) ** 2 +
+    Math.cos((la1 * Math.PI) / 180) * Math.cos((la2 * Math.PI) / 180) * Math.sin(dLo / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(x))
+}
+
+function FurthestArc({ from, to, km }: { from: string; to: string; km: number }) {
+  return (
+    <div className="mt-3 rounded-2xl bg-drift-alt-bg p-5">
+      <svg viewBox="0 0 300 80" className="w-full" aria-hidden>
+        <path d="M18 64 Q150 2 282 64" fill="none" stroke="#E0563B" strokeWidth="2" strokeDasharray="4 5" />
+        <circle cx="18" cy="64" r="5" fill="#8a8681" />
+        <circle cx="282" cy="64" r="5.5" fill="#E0563B" />
+      </svg>
+      <div className="mt-1 flex items-center justify-between gap-3 text-[13.5px]">
+        <span className="min-w-0 truncate font-semibold text-drift-muted">{from}</span>
+        <span className="min-w-0 truncate text-right font-semibold text-drift-ink">{to}</span>
+      </div>
+      <div className="mt-3.5 flex justify-center">
+        <span className="rounded-full bg-drift-coral-50 px-4 py-1.5 text-[13px] font-bold text-drift-coral">
+          {km.toLocaleString()} km
+        </span>
+      </div>
     </div>
   )
 }

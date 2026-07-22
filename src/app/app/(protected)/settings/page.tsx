@@ -16,6 +16,9 @@ export default async function SettingsPage() {
     .eq("id", user.id)
     .maybeSingle<ProfileRow>()
 
+  // home_* columns are new; the generated types may lag, so read via a loose cast.
+  const p = profile as (ProfileRow & { home_city?: string | null }) | null
+
   return (
     <SettingsShell
       profile={{
@@ -23,6 +26,7 @@ export default async function SettingsPage() {
         username: profile?.username ?? null,
         avatarUrl: profile?.avatar_url ?? null,
         email: user.email ?? null,
+        homeCity: p?.home_city ?? null,
       }}
     />
   )

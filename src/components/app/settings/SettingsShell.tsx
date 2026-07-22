@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { resolvePlaceCandidates } from "@/lib/drift/chat"
 import BackLink from "@/components/app/BackLink"
 
 // Web port of the iOS SettingsView: profile header, preferences (default
@@ -15,6 +16,7 @@ export interface SettingsProfile {
   username: string | null
   avatarUrl: string | null
   email: string | null
+  homeCity: string | null
 }
 
 const PRIVACY_OPTIONS = ["public", "friends", "private"] as const
@@ -138,6 +140,16 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
         </p>
       </section>
 
+      {/* Home */}
+      <SectionLabel>Home</SectionLabel>
+      <section className="rounded-2xl bg-white p-5 shadow-sm">
+        <p className="text-[14.5px] font-semibold">Home city</p>
+        <p className="mt-1 text-[12px] text-drift-muted">
+          Sets your base for the &ldquo;furthest from home&rdquo; travel stat.
+        </p>
+        <HomeCity initial={profile.homeCity} />
+      </section>
+
       {/* Account */}
       <SectionLabel>Account</SectionLabel>
       <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -202,6 +214,102 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
           </>
         )}
       </section>
+    </div>
+  )
+}
+
+// Search a city and save it (name + country + coords) to profiles.home_*.
+function HomeCity({ initial }: { initial: string | null }) {
+  const [current, setCurrent] = useState<string | null>(initial)
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<
+    Array<{ name: string; country: string | null; lat: number; lng: number }>
+  >([])
+  const [searching, setSearching] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const seq = useRef(0)
+
+  async function search(e: React.FormEvent) {
+    e.preventDefault()
+    const q = query.trim()
+    if (!q || searching) return
+    const s = ++seq.current
+    setSearching(true)
+    const cands = await resolvePlaceCandidates(q, q)
+    if (seq.current !== s) return
+    setSearching(false)
+    setResults(
+      cands
+        .filter((c) => c.latitude != null && c.longitude != null)
+        .slice(0, 6)
+        .map((c) => ({
+          name: c.name,
+          country: (c.address ?? "").split(",").pop()?.trim() || null,
+          lat: c.latitude!,
+          lng: c.longitude!,
+        }))
+    )
+  }
+
+  async function pick(r: { name: string; country: string | null; lat: number; lng: number }) {
+    setSaving(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createClient() as any
+    const {
+      data: { session },
+    } = await createClient().auth.getSession()
+    const uid = session?.user?.id
+    if (uid) {
+      await db
+        .from("profiles")
+        .update({ home_city: r.name, home_country: r.country, home_lat: r.lat, home_lng: r.lng })
+        .eq("id", uid)
+    }
+    setCurrent(r.name)
+    setResults([])
+    setQuery("")
+    setSaving(false)
+  }
+
+  return (
+    <div className="mt-3">
+      {current && (
+        <div className="mb-2 flex items-center gap-2 rounded-xl bg-drift-coral-50 px-3.5 py-2.5">
+          <span className="text-[15px]">📍</span>
+          <span className="flex-1 text-[14px] font-semibold text-drift-ink">{current}</span>
+          <span className="text-[12px] text-drift-muted">{saving ? "Saving…" : "Home"}</span>
+        </div>
+      )}
+      <form onSubmit={search} className="flex gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={current ? "Change home city…" : "Search your home city…"}
+          className="min-w-0 flex-1 rounded-full border border-drift-divider bg-drift-alt-bg px-4 py-2.5 text-[14px] outline-none focus:border-drift-coral"
+        />
+        <button
+          type="submit"
+          disabled={searching || !query.trim()}
+          className="shrink-0 rounded-full bg-drift-coral px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+        >
+          {searching ? "…" : "Search"}
+        </button>
+      </form>
+      {results.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {results.map((r, i) => (
+            <button
+              key={i}
+              onClick={() => pick(r)}
+              disabled={saving}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-drift-alt-bg disabled:opacity-60"
+            >
+              <span className="text-[15px]">🔎</span>
+              <span className="min-w-0 flex-1 truncate text-[14px] font-medium">{r.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
