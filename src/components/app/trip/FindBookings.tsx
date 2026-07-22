@@ -42,9 +42,24 @@ const CATEGORY_ICON: Record<string, string> = {
   restaurant: "🍽",
 }
 
-export default function FindBookings({ tripId }: { tripId: string }) {
+export default function FindBookings({
+  tripId,
+  openSignal = 0,
+  onScanStarted,
+}: {
+  tripId: string
+  // Bumping openSignal opens the sheet (the trip-view scan chip uses this to
+  // jump straight to review). onScanStarted fires when a background scan is
+  // kicked off, so the parent can wake its status chip.
+  openSignal?: number
+  onScanStarted?: () => void
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (openSignal > 0) setOpen(true)
+  }, [openSignal])
 
   return (
     <>
@@ -57,6 +72,7 @@ export default function FindBookings({ tripId }: { tripId: string }) {
       {open && (
         <FindBookingsSheet
           tripId={tripId}
+          onScanStarted={onScanStarted}
           onClose={(didApply) => {
             setOpen(false)
             if (didApply) router.refresh()
@@ -70,9 +86,11 @@ export default function FindBookings({ tripId }: { tripId: string }) {
 function FindBookingsSheet({
   tripId,
   onClose,
+  onScanStarted,
 }: {
   tripId: string
   onClose: (didApply: boolean) => void
+  onScanStarted?: () => void
 }) {
   const [alias, setAlias] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -228,29 +246,33 @@ function FindBookingsSheet({
     setBusy(null)
   }
 
-  // Gmail scan: Google token (gmail.readonly) → gmail-scan edge fn → segments.
+  // Gmail scan: Google token (gmail.readonly), then fire the scan and hand off
+  // to the trip-view chip. The scan takes ~90s server-side; we do NOT await it
+  // (that's what made the tile hang). The edge fn writes an import_batches row
+  // (scanning → review_ready) that ScanStatus polls; the Supabase invocation
+  // completes even if the browser/proxy connection drops.
   async function handleGmailScan() {
     if (busy) return
     setBusy("gmail")
     setError(null)
     try {
       const accessToken = await requestGoogleAccessToken(GMAIL_SCOPE)
-      const res = await fetch("/api/drift/gmail-scan", {
+      void fetch("/api/drift/gmail-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trip_id: tripId, access_token: accessToken }),
-      })
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.ok) throw new Error(json?.error ?? "Gmail scan failed")
-      await loadSegments()
-      if (!json.parsed) setError("Scanned your inbox but found no bookings for this trip.")
+      }).catch(() => {})
+      onScanStarted?.()
+      onClose(false)
     } catch (e) {
       setError(gmailErr(e))
+      setBusy(null)
     }
-    setBusy(null)
   }
 
-  // Google Calendar: token (calendar.readonly) → events → same parse path as .ics.
+  // Google Calendar: token (calendar.readonly) → fetch events (fast) → fire the
+  // parse in the background under source "google_calendar" (distinct from the
+  // synchronous .ics path so the chip owns it). Hand off to the chip.
   async function handleCalendar() {
     if (busy) return
     setBusy("calendar")
@@ -258,12 +280,22 @@ function FindBookingsSheet({
     try {
       const accessToken = await requestGoogleAccessToken(CALENDAR_SCOPE)
       const texts = await fetchUpcomingCalendarTexts(accessToken)
-      if (!texts.length) setError("No upcoming events found in your Google Calendar.")
-      else await postParse({ source: "calendar", texts }, "calendar")
+      if (!texts.length) {
+        setError("No upcoming events found in your Google Calendar.")
+        setBusy(null)
+        return
+      }
+      void fetch("/api/drift/parse-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trip_id: tripId, source: "google_calendar", texts }),
+      }).catch(() => {})
+      onScanStarted?.()
+      onClose(false)
     } catch (e) {
       setError(gmailErr(e))
+      setBusy(null)
     }
-    setBusy(null)
   }
 
   // Plaid: link-token → Plaid Link → exchange (creates plaid_items + kicks the

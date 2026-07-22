@@ -9,6 +9,7 @@ import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
 import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
+import ScanStatus from "./ScanStatus"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -139,6 +140,10 @@ export default function TripTabs({
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
   const [selected, setSelected] = useState<TimelineItem | null>(null)
+  // Background-scan wiring: bumping scanNonce wakes the ScanStatus chip after a
+  // scan is kicked off; bumping reviewSignal opens the bookings sheet to review.
+  const [scanNonce, setScanNonce] = useState(0)
+  const [reviewSignal, setReviewSignal] = useState(0)
 
   // Lazy destination hero photos. The SSR page no longer blocks on a
   // resolve-place→Google lookup per destination (that made opening a trip
@@ -338,9 +343,18 @@ export default function TripTabs({
                     {destinations.length}
                   </span>
                   <span className="ml-auto">
-                    <FindBookings tripId={tripId} />
+                    <FindBookings
+                      tripId={tripId}
+                      openSignal={reviewSignal}
+                      onScanStarted={() => setScanNonce((n) => n + 1)}
+                    />
                   </span>
                 </div>
+                <ScanStatus
+                  tripId={tripId}
+                  refreshNonce={scanNonce}
+                  onReview={() => setReviewSignal((s) => s + 1)}
+                />
                 {destinations.length === 0 && (
                   <p className="mt-3 text-drift-muted">
                     No itinerary yet. Ask Drift to start planning.
