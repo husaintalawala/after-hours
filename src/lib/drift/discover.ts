@@ -96,31 +96,55 @@ const fromVendor = (source: "viator" | "stay22") => (c: VendorCandidate): Discov
   source,
 })
 
+// Never let a slow/hung upstream (Google resolve-place or a vendor) leave the
+// rail stuck on "Finding…". Race each source against a timeout that resolves to
+// a fallback, so the category always renders what arrived in time.
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    p.catch(() => fallback),
+    new Promise<T>((res) => setTimeout(() => res(fallback), ms)),
+  ])
+}
+
 /** Load a category. Bookable vendors lead, Google POIs fill in (iOS blending). */
 export async function loadCategory(
   cat: DiscoverCategory,
   anchor: DiscoverAnchor
 ): Promise<DiscoverResult[]> {
-  const google = resolvePlaceCandidates(
-    CATEGORY_META[cat].query,
-    anchor.label,
-    anchor.country ?? undefined
-  ).then((cs) => cs.map(fromGoogle))
+  const google = withTimeout(
+    resolvePlaceCandidates(
+      CATEGORY_META[cat].query,
+      anchor.label,
+      anchor.country ?? undefined
+    ).then((cs) => cs.map(fromGoogle)),
+    9000,
+    [] as DiscoverResult[]
+  )
 
   if (cat === "thingsToDo") {
-    const viator = vendor("activities", {
-      destinationName: anchor.label,
-      lat: anchor.lat ?? undefined,
-      lng: anchor.lng ?? undefined,
-      count: 12,
-    }).then((cs) => cs.map(fromVendor("viator")))
+    // Don't block the whole category on the vendor — it can be slow. Time it out
+    // to [] so Google results still render.
+    const viator = withTimeout(
+      vendor("activities", {
+        destinationName: anchor.label,
+        lat: anchor.lat ?? undefined,
+        lng: anchor.lng ?? undefined,
+        count: 12,
+      }).then((cs) => cs.map(fromVendor("viator"))),
+      6000,
+      [] as DiscoverResult[]
+    )
     const [v, g] = await Promise.all([viator, google])
     return dedupe([...v, ...g])
   }
 
   if (cat === "stays" && anchor.lat != null && anchor.lng != null) {
-    const stays = vendor("stays", { lat: anchor.lat, lng: anchor.lng, count: 15 }).then(
-      (cs) => cs.map(fromVendor("stay22"))
+    const stays = withTimeout(
+      vendor("stays", { lat: anchor.lat, lng: anchor.lng, count: 15 }).then((cs) =>
+        cs.map(fromVendor("stay22"))
+      ),
+      6000,
+      [] as DiscoverResult[]
     )
     const [s, g] = await Promise.all([stays, google])
     return dedupe([...s, ...g])

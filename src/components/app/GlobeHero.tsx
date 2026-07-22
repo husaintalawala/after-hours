@@ -135,7 +135,10 @@ export default function GlobeHero({
     let lastT = 0
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick)
-      if (paused || document.hidden) {
+      // Skip rotation while the map is mid-ease (e.g. a +/- zoom animation) —
+      // setBearing is a jumpTo that would otherwise cancel the zoom every frame,
+      // which made the NavigationControl buttons appear dead.
+      if (paused || document.hidden || map.isEasing() || map.isZooming()) {
         lastT = t
         return
       }
@@ -153,6 +156,9 @@ export default function GlobeHero({
     map.on("mousedown", pause)
     map.on("touchstart", pause)
     map.on("wheel", pause)
+    // Clicking the +/- controls doesn't emit a map mousedown — pause on their
+    // zoom events too so rotation yields to the user's zoom.
+    map.on("zoomstart", pause)
     mapRef.current = map
     pauseRef.current = pause
 

@@ -53,7 +53,9 @@ export default function DiscoverShell({
     if (!anchor) return
     const seq = ++reqSeq.current
     setLoading(true)
-    setResults([])
+    // Keep the current results visible while the next category/location loads —
+    // clearing to [] caused a jarring empty "flash" on every switch. loadCategory
+    // is timeout-bounded, so `loading` always resolves.
     loadCategory(cat, anchor).then((r) => {
       if (reqSeq.current === seq) {
         setResults(r)
@@ -101,7 +103,7 @@ export default function DiscoverShell({
                   Search a city to start exploring.
                 </p>
               )}
-              {anchor && loading && (
+              {anchor && loading && results.length === 0 && (
                 <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">
                   Finding {CATEGORY_META[cat].label.toLowerCase()} in {anchor.label}…
                 </p>

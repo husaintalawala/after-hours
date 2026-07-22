@@ -37,7 +37,7 @@ export default function ScanStatus({
 }: {
   tripId: string
   refreshNonce: number
-  onReview: () => void
+  onReview: (batchId: string) => void
 }) {
   const [batch, setBatch] = useState<Batch | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
@@ -100,7 +100,7 @@ export default function ScanStatus({
   if (ready && unapplied > 0) {
     return (
       <button
-        onClick={onReview}
+        onClick={() => onReview(batch.id)}
         className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-drift-coral/45 bg-drift-coral-50 p-3.5 text-left transition-transform hover:-translate-y-0.5"
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">

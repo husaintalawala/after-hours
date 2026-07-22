@@ -144,6 +144,7 @@ export default function TripTabs({
   // scan is kicked off; bumping reviewSignal opens the bookings sheet to review.
   const [scanNonce, setScanNonce] = useState(0)
   const [reviewSignal, setReviewSignal] = useState(0)
+  const [reviewBatchId, setReviewBatchId] = useState<string | null>(null)
 
   // Lazy destination hero photos. The SSR page no longer blocks on a
   // resolve-place→Google lookup per destination (that made opening a trip
@@ -346,6 +347,7 @@ export default function TripTabs({
                     <FindBookings
                       tripId={tripId}
                       openSignal={reviewSignal}
+                      reviewBatchId={reviewBatchId}
                       onScanStarted={() => setScanNonce((n) => n + 1)}
                     />
                   </span>
@@ -353,7 +355,10 @@ export default function TripTabs({
                 <ScanStatus
                   tripId={tripId}
                   refreshNonce={scanNonce}
-                  onReview={() => setReviewSignal((s) => s + 1)}
+                  onReview={(batchId) => {
+                    setReviewBatchId(batchId)
+                    setReviewSignal((s) => s + 1)
+                  }}
                 />
                 {destinations.length === 0 && (
                   <p className="mt-3 text-drift-muted">

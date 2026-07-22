@@ -45,26 +45,39 @@ const CATEGORY_ICON: Record<string, string> = {
 export default function FindBookings({
   tripId,
   openSignal = 0,
+  reviewBatchId = null,
   onScanStarted,
 }: {
   tripId: string
   // Bumping openSignal opens the sheet (the trip-view scan chip uses this to
-  // jump straight to review). onScanStarted fires when a background scan is
-  // kicked off, so the parent can wake its status chip.
+  // jump straight to review). reviewBatchId scopes the review to one scan's
+  // results so "Found N" matches what's shown. onScanStarted fires when a
+  // background scan is kicked off, so the parent can wake its status chip.
   openSignal?: number
+  reviewBatchId?: string | null
   onScanStarted?: () => void
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  // Which batch to scope the review to: the chip's batch when opened via the
+  // chip, null (show everything) when opened via the "Find bookings" button.
+  const [scopeBatchId, setScopeBatchId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (openSignal > 0) setOpen(true)
+    if (openSignal > 0) {
+      setScopeBatchId(reviewBatchId)
+      setOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openSignal])
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setScopeBatchId(null)
+          setOpen(true)
+        }}
         className="inline-flex items-center gap-1.5 rounded-full border border-drift-coral/40 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-drift-coral transition-colors hover:bg-drift-coral-50"
       >
         <Icon name="send" className="h-3.5 w-3.5" /> Find bookings
@@ -72,6 +85,7 @@ export default function FindBookings({
       {open && (
         <FindBookingsSheet
           tripId={tripId}
+          reviewBatchId={scopeBatchId}
           onScanStarted={onScanStarted}
           onClose={(didApply) => {
             setOpen(false)
@@ -87,10 +101,12 @@ function FindBookingsSheet({
   tripId,
   onClose,
   onScanStarted,
+  reviewBatchId = null,
 }: {
   tripId: string
   onClose: (didApply: boolean) => void
   onScanStarted?: () => void
+  reviewBatchId?: string | null
 }) {
   const [alias, setAlias] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -166,8 +182,11 @@ function FindBookingsSheet({
         needsReview: !!r.needs_review,
       }
     })
-    setSegments(vms)
-    setSelected(new Set(vms.filter((v) => v.batchId).map((v) => v.id)))
+    // When opened from a scan chip, show only that scan's segments so the
+    // "Found N" count matches the list (not every accumulated segment).
+    const shown = reviewBatchId ? vms.filter((v) => v.batchId === reviewBatchId) : vms
+    setSegments(shown)
+    setSelected(new Set(shown.filter((v) => v.batchId).map((v) => v.id)))
     setLoadingSegments(false)
   }
 
