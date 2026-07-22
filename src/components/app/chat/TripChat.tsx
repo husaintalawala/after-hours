@@ -35,6 +35,7 @@ interface Msg {
   id: string
   role: "user" | "assistant"
   text: string
+  image?: string
   cards?: HydratedCard[]
   followups?: string[]
   replyChips?: string[]
@@ -69,6 +70,10 @@ export default function TripChat({
   const [streaming, setStreaming] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [input, setInput] = useState("")
+  // Attached photo (downscaled base64 data URL) for a vision question —
+  // ask-drift-chat consumes `image` and answers about the photo.
+  const [attached, setAttached] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   // Inspector "Ask Drift about this" → load the question into the composer.
   useEffect(() => {
@@ -162,21 +167,23 @@ export default function TripChat({
 
   async function send(textArg?: string) {
     const text = (textArg ?? input).trim()
-    if (!text || busy) return
+    const img = attached
+    if ((!text && !img) || busy) return
     setError(null)
     setInput("")
+    setAttached(null)
     setBusy(true)
     setStatus(null)
 
     const history = messages
-    setMessages((m) => [...m, { id: nextId(), role: "user", text }])
+    setMessages((m) => [...m, { id: nextId(), role: "user", text, image: img ?? undefined }])
     if (sessionRef.current) void saveMessage(sessionRef.current, tripId, "user", text)
     const conversation: Turn[] = history.map((m) => ({ role: m.role, text: m.text }))
     let streamBuf = ""
     setStreaming("")
 
     await askDrift(
-      { tripId, message: text, conversation },
+      { tripId, message: text, conversation, image: img },
       {
         onStatus: (s) => setStatus(s === "searching" ? "Searching…" : "Thinking…"),
         onDelta: (d) => {
@@ -317,12 +324,22 @@ export default function TripChat({
           <div key={m.id}>
             {m.role === "user" ? (
               <div className="text-right">
-                <div
-                  className="inline-block max-w-[85%] rounded-[18px] rounded-br-[4px] px-4 py-3 text-left text-[14.5px] leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(224,86,59,0.5)]"
-                  style={{ background: "linear-gradient(135deg,#E0563B,#D14A2F)" }}
-                >
-                  {m.text}
-                </div>
+                {m.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.image}
+                    alt="Attached"
+                    className="mb-1.5 inline-block max-h-56 max-w-[85%] rounded-[16px] object-cover shadow-sm"
+                  />
+                )}
+                {m.text && (
+                  <div
+                    className="inline-block max-w-[85%] rounded-[18px] rounded-br-[4px] px-4 py-3 text-left text-[14.5px] leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(224,86,59,0.5)]"
+                    style={{ background: "linear-gradient(135deg,#E0563B,#D14A2F)" }}
+                  >
+                    {m.text}
+                  </div>
+                )}
               </div>
             ) : (
               <div>
@@ -411,35 +428,102 @@ export default function TripChat({
       <div
         className={
           bare
-            ? "mx-auto mb-5 flex w-[calc(100%-40px)] max-w-[780px] shrink-0 items-center gap-2.5 rounded-[24px] border border-[#EBE7E1] bg-white px-4 py-3 shadow-[0_14px_40px_-18px_rgba(31,31,36,0.22)]"
-            : "flex shrink-0 items-center gap-2.5 border-t border-[#EBE7E1] px-4 py-3.5"
+            ? "mx-auto mb-5 flex w-[calc(100%-40px)] max-w-[780px] shrink-0 flex-col gap-2 rounded-[24px] border border-[#EBE7E1] bg-white px-4 py-3 shadow-[0_14px_40px_-18px_rgba(31,31,36,0.22)]"
+            : "flex shrink-0 flex-col gap-2 border-t border-[#EBE7E1] px-4 py-3.5"
         }
         style={bare ? undefined : { background: "#FFFDFB" }}
       >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault()
-              send()
-            }
-          }}
-          disabled={busy}
-          placeholder="Plan with Drift…"
-          className="h-[46px] min-w-0 flex-1 rounded-full border border-[#EBE7E1] bg-[#FAF8F5] px-5 text-[14.5px] outline-none transition-colors focus:border-drift-coral disabled:opacity-60"
-        />
-        <button
-          onClick={() => send()}
-          disabled={busy || !input.trim()}
-          aria-label="Send"
-          className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-[17px] text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)] disabled:opacity-50"
-        >
-          ↑
-        </button>
+        {attached && (
+          <div className="flex items-center gap-2 self-start rounded-xl bg-drift-alt-bg p-1.5 pr-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={attached} alt="attachment" className="h-11 w-11 rounded-lg object-cover" />
+            <span className="text-[12.5px] text-drift-muted">Photo attached</span>
+            <button
+              onClick={() => setAttached(null)}
+              aria-label="Remove photo"
+              className="text-drift-text-tertiary hover:text-drift-ink"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div className="flex items-center gap-2.5">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) fileToDataUrl(f).then((url) => url && setAttached(url))
+              e.target.value = ""
+            }}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            aria-label="Attach a photo"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-[#EBE7E1] bg-[#FAF8F5] text-[22px] leading-none text-drift-muted transition-colors hover:border-drift-coral hover:text-drift-coral disabled:opacity-50"
+          >
+            +
+          </button>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                send()
+              }
+            }}
+            disabled={busy}
+            placeholder={attached ? "Ask about this photo…" : "Plan with Drift…"}
+            className="h-[46px] min-w-0 flex-1 rounded-full border border-[#EBE7E1] bg-[#FAF8F5] px-5 text-[14.5px] outline-none transition-colors focus:border-drift-coral disabled:opacity-60"
+          />
+          <button
+            onClick={() => send()}
+            disabled={busy || (!input.trim() && !attached)}
+            aria-label="Send"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-[17px] text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)] disabled:opacity-50"
+          >
+            ↑
+          </button>
+        </div>
       </div>
     </section>
   )
+}
+
+// Downscale a picked image to a compact JPEG data URL (~max 1280px) so the
+// vision payload to ask-drift-chat stays small. Falls back to the raw data URL.
+async function fileToDataUrl(file: File): Promise<string | null> {
+  try {
+    const raw = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => resolve(r.result as string)
+      r.onerror = reject
+      r.readAsDataURL(file)
+    })
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = reject
+      el.src = raw
+    })
+    const max = 1280
+    const scale = Math.min(1, max / Math.max(img.width, img.height))
+    const w = Math.round(img.width * scale)
+    const h = Math.round(img.height * scale)
+    const canvas = document.createElement("canvas")
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return raw
+    ctx.drawImage(img, 0, 0, w, h)
+    return canvas.toDataURL("image/jpeg", 0.82)
+  } catch {
+    return null
+  }
 }
 
 // One card in the carousel: hero photo, title, why-text, chips, Add/Map pills.
