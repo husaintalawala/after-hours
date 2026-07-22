@@ -38,6 +38,7 @@ export default async function ChatsPage() {
         .select("id,anchor_type,anchor_id,anchor_label,title,last_message_at")
         .eq("user_id", user.id)
         .is("merged_into", null)
+        .is("archived_at", null)
         .order("last_message_at", { ascending: false })
         .limit(100),
       supabase
