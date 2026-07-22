@@ -142,7 +142,9 @@ export default function HomeShell({ data }: { data: HomeData }) {
       {data.featured && (
         <Link
           href={`/app/trips/${data.featured.id}`}
-          className="fixed bottom-8 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white py-3 pl-4 pr-5 shadow-2xl transition-transform hover:scale-[1.02] lg:flex"
+          // Sits above the globe's bottom-right +/- zoom controls (GlobeHero
+          // NavigationControl) so neither is obscured.
+          className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white py-3 pl-4 pr-5 shadow-2xl transition-transform hover:scale-[1.02] lg:flex"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
             ✦

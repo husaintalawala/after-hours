@@ -94,15 +94,26 @@ export default async function TripsHome() {
   for (const t of trips) (t.countries ?? []).forEach((c) => c && countries.add(c))
 
   const today = new Date().toISOString().slice(0, 10)
+  // "Traveling now" is date-derived — today within [start, end] — NOT the
+  // trips.is_active flag, which goes stale (a past trip stayed flagged active,
+  // so it showed "NOW TRAVELING" and drove the Ask-Drift CTA in July).
+  const isNow = (t: TripRow): boolean => {
+    const s = t.start_date?.slice(0, 10)
+    const e = (t.end_date ?? t.start_date)?.slice(0, 10)
+    return !!s && !!e && s <= today && today <= e
+  }
   const featuredRow =
-    trips.find((t) => t.is_active) ??
+    trips.find(isNow) ??
     trips
       .filter((t) => (t.start_date ?? "") > today)
       .sort((a, b) => (a.start_date ?? "").localeCompare(b.start_date ?? ""))[0] ??
+    trips
+      .slice()
+      .sort((a, b) => (b.start_date ?? "").localeCompare(a.start_date ?? ""))[0] ??
     trips[0]
   const featuredHeader = !featuredRow
     ? null
-    : featuredRow.is_active
+    : isNow(featuredRow)
       ? { title: "Now", subtitle: "Traveling now" }
       : (featuredRow.start_date ?? "") > today
         ? { title: "Next", subtitle: "Coming up" }
@@ -122,7 +133,7 @@ export default async function TripsHome() {
           timeZone: "UTC",
         })
       : "",
-    isActive: !!t.is_active,
+    isActive: isNow(t),
   })
 
   const data: HomeData = {

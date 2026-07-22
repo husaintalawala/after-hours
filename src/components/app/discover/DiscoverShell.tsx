@@ -201,14 +201,15 @@ function LocationPicker({
     }
     setGeoState("locating")
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        // Resolve the coords to a real city name — the Discover search is
+        // text-based (resolvePlaceCandidates uses the label), so an anchor
+        // labelled "Current location" returns an unscoped/nation-wide spread
+        // and the map can't zoom to a city. Reverse-geocode first.
+        const { label, country } = await reverseGeocodeCity(lat, lng)
         setGeoState("idle")
-        onSelect({
-          label: "Current location",
-          country: null,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        })
+        onSelect({ label, country, lat, lng })
         setOpen(false)
       },
       () => setGeoState("denied"),
@@ -407,6 +408,33 @@ function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) 
       </div>
     </div>
   )
+}
+
+// Reverse-geocode coords → nearest city name + country via Mapbox (the token is
+// already loaded for the map). Falls back to a generic label so search still
+// runs. `place` = city-level feature.
+async function reverseGeocodeCity(
+  lat: number,
+  lng: number
+): Promise<{ label: string; country: string | null }> {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  if (!token) return { label: "Nearby", country: null }
+  try {
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place&limit=1&access_token=${token}`
+    )
+    if (!res.ok) return { label: "Nearby", country: null }
+    const json = (await res.json()) as {
+      features?: { text?: string; context?: { id?: string; text?: string }[] }[]
+    }
+    const f = json.features?.[0]
+    const label = f?.text ?? "Nearby"
+    const country =
+      f?.context?.find((c) => c.id?.startsWith("country"))?.text ?? null
+    return { label, country }
+  } catch {
+    return { label: "Nearby", country: null }
+  }
 }
 
 function compact(n: number): string {
