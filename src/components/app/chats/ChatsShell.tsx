@@ -106,8 +106,24 @@ export default function ChatsShell({
       arr.push(s)
       map.set(key, arr)
     }
-    return [...map.entries()].map(([tripId, items]) => ({ tripId, items }))
-  }, [sessions])
+    // Order by TRIP DATE, not last-chat time: upcoming/ongoing first (soonest),
+    // then past (most recent first), undated last.
+    const startById = new Map(trips.map((t) => [t.id, t.start]))
+    const today = new Date().toISOString().slice(0, 10)
+    const rank = (tripId: string): [number, number] => {
+      const start = startById.get(tripId)?.slice(0, 10) ?? null
+      if (!start) return [2, 0]
+      const days = Math.round((Date.parse(start) - Date.parse(today)) / 86_400_000)
+      return start >= today ? [0, days] : [1, -days]
+    }
+    return [...map.entries()]
+      .map(([tripId, items]) => ({ tripId, items }))
+      .sort((a, b) => {
+        const [ra, sa] = rank(a.tripId)
+        const [rb, sb] = rank(b.tripId)
+        return ra - rb || sa - sb
+      })
+  }, [sessions, trips])
   const [expandedTrips, setExpandedTrips] = useState<Set<string>>(new Set())
   const toggleTrip = (tripId: string) =>
     setExpandedTrips((prev) => {

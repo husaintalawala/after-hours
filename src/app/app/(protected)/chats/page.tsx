@@ -141,7 +141,12 @@ export default async function ChatsPage() {
   }))
   const tripVMById = new Map(tripVMs.map((t) => [t.id, t]))
 
-  const sessionVMs: ChatSessionVM[] = sessions.map((s) => {
+  const sessionVMs: ChatSessionVM[] = sessions
+    // Drop orphaned trip chats whose trip no longer exists — otherwise they
+    // render as stale duplicate rows by their old label (e.g. several "Türkiye"
+    // sessions left behind by deleted/re-created trips).
+    .filter((s) => !(s.anchor_type === "trip" && s.anchor_id && !tripVMById.has(s.anchor_id)))
+    .map((s) => {
     const kind =
       s.anchor_type === "trip" ? "trip" : s.anchor_type === "place" ? "place" : "general"
     const trip = kind === "trip" && s.anchor_id ? tripVMById.get(s.anchor_id) : null

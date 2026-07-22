@@ -65,7 +65,9 @@ export default function DiscoverShell({
   }, [cat, anchor])
 
   return (
-    <div className="lg:fixed lg:inset-0 lg:top-0">
+    // Start below the 60px sticky top nav — pinning to top-0 slid the location
+    // picker + category chips under the nav.
+    <div className="lg:fixed lg:bottom-0 lg:left-0 lg:right-0 lg:top-[60px]">
       <div className="mx-auto h-full w-full max-w-2xl px-5 pt-6 lg:max-w-none lg:px-0 lg:pt-0">
         <div className="h-full lg:grid lg:grid-cols-[440px_minmax(0,1fr)]">
           {/* Rail */}
