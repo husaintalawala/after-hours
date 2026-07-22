@@ -35,6 +35,13 @@ const ISO: Record<string, string> = {
   kyrgyzstan: "KG", tajikistan: "TJ",
 }
 
+// ISO 3166-1 alpha-2 code for a country name (drives the Mapbox country-fill
+// choropleth — its `iso_3166_1` property is alpha-2). null when unknown.
+export function countryCode(country: string | null | undefined): string | null {
+  if (!country) return null
+  return ISO[country.trim().toLowerCase()] ?? null
+}
+
 export function countryFlagEmoji(country: string | null | undefined): string | null {
   if (!country) return null
   const code = ISO[country.trim().toLowerCase()]

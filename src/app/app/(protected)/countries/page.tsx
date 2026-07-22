@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import type { TripRow, TripBuddyRow } from "@/lib/db-types"
-import { countryFlagEmoji } from "@/lib/drift/flags"
+import { countryFlagEmoji, countryCode } from "@/lib/drift/flags"
 import BackLink from "@/components/app/BackLink"
+import CountriesMapClient from "@/components/app/countries/CountriesMapClient"
 
 // Passport — the web port of the iOS travel-stats screen (profile → Countries).
 // Hero tiles (countries + % of world), flags collected, total travel time, a
@@ -69,6 +70,9 @@ export default async function CountriesPage() {
   }, 0)
   const weeks = Math.floor(totalDays / 7)
   const worldPct = ((countries.length / WORLD_COUNTRIES) * 100).toFixed(1)
+  const visitedCodes = [
+    ...new Set(countries.map(([c]) => countryCode(c)).filter((x): x is string => !!x)),
+  ]
 
   return (
     <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-8 lg:pt-12">
@@ -107,6 +111,24 @@ export default async function CountriesPage() {
           </div>
         </div>
       </div>
+
+      {/* Countries visited — choropleth */}
+      {visitedCodes.length > 0 && (
+        <section className="mt-8">
+          <h2 className="font-drift-display text-[22px] font-bold">Countries visited</h2>
+          <div className="mt-3">
+            <CountriesMapClient codes={visitedCodes} />
+          </div>
+          <div className="mt-2.5 flex items-center gap-4 text-[12.5px] text-drift-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-drift-coral" /> Visited
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#DEDAD2]" /> Not yet
+            </span>
+          </div>
+        </section>
+      )}
 
       {/* Flags collected */}
       {countries.length > 0 && (
