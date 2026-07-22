@@ -17,19 +17,47 @@ export async function POST(request: Request) {
   }
 
   const stream = body.stream === true
-  const upstreamBody = JSON.stringify({
-    trip_id: body.tripId,
-    message: body.message ?? "",
-    conversation: Array.isArray(body.conversation) ? body.conversation : [],
-    image: body.image ?? undefined,
-    stream: stream || undefined,
-  })
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${up.token}`,
     apikey: up.anonKey,
   }
+
+  // Real local events: for event-related questions, pull live Ticketmaster
+  // listings for the trip's city (discover-events) and append them so the agent
+  // answers with real events instead of only the itinerary. Fail-open.
+  let message: string = typeof body.message === "string" ? body.message : ""
+  if (message && isEventQuery(message)) {
+    try {
+      const evRes = await fetch(`${up.functionsBase}/discover-events`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ trip_id: body.tripId }),
+      })
+      const ev = (await evRes.json().catch(() => null)) as
+        | { city?: string | null; events?: { name: string; date: string | null; venue: string | null; url: string | null }[] }
+        | null
+      const events = ev?.events ?? []
+      if (events.length) {
+        const lines = events
+          .map((e) => `- ${e.name}${e.date ? ` — ${e.date}` : ""}${e.venue ? ` @ ${e.venue}` : ""}${e.url ? ` (${e.url})` : ""}`)
+          .join("\n")
+        message +=
+          `\n\n[REAL LIVE EVENTS near ${ev?.city ?? "the destination"} (Ticketmaster, next ~6 weeks) — use these to answer about events happening soon; give names, dates, venues, and the link when useful. Do NOT claim you lack live event data:\n${lines}\n]`
+      }
+    } catch {
+      /* fail-open — answer without live events */
+    }
+  }
+
+  const upstreamBody = JSON.stringify({
+    trip_id: body.tripId,
+    message,
+    conversation: Array.isArray(body.conversation) ? body.conversation : [],
+    image: body.image ?? undefined,
+    stream: stream || undefined,
+  })
   if (stream) {
     headers["Accept"] = "text/event-stream"
     // Defeat edge gzip buffering of the SSE stream (server-to-server can set this).
@@ -65,4 +93,11 @@ export async function POST(request: Request) {
     status: upstream.status,
     headers: { "content-type": "application/json" },
   })
+}
+
+// Heuristic: is the user asking about live/local events (vs. planning)?
+function isEventQuery(msg: string): boolean {
+  return /\b(events?|concerts?|festivals?|gigs?|live music|what'?s on|going on|see a show|any shows?|happening (soon|near|tonight|this|around))\b/i.test(
+    msg
+  )
 }
