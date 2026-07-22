@@ -86,26 +86,31 @@ export default async function PeoplePage({
             key={p.id}
             className="flex items-center gap-3.5 rounded-2xl bg-white p-3.5 shadow-sm"
           >
-            {p.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={p.avatar_url}
-                alt=""
-                className="h-12 w-12 shrink-0 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-drift-coral-50 font-drift-display text-[17px] font-bold text-drift-coral">
-                {(p.display_name || p.username || "?").slice(0, 1).toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-semibold">
-                {p.display_name || p.username || "Traveler"}
-              </p>
-              {p.username && (
-                <p className="truncate text-[12.5px] text-drift-muted">@{p.username}</p>
+            <Link
+              href={`/app/people/${p.id}`}
+              className="flex min-w-0 flex-1 items-center gap-3.5 rounded-xl transition-opacity hover:opacity-80"
+            >
+              {p.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.avatar_url}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-drift-coral-50 font-drift-display text-[17px] font-bold text-drift-coral">
+                  {(p.display_name || p.username || "?").slice(0, 1).toUpperCase()}
+                </div>
               )}
-            </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-semibold">
+                  {p.display_name || p.username || "Traveler"}
+                </p>
+                {p.username && (
+                  <p className="truncate text-[12.5px] text-drift-muted">@{p.username}</p>
+                )}
+              </div>
+            </Link>
             {p.id !== user.id && (
               <FollowButton
                 meId={user.id}

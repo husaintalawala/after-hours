@@ -499,7 +499,7 @@ function FindBookingsSheet({
           {/* Review list */}
           <div className="mt-6 flex items-baseline justify-between">
             <p className="text-[11.5px] font-bold uppercase tracking-wide text-drift-muted">
-              Ready to add
+              Review &amp; add
             </p>
             {segments.length > 0 && (
               <span className="text-[12px] text-drift-muted">
