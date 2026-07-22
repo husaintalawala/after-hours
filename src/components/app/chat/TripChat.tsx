@@ -75,6 +75,26 @@ export default function TripChat({
   const [attached, setAttached] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Message scroll: always land on the most recent turn, and offer a jump-to-
+  // latest chevron once the user scrolls up.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [atBottom, setAtBottom] = useState(true)
+  const scrollToBottom = (smooth = true) => {
+    const el = scrollRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" })
+  }
+  const onScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
+  }
+  // On load + on new content, stay pinned to the bottom — unless the user has
+  // scrolled up to read history (then the chevron handles it).
+  useEffect(() => {
+    if (atBottom) scrollToBottom(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, streaming])
+
   // Inspector "Ask Drift about this" → load the question into the composer.
   useEffect(() => {
     if (prefill) {
@@ -277,8 +297,8 @@ export default function TripChat({
     <section
       className={
         bare
-          ? "flex h-full flex-col"
-          : `overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)] ${
+          ? "relative flex h-full flex-col"
+          : `relative overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)] ${
               fill ? "flex h-full flex-col" : ""
             }`
       }
@@ -306,6 +326,8 @@ export default function TripChat({
       )}
 
       <div
+        ref={scrollRef}
+        onScroll={onScroll}
         className={
           bare
             ? "mx-auto w-full max-w-[780px] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6"
@@ -423,6 +445,21 @@ export default function TripChat({
             Undo
           </button>
         </div>
+      )}
+
+      {!atBottom && (
+        <button
+          onClick={() => {
+            scrollToBottom(true)
+            setAtBottom(true)
+          }}
+          aria-label="Jump to latest"
+          className="absolute bottom-[86px] left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-drift-ink shadow-[0_8px_24px_-8px_rgba(31,31,36,0.35)] transition-transform hover:scale-105"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
       )}
 
       <div
