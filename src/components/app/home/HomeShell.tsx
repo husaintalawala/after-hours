@@ -138,22 +138,18 @@ export default function HomeShell({ data }: { data: HomeData }) {
         </div>
       </aside>
 
-      {/* Ask Drift pill — the agent floats over the world */}
-      {data.featured && (
-        <Link
-          href={`/app/trips/${data.featured.id}`}
-          // Sits above the globe's bottom-right +/- zoom controls (GlobeHero
-          // NavigationControl) so neither is obscured.
-          className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white py-3 pl-4 pr-5 shadow-2xl transition-transform hover:scale-[1.02] lg:flex"
-        >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
-            ✦
-          </span>
-          <span className="text-[14.5px] font-medium text-drift-ink">
-            Ask Drift about {data.featured.title}
-          </span>
-        </Link>
-      )}
+      {/* Ask Drift pill — generic entry to chat (was "Ask Drift about <next
+          trip>", which read as confusing on the home globe). Sits above the
+          globe's bottom-right +/- zoom controls so neither is obscured. */}
+      <Link
+        href="/app/chats"
+        className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white py-3 pl-4 pr-5 shadow-2xl transition-transform hover:scale-[1.02] lg:flex"
+      >
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
+          ✦
+        </span>
+        <span className="text-[14.5px] font-medium text-drift-ink">Ask Drift</span>
+      </Link>
 
       {/* ---------- Mobile: iOS sheet-over-globe ---------- */}
       <div className="relative z-10 mt-[44vh] rounded-t-[28px] bg-white pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
