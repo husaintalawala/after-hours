@@ -442,11 +442,16 @@ function FindBookingsSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-aurora-glass shadow-aurora-glow sm:max-h-[88dvh] sm:rounded-[24px]"
+        className="flex max-h-[90svh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-aurora-glass shadow-aurora-glow sm:max-h-[85svh] sm:rounded-[24px]"
       >
-        {/* Sticky header — dvh cap + shrink-0 keep the close X on-screen no
-            matter how far the body scrolls (it used to sit above the mobile
-            browser chrome, out of reach). Title switches per screen. */}
+        {/* Sticky header — the close X must stay reachable no matter how tall
+            the sheet or how far the body scrolls. We cap the sheet in `svh`
+            (the SMALL viewport = address-bar-expanded) rather than `dvh`: with
+            `items-end` a full-height dvh sheet pushes its top — and this X —
+            behind the iOS Safari address bar. svh guarantees the top clears the
+            chrome in every scroll state. Header is shrink-0 so it never scrolls;
+            this applies to BOTH the import-methods entry screen and the found-
+            results review screen (they share this header). */}
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-drift-divider px-5 pb-4 pt-[max(1.35rem,calc(env(safe-area-inset-top)+0.5rem))]">
           <div className="min-w-0">
             {mode === "review" && (
