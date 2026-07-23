@@ -119,6 +119,12 @@ function FindBookingsSheet({
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [plaidStatus, setPlaidStatus] = useState<string | null>(null)
+  // Two screens in one sheet: "sources" (add methods) and "review" (the found
+  // bookings, its own screen with a reachable close + sticky Add bar). Opening
+  // to review a specific scan, or any load that turns up results, lands on
+  // review so the found list is never buried under the add-sources list.
+  const [mode, setMode] = useState<"sources" | "review">(reviewBatchId ? "review" : "sources")
+  const [tripName, setTripName] = useState<string | null>(null)
   const didApply = useMemo(() => appliedCount != null && appliedCount > 0, [appliedCount])
   const pdfInput = useRef<HTMLInputElement>(null)
   const icsInput = useRef<HTMLInputElement>(null)
@@ -135,6 +141,15 @@ function FindBookingsSheet({
       .then(({ data }: { data: { email_address: string }[] | null }) => {
         setAlias(data?.[0]?.email_address ?? null)
       })
+    // Trip name for the review screen's "Adding to {trip}" context line.
+    db.from("trips")
+      .select("title, cities")
+      .eq("id", tripId)
+      .limit(1)
+      .then(({ data }: { data: { title: string | null; cities: string[] | null }[] | null }) => {
+        const t = data?.[0]
+        setTripName(t?.title || t?.cities?.[0] || null)
+      })
   }, [tripId])
 
   async function loadSegments() {
@@ -148,6 +163,7 @@ function FindBookingsSheet({
       )
       .eq("trip_id", tripId)
       .is("applied_at", null)
+      .neq("status", "ignored")
       .order("created_at", { ascending: false })
       .limit(50)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,6 +204,29 @@ function FindBookingsSheet({
     setSegments(shown)
     setSelected(new Set(shown.filter((v) => v.batchId).map((v) => v.id)))
     setLoadingSegments(false)
+    // Results present → jump to the review screen (found bookings get their own
+    // screen instead of being appended below the add-sources list).
+    if (shown.length > 0) setMode("review")
+  }
+
+  /// Dismiss a booking the user isn't interested in: hide it now, mark it
+  /// status=ignored server-side (an allowed value, RLS lets a trip member write
+  /// it) so a future scan won't resurface it. Best-effort — it's already gone
+  /// from the list either way.
+  async function dismissSegment(id: string) {
+    setSegments((prev) => prev.filter((s) => s.id !== id))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createClient() as any
+      await db.from("reservation_segments").update({ status: "ignored" }).eq("id", id)
+    } catch {
+      /* already removed locally; the ignore is a nicety */
+    }
   }
 
   useEffect(() => {
@@ -403,17 +442,30 @@ function FindBookingsSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-aurora-glass shadow-aurora-glow sm:max-h-[88vh] sm:rounded-[24px]"
+        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-aurora-glass shadow-aurora-glow sm:max-h-[88dvh] sm:rounded-[24px]"
       >
-        {/* Header — generous top padding + safe-area inset so the display-font
-            title is never clipped at the top edge. */}
+        {/* Sticky header — dvh cap + shrink-0 keep the close X on-screen no
+            matter how far the body scrolls (it used to sit above the mobile
+            browser chrome, out of reach). Title switches per screen. */}
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-drift-divider px-5 pb-4 pt-[max(1.35rem,calc(env(safe-area-inset-top)+0.5rem))]">
           <div className="min-w-0">
+            {mode === "review" && (
+              <button
+                onClick={() => setMode("sources")}
+                className="mb-1.5 inline-flex items-center gap-1 text-[12.5px] font-semibold text-drift-muted transition-colors hover:text-drift-ink"
+              >
+                <Icon name="chevron" className="h-3.5 w-3.5 rotate-180" /> Add more
+              </button>
+            )}
             <h2 className="font-drift-display text-[21px] font-bold leading-[1.15]">
-              Find my bookings
+              {mode === "review"
+                ? `Found ${segments.length} booking${segments.length === 1 ? "" : "s"}`
+                : "Find my bookings"}
             </h2>
             <p className="mt-1 text-[12.5px] text-drift-muted">
-              Bring your plans into Drift in seconds.
+              {mode === "review"
+                ? `Adding to ${tripName ?? "your trip"}`
+                : "Bring your plans into Drift in seconds."}
             </p>
           </div>
           <button
@@ -426,6 +478,19 @@ function FindBookingsSheet({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+          {mode === "sources" && (
+          <>
+          {segments.length > 0 && (
+            <button
+              onClick={() => setMode("review")}
+              className="mt-4 flex w-full items-center justify-between gap-3 rounded-2xl border border-drift-coral/40 bg-drift-coral-50 px-4 py-3 text-left"
+            >
+              <span className="text-[13.5px] font-semibold text-drift-ink">
+                {segments.length} booking{segments.length === 1 ? "" : "s"} ready to review
+              </span>
+              <Icon name="chevron" className="h-4 w-4 text-drift-coral" />
+            </button>
+          )}
           {/* Working methods */}
           <SectionLabel>Add bookings</SectionLabel>
           <div className="space-y-2.5">
@@ -514,9 +579,13 @@ function FindBookingsSheet({
               {plaidStatus}
             </p>
           )}
+          </>
+          )}
 
-          {/* Review list */}
-          <div className="mt-6 flex items-baseline justify-between">
+          {mode === "review" && (
+          <>
+          {/* Review screen — the found bookings on their own screen. */}
+          <div className="mt-1 mb-1 flex items-baseline justify-between">
             <p className="text-[11.5px] font-bold uppercase tracking-wide text-drift-muted">
               Review &amp; add
             </p>
@@ -531,20 +600,28 @@ function FindBookingsSheet({
             <p className="mt-3 text-[13px] text-drift-muted">Checking for bookings…</p>
           )}
           {!loadingSegments && segments.length === 0 && (
-            <p className="mt-3 text-[13px] text-drift-muted">
-              Nothing waiting — forward, paste, upload a PDF or import a calendar to get started.
-            </p>
+            <div className="mt-3 space-y-3">
+              <p className="text-[13px] text-drift-muted">
+                Nothing to review right now.
+              </p>
+              <button
+                onClick={() => setMode("sources")}
+                className="rounded-full bg-drift-ink px-4 py-2 text-[13px] font-bold text-white"
+              >
+                Add bookings
+              </button>
+            </div>
           )}
 
           <ul className="mt-2 space-y-2">
             {segments.map((s) => {
               const checked = selected.has(s.id)
               return (
-                <li key={s.id}>
+                <li key={s.id} className="flex items-stretch gap-2">
                   <button
                     onClick={() => toggle(s.id)}
                     disabled={!s.batchId}
-                    className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                    className={`flex min-w-0 flex-1 items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
                       checked
                         ? "border-drift-coral/50 bg-drift-coral-50"
                         : "border-drift-divider bg-aurora-glass"
@@ -568,6 +645,14 @@ function FindBookingsSheet({
                       </span>
                     </span>
                   </button>
+                  <button
+                    onClick={() => dismissSegment(s.id)}
+                    aria-label="Dismiss booking"
+                    title="Not interested"
+                    className="flex w-11 shrink-0 items-center justify-center rounded-2xl border border-drift-divider text-drift-muted transition-colors hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-400"
+                  >
+                    <Icon name="close" className="h-4 w-4" />
+                  </button>
                 </li>
               )
             })}
@@ -584,14 +669,7 @@ function FindBookingsSheet({
             </p>
           )}
 
-          {segments.length > 0 && (
-            <button
-              onClick={applySelected}
-              disabled={applying || selected.size === 0}
-              className="mt-4 h-[48px] w-full rounded-2xl bg-drift-coral text-[15px] font-bold text-white shadow-md shadow-drift-coral/25 disabled:opacity-50"
-            >
-              {applying ? "Adding…" : `Add ${selected.size} to trip`}
-            </button>
+          </>
           )}
 
           {/* Hidden pickers driving the PDF / .ics action rows */}
@@ -616,6 +694,19 @@ function FindBookingsSheet({
             }}
           />
         </div>
+
+        {/* Sticky action bar — the Add button never scrolls out of reach. */}
+        {mode === "review" && segments.length > 0 && (
+          <div className="shrink-0 border-t border-drift-divider bg-aurora-glass px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <button
+              onClick={applySelected}
+              disabled={applying || selected.size === 0}
+              className="h-[48px] w-full rounded-2xl bg-drift-coral text-[15px] font-bold text-white shadow-md shadow-drift-coral/25 disabled:opacity-50"
+            >
+              {applying ? "Adding…" : `Add ${selected.size} to trip`}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
