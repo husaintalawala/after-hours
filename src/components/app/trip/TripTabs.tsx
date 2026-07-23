@@ -437,40 +437,12 @@ export default function TripTabs({
                 <ul className="mt-3.5 space-y-3">
                   {destinations.map((d) => (
                     <li key={d.id}>
-                      <button
-                        onClick={() => openDest(d.id)}
-                        className="flex w-full items-center gap-4 rounded-[20px] border border-aurora-border bg-aurora-glass p-3.5 text-left shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
-                      >
-                        {heroFor(d) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={heroFor(d)!}
-                            alt=""
-                            loading="lazy"
-                            className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover"
-                          />
-                        ) : (
-                          <div
-                            className="h-[72px] w-[72px] shrink-0 rounded-2xl"
-                            style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-drift-display text-[19px] font-semibold tracking-tight">
-                            {d.label}
-                          </p>
-                          <p className="mt-0.5 text-[13.5px] text-drift-muted">{d.dateRange}</p>
-                          <p className="mt-1 text-[12.5px] text-drift-text-tertiary">
-                            {d.plansCount} plan{d.plansCount === 1 ? "" : "s"}
-                          </p>
-                        </div>
-                        {d.bookedChip && (
-                          <span className="shrink-0 rounded-full bg-aurora-teal/10 px-3 py-1.5 text-[12px] font-semibold text-aurora-teal">
-                            ● {d.bookedChip}
-                          </span>
-                        )}
-                        <span className="shrink-0 text-[18px] text-aurora-ink3">›</span>
-                      </button>
+                      <OverviewStopCard
+                        dest={d}
+                        hero={heroFor(d)}
+                        stepDetails={stepDetails}
+                        onOpen={() => openDest(d.id)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -555,6 +527,113 @@ function GlassPill({
       }`}
     >
       {children}
+    </button>
+  )
+}
+
+// ---------- Overview: expandable stop card (iOS "Your stops" parity) ----------
+
+function OverviewStopCard({
+  dest,
+  hero,
+  stepDetails,
+  onOpen,
+}: {
+  dest: DestinationVM
+  hero: string | null
+  stepDetails: Record<string, StepDetailVM>
+  onOpen: () => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const items = dest.days.flatMap((d) => d.items)
+  const shown = items.slice(0, 4)
+  const moreCount = items.length - shown.length
+
+  return (
+    <div className="overflow-hidden rounded-[20px] border border-aurora-border bg-aurora-glass">
+      <button
+        onClick={() => (items.length ? setExpanded((v) => !v) : onOpen())}
+        className="flex w-full items-center gap-4 p-3.5 text-left transition-colors hover:bg-aurora-glass2"
+      >
+        {hero ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={hero} alt="" loading="lazy" className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover" />
+        ) : (
+          <div className="h-[72px] w-[72px] shrink-0 rounded-2xl" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-drift-display text-[19px] font-semibold tracking-tight">{dest.label}</p>
+          <p className="mt-0.5 text-[13.5px] text-drift-muted">{dest.dateRange}</p>
+          <p className="mt-1 text-[12.5px] text-drift-text-tertiary">
+            {dest.plansCount} plan{dest.plansCount === 1 ? "" : "s"}
+          </p>
+        </div>
+        {dest.bookedChip && (
+          <span className="shrink-0 rounded-full bg-aurora-indigo/20 px-3 py-1.5 text-[12px] font-semibold text-aurora-indigo">
+            ● {dest.bookedChip}
+          </span>
+        )}
+        <span className={`shrink-0 text-[18px] text-aurora-ink3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}>›</span>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-aurora-border px-3.5 pb-2.5 pt-1">
+          {shown.length === 0 ? (
+            <p className="py-2 text-[13px] text-aurora-ink3">Nothing planned yet — ask Drift for ideas.</p>
+          ) : (
+            shown.map((item) => (
+              <InlineDayItem key={item.id} item={item} stepDetails={stepDetails} onOpen={onOpen} />
+            ))
+          )}
+          {moreCount > 0 && (
+            <button onClick={onOpen} className="mt-1 px-1 py-1 text-[13px] font-semibold text-aurora-teal">
+              +{moreCount} more
+            </button>
+          )}
+          <button
+            onClick={onOpen}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-aurora-border py-2 text-[13px] font-semibold text-aurora-teal transition-colors hover:bg-aurora-teal/10"
+          >
+            Open guide · Overview + Day ›
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InlineDayItem({
+  item,
+  stepDetails,
+  onOpen,
+}: {
+  item: TimelineItem
+  stepDetails: Record<string, StepDetailVM>
+  onOpen: () => void
+}) {
+  const time = item.startTimeMinutes != null ? minutesLabel(item.startTimeMinutes).join(" ") : null
+  const s = item.linkedStepId ? stepDetails[item.linkedStepId] : null
+  const booked = !!(s?.confirmationNumber || s?.importProvider)
+  const showSub = item.subtitle && item.subtitle !== item.title
+
+  return (
+    <button onClick={onOpen} className="flex w-full items-center gap-3 py-2 text-left">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-aurora-midnight2 text-[15px]">
+        {dotEmoji(item)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-[14.5px] font-semibold text-aurora-ink">{item.title}</span>
+          {booked && (
+            <span className="shrink-0 rounded bg-aurora-indigo/25 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-aurora-indigo">
+              Booked
+            </span>
+          )}
+        </span>
+        {showSub && <span className="block truncate text-[12px] text-aurora-ink3">{item.subtitle}</span>}
+      </span>
+      {time && <span className="shrink-0 text-[12.5px] font-medium text-aurora-ink2">{time}</span>}
+      <span className="shrink-0 text-[14px] text-aurora-ink3">›</span>
     </button>
   )
 }
