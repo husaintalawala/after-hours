@@ -12,6 +12,7 @@ import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
 import TripCoverChips from "./TripCoverChips"
 import TripWeather from "./TripWeather"
+import DayAddStop from "./DayAddStop"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -491,6 +492,8 @@ export default function TripTabs({
                   <DaySection
                     key={day.dayNumber}
                     day={day}
+                    tripId={tripId}
+                    destId={dest.id}
                     selectedId={selected?.id ?? null}
                     bookingDetails={bookingDetails}
                     stepDetails={stepDetails}
@@ -560,12 +563,16 @@ function GlassPill({
 
 function DaySection({
   day,
+  tripId,
+  destId,
   selectedId,
   stepDetails,
   bookingDetails,
   onSelect,
 }: {
   day: DestinationDay
+  tripId: string
+  destId: string
   selectedId: string | null
   stepDetails: Record<string, StepDetailVM>
   bookingDetails: Record<string, BookingDetailVM>
@@ -612,6 +619,7 @@ function DaySection({
           ))}
         </ul>
       )}
+      <DayAddStop tripId={tripId} destId={destId} dayDate={day.date} />
     </div>
   )
 }
