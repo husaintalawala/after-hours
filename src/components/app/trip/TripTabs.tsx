@@ -671,9 +671,24 @@ function DaySection({
   bookingDetails: Record<string, BookingDetailVM>
   onSelect: (item: TimelineItem) => void
 }) {
-  const last = [...day.items].reverse().find((i) => i.startTimeMinutes != null)
-  const summary = day.items.length
-    ? `${day.items.length} stop${day.items.length === 1 ? "" : "s"}${
+  const router = useRouter()
+
+  // Local copy of the day's items so drag-to-reorder can apply optimistically.
+  // We reconcile against the server order whenever `day.items` changes (after a
+  // router.refresh), keyed by the ordered id signature so a local reorder — which
+  // only mutates `items`, not `day.items` — doesn't get wiped mid-drag.
+  const [items, setItems] = useState<TimelineItem[]>(day.items)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  const orderSig = day.items.map((i) => i.id).join("|")
+  useEffect(() => {
+    setItems(day.items)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderSig])
+
+  const last = [...items].reverse().find((i) => i.startTimeMinutes != null)
+  const summary = items.length
+    ? `${items.length} stop${items.length === 1 ? "" : "s"}${
         last?.startTimeMinutes != null
           ? ` · ends ${minutesLabel(last.startTimeMinutes).join(" ")}`
           : ""
@@ -682,12 +697,48 @@ function DaySection({
 
   // Day map: the day's stops that carry coordinates, numbered in itinerary order.
   const mapPoints: TripMapPoint[] = []
-  day.items.forEach((it) => {
+  items.forEach((it) => {
     const s = it.linkedStepId ? stepDetails[it.linkedStepId] : null
     if (s?.lat != null && s?.lng != null) {
       mapPoints.push({ id: it.id, lat: s.lat, lng: s.lng, label: it.title, n: mapPoints.length + 1 })
     }
   })
+
+  // Persist the new order: rewrite display_order (spaced by 10) for every
+  // step-backed item in visual order. Bookings carry no step, so they keep their
+  // nature-based slot (see timeline.ts). router.refresh() reconciles after.
+  async function persistOrder(order: TimelineItem[]) {
+    const stepIds = order
+      .filter((i) => i.linkedStepId)
+      .map((i) => i.linkedStepId as string)
+    if (stepIds.length === 0) return
+    try {
+      const supabase = createClient()
+      await Promise.all(
+        stepIds.map((id, idx) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from("steps").update({ display_order: idx * 10 }).eq("id", id)
+        )
+      )
+    } catch {
+      // Swallow — router.refresh below restores the authoritative server order.
+    } finally {
+      router.refresh()
+    }
+  }
+
+  function reorder(fromId: string, toId: string) {
+    setDragId(null)
+    setOverId(null)
+    const from = items.findIndex((i) => i.id === fromId)
+    const to = items.findIndex((i) => i.id === toId)
+    if (from < 0 || to < 0 || from === to) return
+    const next = [...items]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setItems(next) // optimistic
+    void persistOrder(next)
+  }
 
   return (
     <div className="mb-4">
@@ -709,20 +760,44 @@ function DaySection({
         </div>
       )}
 
-      {day.items.length === 0 ? (
+      {items.length === 0 ? (
         <p className="text-[14px] text-drift-text-tertiary">
           Nothing planned yet — ask Drift for ideas.
         </p>
       ) : (
         <ul>
-          {day.items.map((item, i) => (
+          {items.map((item, i) => (
             <TimelineRow
               key={item.id}
               item={item}
-              isLast={i === day.items.length - 1}
+              isLast={i === items.length - 1}
               isSelected={selectedId === item.id}
               chip={chipFor(item, stepDetails, bookingDetails)}
               onClick={() => onSelect(item)}
+              reorderable={!!item.linkedStepId}
+              dragging={dragId === item.id}
+              dropIndicator={overId === item.id && dragId != null && dragId !== item.id}
+              onGripDragStart={(e) => {
+                setDragId(item.id)
+                e.dataTransfer.effectAllowed = "move"
+                e.dataTransfer.setData("text/plain", item.id) // Firefox needs data to start a drag
+              }}
+              onGripDragEnd={() => {
+                setDragId(null)
+                setOverId(null)
+              }}
+              onRowDragEnter={() => {
+                if (dragId && item.linkedStepId && dragId !== item.id) setOverId(item.id)
+              }}
+              onRowDragOver={(e) => {
+                if (dragId && item.linkedStepId) e.preventDefault() // allow drop
+              }}
+              onRowDrop={(e) => {
+                if (dragId && item.linkedStepId) {
+                  e.preventDefault()
+                  reorder(dragId, item.id)
+                }
+              }}
             />
           ))}
         </ul>
@@ -785,18 +860,39 @@ function TimelineRow({
   isSelected,
   chip,
   onClick,
+  reorderable = false,
+  dragging = false,
+  dropIndicator = false,
+  onGripDragStart,
+  onGripDragEnd,
+  onRowDragEnter,
+  onRowDragOver,
+  onRowDrop,
 }: {
   item: TimelineItem
   isLast: boolean
   isSelected: boolean
   chip: string | null
   onClick: () => void
+  reorderable?: boolean
+  dragging?: boolean
+  dropIndicator?: boolean
+  onGripDragStart?: (e: React.DragEvent) => void
+  onGripDragEnd?: (e: React.DragEvent) => void
+  onRowDragEnter?: (e: React.DragEvent) => void
+  onRowDragOver?: (e: React.DragEvent) => void
+  onRowDrop?: (e: React.DragEvent) => void
 }) {
   const showSubtitle = item.subtitle && item.subtitle !== item.title
   const time = item.startTimeMinutes != null ? minutesLabel(item.startTimeMinutes) : null
 
   return (
-    <li className="flex gap-4">
+    <li
+      className={`flex gap-4 ${dragging ? "opacity-40" : ""}`}
+      onDragEnter={onRowDragEnter}
+      onDragOver={onRowDragOver}
+      onDrop={onRowDrop}
+    >
       <div className="w-[52px] shrink-0 pt-[19px] text-right text-[13px] font-semibold tabular-nums text-drift-muted">
         {time ? (
           <>
@@ -821,12 +917,29 @@ function TimelineRow({
 
       <button
         onClick={onClick}
-        className={`mb-3.5 flex min-w-0 flex-1 items-center gap-4 rounded-[18px] border bg-aurora-glass px-5 py-4 text-left transition-all duration-150 ${
-          isSelected
-            ? "border-drift-coral shadow-[0_14px_34px_-18px_rgba(224,86,59,0.4)]"
-            : "border-aurora-border shadow-[0_1px_2px_rgba(31,31,36,0.04)] hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
+        className={`relative mb-3.5 flex min-w-0 flex-1 items-center gap-4 rounded-[18px] border bg-aurora-glass px-5 py-4 text-left transition-all duration-150 ${
+          dropIndicator
+            ? "border-aurora-teal ring-2 ring-aurora-teal"
+            : isSelected
+              ? "border-drift-coral shadow-[0_14px_34px_-18px_rgba(224,86,59,0.4)]"
+              : "border-aurora-border shadow-[0_1px_2px_rgba(31,31,36,0.04)] hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
         }`}
       >
+        {reorderable && (
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+          <span
+            draggable
+            onDragStart={onGripDragStart}
+            onDragEnd={onGripDragEnd}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            title="Drag to reorder"
+            aria-label="Drag to reorder"
+            className="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab select-none px-0.5 text-[15px] leading-none text-aurora-ink3 active:cursor-grabbing hover:text-aurora-teal"
+          >
+            ⠿
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-[10.5px] font-bold tracking-[0.12em] text-drift-coral">
             {item.badge}
