@@ -10,6 +10,7 @@ import { applyRemoveStep } from "@/lib/drift/quickOp"
 import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
+import TripCoverChips from "./TripCoverChips"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -123,10 +124,21 @@ export default function TripTabs({
   kitItems,
   trackSteps = [],
   ledger = null,
+  chipData,
   children,
 }: {
   tripId: string
   tripMeta: TripMetaVM
+  chipData?: {
+    placeName: string
+    startDate: string | null
+    endDate: string | null
+    adults: number
+    children: number
+    infants: number
+    pets: number
+    budgetLevel: number | null
+  }
   destinations: DestinationVM[]
   stepDetails: Record<string, StepDetailVM>
   bookingDetails: Record<string, BookingDetailVM>
@@ -308,6 +320,22 @@ export default function TripTabs({
               <p className="mt-1.5 text-[15px] text-white/90">{tripMeta.dateRange}</p>
               {tripMeta.statusLine && (
                 <p className="mt-0.5 text-[13.5px] text-white/75">{tripMeta.statusLine}</p>
+              )}
+              {chipData && (
+                <TripCoverChips
+                  tripId={tripId}
+                  placeName={chipData.placeName}
+                  startDate={chipData.startDate}
+                  endDate={chipData.endDate}
+                  adults={chipData.adults}
+                  children={chipData.children}
+                  infants={chipData.infants}
+                  pets={chipData.pets}
+                  budgetLevel={chipData.budgetLevel}
+                  destinations={destinations
+                    .filter((d) => d.id !== "unassigned")
+                    .map((d) => ({ id: d.id, label: d.label, country: d.country, lat: d.lat, lng: d.lng }))}
+                />
               )}
             </div>
           </div>

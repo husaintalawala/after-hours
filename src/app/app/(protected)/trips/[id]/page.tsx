@@ -377,6 +377,15 @@ export default async function TripDetailPage({
 
   const flag = countryFlagEmoji(trip.countries?.[0])
 
+  // Cover-chip "Place" label — mirrors iOS coverPlaceName (multi-country trips
+  // read "Multi-country", else the single city/country).
+  const chipCountries = (trip.countries ?? []).filter(Boolean)
+  const chipCities = (trip.cities ?? []).filter(Boolean)
+  const placeName =
+    chipCountries.length > 1
+      ? "Multi-country"
+      : chipCities[0] ?? chipCountries[0] ?? destinations[0]?.location_name ?? ""
+
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pt-4 lg:max-w-[1400px] lg:px-8 lg:pt-6">
       <TripTabs
@@ -387,6 +396,16 @@ export default async function TripDetailPage({
           dateRange: tripSubtitle(trip),
           statusLine: tripStatusLine(trip.start_date, trip.end_date),
           cover: tripCover,
+        }}
+        chipData={{
+          placeName,
+          startDate: trip.start_date,
+          endDate: trip.end_date,
+          adults: trip.travelers_adults ?? 0,
+          children: trip.travelers_children ?? 0,
+          infants: trip.travelers_infants ?? 0,
+          pets: trip.travelers_pets ?? 0,
+          budgetLevel: trip.budget_level ?? null,
         }}
         trackSteps={trackSteps}
         ledger={ledger}

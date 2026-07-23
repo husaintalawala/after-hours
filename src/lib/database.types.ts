@@ -452,14 +452,52 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_session_merge_backup: {
+        Row: {
+          canonical_session_id: string
+          duplicate_session_id: string
+          id: number
+          merged_at: string
+          message_id: string
+          new_session_id: string
+          old_session_id: string
+          trip_id: string | null
+          user_id: string
+        }
+        Insert: {
+          canonical_session_id: string
+          duplicate_session_id: string
+          id?: number
+          merged_at?: string
+          message_id: string
+          new_session_id: string
+          old_session_id: string
+          trip_id?: string | null
+          user_id: string
+        }
+        Update: {
+          canonical_session_id?: string
+          duplicate_session_id?: string
+          id?: number
+          merged_at?: string
+          message_id?: string
+          new_session_id?: string
+          old_session_id?: string
+          trip_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           anchor_id: string | null
           anchor_label: string | null
           anchor_type: string
+          archived_at: string | null
           created_at: string
           id: string
           last_message_at: string
+          merged_into: string | null
           summary: string | null
           title: string | null
           updated_at: string
@@ -469,9 +507,11 @@ export type Database = {
           anchor_id?: string | null
           anchor_label?: string | null
           anchor_type: string
+          archived_at?: string | null
           created_at?: string
           id?: string
           last_message_at?: string
+          merged_into?: string | null
           summary?: string | null
           title?: string | null
           updated_at?: string
@@ -481,15 +521,25 @@ export type Database = {
           anchor_id?: string | null
           anchor_label?: string | null
           anchor_type?: string
+          archived_at?: string | null
           created_at?: string
           id?: string
           last_message_at?: string
+          merged_into?: string | null
           summary?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_suggestion_outcome: {
         Row: {
@@ -2344,6 +2394,10 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           display_name: string | null
+          home_city: string | null
+          home_country: string | null
+          home_lat: number | null
+          home_lng: number | null
           id: string
           is_deleted: boolean | null
           paypal_me: string | null
@@ -2360,6 +2414,10 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           display_name?: string | null
+          home_city?: string | null
+          home_country?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
           id: string
           is_deleted?: boolean | null
           paypal_me?: string | null
@@ -2376,6 +2434,10 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           display_name?: string | null
+          home_city?: string | null
+          home_country?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
           id?: string
           is_deleted?: boolean | null
           paypal_me?: string | null
@@ -3044,6 +3106,7 @@ export type Database = {
         Row: {
           budget_amount_usd: number | null
           budget_currency: string | null
+          budget_level: number | null
           budget_mode: string | null
           cities: string[] | null
           countries: string[] | null
@@ -3059,12 +3122,17 @@ export type Database = {
           status: string | null
           title: string
           travel_tracker: boolean
+          travelers_adults: number | null
+          travelers_children: number | null
+          travelers_infants: number | null
+          travelers_pets: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           budget_amount_usd?: number | null
           budget_currency?: string | null
+          budget_level?: number | null
           budget_mode?: string | null
           cities?: string[] | null
           countries?: string[] | null
@@ -3080,12 +3148,17 @@ export type Database = {
           status?: string | null
           title: string
           travel_tracker?: boolean
+          travelers_adults?: number | null
+          travelers_children?: number | null
+          travelers_infants?: number | null
+          travelers_pets?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           budget_amount_usd?: number | null
           budget_currency?: string | null
+          budget_level?: number | null
           budget_mode?: string | null
           cities?: string[] | null
           countries?: string[] | null
@@ -3101,6 +3174,10 @@ export type Database = {
           status?: string | null
           title?: string
           travel_tracker?: boolean
+          travelers_adults?: number | null
+          travelers_children?: number | null
+          travelers_infants?: number | null
+          travelers_pets?: number | null
           updated_at?: string | null
           user_id?: string
         }
@@ -3359,6 +3436,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_ticketmaster_key: { Args: never; Returns: string }
       is_accepted_trip_buddy: {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
