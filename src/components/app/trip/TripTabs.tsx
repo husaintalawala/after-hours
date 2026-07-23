@@ -7,12 +7,14 @@ import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
+import { createClient } from "@/lib/supabase/client"
 import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
 import TripCoverChips from "./TripCoverChips"
 import TripWeather from "./TripWeather"
 import DayAddStop from "./DayAddStop"
+import TripMap, { type TripMapPoint } from "./TripMap"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -60,6 +62,9 @@ export interface StepDetailVM {
   timeLabel: string | null
   durationMinutes: number | null
   notes: string | null
+  /** Raw yyyy-MM-dd (the step's day) + HH:mm (from scheduled_at) for inline editing. */
+  rawDate: string | null
+  rawTime: string | null
   address: string | null
   lat: number | null
   lng: number | null
@@ -454,6 +459,7 @@ export default function TripTabs({
                 country={dest.country}
                 lat={dest.lat}
                 lng={dest.lng}
+                month={monthFromDate(dest.days[0]?.date)}
               />
             ) : (
               /* -------- One day's timeline -------- */
@@ -506,6 +512,14 @@ function shortDay(iso: string): string {
     day: "numeric",
     timeZone: "UTC",
   })
+}
+
+// 1…12 month from a yyyy-MM-dd date string (the destination's first day) — feeds
+// the guide's weather chip + best-time marker. null when the date is absent.
+function monthFromDate(iso: string | undefined): number | null {
+  if (!iso || iso.startsWith("1970")) return null // 1970 = dateless-trip sentinel
+  const m = Number(iso.slice(5, 7))
+  return m >= 1 && m <= 12 ? m : null
 }
 
 function GlassPill({
@@ -666,6 +680,15 @@ function DaySection({
       }`
     : null
 
+  // Day map: the day's stops that carry coordinates, numbered in itinerary order.
+  const mapPoints: TripMapPoint[] = []
+  day.items.forEach((it) => {
+    const s = it.linkedStepId ? stepDetails[it.linkedStepId] : null
+    if (s?.lat != null && s?.lng != null) {
+      mapPoints.push({ id: it.id, lat: s.lat, lng: s.lng, label: it.title, n: mapPoints.length + 1 })
+    }
+  })
+
   return (
     <div className="mb-4">
       <div className="mb-3.5 flex items-baseline gap-3">
@@ -679,6 +702,12 @@ function DaySection({
           <span className="ml-auto text-[12.5px] text-drift-text-tertiary">{summary}</span>
         )}
       </div>
+
+      {mapPoints.length > 0 && (
+        <div className="mb-4">
+          <TripMap points={mapPoints} />
+        </div>
+      )}
 
       {day.items.length === 0 ? (
         <p className="text-[14px] text-drift-text-tertiary">
@@ -855,6 +884,35 @@ function Inspector({
   const [confirmingRemove, setConfirmingRemove] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [eTime, setETime] = useState(step?.rawTime ?? "")
+  const [eDur, setEDur] = useState(step?.durationMinutes != null ? String(step.durationMinutes) : "")
+  const [eNotes, setENotes] = useState(step?.notes ?? "")
+
+  async function save() {
+    if (!step) return
+    setSaving(true)
+    setError(null)
+    try {
+      const supabase = createClient()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from("steps")
+        .update({
+          scheduled_at: eTime && step.rawDate ? `${step.rawDate}T${eTime}:00` : null,
+          duration_minutes: eDur.trim() ? Number(eDur) : null,
+          notes: eNotes.trim() || null,
+        })
+        .eq("id", step.id)
+      setEditing(false)
+      onClose()
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't save.")
+      setSaving(false)
+    }
+  }
 
   const lat = step?.lat ?? item.latitude
   const lng = step?.lng ?? item.longitude
@@ -895,13 +953,24 @@ function Inspector({
             {step?.title ?? booking?.title ?? item.title}
           </p>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="shrink-0 rounded-full p-1.5 text-drift-muted hover:bg-aurora-glass2"
-        >
-          ✕
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {step && !editing && (
+            <button
+              onClick={() => setEditing(true)}
+              aria-label="Edit"
+              className="rounded-full px-2.5 py-1 text-[12.5px] font-semibold text-aurora-teal hover:bg-aurora-teal/10"
+            >
+              Edit
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-full p-1.5 text-drift-muted hover:bg-aurora-glass2"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
@@ -916,6 +985,32 @@ function Inspector({
           />
         )}
 
+        {editing && step && (
+          <div className="mt-4 space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-aurora-ink3">Time</span>
+              <input type="time" value={eTime} onChange={(e) => setETime(e.target.value)}
+                className="h-11 w-full rounded-xl border border-aurora-border bg-aurora-midnight2 px-3 text-[15px] text-aurora-ink outline-none focus:border-aurora-teal [color-scheme:dark]" />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-aurora-ink3">Duration (minutes)</span>
+              <input type="number" min={0} value={eDur} onChange={(e) => setEDur(e.target.value)} placeholder="e.g. 90"
+                className="h-11 w-full rounded-xl border border-aurora-border bg-aurora-midnight2 px-3 text-[15px] text-aurora-ink outline-none focus:border-aurora-teal" />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-aurora-ink3">Notes</span>
+              <textarea value={eNotes} onChange={(e) => setENotes(e.target.value)} rows={3} placeholder="Add a note…"
+                className="w-full rounded-xl border border-aurora-border bg-aurora-midnight2 px-3 py-2 text-[15px] text-aurora-ink outline-none focus:border-aurora-teal" />
+            </label>
+            <div className="flex gap-2">
+              <button onClick={save} disabled={saving} className="aurora-cta h-10 flex-1 disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
+              <button onClick={() => { setEditing(false); setETime(step.rawTime ?? ""); setEDur(step.durationMinutes != null ? String(step.durationMinutes) : ""); setENotes(step.notes ?? "") }}
+                className="h-10 rounded-full border border-aurora-border px-4 text-[14px] font-semibold text-aurora-ink2">Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {!editing && (
         <dl className="mt-4 space-y-3.5">
           {step?.dateLabel && (
             <Field label="When">
@@ -943,6 +1038,7 @@ function Inspector({
             <Field label="Guests">{step.guestCount}</Field>
           )}
         </dl>
+        )}
 
         {(step?.bookingUrl || step?.websiteUrl || booking?.bookingUrl) && (
           <div className="mt-4 flex flex-wrap gap-2">

@@ -348,6 +348,10 @@ export default async function TripDetailPage({
       importProvider: s.import_source_provider,
       confirmationNumber: s.confirmation_number,
       guestCount: s.guest_count,
+      rawDate: dateOnly(s.date),
+      rawTime: (s.scheduled_at ? /T(\d{2}):(\d{2})/.exec(s.scheduled_at) : null)
+        ? `${/T(\d{2}):(\d{2})/.exec(s.scheduled_at!)![1]}:${/T(\d{2}):(\d{2})/.exec(s.scheduled_at!)![2]}`
+        : null,
     }
   }
   const bookingDetails: Record<string, BookingDetailVM> = {}
