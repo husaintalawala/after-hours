@@ -84,7 +84,7 @@ export default async function PeoplePage({
         {profiles.map((p) => (
           <li
             key={p.id}
-            className="flex items-center gap-3.5 rounded-2xl bg-white p-3.5 shadow-sm"
+            className="flex items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5"
           >
             <Link
               href={`/app/people/${p.id}`}
@@ -143,7 +143,7 @@ function Tab({ href, active, label }: { href: string; active: boolean; label: st
       className={`rounded-full px-4 py-2 text-[13.5px] font-semibold transition-colors ${
         active
           ? "bg-drift-coral text-white"
-          : "bg-white text-drift-muted shadow-sm hover:text-drift-ink"
+          : "border border-aurora-border bg-aurora-glass text-drift-muted hover:text-drift-ink"
       }`}
     >
       {label}

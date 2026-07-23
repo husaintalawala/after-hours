@@ -58,7 +58,7 @@ export default function HomeShell({ data }: { data: HomeData }) {
       </div>
 
       {/* ---------- Desktop: floating glass trip rail ---------- */}
-      <aside className="fixed bottom-8 left-6 top-[76px] z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-white/[0.97] shadow-2xl lg:flex">
+      <aside className="fixed bottom-8 left-6 top-[76px] z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex">
         <div className="overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
           {/* Header */}
           <div className="flex items-center gap-3.5">
@@ -143,7 +143,7 @@ export default function HomeShell({ data }: { data: HomeData }) {
           globe's bottom-right +/- zoom controls so neither is obscured. */}
       <Link
         href="/app/chats"
-        className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-white py-3 pl-4 pr-5 shadow-2xl transition-transform hover:scale-[1.02] lg:flex"
+        className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-aurora-glass py-3 pl-4 pr-5 shadow-aurora-glow transition-transform hover:scale-[1.02] lg:flex"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
           ✦
@@ -152,7 +152,7 @@ export default function HomeShell({ data }: { data: HomeData }) {
       </Link>
 
       {/* ---------- Mobile: iOS sheet-over-globe ---------- */}
-      <div className="relative z-10 mt-[44vh] rounded-t-[28px] bg-white pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
+      <div className="relative z-10 mt-[44vh] rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
         <div className="mx-auto w-full max-w-2xl px-5">
           <div className="flex justify-center pt-3">
             <div className="h-1 w-9 rounded-full bg-drift-divider" />

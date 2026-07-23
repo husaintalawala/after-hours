@@ -80,7 +80,7 @@ export default function DestinationGuide({
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                <span className="absolute left-2 top-2 max-w-[85%] rounded-lg bg-[#E09A3C] px-2 py-1 text-[10.5px] font-bold uppercase leading-tight tracking-wide text-white shadow">
+                <span className="absolute left-2 top-2 max-w-[85%] rounded-lg bg-aurora-warn px-2 py-1 text-[10.5px] font-bold uppercase leading-tight tracking-wide text-white shadow">
                   {c.name}
                 </span>
               </div>
@@ -103,7 +103,7 @@ export default function DestinationGuide({
             {tours.map((t) => (
               <div
                 key={t.id}
-                className="w-[210px] shrink-0 overflow-hidden rounded-2xl border border-[#EBE7E1] bg-white"
+                className="w-[210px] shrink-0 overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass"
               >
                 <div className="h-[120px] bg-drift-alt-bg">
                   {t.photoUrl && (
@@ -152,7 +152,7 @@ function GuideSkeleton() {
   return (
     <div className="mt-3 flex gap-3.5">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-[180px] w-[150px] animate-pulse rounded-2xl bg-[#F3F0EA]" />
+        <div key={i} className="h-[180px] w-[150px] animate-pulse rounded-2xl bg-aurora-glass" />
       ))}
     </div>
   )

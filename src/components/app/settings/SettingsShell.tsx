@@ -87,7 +87,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
       <h1 className="font-drift-display text-[28px] font-bold">Settings</h1>
 
       {/* Profile */}
-      <section className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
+      <section className="mt-6 rounded-2xl border border-aurora-border bg-aurora-glass p-5">
         <div className="flex items-center gap-4">
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -118,7 +118,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* Preferences */}
       <SectionLabel>Preferences</SectionLabel>
-      <section className="rounded-2xl bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-aurora-border bg-aurora-glass p-5">
         <p className="text-[14.5px] font-semibold">Default trip privacy</p>
         <div className="mt-3 flex gap-2">
           {PRIVACY_OPTIONS.map((p) => (
@@ -142,7 +142,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* Home */}
       <SectionLabel>Home</SectionLabel>
-      <section className="rounded-2xl bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-aurora-border bg-aurora-glass p-5">
         <p className="text-[14.5px] font-semibold">Home city</p>
         <p className="mt-1 text-[12px] text-drift-muted">
           Sets your base for the &ldquo;furthest from home&rdquo; travel stat.
@@ -152,7 +152,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* Account */}
       <SectionLabel>Account</SectionLabel>
-      <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
         <button
           onClick={signOut}
           disabled={signingOut}
@@ -165,7 +165,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* About */}
       <SectionLabel>About</SectionLabel>
-      <section className="divide-y divide-drift-divider overflow-hidden rounded-2xl bg-white shadow-sm">
+      <section className="divide-y divide-drift-divider overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
         <Row label="Version" value="Drift for Web" />
         <Row label="Maps" value="© Mapbox © OpenStreetMap" />
         <Row label="Places & photos" value="Powered by Google" />
@@ -173,7 +173,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* Danger zone */}
       <SectionLabel>Danger zone</SectionLabel>
-      <section className="rounded-2xl bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-aurora-border bg-aurora-glass p-5">
         {!confirmingDelete ? (
           <>
             <button

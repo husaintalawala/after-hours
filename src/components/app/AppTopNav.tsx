@@ -33,7 +33,7 @@ export default function AppTopNav({
           ? // No backdrop-blur over the animating globe canvas — recomputing a
             // blur every WebGL frame is a jank multiplier. Solid dark instead.
             "border-b border-white/10 bg-[rgba(8,8,12,0.72)]"
-          : "border-b border-[#EBE7E1] bg-[rgba(250,248,245,0.85)] backdrop-blur-xl"
+          : "border-b border-aurora-border bg-aurora-glass/95 backdrop-blur-xl"
       }`}
     >
       <Link

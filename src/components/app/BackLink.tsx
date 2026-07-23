@@ -41,7 +41,7 @@ export default function BackLink({
     <Link
       href={href}
       aria-label={`Back to ${label}`}
-      className={`group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-drift-ink shadow-[0_6px_16px_-4px_rgba(31,31,36,0.20),0_2px_6px_-2px_rgba(31,31,36,0.12)] ring-1 ring-black/5 outline-none transition-all duration-150 hover:shadow-[0_10px_24px_-6px_rgba(31,31,36,0.26),0_3px_8px_-2px_rgba(31,31,36,0.14)] active:scale-[0.93] active:bg-drift-coral-50 active:text-drift-coral focus-visible:ring-2 focus-visible:ring-drift-coral/60 ${className}`}
+      className={`group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-aurora-glass text-drift-ink shadow-[0_6px_16px_-4px_rgba(31,31,36,0.20),0_2px_6px_-2px_rgba(31,31,36,0.12)] ring-1 ring-white/10 outline-none transition-all duration-150 hover:shadow-[0_10px_24px_-6px_rgba(31,31,36,0.26),0_3px_8px_-2px_rgba(31,31,36,0.14)] active:scale-[0.93] active:bg-drift-coral-50 active:text-drift-coral focus-visible:ring-2 focus-visible:ring-drift-coral/60 ${className}`}
     >
       <span className="transition-transform duration-150 group-hover:-translate-x-0.5">
         <Chevron />

@@ -87,7 +87,7 @@ export default function ScanStatus({
 
   if (batch.status === "scanning") {
     return (
-      <div className="mt-3 flex items-center gap-3 rounded-2xl border border-drift-divider bg-white p-3.5">
+      <div className="mt-3 flex items-center gap-3 rounded-2xl border border-drift-divider bg-aurora-glass p-3.5">
         <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-drift-coral/30 border-t-drift-coral" />
         <span className="text-[13.5px] font-medium text-drift-ink">
           Scanning your {src} for bookings…{" "}

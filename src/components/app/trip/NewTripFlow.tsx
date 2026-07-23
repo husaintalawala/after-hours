@@ -162,7 +162,7 @@ export default function NewTripFlow() {
                 <button
                   key={o.type}
                   onClick={() => setTripType(o.type)}
-                  className={`flex w-full items-center gap-4 rounded-2xl border-2 bg-white p-4 text-left shadow-sm transition-all ${
+                  className={`flex w-full items-center gap-4 rounded-2xl border-2 bg-aurora-glass p-4 text-left transition-all ${
                     selected
                       ? "border-drift-coral bg-drift-coral-50"
                       : "border-transparent hover:border-drift-divider"
@@ -191,7 +191,7 @@ export default function NewTripFlow() {
             className={`mt-6 h-[52px] w-full rounded-2xl text-[16px] font-bold transition-colors ${
               tripType
                 ? "bg-drift-coral text-white shadow-md shadow-drift-coral/25"
-                : "bg-white text-drift-muted/60"
+                : "bg-aurora-glass text-drift-muted/60"
             }`}
           >
             Continue
@@ -212,7 +212,7 @@ export default function NewTripFlow() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search a city or place…"
-            className="mt-5 h-[52px] w-full rounded-2xl border border-drift-divider bg-white px-4 text-[15.5px] outline-none focus:border-drift-coral"
+            className="mt-5 h-[52px] w-full rounded-2xl border border-drift-divider bg-aurora-glass px-4 text-[15.5px] outline-none focus:border-drift-coral"
           />
 
           <div className="mt-3 space-y-1.5">
@@ -224,7 +224,7 @@ export default function NewTripFlow() {
                 <button
                   key={c.id}
                   onClick={() => pickPlace(c)}
-                  className="flex w-full items-center gap-3.5 rounded-2xl bg-white p-3.5 text-left shadow-sm transition-colors hover:bg-drift-coral-50"
+                  className="flex w-full items-center gap-3.5 rounded-2xl bg-aurora-glass p-3.5 text-left transition-colors hover:bg-drift-coral-50"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-drift-coral-50 text-[17px]">
                     📍
@@ -267,7 +267,7 @@ export default function NewTripFlow() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={place.name}
-            className="mt-1.5 h-[52px] w-full rounded-2xl border border-drift-divider bg-white px-4 text-[15.5px] outline-none focus:border-drift-coral"
+            className="mt-1.5 h-[52px] w-full rounded-2xl border border-drift-divider bg-aurora-glass px-4 text-[15.5px] outline-none focus:border-drift-coral"
           />
 
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -279,7 +279,7 @@ export default function NewTripFlow() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1.5 h-[52px] w-full rounded-2xl border border-drift-divider bg-white px-4 text-[15px] outline-none focus:border-drift-coral"
+                className="mt-1.5 h-[52px] w-full rounded-2xl border border-drift-divider bg-aurora-glass px-4 text-[15px] outline-none focus:border-drift-coral"
               />
             </div>
             {tripType !== "current" && (
@@ -292,7 +292,7 @@ export default function NewTripFlow() {
                   value={endDate}
                   min={startDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1.5 h-[52px] w-full rounded-2xl border border-drift-divider bg-white px-4 text-[15px] outline-none focus:border-drift-coral"
+                  className="mt-1.5 h-[52px] w-full rounded-2xl border border-drift-divider bg-aurora-glass px-4 text-[15px] outline-none focus:border-drift-coral"
                 />
               </div>
             )}
@@ -304,7 +304,7 @@ export default function NewTripFlow() {
           )}
 
           {error && (
-            <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-[13.5px] text-red-600">
+            <p className="mt-4 rounded-xl bg-red-500/10 px-4 py-3 text-[13.5px] text-red-400">
               {error}
             </p>
           )}

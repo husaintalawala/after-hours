@@ -154,7 +154,7 @@ export default async function CountriesPage() {
               <span className="h-2.5 w-2.5 rounded-full bg-drift-coral" /> Visited
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#DEDAD2]" /> Not yet
+              <span className="h-2.5 w-2.5 rounded-full bg-aurora-glass2" /> Not yet
             </span>
           </div>
         </section>
@@ -164,7 +164,7 @@ export default async function CountriesPage() {
       {countries.length > 0 && (
         <section className="mt-8">
           <h2 className="font-drift-display text-[22px] font-bold">Flags collected</h2>
-          <div className="mt-3 grid grid-cols-6 gap-y-4 rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mt-3 grid grid-cols-6 gap-y-4 rounded-2xl border border-aurora-border bg-aurora-glass p-4">
             {countries.map(([c]) => (
               <span key={c} className="text-center text-[26px]" title={c}>
                 {countryFlagEmoji(c) ?? "🌍"}
@@ -220,7 +220,7 @@ export default async function CountriesPage() {
           <h2 className="font-drift-display text-[22px] font-bold">Where you&apos;ve been</h2>
           <ul className="mt-3 space-y-2">
             {countries.map(([country, countryTrips]) => (
-              <li key={country} className="rounded-2xl bg-white p-4 shadow-sm">
+              <li key={country} className="rounded-2xl border border-aurora-border bg-aurora-glass p-4">
                 <div className="flex items-center gap-3">
                   <span className="text-[26px]">{countryFlagEmoji(country) ?? "🌍"}</span>
                   <p className="flex-1 text-[16px] font-bold">{country}</p>
@@ -302,7 +302,7 @@ function TimeTile({ value, label }: { value: number; label: string }) {
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-drift-coral/25 bg-white py-7 shadow-sm">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-drift-coral/25 bg-aurora-glass py-7">
       <p className="font-drift-display text-[34px] font-bold text-drift-coral">{value}</p>
       <p className="mt-1 text-[14px] text-drift-muted">{label}</p>
     </div>

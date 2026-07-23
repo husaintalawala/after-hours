@@ -298,15 +298,15 @@ export default function TripChat({
       className={
         bare
           ? "relative flex h-full flex-col"
-          : `relative overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)] ${
+          : `relative overflow-hidden rounded-[22px] border border-aurora-border bg-aurora-glass shadow-aurora-glow ${
               fill ? "flex h-full flex-col" : ""
             }`
       }
     >
       {!bare && (
         <div
-          className="flex shrink-0 items-center gap-3 border-b border-[#EBE7E1] px-5 py-4"
-          style={{ background: "linear-gradient(180deg,#FFFDFB,#FFF)" }}
+          className="flex shrink-0 items-center gap-3 border-b border-aurora-border px-5 py-4"
+          style={{ background: "linear-gradient(180deg,#0B1A25,#16222F)" }}
         >
           <span
             className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-[17px] text-white shadow-[0_6px_16px_-6px_rgba(224,86,59,0.6)]"
@@ -408,7 +408,7 @@ export default function TripChat({
                         <button
                           key={f}
                           onClick={() => send(f)}
-                          className="rounded-full border border-drift-divider bg-white px-3 py-1.5 text-[13px] text-drift-ink"
+                          className="rounded-full border border-drift-divider bg-aurora-glass2 px-3 py-1.5 text-[13px] text-drift-ink"
                         >
                           {f}
                         </button>
@@ -439,7 +439,7 @@ export default function TripChat({
       </div>
 
       {undo && (
-        <div className="flex items-center justify-between border-t border-drift-divider bg-white px-4 py-2 text-sm">
+        <div className="flex items-center justify-between border-t border-drift-divider bg-aurora-glass px-4 py-2 text-sm">
           <span className="text-drift-muted">{undo.label}</span>
           <button onClick={doUndo} className="font-medium text-drift-coral">
             Undo
@@ -454,7 +454,7 @@ export default function TripChat({
             setAtBottom(true)
           }}
           aria-label="Jump to latest"
-          className="absolute bottom-[86px] left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-drift-ink shadow-[0_8px_24px_-8px_rgba(31,31,36,0.35)] transition-transform hover:scale-105"
+          className="absolute bottom-[86px] left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-aurora-border bg-aurora-glass text-drift-ink shadow-[0_8px_24px_-8px_rgba(31,31,36,0.35)] transition-transform hover:scale-105"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m6 9 6 6 6-6" />
@@ -465,10 +465,10 @@ export default function TripChat({
       <div
         className={
           bare
-            ? "mx-auto mb-5 flex w-[calc(100%-40px)] max-w-[780px] shrink-0 flex-col gap-2 rounded-[24px] border border-[#EBE7E1] bg-white px-4 py-3 shadow-[0_14px_40px_-18px_rgba(31,31,36,0.22)]"
-            : "flex shrink-0 flex-col gap-2 border-t border-[#EBE7E1] px-4 py-3.5"
+            ? "mx-auto mb-5 flex w-[calc(100%-40px)] max-w-[780px] shrink-0 flex-col gap-2 rounded-[24px] border border-aurora-border bg-aurora-glass px-4 py-3 shadow-aurora-glow"
+            : "flex shrink-0 flex-col gap-2 border-t border-aurora-border px-4 py-3.5"
         }
-        style={bare ? undefined : { background: "#FFFDFB" }}
+        style={bare ? undefined : { background: "#0B1A25" }}
       >
         {attached && (
           <div className="flex items-center gap-2 self-start rounded-xl bg-drift-alt-bg p-1.5 pr-3">
@@ -500,7 +500,7 @@ export default function TripChat({
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             aria-label="Attach a photo"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-[#EBE7E1] bg-[#FAF8F5] text-[22px] leading-none text-drift-muted transition-colors hover:border-drift-coral hover:text-drift-coral disabled:opacity-50"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-aurora-border bg-aurora-midnight text-[22px] leading-none text-drift-muted transition-colors hover:border-drift-coral hover:text-drift-coral disabled:opacity-50"
           >
             +
           </button>
@@ -515,7 +515,7 @@ export default function TripChat({
             }}
             disabled={busy}
             placeholder={attached ? "Ask about this photo…" : "Plan with Drift…"}
-            className="h-[46px] min-w-0 flex-1 rounded-full border border-[#EBE7E1] bg-[#FAF8F5] px-5 text-[14.5px] outline-none transition-colors focus:border-drift-coral disabled:opacity-60"
+            className="h-[46px] min-w-0 flex-1 rounded-full border border-aurora-border bg-aurora-midnight px-5 text-[14.5px] outline-none transition-colors focus:border-drift-coral disabled:opacity-60"
           />
           <button
             onClick={() => send()}
@@ -577,7 +577,7 @@ function PlaceCardView({
   const rating = card.candidate?.rating
 
   return (
-    <div className="w-60 shrink-0 overflow-hidden rounded-2xl border border-drift-divider bg-white">
+    <div className="w-60 shrink-0 overflow-hidden rounded-2xl border border-drift-divider bg-aurora-glass">
       <div className="relative h-28 bg-drift-alt-bg">
         {card.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -585,7 +585,7 @@ function PlaceCardView({
         ) : (
           <div
             className="h-full w-full"
-            style={{ background: "linear-gradient(135deg,#FEEDE8,#F7F7F8)" }}
+            style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
           />
         )}
         {rating != null && rating > 0 && (

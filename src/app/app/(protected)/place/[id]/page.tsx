@@ -65,7 +65,7 @@ export default async function PlacePage({
         ) : (
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+            style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
           />
         )}
         <div
@@ -144,7 +144,7 @@ export default async function PlacePage({
                 {place.reviews.map((r, i) => (
                   <div
                     key={i}
-                    className="rounded-2xl border border-[#EBE7E1] bg-white p-4"
+                    className="rounded-2xl border border-aurora-border bg-aurora-glass p-4"
                   >
                     <p className="text-[13px] font-semibold">
                       {r.author}
@@ -167,7 +167,7 @@ export default async function PlacePage({
 
         {/* Sticky action card */}
         <aside className="mt-8 lg:sticky lg:top-[76px] lg:mt-0">
-          <div className="overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)]">
+          <div className="overflow-hidden rounded-[22px] border border-aurora-border bg-aurora-glass shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)]">
             {map && (
               <OptimizedImg
                 src={map}
@@ -196,7 +196,7 @@ export default async function PlacePage({
                     href={place.mapsUri}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-full border border-[#EBE7E1] px-4 py-2 text-[13px] font-medium"
+                    className="rounded-full border border-aurora-border px-4 py-2 text-[13px] font-medium"
                   >
                     Directions
                   </a>
@@ -206,7 +206,7 @@ export default async function PlacePage({
                     href={place.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-full border border-[#EBE7E1] px-4 py-2 text-[13px] font-medium"
+                    className="rounded-full border border-aurora-border px-4 py-2 text-[13px] font-medium"
                   >
                     Website
                   </a>
@@ -216,7 +216,7 @@ export default async function PlacePage({
               {askHref && (
                 <Link
                   href={askHref}
-                  className="mt-4 flex h-12 items-center justify-center gap-2 rounded-full bg-drift-coral text-[14.5px] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)]"
+                  className="mt-4 flex h-12 items-center justify-center gap-2 rounded-full bg-drift-coral text-[14.5px] font-semibold text-white shadow-aurora-glow"
                 >
                   ✦ Ask Drift about this
                 </Link>

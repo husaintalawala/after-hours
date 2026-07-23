@@ -190,7 +190,7 @@ export default function TripTabs({
   const segmented = (glass: boolean) => (
     <div
       className={`hidden gap-0.5 rounded-full p-1 md:flex ${
-        glass ? "border border-white/25 bg-white/15 backdrop-blur-xl" : "bg-white/90 shadow-sm"
+        glass ? "border border-white/25 bg-white/15 backdrop-blur-xl" : "bg-aurora-glass/95 shadow-sm"
       }`}
     >
       {TABS.map(([key, label]) => (
@@ -200,7 +200,7 @@ export default function TripTabs({
           className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${
             tab === key
               ? glass
-                ? "bg-white text-drift-ink"
+                ? "bg-white text-aurora-midnight"
                 : "bg-drift-coral text-white"
               : glass
                 ? "text-white/85"
@@ -228,7 +228,7 @@ export default function TripTabs({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={heroFor(dest)!} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
-            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
           )}
           <div
             className="absolute inset-0"
@@ -290,7 +290,7 @@ export default function TripTabs({
               className="object-cover"
             />
           ) : (
-            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
           )}
           <div
             className="absolute inset-0"
@@ -315,7 +315,7 @@ export default function TripTabs({
       )}
 
       {/* Mobile tab strip */}
-      <div className="mt-4 flex gap-1.5 rounded-full bg-white p-1 shadow-sm md:hidden">
+      <div className="mt-4 flex gap-1.5 rounded-full bg-aurora-glass p-1 shadow-sm md:hidden">
         {TABS.map(([key, label]) => (
           <button
             key={key}
@@ -370,7 +370,7 @@ export default function TripTabs({
                     <li key={d.id}>
                       <button
                         onClick={() => openDest(d.id)}
-                        className="flex w-full items-center gap-4 rounded-[20px] border border-[#EBE7E1] bg-white p-3.5 text-left shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
+                        className="flex w-full items-center gap-4 rounded-[20px] border border-aurora-border bg-aurora-glass p-3.5 text-left shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
                       >
                         {heroFor(d) ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -383,7 +383,7 @@ export default function TripTabs({
                         ) : (
                           <div
                             className="h-[72px] w-[72px] shrink-0 rounded-2xl"
-                            style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+                            style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
                           />
                         )}
                         <div className="min-w-0 flex-1">
@@ -396,11 +396,11 @@ export default function TripTabs({
                           </p>
                         </div>
                         {d.bookedChip && (
-                          <span className="shrink-0 rounded-full bg-[#E7F4F1] px-3 py-1.5 text-[12px] font-semibold text-[#2E7D6F]">
+                          <span className="shrink-0 rounded-full bg-aurora-teal/10 px-3 py-1.5 text-[12px] font-semibold text-aurora-teal">
                             ● {d.bookedChip}
                           </span>
                         )}
-                        <span className="shrink-0 text-[18px] text-[#C9C4BC]">›</span>
+                        <span className="shrink-0 text-[18px] text-aurora-ink3">›</span>
                       </button>
                     </li>
                   ))}
@@ -440,7 +440,7 @@ export default function TripTabs({
           {inspector && (
             <div className="fixed inset-0 z-50 lg:hidden">
               <div className="absolute inset-0 bg-black/40" onClick={() => setSelected(null)} />
-              <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-[24px] bg-white p-1 shadow-2xl">
+              <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-[24px] bg-aurora-glass p-1 shadow-aurora-glow">
                 {inspector}
               </div>
             </div>
@@ -637,10 +637,10 @@ function TimelineRow({
 
       <button
         onClick={onClick}
-        className={`mb-3.5 flex min-w-0 flex-1 items-center gap-4 rounded-[18px] border bg-white px-5 py-4 text-left transition-all duration-150 ${
+        className={`mb-3.5 flex min-w-0 flex-1 items-center gap-4 rounded-[18px] border bg-aurora-glass px-5 py-4 text-left transition-all duration-150 ${
           isSelected
             ? "border-drift-coral shadow-[0_14px_34px_-18px_rgba(224,86,59,0.4)]"
-            : "border-[#EBE7E1] shadow-[0_1px_2px_rgba(31,31,36,0.04)] hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
+            : "border-aurora-border shadow-[0_1px_2px_rgba(31,31,36,0.04)] hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
         }`}
       >
         <div className="min-w-0 flex-1">
@@ -655,11 +655,11 @@ function TimelineRow({
           )}
         </div>
         {chip && (
-          <span className="shrink-0 rounded-full border border-[#EBE7E1] bg-[#FAF8F5] px-3 py-1.5 text-[12px] font-semibold text-drift-muted">
+          <span className="shrink-0 rounded-full border border-aurora-border bg-aurora-midnight px-3 py-1.5 text-[12px] font-semibold text-drift-muted">
             {chip}
           </span>
         )}
-        <span className="shrink-0 text-[18px] text-[#C9C4BC]">›</span>
+        <span className="shrink-0 text-[18px] text-aurora-ink3">›</span>
       </button>
     </li>
   )
@@ -730,8 +730,8 @@ function Inspector({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[22px] border border-[#EBE7E1] bg-white shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)]">
-      <div className="flex items-start justify-between gap-3 border-b border-[#EBE7E1] px-5 py-4">
+    <div className="flex h-full flex-col overflow-hidden rounded-[22px] border border-aurora-border bg-aurora-glass shadow-[0_24px_60px_-30px_rgba(31,31,36,0.25)]">
+      <div className="flex items-start justify-between gap-3 border-b border-aurora-border px-5 py-4">
         <div className="min-w-0">
           <p className="text-[10.5px] font-bold tracking-[0.12em] text-drift-coral">
             {item.badge}
@@ -743,7 +743,7 @@ function Inspector({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="shrink-0 rounded-full p-1.5 text-drift-muted hover:bg-[#FAF8F5]"
+          className="shrink-0 rounded-full p-1.5 text-drift-muted hover:bg-aurora-glass2"
         >
           ✕
         </button>
@@ -806,7 +806,7 @@ function Inspector({
                 href={step.websiteUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-[#EBE7E1] px-4 py-2 text-[13px] font-medium"
+                className="rounded-full border border-aurora-border px-4 py-2 text-[13px] font-medium"
               >
                 Website
               </a>
@@ -821,7 +821,7 @@ function Inspector({
         )}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-[#EBE7E1] p-3.5">
+      <div className="flex items-center gap-2 border-t border-aurora-border p-3.5">
         <button
           onClick={askDrift}
           className="flex-1 rounded-full bg-drift-coral py-2.5 text-[13.5px] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)]"
@@ -840,7 +840,7 @@ function Inspector({
               </button>
               <button
                 onClick={() => setConfirmingRemove(false)}
-                className="rounded-full border border-[#EBE7E1] px-3 py-2.5 text-[13px]"
+                className="rounded-full border border-aurora-border px-3 py-2.5 text-[13px]"
               >
                 Keep
               </button>
@@ -848,7 +848,7 @@ function Inspector({
           ) : (
             <button
               onClick={() => setConfirmingRemove(true)}
-              className="rounded-full border border-[#EBE7E1] px-4 py-2.5 text-[13px] font-medium text-drift-muted hover:text-drift-coral-deep"
+              className="rounded-full border border-aurora-border px-4 py-2.5 text-[13px] font-medium text-drift-muted hover:text-drift-coral-deep"
             >
               Remove
             </button>
@@ -907,7 +907,7 @@ function KitTab({ items }: { items: KitItemVM[] }) {
             {g.items.map((i) => (
               <li
                 key={i.id}
-                className="flex items-center gap-3 rounded-2xl border border-[#EBE7E1] bg-white px-4 py-3"
+                className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
               >
                 <span
                   className={`h-4 w-4 rounded-full border-2 ${
@@ -920,7 +920,7 @@ function KitTab({ items }: { items: KitItemVM[] }) {
                 {i.quantity > 1 && (
                   <span className="text-[12px] text-drift-muted">×{i.quantity}</span>
                 )}
-                <span className="rounded-full bg-[#FAF8F5] px-2.5 py-0.5 text-[11.5px] text-drift-muted">
+                <span className="rounded-full bg-aurora-midnight px-2.5 py-0.5 text-[11.5px] text-drift-muted">
                   {i.category}
                 </span>
               </li>
@@ -965,7 +965,7 @@ function ExpensesTab({
 
   return (
     <div className="mt-6 lg:max-w-2xl">
-      <div className="rounded-[22px] border border-[#EBE7E1] bg-white p-5">
+      <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
         <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
           Trip total
         </p>
@@ -975,7 +975,7 @@ function ExpensesTab({
       </div>
 
       {ledger && (
-        <div className="mt-4 rounded-[22px] border border-[#EBE7E1] bg-white p-5">
+        <div className="mt-4 rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
           <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
             Balances
           </p>
@@ -1009,7 +1009,7 @@ function ExpensesTab({
                 {ledger.transfers.map((t, i) => (
                   <li
                     key={i}
-                    className="flex items-center justify-between rounded-xl bg-[#FAF8F5] px-3.5 py-2.5"
+                    className="flex items-center justify-between rounded-xl bg-aurora-midnight px-3.5 py-2.5"
                   >
                     <span className="text-[14.5px]">
                       <span className="font-semibold">{t.from}</span> pays{" "}
@@ -1034,9 +1034,9 @@ function ExpensesTab({
         {sorted.map((e) => (
           <li
             key={e.id}
-            className="flex items-center gap-3.5 rounded-2xl border border-[#EBE7E1] bg-white px-4 py-3"
+            className="flex items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FAF8F5] text-[17px]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-aurora-midnight text-[17px]">
               {CATEGORY_EMOJI[e.category] ?? "💳"}
             </span>
             <div className="min-w-0 flex-1">
@@ -1131,9 +1131,9 @@ function TrackTab({ steps }: { steps: TrackStepVM[] }) {
               {items.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center gap-3 rounded-2xl border border-[#EBE7E1] bg-white px-4 py-3"
+                  className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FEEDE8] text-[15px]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-aurora-teal/10 text-[15px]">
                     📍
                   </span>
                   <div className="min-w-0 flex-1">

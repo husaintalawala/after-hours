@@ -5,8 +5,8 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 
 // Choropleth of visited countries (iOS "Countries visited" map). A clean,
-// non-interactive world on a warm background, visited countries filled coral
-// via the Mapbox country-boundaries tileset (its `iso_3166_1` is ISO alpha-2).
+// non-interactive world on a dark Aurora background, visited countries filled
+// teal via the Mapbox country-boundaries tileset (its `iso_3166_1` is ISO alpha-2).
 
 export default function CountriesMap({ codes }: { codes: string[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -20,7 +20,7 @@ export default function CountriesMap({ codes }: { codes: string[] }) {
       style: {
         version: 8,
         sources: {},
-        layers: [{ id: "bg", type: "background", paint: { "background-color": "#F1EEE8" } }],
+        layers: [{ id: "bg", type: "background", paint: { "background-color": "#0B1A25" } }],
       },
       center: [12, 28],
       zoom: 0.55,
@@ -34,30 +34,30 @@ export default function CountriesMap({ codes }: { codes: string[] }) {
         type: "vector",
         url: "mapbox://mapbox.country-boundaries-v1",
       })
-      // All land — neutral grey.
+      // All land — raised glass surface (unvisited).
       map.addLayer({
         id: "countries-base",
         type: "fill",
         source: "countries",
         "source-layer": "country_boundaries",
-        paint: { "fill-color": "#DEDAD2" },
+        paint: { "fill-color": "#1B2A38" },
       })
-      // Visited — coral.
+      // Visited — Aurora teal.
       map.addLayer({
         id: "countries-visited",
         type: "fill",
         source: "countries",
         "source-layer": "country_boundaries",
-        paint: { "fill-color": "#E0563B" },
+        paint: { "fill-color": "#37D6C4" },
         filter: ["in", ["get", "iso_3166_1"], ["literal", codes]],
       })
-      // Thin separators.
+      // Thin separators — match the ocean so borders carve.
       map.addLayer({
         id: "countries-line",
         type: "line",
         source: "countries",
         "source-layer": "country_boundaries",
-        paint: { "line-color": "#F1EEE8", "line-width": 0.5 },
+        paint: { "line-color": "#0B1A25", "line-width": 0.5 },
       })
     })
 

@@ -46,3 +46,33 @@ body {
 body::after { display: none; }
 
 @keyframes blink { from, to { border-color: transparent; } 50% { border-color: rgba(245,245,247,0.4); } }
+
+/* ============================================================
+   Aurora (Drift Visual Language v1.0) — reusable surfaces for the
+   logged-in app's dark identity. Ported from iOS AuroraTheme.swift.
+   Use these instead of repeating the glass-card recipe; the sweep
+   replaces the old white cards (bg-white/[0.97]) with `.aurora-card`.
+   ============================================================ */
+@layer components {
+  /* Canonical card/panel on Deep Midnight: solid glass fill + hairline. */
+  .aurora-card {
+    @apply rounded-card border border-aurora-border bg-aurora-glass;
+  }
+  /* One elevation higher (menus, nested cards, active rows). */
+  .aurora-card-2 {
+    @apply rounded-card border border-aurora-border bg-aurora-glass2;
+  }
+  /* Chip / pill fill on the ground. */
+  .aurora-chip {
+    @apply rounded-full border border-aurora-border bg-aurora-glass;
+  }
+  /* Translucent surface for chrome sitting OVER a photo (image shows through). */
+  .aurora-on-photo {
+    @apply border border-white/15 bg-white/10 backdrop-blur-md;
+  }
+  /* The ONE filled action per screen: teal gradient + deep-teal ink. */
+  .aurora-cta {
+    @apply rounded-full bg-aurora-teal font-semibold text-aurora-teal-ink;
+  }
+}
+

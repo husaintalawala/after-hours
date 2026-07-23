@@ -141,7 +141,7 @@ export default function ChatsShell({
             setSel({ mode: "picker" })
             setDrawer(false)
           }}
-          className="flex w-full items-center gap-2.5 rounded-[14px] bg-white px-3.5 py-2.5 text-[14px] font-semibold text-drift-coral shadow-[0_1px_2px_rgba(31,31,36,0.06)]"
+          className="flex w-full items-center gap-2.5 rounded-[14px] bg-aurora-glass2 px-3.5 py-2.5 text-[14px] font-semibold text-drift-coral"
         >
           <span
             className="flex h-6 w-6 items-center justify-center rounded-full text-[12px] text-white"
@@ -169,7 +169,7 @@ export default function ChatsShell({
                 <div key={tripId}>
                   <div
                     className={`flex items-center rounded-xl transition-colors ${
-                      active ? "bg-drift-coral-50" : "hover:bg-white/85"
+                      active ? "bg-drift-coral-50" : "hover:bg-aurora-glass2"
                     }`}
                   >
                     <button
@@ -188,7 +188,7 @@ export default function ChatsShell({
                       <button
                         onClick={() => toggleTrip(tripId)}
                         aria-label={`${extra} more ${extra === 1 ? "thread" : "threads"}`}
-                        className="mr-1.5 flex shrink-0 items-center gap-0.5 rounded-full px-2 py-1 text-[10.5px] font-bold text-drift-text-tertiary transition-colors hover:bg-white hover:text-drift-ink"
+                        className="mr-1.5 flex shrink-0 items-center gap-0.5 rounded-full px-2 py-1 text-[10.5px] font-bold text-drift-text-tertiary transition-colors hover:bg-aurora-glass2 hover:text-drift-ink"
                       >
                         +{extra}
                         <svg
@@ -214,7 +214,7 @@ export default function ChatsShell({
                         className={`flex w-full items-center gap-2 rounded-xl py-[6px] pl-11 pr-2.5 text-left text-[12.5px] transition-colors ${
                           s.id === activeSessionId
                             ? "font-semibold text-drift-coral-deep"
-                            : "text-drift-muted hover:bg-white/85"
+                            : "text-drift-muted hover:bg-aurora-glass2"
                         }`}
                       >
                         <span className="min-w-0 flex-1 truncate">{s.subtitle || s.title}</span>
@@ -247,7 +247,7 @@ export default function ChatsShell({
                     className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-left text-[13.5px] transition-colors ${
                       active
                         ? "bg-drift-coral-50 font-semibold text-drift-coral-deep"
-                        : "text-drift-ink hover:bg-white/85"
+                        : "text-drift-ink hover:bg-aurora-glass2"
                     }`}
                   >
                     <SessionThumb photo={s.photo} kind={kind} />
@@ -268,7 +268,7 @@ export default function ChatsShell({
         )}
       </div>
 
-      <div className="flex items-center gap-2.5 border-t border-[#EBE7E1] p-3">
+      <div className="flex items-center gap-2.5 border-t border-aurora-border p-3">
         {me.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={me.avatarUrl} alt="" className="h-[30px] w-[30px] rounded-full object-cover" />
@@ -291,7 +291,7 @@ export default function ChatsShell({
         <Link
           href="/app"
           aria-label="Back to Home"
-          className="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-[#EBE7E1] bg-white px-3 py-1.5 text-[12.5px] font-semibold text-drift-ink lg:hidden"
+          className="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-aurora-border bg-aurora-glass px-3 py-1.5 text-[12.5px] font-semibold text-drift-ink lg:hidden"
         >
           ‹ Home
         </Link>
@@ -304,7 +304,7 @@ export default function ChatsShell({
       <div className="flex h-full min-h-0 flex-col">
         {/* Anchor pill */}
         <div className="hidden shrink-0 justify-center px-5 pb-1 pt-3.5 lg:flex">
-          <div className="flex items-center gap-2.5 rounded-full border border-[#EBE7E1] bg-white py-1.5 pl-3.5 pr-2 shadow-[0_1px_2px_rgba(31,31,36,0.04)]">
+          <div className="flex items-center gap-2.5 rounded-full border border-aurora-border bg-aurora-glass py-1.5 pl-3.5 pr-2">
             {sel.trip.photo && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={sel.trip.photo} alt="" className="h-6 w-6 rounded-lg object-cover" />
@@ -344,20 +344,20 @@ export default function ChatsShell({
     <>
       {/* ---------- Desktop ---------- */}
       <div className="fixed inset-x-0 bottom-0 top-[60px] hidden lg:flex">
-        <aside className="flex w-[284px] shrink-0 flex-col border-r border-[#EBE7E1] bg-[#F4F1EC]">
+        <aside className="flex w-[284px] shrink-0 flex-col border-r border-aurora-border bg-aurora-glass">
           {sidebar}
         </aside>
         <main className="min-w-0 flex-1">{thread}</main>
       </div>
 
       {/* ---------- Mobile: full-screen thread + drawer ---------- */}
-      <div className="fixed inset-0 z-[60] flex flex-col bg-[#FAF8F5] lg:hidden">
-        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-[#EBE7E1] bg-[rgba(250,248,245,0.92)] px-3 backdrop-blur-xl">
+      <div className="fixed inset-0 z-[60] flex flex-col bg-aurora-midnight lg:hidden">
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-aurora-border bg-aurora-midnight2/90 px-3 backdrop-blur-xl">
           <BackLink href={backHref} label={backLabel} />
           <button
             onClick={() => setDrawer(true)}
             aria-label="Conversations"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-[16px]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-aurora-border bg-aurora-glass text-[16px]"
           >
             ☰
           </button>
@@ -371,7 +371,7 @@ export default function ChatsShell({
           <button
             onClick={() => setSel({ mode: "picker" })}
             aria-label="New chat"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#EBE7E1] bg-white text-[15px]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-aurora-border bg-aurora-glass text-[15px]"
           >
             ✎
           </button>
@@ -381,7 +381,7 @@ export default function ChatsShell({
         {drawer && (
           <>
             <div className="fixed inset-0 z-[70] bg-[rgba(20,16,12,0.45)]" onClick={() => setDrawer(false)} />
-            <div className="fixed bottom-0 left-0 top-0 z-[80] flex w-[82%] flex-col bg-[#F4F1EC] shadow-[24px_0_60px_-30px_rgba(0,0,0,0.5)]">
+            <div className="fixed bottom-0 left-0 top-0 z-[80] flex w-[82%] flex-col bg-aurora-glass shadow-[24px_0_60px_-30px_rgba(0,0,0,0.5)]">
               {sidebar}
             </div>
           </>
@@ -399,12 +399,12 @@ function SessionThumb({ photo, kind }: { photo: string | null; kind: string }) {
         src={photo}
         alt=""
         loading="lazy"
-        className="h-[34px] w-[34px] shrink-0 rounded-[10px] object-cover shadow-[inset_0_0_0_1px_rgba(31,31,36,0.08)] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl"
+        className="h-[34px] w-[34px] shrink-0 rounded-[10px] object-cover shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl"
       />
     )
   }
   return (
-    <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-white text-[14px] shadow-[inset_0_0_0_1px_#EBE7E1] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl">
+    <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-aurora-glass2 text-[14px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)] max-lg:h-10 max-lg:w-10 max-lg:rounded-xl">
       {kind === "trip" ? "🧭" : kind === "place" ? "📍" : "✦"}
     </span>
   )
@@ -490,7 +490,7 @@ function Picker({ trips, onPick }: { trips: TripPickVM[]; onPick: (t: TripPickVM
           <li key={t.id}>
             <button
               onClick={() => onPick(t)}
-              className="flex w-full items-center gap-3.5 rounded-[18px] border border-[#EBE7E1] bg-white p-3 text-left shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
+              className="flex w-full items-center gap-3.5 rounded-[18px] border border-aurora-border bg-aurora-glass p-3 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/35 hover:shadow-aurora-glow"
             >
               {t.photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -498,7 +498,7 @@ function Picker({ trips, onPick }: { trips: TripPickVM[]; onPick: (t: TripPickVM
               ) : (
                 <span
                   className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg"
-                  style={{ background: "linear-gradient(135deg,#FEEDE8,#F7F7F8)" }}
+                  style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
                 >
                   🧭
                 </span>
@@ -507,7 +507,7 @@ function Picker({ trips, onPick }: { trips: TripPickVM[]; onPick: (t: TripPickVM
                 <p className="truncate text-[15.5px] font-semibold">{t.title}</p>
                 <p className="text-[13px] text-drift-muted">{t.dateRange}</p>
               </div>
-              <span className="text-[18px] text-[#C9C4BC]">›</span>
+              <span className="text-[18px] text-aurora-ink3">›</span>
             </button>
           </li>
         ))}

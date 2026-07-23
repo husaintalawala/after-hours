@@ -14,7 +14,7 @@ import { resolvePlaceCandidates } from "@/lib/drift/chat"
 // mapbox-gl is heavy — load the map after the rail paints.
 const DiscoverMap = dynamic(() => import("./DiscoverMap"), {
   ssr: false,
-  loading: () => <div className="h-full w-full bg-[#EFEBE5]" />,
+  loading: () => <div className="h-full w-full bg-aurora-midnight2" />,
 })
 
 // Discover — the map-first surface, desktop-native: results rail on the left
@@ -71,7 +71,7 @@ export default function DiscoverShell({
       <div className="mx-auto h-full w-full max-w-2xl px-5 pt-6 lg:max-w-none lg:px-0 lg:pt-0">
         <div className="h-full lg:grid lg:grid-cols-[440px_minmax(0,1fr)]">
           {/* Rail */}
-          <div className="flex h-full flex-col lg:overflow-y-auto lg:border-r lg:border-drift-divider lg:bg-white lg:px-6 lg:pt-6">
+          <div className="flex h-full flex-col lg:overflow-y-auto lg:border-r lg:border-drift-divider lg:bg-aurora-glass lg:px-6 lg:pt-6">
             <h1 className="font-drift-display text-3xl font-medium tracking-tight">
               Discover
             </h1>
@@ -90,7 +90,7 @@ export default function DiscoverShell({
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
                     cat === c
                       ? "bg-drift-coral text-white"
-                      : "border border-drift-divider bg-white text-drift-muted"
+                      : "border border-drift-divider bg-aurora-glass text-drift-muted"
                   }`}
                 >
                   {CATEGORY_META[c].label}
@@ -253,7 +253,7 @@ function LocationPicker({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 max-h-[60vh] overflow-y-auto overscroll-contain rounded-2xl border border-drift-divider bg-white p-2 shadow-[0_24px_60px_-24px_rgba(31,31,36,0.4)]">
+        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 max-h-[60vh] overflow-y-auto overscroll-contain rounded-2xl border border-drift-divider bg-aurora-glass p-2 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)]">
           {/* City search */}
           <form onSubmit={runSearch} className="flex gap-2 p-1">
             <input
@@ -362,13 +362,13 @@ function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) 
   ) : (
     <div
       className="h-24 w-24 shrink-0 rounded-xl"
-      style={{ background: "linear-gradient(135deg,#FEEDE8,#F7F7F8)" }}
+      style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
     />
   )
   return (
     <div
       onMouseEnter={onHover}
-      className="flex gap-3 rounded-2xl border border-[#EBE7E1] bg-white p-2.5 shadow-[0_1px_2px_rgba(31,31,36,0.04)] transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(31,31,36,0.28)]"
+      className="flex gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-2.5 transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.5)]"
     >
       {detailHref ? <a href={detailHref}>{photoEl}</a> : photoEl}
       <div className="min-w-0 flex-1 py-0.5">

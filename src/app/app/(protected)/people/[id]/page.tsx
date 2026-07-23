@@ -91,7 +91,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
             <li key={t.id}>
               <Link
                 href={`/app/trips/${t.id}`}
-                className="flex items-center gap-3 rounded-2xl bg-white p-3.5 shadow-sm transition-colors hover:bg-drift-alt-bg"
+                className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition-colors hover:bg-drift-card-active"
               >
                 {t.cover_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -99,7 +99,7 @@ export default async function ProfilePage({ params }: { params: { id: string } }
                 ) : (
                   <div
                     className="h-12 w-12 shrink-0 rounded-xl"
-                    style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+                    style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
                   />
                 )}
                 <div className="min-w-0 flex-1">

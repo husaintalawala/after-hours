@@ -78,7 +78,7 @@ export default function FindBookings({
           setScopeBatchId(null)
           setOpen(true)
         }}
-        className="inline-flex items-center gap-1.5 rounded-full border border-drift-coral/40 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-drift-coral transition-colors hover:bg-drift-coral-50"
+        className="inline-flex items-center gap-1.5 rounded-full border border-drift-coral/40 bg-aurora-glass px-3.5 py-1.5 text-[13px] font-semibold text-drift-coral transition-colors hover:bg-drift-coral-50"
       >
         <Icon name="send" className="h-3.5 w-3.5" /> Find bookings
       </button>
@@ -403,7 +403,7 @@ function FindBookingsSheet({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:max-h-[88vh] sm:rounded-[24px]"
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[24px] bg-aurora-glass shadow-aurora-glow sm:max-h-[88vh] sm:rounded-[24px]"
       >
         {/* Header — generous top padding + safe-area inset so the display-font
             title is never clipped at the top edge. */}
@@ -461,7 +461,7 @@ function FindBookingsSheet({
                 onChange={(e) => setPasteText(e.target.value)}
                 rows={4}
                 placeholder="Paste the text of a booking confirmation email…"
-                className="w-full resize-none rounded-xl border border-drift-divider bg-white p-3 text-[13.5px] outline-none focus:border-drift-coral"
+                className="w-full resize-none rounded-xl border border-drift-divider bg-aurora-glass p-3 text-[13.5px] outline-none focus:border-drift-coral"
               />
               <button
                 onClick={parsePaste}
@@ -510,7 +510,7 @@ function FindBookingsSheet({
             />
           </div>
           {plaidStatus && (
-            <p className="mt-2.5 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-700">
+            <p className="mt-2.5 rounded-xl bg-emerald-500/10 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-300">
               {plaidStatus}
             </p>
           )}
@@ -547,7 +547,7 @@ function FindBookingsSheet({
                     className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
                       checked
                         ? "border-drift-coral/50 bg-drift-coral-50"
-                        : "border-drift-divider bg-white"
+                        : "border-drift-divider bg-aurora-glass"
                     } disabled:opacity-50`}
                   >
                     <span
@@ -574,12 +574,12 @@ function FindBookingsSheet({
           </ul>
 
           {error && (
-            <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-[13px] text-red-600">
+            <p className="mt-3 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-400">
               {error}
             </p>
           )}
           {appliedCount != null && !error && (
-            <p className="mt-3 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-700">
+            <p className="mt-3 rounded-xl bg-emerald-500/10 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-300">
               Added {appliedCount} {appliedCount === 1 ? "booking" : "bookings"} to the trip ✓
             </p>
           )}
@@ -747,7 +747,7 @@ function ActionRow({
   busy?: boolean
 }) {
   return (
-    <div className="rounded-2xl border border-drift-divider bg-white transition-colors hover:border-drift-coral/40">
+    <div className="rounded-2xl border border-drift-divider bg-aurora-glass transition-colors hover:border-drift-coral/40">
       <RowShell
         icon={icon}
         title={title}
@@ -782,7 +782,7 @@ function ExpandRow({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="overflow-hidden rounded-2xl border border-drift-divider bg-white transition-colors hover:border-drift-coral/40">
+    <div className="overflow-hidden rounded-2xl border border-drift-divider bg-aurora-glass transition-colors hover:border-drift-coral/40">
       <RowShell
         icon={icon}
         title={title}
@@ -821,7 +821,7 @@ function ConnectRow({
   onClick: () => void
 }) {
   return (
-    <div className="rounded-2xl border border-drift-divider bg-white transition-colors hover:border-drift-coral/40">
+    <div className="rounded-2xl border border-drift-divider bg-aurora-glass transition-colors hover:border-drift-coral/40">
       <RowShell
         icon={icon}
         title={title}

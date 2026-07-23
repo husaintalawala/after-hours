@@ -40,7 +40,7 @@ export default function AppNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-3 mb-3 flex w-full max-w-md items-center gap-1.5 rounded-[26px] border border-drift-divider bg-white/85 px-3 py-2 shadow-lg backdrop-blur-xl">
+      <div className="mx-3 mb-3 flex w-full max-w-md items-center gap-1.5 rounded-[26px] border border-drift-divider bg-aurora-glass/95 px-3 py-2 shadow-lg backdrop-blur-xl">
         {tabs.map((tab) => {
           const active = isActive(tab.href)
           return (

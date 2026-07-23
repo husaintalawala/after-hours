@@ -5,8 +5,8 @@ import AppTopNav from "@/components/app/AppTopNav"
 
 // Auth gate for the whole logged-in app. Runs on the server: no session ->
 // bounce to /app/login (which lives OUTSIDE this route group, so no loop).
-// Desktop gets the frosted top nav; mobile keeps the floating dock. Warm
-// cream canvas (Fraunces heavier weight loaded for display type).
+// Desktop gets the frosted top nav; mobile keeps the floating dock. Aurora
+// Deep Midnight canvas (Fraunces heavier weight loaded for display type).
 export default async function ProtectedLayout({
   children,
 }: {
@@ -40,7 +40,7 @@ export default async function ProtectedLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
         rel="stylesheet"
       />
-      <div className="min-h-screen bg-[#FAF8F5] pb-24 font-drift-body text-drift-ink lg:pb-12">
+      <div className="min-h-screen bg-aurora-midnight pb-24 font-drift-body text-aurora-ink lg:pb-12">
         <AppTopNav initial={initial} avatarUrl={profile?.avatar_url ?? null} />
         {children}
         <div className="lg:hidden">

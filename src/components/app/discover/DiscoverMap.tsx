@@ -26,7 +26,7 @@ export default function DiscoverMap({
     mapboxgl.accessToken = token
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: "mapbox://styles/mapbox/dark-v11",
       center: anchor ? [anchor.lng ?? 0, anchor.lat ?? 20] : [0, 20],
       zoom: anchor ? 11 : 1.5,
       attributionControl: false,
