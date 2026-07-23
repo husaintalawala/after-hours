@@ -21,7 +21,7 @@ export interface GlobeTripPin {
 }
 
 // iOS route palette equivalent — distinct saturated hues per trip.
-const ROUTE_COLORS = ["#E0563B", "#F2A33C", "#4FA3D1", "#7BC47F", "#C77DD8", "#E86E8A"]
+const ROUTE_COLORS = ["#37D6C4", "#F2A33C", "#4FA3D1", "#7BC47F", "#C77DD8", "#E86E8A"]
 
 export default function GlobeHero({
   pins,
@@ -114,7 +114,7 @@ export default function GlobeHero({
       el.style.cssText =
         "width:44px;height:44px;border-radius:50%;border:2.5px solid #fff;" +
         "box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;overflow:hidden;" +
-        "background:#E0563B center/cover no-repeat;padding:0"
+        "background:#37D6C4 center/cover no-repeat;padding:0"
       if (pin.imageURL) el.style.backgroundImage = `url("${pin.imageURL}")`
       el.addEventListener("click", (e) => {
         e.stopPropagation()

@@ -145,7 +145,7 @@ export default function ChatsShell({
         >
           <span
             className="flex h-6 w-6 items-center justify-center rounded-full text-[12px] text-white"
-            style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+            style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
           >
             ✦
           </span>
@@ -275,7 +275,7 @@ export default function ChatsShell({
         ) : (
           <span
             className="flex h-[30px] w-[30px] items-center justify-center rounded-full text-[12.5px] font-bold text-white"
-            style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+            style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
           >
             {me.name.slice(0, 1).toUpperCase()}
           </span>
@@ -450,7 +450,7 @@ function HistoryThread({ session }: { session: ChatSessionVM }) {
             <div key={i} className="text-right">
               <div
                 className="inline-block max-w-[85%] rounded-[18px] rounded-br-[4px] px-4 py-3 text-left text-[14.5px] leading-relaxed text-white"
-                style={{ background: "linear-gradient(135deg,#E0563B,#D14A2F)" }}
+                style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
               >
                 {m.text}
               </div>

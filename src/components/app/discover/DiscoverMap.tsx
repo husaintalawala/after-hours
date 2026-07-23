@@ -54,7 +54,7 @@ export default function DiscoverMap({
       if (r.lat == null || r.lng == null) continue
       const el = document.createElement("div")
       el.style.cssText =
-        "width:14px;height:14px;border-radius:50%;background:#E0563B;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"
+        "width:14px;height:14px;border-radius:50%;background:#37D6C4;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([r.lng, r.lat])
         .setPopup(new mapboxgl.Popup({ offset: 12, closeButton: false }).setText(r.name))

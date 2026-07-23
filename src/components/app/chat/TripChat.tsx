@@ -310,7 +310,7 @@ export default function TripChat({
         >
           <span
             className="flex h-[38px] w-[38px] items-center justify-center rounded-full text-[17px] text-white shadow-[0_6px_16px_-6px_rgba(224,86,59,0.6)]"
-            style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+            style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
           >
             ✦
           </span>
@@ -357,7 +357,7 @@ export default function TripChat({
                 {m.text && (
                   <div
                     className="inline-block max-w-[85%] rounded-[18px] rounded-br-[4px] px-4 py-3 text-left text-[14.5px] leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(224,86,59,0.5)]"
-                    style={{ background: "linear-gradient(135deg,#E0563B,#D14A2F)" }}
+                    style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
                   >
                     {m.text}
                   </div>

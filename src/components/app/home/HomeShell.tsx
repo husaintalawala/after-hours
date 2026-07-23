@@ -296,7 +296,7 @@ function TripRow({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
         ) : (
           <div
             className="h-12 w-12 shrink-0 rounded-xl"
-            style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+            style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
           />
         )}
         <div className="min-w-0 flex-1">
@@ -344,7 +344,7 @@ function CardCover({ trip }: { trip: HomeTrip }) {
       ) : (
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(135deg,#E0563B,rgb(140,82,0))" }}
+          style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
         />
       )}
       <div

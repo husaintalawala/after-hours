@@ -113,7 +113,7 @@ export default async function CountriesPage() {
         {/* Countries */}
         <div
           className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-[22px] p-5 text-white"
-          style={{ background: "linear-gradient(160deg,#E0563B,rgb(140,82,0))" }}
+          style={{ background: "linear-gradient(160deg,#37D6C4,rgb(140,82,0))" }}
         >
           {/* soft hills */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 opacity-90">
@@ -271,9 +271,9 @@ function FurthestArc({ from, to, km }: { from: string; to: string; km: number })
   return (
     <div className="mt-3 rounded-2xl bg-drift-alt-bg p-5">
       <svg viewBox="0 0 300 80" className="w-full" aria-hidden>
-        <path d="M18 64 Q150 2 282 64" fill="none" stroke="#E0563B" strokeWidth="2" strokeDasharray="4 5" />
+        <path d="M18 64 Q150 2 282 64" fill="none" stroke="#37D6C4" strokeWidth="2" strokeDasharray="4 5" />
         <circle cx="18" cy="64" r="5" fill="#8a8681" />
-        <circle cx="282" cy="64" r="5.5" fill="#E0563B" />
+        <circle cx="282" cy="64" r="5.5" fill="#37D6C4" />
       </svg>
       <div className="mt-1 flex items-center justify-between gap-3 text-[13.5px]">
         <span className="min-w-0 truncate font-semibold text-drift-muted">{from}</span>
@@ -292,7 +292,7 @@ function TimeTile({ value, label }: { value: number; label: string }) {
   return (
     <div
       className="flex flex-col items-center justify-center rounded-2xl py-6 text-white"
-      style={{ background: "linear-gradient(160deg,#E0563B,rgb(150,72,20))" }}
+      style={{ background: "linear-gradient(160deg,#37D6C4,rgb(150,72,20))" }}
     >
       <p className="font-drift-display text-[40px] font-bold leading-none">{value}</p>
       <p className="mt-1.5 text-[14px] font-medium text-white/85">{label}</p>

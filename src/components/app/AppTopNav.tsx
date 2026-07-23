@@ -85,7 +85,7 @@ export default function AppTopNav({
         ) : (
           <span
             className="flex h-[34px] w-[34px] items-center justify-center rounded-full text-[14px] font-bold text-white shadow-[0_0_0_2px_rgba(255,255,255,0.9)]"
-            style={{ background: "linear-gradient(135deg,#E0563B,#BF780A)" }}
+            style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
           >
             {initial}
           </span>
