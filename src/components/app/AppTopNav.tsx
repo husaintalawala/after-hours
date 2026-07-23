@@ -38,9 +38,13 @@ export default function AppTopNav({
     >
       <Link
         href="/app"
-        className="font-drift-display text-[24px] font-semibold tracking-tight text-drift-coral outline-none focus-visible:ring-2 focus-visible:ring-drift-coral/50"
+        className="flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+        aria-label="Drift home"
       >
-        drift
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-aurora-teal">
+          <path d="M3 11l18-8-8 18-2-8-8-2z" />
+        </svg>
+        <span className="font-drift-display text-[24px] font-semibold tracking-tight text-aurora-teal">drift</span>
       </Link>
 
       <div className="ml-auto flex items-center gap-1">

@@ -13,7 +13,7 @@ import {
 } from "@/lib/drift/chat"
 import { applyCreateStep, applyRemoveStep, type CreateStepOp } from "@/lib/drift/quickOp"
 import { addDays, dateOnly } from "@/lib/drift/dates"
-import { ensureTripSession, loadSessionMessages, saveMessage } from "@/lib/drift/chatStore"
+import { ensureTripSession, loadTripMessages, saveMessage } from "@/lib/drift/chatStore"
 
 // Trip-scoped Ask Drift: streaming answers, photo place-card carousel
 // (hydrated via resolve-place, like DriftChatView), "You might want to ask"
@@ -119,10 +119,12 @@ export default function TripChat({
   useEffect(() => {
     let alive = true
     ;(async () => {
+      // Resolve the canonical session for the WRITE path (appending new turns);
+      // load the DISPLAY history by trip_id so the whole transcript shows even
+      // when older turns live under a different/merged session id.
       const sid = await ensureTripSession(tripId)
-      if (!alive || !sid) return
-      sessionRef.current = sid
-      const history = await loadSessionMessages(sid)
+      if (alive && sid) sessionRef.current = sid
+      const history = await loadTripMessages(tripId)
       if (!alive || !history.length) return
       setMessages((m) =>
         m.length

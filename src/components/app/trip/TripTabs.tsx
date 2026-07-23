@@ -183,6 +183,26 @@ export default function TripTabs({
   }, [destinations])
   const heroFor = (d: DestinationVM): string | null => d.heroUrl ?? lazyHeroes[d.id] ?? null
 
+  // Lazy trip-level cover. Same rationale as the destination heroes above:
+  // trips usually have no cover_url/media, so rather than an SSR photo lookup on
+  // the critical path we resolve the trip's lead city here after mount and let
+  // the photo fill in over the amber gradient.
+  const [lazyCover, setLazyCover] = useState<string | null>(null)
+  useEffect(() => {
+    if (tripMeta.cover) return
+    const d = destinations.find((x) => x.id !== "unassigned")
+    if (!d) return
+    let cancelled = false
+    ;(async () => {
+      const cand = await resolvePlace(d.label, d.label, d.country ?? undefined)
+      if (!cancelled) setLazyCover(placePhotoUrl(cand, 1200))
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripMeta.cover, destinations])
+
   const dest = destinations.find((d) => d.id === selectedDestId) ?? null
   const inDest = tab === "plan" && dest != null
 
@@ -300,6 +320,15 @@ export default function TripTabs({
               priority
               sizes="(max-width: 1024px) 100vw, 700px"
               className="object-cover"
+            />
+          ) : lazyCover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={lazyCover}
+              alt=""
+              fetchPriority="high"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />

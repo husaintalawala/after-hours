@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
 
 // mapbox-gl is ~1.7MB of JS — load it after the shell paints instead of
@@ -24,6 +25,7 @@ export interface HomeTrip {
   id: string
   title: string
   cover: string | null
+  city: string | null
   country: string | null
   startDate: string | null
   dateLabel: string
@@ -278,6 +280,7 @@ function FeaturedCard({ trip, onHover }: { trip: HomeTrip; onHover: () => void }
 // Desktop compact row: thumbnail + title + dates + flag. Hover flies the globe.
 function TripRow({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
   const flag = countryFlagEmoji(trip.country)
+  const cover = useTripCover(trip)
   return (
     <li>
       <Link
@@ -291,6 +294,14 @@ function TripRow({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
             width={96}
             height={96}
             sizes="48px"
+            className="h-12 w-12 shrink-0 rounded-xl object-cover"
+          />
+        ) : cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cover}
+            alt=""
+            loading="lazy"
             className="h-12 w-12 shrink-0 rounded-xl object-cover"
           />
         ) : (
@@ -331,7 +342,30 @@ function BigCard({ trip, className = "" }: { trip: HomeTrip; className?: string 
   )
 }
 
+// Lazy trip cover. Trips usually lack cover_url/media, so — mirroring the
+// destination-hero resolver in TripTabs — we resolve the lead city's photo on
+// the client after mount and fill it in over the gradient. No SSR photo lookup
+// on the critical path (that was the perf regression). Returns a stored cover
+// immediately when present.
+function useTripCover(trip: HomeTrip): string | null {
+  const [lazy, setLazy] = useState<string | null>(null)
+  useEffect(() => {
+    const city = trip.city
+    if (trip.cover || !city) return
+    let cancelled = false
+    ;(async () => {
+      const cand = await resolvePlace(city, city, trip.country ?? undefined)
+      if (!cancelled) setLazy(placePhotoUrl(cand, 800))
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [trip.cover, trip.city, trip.country])
+  return trip.cover ?? lazy
+}
+
 function CardCover({ trip }: { trip: HomeTrip }) {
+  const cover = useTripCover(trip)
   return (
     <>
       {trip.cover ? (
@@ -340,6 +374,14 @@ function CardCover({ trip }: { trip: HomeTrip }) {
           fill
           sizes="(max-width: 1024px) 100vw, 420px"
           className="object-cover"
+        />
+      ) : cover ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={cover}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
         <div

@@ -81,8 +81,11 @@ export default function DiscoverShell({
               <LocationPicker anchor={anchor} places={places} onSelect={setAnchor} />
             </div>
 
-            {/* Category chips */}
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Category chips — shrink-0 keeps the row from collapsing: as a
+                flex child with overflow-x-auto its automatic min-height is 0,
+                so the growing flex-1 results list below would otherwise squash
+                it to a sliver. flex-nowrap + overflow-x-auto = horizontal scroll. */}
+            <div className="mt-3 flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {CATS.map((c) => (
                 <button
                   key={c}

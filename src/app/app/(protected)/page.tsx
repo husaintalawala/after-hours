@@ -123,6 +123,7 @@ export default async function TripsHome() {
     id: t.id,
     title: t.title || "Untitled Trip",
     cover: coverFor(t),
+    city: t.cities?.[0] ?? null,
     country: t.countries?.[0] ?? null,
     startDate: t.start_date,
     dateLabel: t.start_date

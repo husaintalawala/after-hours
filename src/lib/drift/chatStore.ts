@@ -70,6 +70,32 @@ export async function loadSessionMessages(sessionId: string): Promise<StoredMess
   }
 }
 
+// Trip chat history is keyed by trip_id — every trip-anchored turn sets it (see
+// the header note: "so shared-trip histories work"). Loading by trip_id (not a
+// single session_id) is what makes the full transcript appear regardless of
+// which session row a turn was written under: iOS-created sessions, pre-merge
+// duplicate threads whose messages were never re-pointed to the canonical
+// session, and shared-trip buddies whose own session id differs. The trip chat
+// consolidates all of these into one thread (matching the Chats sidebar's
+// one-row-per-trip grouping).
+export async function loadTripMessages(tripId: string): Promise<StoredMessage[]> {
+  try {
+    const supabase = db()
+    const { data } = await supabase
+      .from("trip_chat_messages")
+      .select("role,text,created_at")
+      .eq("trip_id", tripId)
+      .order("created_at", { ascending: true })
+      .limit(100)
+    return (data ?? []).map((m: { role: string; text: string }) => ({
+      role: m.role,
+      text: m.text,
+    }))
+  } catch {
+    return []
+  }
+}
+
 export async function saveMessage(
   sessionId: string,
   tripId: string | null,

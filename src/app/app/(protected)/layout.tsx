@@ -1,7 +1,15 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import AppNav from "@/components/app/AppNav"
 import AppTopNav from "@/components/app/AppTopNav"
+
+// The logged-in app owns its own browser-tab identity (the marketing landing
+// keeps the "Side Quest" title from the root layout).
+export const metadata: Metadata = {
+  title: "Drift",
+  icons: { icon: "/drift-icon.svg" },
+}
 
 // Auth gate for the whole logged-in app. Runs on the server: no session ->
 // bounce to /app/login (which lives OUTSIDE this route group, so no loop).

@@ -3,8 +3,20 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { resolvePlaceCandidates } from "@/lib/drift/chat"
+import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
 import BackLink from "@/components/app/BackLink"
+
+// A home base is a city/region — not a hotel or attraction. Google Places text
+// search is POI-biased ("new york" → "New York-New York Hotel & Casino"), so we
+// keep only locality/administrative results (OSM/Geonames are city geocoders).
+const CITY_TYPES = new Set([
+  "locality", "postal_town", "sublocality", "neighborhood", "colloquial_area",
+  "administrative_area_level_1", "administrative_area_level_2",
+  "administrative_area_level_3", "political", "country",
+])
+function isCityish(c: PlaceCandidate): boolean {
+  return c.source !== "google" || !c.primaryType || CITY_TYPES.has(c.primaryType)
+}
 
 // Web port of the iOS SettingsView: profile header, preferences (default
 // trip privacy — stored locally like iOS UserDefaults), account (sign out),
@@ -150,6 +162,18 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
         <HomeCity initial={profile.homeCity} />
       </section>
 
+      {/* Language & region */}
+      <SectionLabel>Language &amp; region</SectionLabel>
+      <section className="divide-y divide-drift-divider overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
+        <PrefSelect label="Language" storageKey="driftLanguage" fallback="en" options={LANGUAGES} />
+        <PrefSelect label="Region" storageKey="driftRegion" fallback="US" options={REGIONS} />
+        <PrefSelect label="Currency" storageKey="driftCurrency" fallback="USD" options={CURRENCIES} />
+        <PrefSelect label="Units" storageKey="driftUnits" fallback="us" options={UNITS} />
+      </section>
+      <p className="mt-2 px-1 text-[12px] text-drift-muted">
+        Currency and units apply to prices and weather shown here on the web.
+      </p>
+
       {/* Account */}
       <SectionLabel>Account</SectionLabel>
       <section className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
@@ -235,19 +259,20 @@ function HomeCity({ initial }: { initial: string | null }) {
     if (!q || searching) return
     const s = ++seq.current
     setSearching(true)
-    const cands = await resolvePlaceCandidates(q, q)
+    // City-search mode: no destinationName (that biases resolve-place to POIs
+    // near the place — the "Hotel & Casino" bug); then keep only city-ish hits.
+    const cands = await resolvePlaceCandidates(q)
     if (seq.current !== s) return
     setSearching(false)
+    const withCoords = cands.filter((c) => c.latitude != null && c.longitude != null)
+    const cities = withCoords.filter(isCityish)
     setResults(
-      cands
-        .filter((c) => c.latitude != null && c.longitude != null)
-        .slice(0, 6)
-        .map((c) => ({
-          name: c.name,
-          country: (c.address ?? "").split(",").pop()?.trim() || null,
-          lat: c.latitude!,
-          lng: c.longitude!,
-        }))
+      (cities.length ? cities : withCoords).slice(0, 6).map((c) => ({
+        name: c.name,
+        country: (c.address ?? "").split(",").pop()?.trim() || null,
+        lat: c.latitude!,
+        lng: c.longitude!,
+      }))
     )
   }
 
@@ -310,6 +335,60 @@ function HomeCity({ initial }: { initial: string | null }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+const LANGUAGES: Array<[string, string]> = [
+  ["en", "English"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"],
+  ["it", "Italiano"], ["pt", "Português"], ["ja", "日本語"], ["zh", "中文"],
+]
+const REGIONS: Array<[string, string]> = [
+  ["US", "🇺🇸 United States"], ["GB", "🇬🇧 United Kingdom"], ["CA", "🇨🇦 Canada"],
+  ["AU", "🇦🇺 Australia"], ["IN", "🇮🇳 India"], ["FR", "🇫🇷 France"],
+  ["DE", "🇩🇪 Germany"], ["ES", "🇪🇸 Spain"], ["JP", "🇯🇵 Japan"],
+]
+const CURRENCIES: Array<[string, string]> = [
+  ["USD", "USD (US$) — US Dollar"], ["EUR", "EUR (€) — Euro"], ["GBP", "GBP (£) — Pound"],
+  ["CAD", "CAD (C$) — Canadian Dollar"], ["AUD", "AUD (A$) — Australian Dollar"],
+  ["JPY", "JPY (¥) — Yen"], ["INR", "INR (₹) — Rupee"],
+]
+const UNITS: Array<[string, string]> = [
+  ["us", "US (°F, mi)"], ["metric", "Metric (°C, km)"],
+]
+
+// localStorage-backed preference dropdown (Aurora dark). Values are read on the
+// web for price/weather display; the store is client-only, like defaultTripPrivacy.
+function PrefSelect({
+  label,
+  storageKey,
+  fallback,
+  options,
+}: {
+  label: string
+  storageKey: string
+  fallback: string
+  options: Array<[string, string]>
+}) {
+  const [value, setValue] = useState(fallback)
+  useEffect(() => {
+    setValue(localStorage.getItem(storageKey) ?? fallback)
+  }, [storageKey, fallback])
+  return (
+    <div className="flex items-center justify-between gap-3 px-5 py-3.5">
+      <span className="text-[14.5px]">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value)
+          localStorage.setItem(storageKey, e.target.value)
+        }}
+        className="max-w-[60%] truncate rounded-full border border-aurora-border bg-aurora-midnight2 px-3.5 py-1.5 text-[13px] font-medium text-aurora-ink outline-none focus:border-aurora-teal [color-scheme:dark]"
+      >
+        {options.map(([v, l]) => (
+          <option key={v} value={v}>{l}</option>
+        ))}
+      </select>
     </div>
   )
 }
