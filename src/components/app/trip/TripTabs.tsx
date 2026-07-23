@@ -11,6 +11,7 @@ import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
 import TripCoverChips from "./TripCoverChips"
+import TripWeather from "./TripWeather"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -203,6 +204,11 @@ export default function TripTabs({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripMeta.cover, destinations])
 
+  // Lead destination with coords → the trip-cover weather pill (iOS parity).
+  const weatherDest = destinations.find(
+    (d) => d.id !== "unassigned" && d.lat != null && d.lng != null
+  ) ?? null
+
   const dest = destinations.find((d) => d.id === selectedDestId) ?? null
   const inDest = tab === "plan" && dest != null
 
@@ -337,6 +343,11 @@ export default function TripTabs({
             className="absolute inset-0"
             style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
           />
+          {weatherDest && (
+            <div className="absolute right-5 top-[62px] z-10 md:right-7 md:top-[80px]">
+              <TripWeather lat={weatherDest.lat!} lng={weatherDest.lng!} place={weatherDest.label} />
+            </div>
+          )}
           <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
             <div className="flex items-start justify-between gap-3">
               <BackLink href="/app" label="Home" />
