@@ -1,24 +1,55 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import type { DiscoverAnchor, DiscoverResult } from "@/lib/drift/discover"
 
 // ---- 2D results map ----
 
+// Great-circle distance in km — used to size the "search this area" radius from
+// the visible map span (center → NE corner).
+function distanceKm(a: mapboxgl.LngLat, b: mapboxgl.LngLat): number {
+  const R = 6371
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) *
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)))
+}
+
 export default function DiscoverMap({
   anchor,
   results,
   hoveredId,
+  onSearchArea,
 }: {
   anchor: DiscoverAnchor | null
   results: DiscoverResult[]
   hoveredId: string | null
+  onSearchArea?: (c: { lat: number; lng: number; radiusKm: number }) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map())
+  // Set true right before a fitBounds/flyTo so the resulting 'moveend' isn't
+  // mistaken for a user pan (which is what surfaces the "search this area" pill).
+  const programmaticRef = useRef(false)
+  const pillTimerRef = useRef<number | null>(null)
+  const [showSearchHere, setShowSearchHere] = useState(false)
+
+  // Mark the next camera animation as programmatic. A timeout backup clears the
+  // flag in case the target ≈ current position and Mapbox emits no 'moveend'.
+  function beginProgrammatic() {
+    programmaticRef.current = true
+    if (pillTimerRef.current) window.clearTimeout(pillTimerRef.current)
+    window.setTimeout(() => {
+      programmaticRef.current = false
+    }, 1000)
+  }
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
@@ -34,8 +65,22 @@ export default function DiscoverMap({
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right")
     const logo = containerRef.current.querySelector(".mapboxgl-ctrl-logo") as HTMLElement | null
     if (logo) logo.style.display = "none"
+    // Surface the "search this area" pill after the user finishes panning/zooming
+    // (debounced), but never for our own fitBounds/flyTo camera moves.
+    map.on("movestart", () => {
+      if (pillTimerRef.current) window.clearTimeout(pillTimerRef.current)
+    })
+    map.on("moveend", () => {
+      if (programmaticRef.current) {
+        programmaticRef.current = false
+        return
+      }
+      if (pillTimerRef.current) window.clearTimeout(pillTimerRef.current)
+      pillTimerRef.current = window.setTimeout(() => setShowSearchHere(true), 300)
+    })
     mapRef.current = map
     return () => {
+      if (pillTimerRef.current) window.clearTimeout(pillTimerRef.current)
       map.remove()
       mapRef.current = null
     }
@@ -63,9 +108,13 @@ export default function DiscoverMap({
       bounds.extend([r.lng, r.lat])
       any = true
     }
-    if (any) map.fitBounds(bounds, { padding: 70, maxZoom: 14, duration: 800 })
-    else if (anchor?.lat != null && anchor?.lng != null)
-      map.flyTo({ center: [anchor.lng, anchor.lat], zoom: 11 })
+    if (any) {
+      beginProgrammatic()
+      map.fitBounds(bounds, { padding: 70, maxZoom: 14, duration: 800 })
+    } else if (anchor?.lat != null && anchor?.lng != null) {
+      beginProgrammatic()
+      map.flyTo({ center: [anchor.lng, anchor.lat], zoom: 11, duration: 800 })
+    }
   }, [results, anchor])
 
   // Hovered card → pop its marker.
@@ -77,5 +126,27 @@ export default function DiscoverMap({
     }
   }, [hoveredId])
 
-  return <div ref={containerRef} className="h-full w-full" />
+  function handleSearchHere() {
+    const map = mapRef.current
+    if (!map || !onSearchArea) return
+    const center = map.getCenter()
+    const bounds = map.getBounds()
+    const radiusKm = bounds ? distanceKm(center, bounds.getNorthEast()) : 25
+    setShowSearchHere(false)
+    onSearchArea({ lat: center.lat, lng: center.lng, radiusKm })
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      {showSearchHere && onSearchArea && (
+        <button
+          onClick={handleSearchHere}
+          className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border border-aurora-border bg-drift-coral px-4 py-2 text-[13px] font-semibold text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.65)] transition-transform hover:-translate-y-0.5 hover:-translate-x-1/2"
+        >
+          Search this area
+        </button>
+      )}
+    </div>
+  )
 }

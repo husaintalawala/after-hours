@@ -21,7 +21,7 @@ const DiscoverMap = dynamic(() => import("./DiscoverMap"), {
 // (search, category chips, cards with photos/ratings/prices/Book), live map on
 // the right with markers. Mobile: search + chips + list.
 
-const CATS: DiscoverCategory[] = ["forYou", "restaurants", "thingsToDo", "stays"]
+const CATS: DiscoverCategory[] = ["forYou", "restaurants", "thingsToDo", "stays", "events"]
 
 // A quick-select place in the location picker — a destination across the
 // user's trips (mirrors iOS "your destinations grouped by your timeline").
@@ -47,22 +47,48 @@ export default function DiscoverShell({
   const [results, setResults] = useState<DiscoverResult[]>([])
   const [loading, setLoading] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
+  // "Search this area": the fetch center is decoupled from the rail anchor. When
+  // the user pans/zooms the map and taps the pill, `override` holds the new map
+  // center (reverse-geocoded to a city label so Google-text categories re-search
+  // there too) + a radius. Cleared whenever the rail anchor changes.
+  const [override, setOverride] = useState<
+    (DiscoverAnchor & { radiusKm: number }) | null
+  >(null)
   const reqSeq = useRef(0)
 
+  // The anchor actually driving results + the map — the override center if the
+  // user searched a panned area, otherwise the rail selection.
+  const fetchAnchor: DiscoverAnchor | null = override
+    ? { label: override.label, country: override.country, lat: override.lat, lng: override.lng }
+    : anchor
+
+  // Picking a new rail location supersedes any "search this area" override.
+  function selectAnchor(a: DiscoverAnchor) {
+    setOverride(null)
+    setAnchor(a)
+  }
+
+  // Re-search the current category at a new map center (from the map pill).
+  async function searchArea(c: { lat: number; lng: number; radiusKm: number }) {
+    const { label, country } = await reverseGeocodeCity(c.lat, c.lng)
+    setOverride({ label, country, lat: c.lat, lng: c.lng, radiusKm: c.radiusKm })
+  }
+
   useEffect(() => {
-    if (!anchor) return
+    if (!fetchAnchor) return
     const seq = ++reqSeq.current
     setLoading(true)
     // Keep the current results visible while the next category/location loads —
     // clearing to [] caused a jarring empty "flash" on every switch. loadCategory
     // is timeout-bounded, so `loading` always resolves.
-    loadCategory(cat, anchor).then((r) => {
+    loadCategory(cat, fetchAnchor, override?.radiusKm).then((r) => {
       if (reqSeq.current === seq) {
         setResults(r)
         setLoading(false)
       }
     })
-  }, [cat, anchor])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat, anchor, override])
 
   return (
     // Start below the 60px sticky top nav — pinning to top-0 slid the location
@@ -78,7 +104,7 @@ export default function DiscoverShell({
 
             {/* Location picker — current location + your trip places + city search */}
             <div className="mt-4">
-              <LocationPicker anchor={anchor} places={places} onSelect={setAnchor} />
+              <LocationPicker anchor={anchor} places={places} onSelect={selectAnchor} />
             </div>
 
             {/* Category chips — shrink-0 keeps the row from collapsing: as a
@@ -96,6 +122,9 @@ export default function DiscoverShell({
                       : "border border-drift-divider bg-aurora-glass text-drift-muted"
                   }`}
                 >
+                  {CATEGORY_META[c].icon && (
+                    <span className="mr-1">{CATEGORY_META[c].icon}</span>
+                  )}
                   {CATEGORY_META[c].label}
                 </button>
               ))}
@@ -103,17 +132,17 @@ export default function DiscoverShell({
 
             {/* Results */}
             <div className="mt-4 flex-1 space-y-3 pb-28">
-              {!anchor && (
+              {!fetchAnchor && (
                 <p className="pt-8 text-center text-drift-muted">
                   Search a city to start exploring.
                 </p>
               )}
-              {anchor && loading && results.length === 0 && (
+              {fetchAnchor && loading && results.length === 0 && (
                 <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">
-                  Finding {CATEGORY_META[cat].label.toLowerCase()} in {anchor.label}…
+                  Finding {CATEGORY_META[cat].label.toLowerCase()} in {fetchAnchor.label}…
                 </p>
               )}
-              {anchor && !loading && results.length === 0 && (
+              {fetchAnchor && !loading && results.length === 0 && (
                 <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">
                   Nothing found here yet.
                 </p>
@@ -130,7 +159,12 @@ export default function DiscoverShell({
 
           {/* Map (desktop) */}
           <div className="hidden lg:block">
-            <DiscoverMap anchor={anchor} results={results} hoveredId={hovered} />
+            <DiscoverMap
+              anchor={fetchAnchor}
+              results={results}
+              hoveredId={hovered}
+              onSearchArea={searchArea}
+            />
           </div>
         </div>
       </div>
@@ -400,7 +434,7 @@ function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) 
               rel="noreferrer"
               className="rounded-full bg-drift-coral px-3 py-1 text-[12px] font-semibold text-white"
             >
-              Book
+              {r.source === "ticketmaster" ? "Tickets" : "Book"}
             </a>
           )}
           <a

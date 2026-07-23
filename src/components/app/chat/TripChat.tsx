@@ -73,7 +73,6 @@ export default function TripChat({
   // Attached photo (downscaled base64 data URL) for a vision question —
   // ask-drift-chat consumes `image` and answers about the photo.
   const [attached, setAttached] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   // Message scroll: always land on the most recent turn, and offer a jump-to-
   // latest chevron once the user scrolls up.
@@ -243,19 +242,21 @@ export default function TripChat({
   }
 
   async function confirmCard(card: HydratedCard) {
+    // Every suggestion card is addable. Cards with a proposed_op carry the
+    // model's date/time/type; itinerary/route cards arrive without one, so we
+    // synthesize a plain create_step from the card itself (spot, no schedule).
     const p = card.proposed_op
-    if (!p) return
     setError(null)
     const op: CreateStepOp = {
       op: "create_step",
-      type: normalizeType(p.type),
-      title: p.title || card.title,
-      destination_ref: p.destination_ref ?? null,
-      destination_id: destIdForDate(p.date) ?? null,
-      date: p.date ?? null,
-      time: p.time ?? null,
-      duration_minutes: p.duration_minutes ?? null,
-      notes: p.notes ?? null,
+      type: normalizeType(p?.type ?? "spot"),
+      title: p?.title || card.title,
+      destination_ref: p?.destination_ref ?? null,
+      destination_id: destIdForDate(p?.date ?? null) ?? null,
+      date: p?.date ?? null,
+      time: p?.time ?? null,
+      duration_minutes: p?.duration_minutes ?? null,
+      notes: p?.notes ?? null,
     }
     // resolved_place: coords always; place_id only for Google-sourced ids
     // (OSM/Geonames ids are deliberately not sent — iOS parity).
@@ -487,25 +488,27 @@ export default function TripChat({
           </div>
         )}
         <div className="flex items-center gap-2.5">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) fileToDataUrl(f).then((url) => url && setAttached(url))
-              e.target.value = ""
-            }}
-          />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
+          {/* Label-wrap pattern: clicking the label natively opens the OS file
+              picker — no programmatic .click() on a display:none input (which
+              silently fails in several browsers). Input is sr-only, not hidden. */}
+          <label
             aria-label="Attach a photo"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border border-aurora-border bg-aurora-midnight text-[22px] leading-none text-drift-muted transition-colors hover:border-drift-coral hover:text-drift-coral disabled:opacity-50"
+            className={`flex h-[46px] w-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border border-aurora-border bg-aurora-midnight text-[22px] leading-none text-drift-muted transition-colors hover:border-drift-coral hover:text-drift-coral ${
+              busy ? "pointer-events-none opacity-50" : ""
+            }`}
           >
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) fileToDataUrl(f).then((url) => url && setAttached(url))
+                e.target.value = ""
+              }}
+            />
             +
-          </button>
+          </label>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -619,16 +622,14 @@ function PlaceCardView({
           </div>
         )}
         <div className="mt-2.5 flex items-center gap-2">
-          {card.proposed_op && (
-            <button
-              onClick={onAdd}
-              className="rounded-full bg-drift-coral px-3 py-1.5 text-[12.5px] font-semibold text-white"
-            >
-              Add
-              {card.proposed_op.date ? ` · ${shortDate(card.proposed_op.date)}` : ""}
-              {card.proposed_op.time ? ` ${card.proposed_op.time}` : ""}
-            </button>
-          )}
+          <button
+            onClick={onAdd}
+            className="rounded-full bg-drift-coral px-3 py-1.5 text-[12.5px] font-semibold text-white"
+          >
+            Add
+            {card.proposed_op?.date ? ` · ${shortDate(card.proposed_op.date)}` : ""}
+            {card.proposed_op?.time ? ` ${card.proposed_op.time}` : ""}
+          </button>
           <a
             href={mapHref}
             target="_blank"
@@ -658,18 +659,104 @@ function normalizeType(t: string): CreateStepOp["type"] {
 }
 
 // ---- Rich text renderer for assistant messages ----
-// The model emits markdown-ish text: **bold**, and [label](places:?q=...) place
-// links (plus occasional http links). Render bold as <strong>, place links as
-// coral tappable spans (tap → prefill "Tell me about {label}"), http links as
-// real anchors. Paragraphs split on blank lines.
+// The model emits markdown-ish text: **bold**, [label](places:?q=...) place
+// links (plus occasional http links), and block structure — headings (##/###),
+// unordered lists (- / *) and ordered lists (1.). Render bold as <strong>,
+// place links as coral tappable spans (tap → prefill "Tell me about {label}"),
+// http links as real anchors. Consecutive bullet/number lines group into one
+// <ul>/<ol>; other text splits into paragraphs on blank lines.
 
 export function renderRich(text: string): React.ReactNode {
-  const paragraphs = text.split(/\n{2,}/)
-  return paragraphs.map((para, pi) => (
-    <p key={pi} className={pi > 0 ? "mt-2.5" : undefined}>
-      {renderInline(para)}
-    </p>
-  ))
+  const lines = text.replace(/\r/g, "").split("\n")
+  const blocks: React.ReactNode[] = []
+  let para: string[] = []
+  let list: { ordered: boolean; items: string[] } | null = null
+  let key = 0
+  const gap = () => (blocks.length ? "mt-2.5" : "")
+
+  const flushPara = () => {
+    if (!para.length) return
+    blocks.push(
+      <p key={`p${key++}`} className={gap() || undefined}>
+        {renderInline(para.join("\n"))}
+      </p>
+    )
+    para = []
+  }
+  const flushList = () => {
+    if (!list) return
+    const { ordered, items } = list
+    const rows = items.map((it, i) => (
+      <li key={i} className="pl-1 leading-[1.55] marker:text-drift-text-tertiary">
+        {renderInline(it)}
+      </li>
+    ))
+    const cls = `${gap()} space-y-1 pl-5 ${ordered ? "list-decimal" : "list-disc"}`
+    blocks.push(
+      ordered ? (
+        <ol key={`l${key++}`} className={cls}>
+          {rows}
+        </ol>
+      ) : (
+        <ul key={`l${key++}`} className={cls}>
+          {rows}
+        </ul>
+      )
+    )
+    list = null
+  }
+
+  for (const raw of lines) {
+    const trimmed = raw.trim()
+    if (!trimmed) {
+      flushPara()
+      flushList()
+      continue
+    }
+    // Heading: #, ##, ### … → a small bold heading.
+    const h = /^#{1,6}\s+(.*)$/.exec(trimmed)
+    if (h) {
+      flushPara()
+      flushList()
+      blocks.push(
+        <p
+          key={`h${key++}`}
+          className={`${blocks.length ? "mt-3.5" : ""} text-[14px] font-semibold text-drift-ink`}
+        >
+          {renderInline(h[1])}
+        </p>
+      )
+      continue
+    }
+    // Ordered list item: "1. " / "2) ".
+    const ol = /^\d+[.)]\s+(.*)$/.exec(trimmed)
+    if (ol) {
+      flushPara()
+      if (!list || !list.ordered) {
+        flushList()
+        list = { ordered: true, items: [] }
+      }
+      list.items.push(ol[1])
+      continue
+    }
+    // Unordered list item: "- " / "* " / "• ".
+    const ul = /^[-*•]\s+(.*)$/.exec(trimmed)
+    if (ul) {
+      flushPara()
+      if (!list || list.ordered) {
+        flushList()
+        list = { ordered: false, items: [] }
+      }
+      list.items.push(ul[1])
+      continue
+    }
+    // Plain paragraph line (a stray non-list line closes any open list).
+    flushList()
+    para.push(raw)
+  }
+  flushPara()
+  flushList()
+  return blocks
 }
 
 function renderInline(text: string): React.ReactNode[] {

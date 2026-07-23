@@ -4,16 +4,17 @@
 
 import { resolvePlaceCandidates, placePhotoUrl, type PlaceCandidate } from "./chat"
 
-export type DiscoverCategory = "forYou" | "restaurants" | "thingsToDo" | "stays"
+export type DiscoverCategory = "forYou" | "restaurants" | "thingsToDo" | "stays" | "events"
 
 export const CATEGORY_META: Record<
   DiscoverCategory,
-  { label: string; query: string }
+  { label: string; query: string; icon?: string }
 > = {
   forYou: { label: "For you", query: "top attractions" },
   restaurants: { label: "Restaurants", query: "restaurants" },
   thingsToDo: { label: "Things to do", query: "things to do" },
   stays: { label: "Stays", query: "hotels" },
+  events: { label: "Events", query: "events", icon: "🎟️" },
 }
 
 export interface DiscoverResult {
@@ -27,7 +28,7 @@ export interface DiscoverResult {
   lat: number | null
   lng: number | null
   bookingUrl: string | null
-  source: "google" | "viator" | "stay22"
+  source: "google" | "viator" | "stay22" | "ticketmaster"
 }
 
 export interface DiscoverAnchor {
@@ -58,6 +59,8 @@ interface VendorCandidate {
   name: string
   photoUrl?: string | null
   photoRef?: string | null
+  heroImageURL?: string | null
+  images?: string[] | null
   rating?: number | null
   reviewCount?: number | null
   priceLabel?: string | null
@@ -67,7 +70,10 @@ interface VendorCandidate {
   bookingUrl?: string | null
 }
 
-async function vendor(kind: "activities" | "stays", payload: Record<string, unknown>) {
+async function vendor(
+  kind: "activities" | "stays" | "events",
+  payload: Record<string, unknown>
+) {
   try {
     const res = await fetch("/api/drift/discover", {
       method: "POST",
@@ -82,10 +88,14 @@ async function vendor(kind: "activities" | "stays", payload: Record<string, unkn
   }
 }
 
-const fromVendor = (source: "viator" | "stay22") => (c: VendorCandidate): DiscoverResult => ({
+const fromVendor =
+  (source: "viator" | "stay22" | "ticketmaster") =>
+  (c: VendorCandidate): DiscoverResult => ({
   id: c.id,
   name: c.name,
-  photo: c.photoUrl ?? null,
+  // Ticketmaster events return an `images` array (ResolvePlaceCandidate-shaped);
+  // OTA/activity vendors return `photoUrl`. Take whichever is present.
+  photo: c.photoUrl ?? c.images?.[0] ?? c.heroImageURL ?? null,
   rating: c.rating ?? null,
   reviewCount: c.reviewCount ?? null,
   priceLabel: c.priceLabel ?? null,
@@ -106,11 +116,34 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   ])
 }
 
-/** Load a category. Bookable vendors lead, Google POIs fill in (iOS blending). */
+/** Load a category. Bookable vendors lead, Google POIs fill in (iOS blending).
+ *  `radiusKm` is honored by the events (Ticketmaster) branch — set it from the
+ *  visible map span when re-searching a panned/zoomed area. */
 export async function loadCategory(
   cat: DiscoverCategory,
-  anchor: DiscoverAnchor
+  anchor: DiscoverAnchor,
+  radiusKm?: number
 ): Promise<DiscoverResult[]> {
+  // Events are pure Ticketmaster (no Google blend) and are venue-coordinate
+  // driven. City-only anchors (no coords) can't be searched — fall back to [].
+  if (cat === "events") {
+    const lat = anchor.lat
+    const lng = anchor.lng
+    if (lat == null || lng == null) return []
+    const events = withTimeout(
+      vendor("events", {
+        lat,
+        lng,
+        radiusKm,
+        count: 20,
+        startDate: new Date().toISOString().slice(0, 10),
+      }).then((cs) => cs.map(fromVendor("ticketmaster"))),
+      7000,
+      [] as DiscoverResult[]
+    )
+    return dedupe(await events)
+  }
+
   const google = withTimeout(
     resolvePlaceCandidates(
       CATEGORY_META[cat].query,

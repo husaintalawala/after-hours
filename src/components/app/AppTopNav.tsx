@@ -41,9 +41,9 @@ export default function AppTopNav({
         className="flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
         aria-label="Drift home"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-aurora-teal">
-          <path d="M3 11l18-8-8 18-2-8-8-2z" />
-        </svg>
+        {/* Real Drift comet mark (ported from the iOS DriftLogo asset). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/drift-logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
         <span className="font-drift-display text-[24px] font-semibold tracking-tight text-aurora-teal">drift</span>
       </Link>
 

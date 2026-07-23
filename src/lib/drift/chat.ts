@@ -62,7 +62,10 @@ export interface AskHandlers {
 }
 
 const ASK_URL = "/api/drift/ask"
-const FIRST_TOKEN_TIMEOUT_MS = 12_000
+// Silence window: abort → blocking retry only after this long with NO stream
+// activity at all (re-armed on every chunk). Generous enough that a reasoning
+// think doesn't trip it even if heartbeats are buffered.
+const FIRST_TOKEN_TIMEOUT_MS = 18_000
 
 /**
  * Run one Ask-Drift turn: stream via SSE, and if no first token lands within
@@ -92,9 +95,20 @@ async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<v
   const controller = new AbortController()
   let gotFirstToken = false
 
-  const watchdog = setTimeout(() => {
-    if (!gotFirstToken) controller.abort() // → caller falls back to blockingAsk
-  }, FIRST_TOKEN_TIMEOUT_MS)
+  // Watchdog = SILENCE detector, not a time-to-first-token deadline. A reasoning
+  // turn can legitimately think >12s before the first content token; the edge fn
+  // sends ~5s heartbeats meanwhile. So we (re)arm the timer on ANY stream
+  // activity and only abort → blocking retry when the stream goes truly SILENT
+  // for the window. This kills the "slow think → premature abort → blocking
+  // retry → doubled ~15-25s latency" anomaly.
+  let watchdog: ReturnType<typeof setTimeout> | null = null
+  const armWatchdog = () => {
+    if (watchdog) clearTimeout(watchdog)
+    watchdog = setTimeout(() => {
+      if (!gotFirstToken) controller.abort()
+    }, FIRST_TOKEN_TIMEOUT_MS)
+  }
+  armWatchdog()
 
   try {
     const res = await fetch(ASK_URL, {
@@ -116,6 +130,9 @@ async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<v
     for (;;) {
       const { done, value } = await reader.read()
       if (done) break
+      // Any bytes (a heartbeat, a partial frame) mean the stream is alive → the
+      // silence window resets. Once content lands the watchdog is cleared for good.
+      if (!gotFirstToken) armWatchdog()
       buffer += decoder.decode(value, { stream: true }).replace(/\r/g, "")
       let idx: number
       while ((idx = buffer.indexOf("\n\n")) >= 0) {
@@ -123,7 +140,7 @@ async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<v
         buffer = buffer.slice(idx + 2)
         if (handleFrame(frame, handlers)) {
           gotFirstToken = true
-          clearTimeout(watchdog)
+          if (watchdog) clearTimeout(watchdog)
         }
       }
     }
@@ -134,7 +151,7 @@ async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<v
       throw new Error("no first token")
     }
   } finally {
-    clearTimeout(watchdog)
+    if (watchdog) clearTimeout(watchdog)
   }
 }
 
