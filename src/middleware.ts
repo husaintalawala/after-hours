@@ -21,6 +21,18 @@ export async function middleware(req: NextRequest) {
     return await updateSession(req);
   }
 
+  // App-owned brand assets live at the root (referenced by the app header +
+  // favicon metadata). They must be served from Next's /public, not swallowed
+  // by the marketing rewrite below — otherwise the logo shows a broken image
+  // and the tab has no favicon on drift.after-hours.app.
+  if (
+    pathname === "/drift-logo.png" ||
+    pathname === "/drift-icon.svg" ||
+    pathname === "/favicon.svg"
+  ) {
+    return NextResponse.next();
+  }
+
   // --- Marketing landing (owned by the marketing workstream) — unchanged ---
   if (host !== "drift.after-hours.app") return NextResponse.next();
 
