@@ -188,6 +188,10 @@ export default function DiscoverMap({
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map())
+  // Fingerprint of the last coords/anchor we camera-fit to, so a results change
+  // that only fills in descriptions (lazy AI blurbs) re-renders the markers/
+  // popups WITHOUT re-animating the camera.
+  const lastFitRef = useRef<string>("")
   // Set true right before a fitBounds/flyTo so the resulting 'moveend' isn't
   // mistaken for a user pan (which is what surfaces the "search this area" pill).
   const programmaticRef = useRef(false)
@@ -284,20 +288,27 @@ export default function DiscoverMap({
 
     render()
 
-    // Fit to results once per result-set change (not on every re-cluster, so
-    // the user's own pans/zooms stay put).
-    const bounds = new mapboxgl.LngLatBounds()
-    let any = false
-    for (const r of pts) {
-      bounds.extend([r.lng as number, r.lat as number])
-      any = true
-    }
-    if (any) {
-      beginProgrammatic()
-      map.fitBounds(bounds, { padding: 70, maxZoom: 14, duration: 800 })
-    } else if (anchor?.lat != null && anchor?.lng != null) {
-      beginProgrammatic()
-      map.flyTo({ center: [anchor.lng, anchor.lat], zoom: 11, duration: 800 })
+    // Fit the camera only when the actual set of places (or the anchor) changes
+    // — a results change that merely fills in descriptions (lazy AI blurbs) has
+    // the same fingerprint, so it re-renders markers/popups without yanking the
+    // camera back from wherever the user panned.
+    const fp =
+      pts.map((r) => `${r.id}:${r.lat}:${r.lng}`).join("|") + `@${anchor?.lat},${anchor?.lng}`
+    if (fp !== lastFitRef.current) {
+      lastFitRef.current = fp
+      const bounds = new mapboxgl.LngLatBounds()
+      let any = false
+      for (const r of pts) {
+        bounds.extend([r.lng as number, r.lat as number])
+        any = true
+      }
+      if (any) {
+        beginProgrammatic()
+        map.fitBounds(bounds, { padding: 70, maxZoom: 14, duration: 800 })
+      } else if (anchor?.lat != null && anchor?.lng != null) {
+        beginProgrammatic()
+        map.flyTo({ center: [anchor.lng, anchor.lat], zoom: 11, duration: 800 })
+      }
     }
 
     map.on("moveend", render)

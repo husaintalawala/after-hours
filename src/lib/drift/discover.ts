@@ -193,6 +193,27 @@ export async function loadCategory(
   return await google
 }
 
+/** Fetch AI one-line blurbs for a batch of places (cached server-side, generated
+ *  with Gemini Flash-Lite on a miss). Returns an { id → blurb } map; ids without
+ *  a blurb are simply absent. Best-effort — never throws. */
+export async function fetchPlaceBlurbs(
+  places: { id: string; name: string; city?: string; category?: string }[]
+): Promise<Record<string, string>> {
+  if (!places.length) return {}
+  try {
+    const res = await fetch("/api/drift/place-blurb", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ places }),
+    })
+    if (!res.ok) return {}
+    const json = (await res.json()) as { blurbs?: Record<string, string> }
+    return json.blurbs ?? {}
+  } catch {
+    return {}
+  }
+}
+
 /** Gate a vendor-supplied URL to http(s) before it reaches an href — blocks
  *  javascript:/data: schemes from an untrusted upstream (booking deep-links).
  *  Returns the original URL if safe, else null. */

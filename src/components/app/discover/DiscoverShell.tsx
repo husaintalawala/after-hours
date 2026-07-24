@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import {
   CATEGORY_META,
+  fetchPlaceBlurbs,
   loadCategory,
   safeHttpUrl,
   type DiscoverAnchor,
@@ -56,6 +57,10 @@ export default function DiscoverShell({
     (DiscoverAnchor & { radiusKm: number }) | null
   >(null)
   const reqSeq = useRef(0)
+  // Client-side blurb memo (id → AI one-liner) so switching categories / panning
+  // back doesn't re-request blurbs we already have this session. The server
+  // caches permanently too; this just avoids the round-trip.
+  const blurbCache = useRef<Map<string, string>>(new Map())
 
   // The anchor actually driving results + the map — the override center if the
   // user searched a panned area, otherwise the rail selection. Memoized so its
@@ -83,6 +88,41 @@ export default function DiscoverShell({
     setOverride({ label, country, lat: c.lat, lng: c.lng, radiusKm: c.radiusKm })
   }
 
+  // Lazily fill AI one-line blurbs for Google POIs that lack a description
+  // (Viator already ships its own). Runs after each result load and merges the
+  // blurbs into results — and thus the map popups — when they arrive. The seq
+  // guard drops results that a newer load has already superseded. Best-effort.
+  async function enrichBlurbs(list: DiscoverResult[], seq: number) {
+    const need = list.filter((r) => r.source === "google" && !r.description && r.name)
+    if (!need.length) return
+    const uncached = need.filter((r) => !blurbCache.current.has(r.id))
+    if (uncached.length) {
+      const fetched = await fetchPlaceBlurbs(
+        uncached.map((r) => ({
+          id: r.id,
+          name: r.name,
+          city: fetchAnchor?.label ?? undefined,
+          category: r.subtitle ? humanize(r.subtitle) : undefined,
+        }))
+      )
+      for (const [id, b] of Object.entries(fetched)) blurbCache.current.set(id, b)
+    }
+    if (reqSeq.current !== seq) return // superseded by a newer load — don't merge stale
+    setResults((prev) => {
+      let changed = false
+      const next = prev.map((r) => {
+        if (r.description) return r
+        const b = blurbCache.current.get(r.id)
+        if (b) {
+          changed = true
+          return { ...r, description: b }
+        }
+        return r
+      })
+      return changed ? next : prev
+    })
+  }
+
   useEffect(() => {
     if (!fetchAnchor) return
     const seq = ++reqSeq.current
@@ -94,6 +134,7 @@ export default function DiscoverShell({
       if (reqSeq.current === seq) {
         setResults(r)
         setLoading(false)
+        enrichBlurbs(r, seq)
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
