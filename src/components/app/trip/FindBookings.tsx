@@ -125,6 +125,11 @@ function FindBookingsSheet({
   // review so the found list is never buried under the add-sources list.
   const [mode, setMode] = useState<"sources" | "review">(reviewBatchId ? "review" : "sources")
   const [tripName, setTripName] = useState<string | null>(null)
+  // Undo for inline dismiss: keep the removed row + defer the ignore write so an
+  // Undo within the window costs no round-trip (commit-on-timeout).
+  const [undo, setUndo] = useState<{ seg: SegmentVM; index: number; wasSelected: boolean } | null>(null)
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingIgnoreId = useRef<string | null>(null)
   const didApply = useMemo(() => appliedCount != null && appliedCount > 0, [appliedCount])
   const pdfInput = useRef<HTMLInputElement>(null)
   const icsInput = useRef<HTMLInputElement>(null)
@@ -209,30 +214,79 @@ function FindBookingsSheet({
     if (shown.length > 0) setMode("review")
   }
 
-  /// Dismiss a booking the user isn't interested in: hide it now, mark it
-  /// status=ignored server-side (an allowed value, RLS lets a trip member write
-  /// it) so a future scan won't resurface it. Best-effort — it's already gone
-  /// from the list either way.
-  async function dismissSegment(id: string) {
+  // Write status=ignored (allowed value; RLS lets a trip member write it) so a
+  // future scan won't resurface the booking. Fired only after the Undo window.
+  function commitIgnore(id: string) {
+    pendingIgnoreId.current = null
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createClient() as any
+      db.from("reservation_segments").update({ status: "ignored" }).eq("id", id)
+    } catch {
+      /* best-effort — it's already gone from the list */
+    }
+  }
+  // Commit any pending dismissal immediately (a new dismiss, or the sheet close).
+  function flushUndo() {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current)
+      undoTimer.current = null
+    }
+    if (pendingIgnoreId.current) commitIgnore(pendingIgnoreId.current)
+    setUndo(null)
+  }
+  /// Inline dismiss: hide the booking + show a 4s Undo; only mark it ignored
+  /// when the window lapses (Undo restores it with no server call).
+  function dismissSegment(id: string) {
+    flushUndo()
+    const index = segments.findIndex((s) => s.id === id)
+    const seg = segments[index]
+    if (!seg) return
+    const wasSelected = selected.has(id)
     setSegments((prev) => prev.filter((s) => s.id !== id))
     setSelected((prev) => {
       const next = new Set(prev)
       next.delete(id)
       return next
     })
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = createClient() as any
-      await db.from("reservation_segments").update({ status: "ignored" }).eq("id", id)
-    } catch {
-      /* already removed locally; the ignore is a nicety */
+    setUndo({ seg, index, wasSelected })
+    pendingIgnoreId.current = id
+    undoTimer.current = setTimeout(() => {
+      commitIgnore(id)
+      setUndo(null)
+      undoTimer.current = null
+    }, 4000)
+  }
+  function undoDismiss() {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current)
+      undoTimer.current = null
     }
+    pendingIgnoreId.current = null
+    const u = undo
+    if (!u) return
+    setSegments((prev) => {
+      const next = [...prev]
+      next.splice(Math.min(u.index, next.length), 0, u.seg)
+      return next
+    })
+    if (u.wasSelected) setSelected((prev) => new Set(prev).add(u.seg.id))
+    setUndo(null)
   }
 
   useEffect(() => {
     loadSegments()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId])
+
+  // Flush a pending ignore if the sheet unmounts before the Undo window lapses.
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current)
+      if (pendingIgnoreId.current) commitIgnore(pendingIgnoreId.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function copyAlias() {
     if (!alias) return
@@ -699,6 +753,18 @@ function FindBookingsSheet({
             }}
           />
         </div>
+
+        {/* Undo bar for an inline dismiss — reversible for a few seconds. */}
+        {mode === "review" && undo && (
+          <div className="mx-4 mb-2 flex shrink-0 items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass2 px-4 py-2.5">
+            <span className="min-w-0 flex-1 truncate text-[13px] text-drift-ink">
+              Dismissed <span className="font-semibold">{undo.seg.label}</span>
+            </span>
+            <button onClick={undoDismiss} className="shrink-0 text-[13px] font-bold text-drift-coral">
+              Undo
+            </button>
+          </div>
+        )}
 
         {/* Sticky action bar — the Add button never scrolls out of reach. */}
         {mode === "review" && segments.length > 0 && (
