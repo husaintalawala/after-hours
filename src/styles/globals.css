@@ -76,3 +76,32 @@ body::after { display: none; }
   }
 }
 
+/* Mapbox popups — Aurora dark. The default is a white bubble whose text inherits
+   the app's light body color → white-on-white → looks empty. Force a dark card
+   + a matching tip for every anchor. */
+.mapboxgl-popup-content {
+  background: #16222f;
+  color: #f4f8f9;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 9px 12px;
+  box-shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.6);
+  font-family: inherit;
+}
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
+  border-bottom-color: #16222f;
+}
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+  border-top-color: #16222f;
+}
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: #16222f;
+}
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: #16222f;
+}
+

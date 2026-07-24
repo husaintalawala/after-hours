@@ -21,6 +21,13 @@ function distanceKm(a: mapboxgl.LngLat, b: mapboxgl.LngLat): number {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)))
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string
+  )
+}
+
 export default function DiscoverMap({
   anchor,
   results,
@@ -100,9 +107,16 @@ export default function DiscoverMap({
       const el = document.createElement("div")
       el.style.cssText =
         "width:14px;height:14px;border-radius:50%;background:#37D6C4;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"
+      const sub = r.subtitle || ""
+      const html =
+        `<div style="max-width:200px"><div style="font-weight:700;font-size:13px;line-height:1.3;color:#F4F8F9">${escapeHtml(r.name)}</div>` +
+        (sub ? `<div style="font-size:11.5px;color:#9aa8b4;margin-top:2px">${escapeHtml(sub)}</div>` : "") +
+        `</div>`
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([r.lng, r.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 12, closeButton: false }).setText(r.name))
+        .setPopup(
+          new mapboxgl.Popup({ offset: 14, closeButton: false, maxWidth: "220px" }).setHTML(html)
+        )
         .addTo(map)
       markersRef.current.set(r.id, marker)
       bounds.extend([r.lng, r.lat])
