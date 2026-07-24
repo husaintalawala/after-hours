@@ -147,22 +147,13 @@ export default function DiscoverShell({
                   Nothing found here yet.
                 </p>
               )}
-              {(() => {
-                // A photo shared by 2+ results (common for Ticketmaster events
-                // that reuse one promoter image) isn't a reliable per-item image
-                // — suppress it so the list doesn't look like a rendering bug.
-                const counts = new Map<string, number>()
-                for (const r of results) if (r.photo) counts.set(r.photo, (counts.get(r.photo) ?? 0) + 1)
-                const dup = new Set([...counts].filter(([, n]) => n > 1).map(([u]) => u))
-                return results.map((r) => (
-                  <ResultCard
-                    key={`${r.source}-${r.id}`}
-                    r={r}
-                    hidePhoto={!!r.photo && dup.has(r.photo)}
-                    onHover={() => setHovered(r.id)}
-                  />
-                ))
-              })()}
+              {results.map((r) => (
+                <ResultCard
+                  key={`${r.source}-${r.id}`}
+                  r={r}
+                  onHover={() => setHovered(r.id)}
+                />
+              ))}
             </div>
           </div>
 
@@ -390,22 +381,14 @@ function LocationPicker({
   )
 }
 
-function ResultCard({
-  r,
-  onHover,
-  hidePhoto = false,
-}: {
-  r: DiscoverResult
-  onHover: () => void
-  hidePhoto?: boolean
-}) {
+function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) {
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
   // Google-sourced places have a rich detail page; vendor results deep-link out.
   const detailHref =
     r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
       ? `/app/place/${encodeURIComponent(r.id)}`
       : null
-  const photoEl = r.photo && !hidePhoto ? (
+  const photoEl = r.photo ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={r.photo}
