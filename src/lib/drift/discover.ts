@@ -197,7 +197,7 @@ export async function loadCategory(
  *  with Gemini Flash-Lite on a miss). Returns an { id → blurb } map; ids without
  *  a blurb are simply absent. Best-effort — never throws. */
 export async function fetchPlaceBlurbs(
-  places: { id: string; name: string; city?: string; category?: string }[]
+  places: { id: string; name: string; city?: string; category?: string; context?: string }[]
 ): Promise<Record<string, string>> {
   if (!places.length) return {}
   try {

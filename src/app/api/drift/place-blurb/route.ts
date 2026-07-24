@@ -15,11 +15,12 @@ export async function POST(request: Request) {
   if (!raw.length) return NextResponse.json({ ok: true, blurbs: {} })
 
   const places = raw
-    .map((p: { id?: unknown; name?: unknown; city?: unknown; category?: unknown }) => ({
+    .map((p: { id?: unknown; name?: unknown; city?: unknown; category?: unknown; context?: unknown }) => ({
       id: String(p.id ?? ""),
       name: String(p.name ?? ""),
       city: p.city ? String(p.city) : undefined,
       category: p.category ? String(p.category) : undefined,
+      context: p.context ? String(p.context) : undefined,
     }))
     .filter((p: { id: string; name: string }) => p.id && p.name)
 

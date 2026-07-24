@@ -88,12 +88,13 @@ export default function DiscoverShell({
     setOverride({ label, country, lat: c.lat, lng: c.lng, radiusKm: c.radiusKm })
   }
 
-  // Lazily fill AI one-line blurbs for Google POIs that lack a description
-  // (Viator already ships its own). Runs after each result load and merges the
-  // blurbs into results — and thus the map popups — when they arrive. The seq
-  // guard drops results that a newer load has already superseded. Best-effort.
+  // Lazily fill AI one-line blurbs for any result that lacks a description
+  // (Google POIs, stays, events — Viator activities already ship their own).
+  // Runs after each result load and merges the blurbs into results — and thus
+  // the map popups — when they arrive. The seq guard drops results that a newer
+  // load has already superseded. Best-effort.
   async function enrichBlurbs(list: DiscoverResult[], seq: number) {
-    const need = list.filter((r) => r.source === "google" && !r.description && r.name)
+    const need = list.filter((r) => !r.description && r.name)
     if (!need.length) return
     const uncached = need.filter((r) => !blurbCache.current.has(r.id))
     if (uncached.length) {
@@ -102,7 +103,8 @@ export default function DiscoverShell({
           id: r.id,
           name: r.name,
           city: fetchAnchor?.label ?? undefined,
-          category: r.subtitle ? humanize(r.subtitle) : undefined,
+          category: blurbCategory(r),
+          context: blurbContext(r),
         }))
       )
       for (const [id, b] of Object.entries(fetched)) blurbCache.current.set(id, b)
@@ -573,5 +575,27 @@ function compact(n: number): string {
 
 function humanize(raw: string): string {
   return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).slice(0, 40)
+}
+
+// Per-source hints for the AI blurb generator. Google's subtitle is a type slug
+// (a good category); events/stays/activities get a fixed category label.
+function blurbCategory(r: DiscoverResult): string | undefined {
+  switch (r.source) {
+    case "ticketmaster":
+      return "live event"
+    case "stay22":
+      return "hotel or place to stay"
+    case "viator":
+      return "tour or activity"
+    default:
+      return r.subtitle ? humanize(r.subtitle) : undefined
+  }
+}
+
+// Extra grounding for the blurb: the source's own meta line (an event's
+// venue·date, a stay's address, an activity's duration). Google's subtitle is
+// already used as the category, so nothing extra there.
+function blurbContext(r: DiscoverResult): string | undefined {
+  return r.source === "google" ? undefined : (r.subtitle ?? undefined)
 }
 
