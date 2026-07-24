@@ -52,7 +52,7 @@ export default function TripCoverChips({
 
   return (
     <>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-nowrap gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Chip icon={<PinIcon />} filled={!!placeName} onClick={() => setSheet("place")}>
           {placeName || "Place"}
         </Chip>
@@ -111,7 +111,7 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold backdrop-blur-md transition-colors ${
+      className={`inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold backdrop-blur-md transition-colors ${
         filled
           ? "border-aurora-teal/60 bg-aurora-teal/20 text-aurora-teal"
           : "border-white/40 bg-black/30 text-white/90 hover:bg-black/40"

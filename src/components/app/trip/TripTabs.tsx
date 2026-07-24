@@ -323,7 +323,7 @@ export default function TripTabs({
           </div>
         </div>
       ) : (
-        <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
+        <div className="relative -mx-5 -mt-4 h-[300px] overflow-hidden shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:mx-0 md:mt-3 md:h-[300px] md:rounded-[26px] lg:mt-0">
           {tripMeta.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <OptimizedImg
@@ -348,6 +348,13 @@ export default function TripTabs({
           <div
             className="absolute inset-0"
             style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
+          />
+          {/* Bottom blend — melt the full-bleed mobile hero into the Aurora
+              ground (#08131D) so there's no hard card edge. Desktop keeps its
+              rounded card, so the blend is mobile-only. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-28 md:hidden"
+            style={{ background: "linear-gradient(to bottom, rgba(8,19,29,0) 35%, #08131D 100%)" }}
           />
           {weatherDest && (
             <div className="absolute right-5 top-[62px] z-10 md:right-7 md:top-[80px]">
