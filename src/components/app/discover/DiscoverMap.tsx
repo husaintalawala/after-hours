@@ -79,6 +79,11 @@ function popupHTML(r: DiscoverResult): string {
     `<div style="font-weight:700;font-size:14px;line-height:1.25;color:#f4f8f9">${escapeHtml(r.name)}</div>` +
     rating +
     (chips ? `<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">${chips}</div>` : "") +
+    (r.description
+      ? `<div style="margin-top:8px;font-size:11.5px;line-height:1.5;color:#7d8c98;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(
+          r.description
+        )}</div>`
+      : "") +
     (ctas.length ? `<div style="display:flex;gap:7px;margin-top:10px">${ctas.join("")}</div>` : "") +
     `</div></div>`
   )

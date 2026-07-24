@@ -213,6 +213,9 @@ export interface PlaceCandidate {
   heroImageURL?: string | null
   photoUrl?: string | null
   primaryType?: string | null
+  // Google editorial blurb — only populated once resolve-place requests it
+  // (Pro-SKU FieldMask). Declared now so consumers can read it when it lands.
+  editorialSummary?: string | null
   latitude?: number | null
   longitude?: number | null
   source?: string | null // "google" | "osm" | "geonames"

@@ -381,70 +381,106 @@ function LocationPicker({
   )
 }
 
+// Rich vertical media card (Mindtrip-parity): hero photo → name → amber-star
+// rating → chips (price/category) → description → dual CTAs. Adapts per source
+// since coverage differs (events have no rating; stays/events carry an address
+// or "Venue · Date" subtitle better shown as text than a chip).
 function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) {
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
-  // Google-sourced places have a rich detail page; vendor results deep-link out.
+  // Google-sourced places have a rich in-app detail page; vendor results deep-link out.
   const detailHref =
     r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
       ? `/app/place/${encodeURIComponent(r.id)}`
       : null
-  const photoEl = r.photo ? (
+  const hasRating = r.rating != null && r.rating > 0
+  const sub = r.subtitle?.trim() ?? ""
+  // subtitle is a type slug ("tourist_attraction") / duration ("2 hours") for
+  // google+viator → a clean chip; a street address or "Venue · Date" for
+  // stays/events → a plain muted text line reads better.
+  const asChip = sub.length > 0 && sub.length <= 22 && (r.source === "google" || r.source === "viator")
+  const metaText = sub.length > 0 && !asChip ? sub : ""
+
+  const hero = r.photo ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={r.photo}
-      alt=""
-      loading="lazy"
-      className="h-24 w-24 shrink-0 rounded-xl object-cover"
-    />
+    <img src={r.photo} alt="" loading="lazy" className="h-[132px] w-full object-cover" />
   ) : (
-    <div
-      className="h-24 w-24 shrink-0 rounded-xl"
-      style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
-    />
+    <div className="h-[132px] w-full" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
   )
+
+  const ctaBase = "flex-1 rounded-full px-3 py-1.5 text-center text-[12.5px]"
   return (
     <div
       onMouseEnter={onHover}
-      className="flex gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-2.5 transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.5)]"
+      className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.5)]"
     >
-      {detailHref ? <a href={detailHref}>{photoEl}</a> : photoEl}
-      <div className="min-w-0 flex-1 py-0.5">
+      {detailHref ? <a href={detailHref} className="block">{hero}</a> : hero}
+      <div className="p-3">
         {detailHref ? (
-          <a href={detailHref} className="block truncate text-[15px] font-semibold hover:text-drift-coral">
+          <a href={detailHref} className="block text-[15px] font-semibold leading-snug line-clamp-2 hover:text-drift-coral">
             {r.name}
           </a>
         ) : (
-          <p className="truncate text-[15px] font-semibold">{r.name}</p>
+          <p className="text-[15px] font-semibold leading-snug line-clamp-2">{r.name}</p>
         )}
-        <p className="mt-0.5 text-[12.5px] text-drift-muted">
-          {r.rating != null && r.rating > 0 && (
-            <>
-              ★ {r.rating.toFixed(1)}
-              {r.reviewCount ? ` (${compact(r.reviewCount)})` : ""}
-              {" · "}
-            </>
-          )}
-          {r.priceLabel ?? (r.subtitle ? humanize(r.subtitle) : "")}
-        </p>
-        <div className="mt-2 flex gap-2">
+
+        {hasRating && (
+          <div className="mt-1.5 flex items-center gap-1 text-[12.5px]">
+            <span style={{ color: "#E7A24B" }}>★</span>
+            <span className="font-semibold text-drift-ink">{r.rating!.toFixed(1)}</span>
+            {r.reviewCount ? (
+              <span className="text-drift-text-tertiary">({compact(r.reviewCount)})</span>
+            ) : null}
+          </div>
+        )}
+
+        {metaText && <p className="mt-1 truncate text-[12px] text-drift-muted">{metaText}</p>}
+
+        {(r.priceLabel || asChip) && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {r.priceLabel && (
+              <span className="rounded-full border border-aurora-border bg-aurora-glass2 px-2 py-0.5 text-[10.5px] font-semibold text-drift-ink">
+                {r.priceLabel}
+              </span>
+            )}
+            {asChip && (
+              <span className="rounded-full border border-aurora-border bg-aurora-glass2 px-2 py-0.5 text-[10.5px] font-semibold text-drift-muted">
+                {humanize(sub)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {r.description && (
+          <p className="mt-2 text-[11.5px] leading-relaxed text-drift-text-tertiary line-clamp-2">
+            {r.description}
+          </p>
+        )}
+
+        <div className="mt-3 flex gap-2">
           {r.bookingUrl && (
             <a
               href={r.bookingUrl}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full bg-drift-coral px-3 py-1 text-[12px] font-semibold text-white"
+              className={`${ctaBase} bg-drift-coral font-semibold text-white`}
             >
               {r.source === "ticketmaster" ? "Tickets" : "Book"}
             </a>
           )}
-          <a
-            href={mapHref}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full border border-drift-divider px-3 py-1 text-[12px] font-medium"
-          >
-            Map
-          </a>
+          {detailHref ? (
+            <a href={detailHref} className={`${ctaBase} border border-drift-divider font-medium text-drift-ink`}>
+              Details
+            </a>
+          ) : (
+            <a
+              href={mapHref}
+              target="_blank"
+              rel="noreferrer"
+              className={`${ctaBase} border border-drift-divider font-medium text-drift-ink`}
+            >
+              Map
+            </a>
+          )}
         </div>
       </div>
     </div>

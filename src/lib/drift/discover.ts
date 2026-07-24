@@ -25,6 +25,10 @@ export interface DiscoverResult {
   reviewCount: number | null
   priceLabel: string | null
   subtitle: string | null
+  // A short human-readable blurb (2-line clamp in the UI). Present today for
+  // Viator activities (upstream carries it); null for other sources until a
+  // description source is wired (Google editorial summary is Pro-SKU + gated).
+  description: string | null
   lat: number | null
   lng: number | null
   bookingUrl: string | null
@@ -47,6 +51,7 @@ function fromGoogle(c: PlaceCandidate): DiscoverResult {
     reviewCount: c.reviewCount ?? null,
     priceLabel: null,
     subtitle: c.primaryType ?? c.address ?? null,
+    description: c.editorialSummary ?? null,
     lat: c.latitude ?? null,
     lng: c.longitude ?? null,
     bookingUrl: null,
@@ -65,6 +70,7 @@ interface VendorCandidate {
   reviewCount?: number | null
   priceLabel?: string | null
   address?: string | null
+  description?: string | null
   latitude?: number | null
   longitude?: number | null
   bookingUrl?: string | null
@@ -100,6 +106,7 @@ const fromVendor =
   reviewCount: c.reviewCount ?? null,
   priceLabel: c.priceLabel ?? null,
   subtitle: c.address ?? null,
+  description: c.description ?? null,
   lat: c.latitude ?? null,
   lng: c.longitude ?? null,
   bookingUrl: c.bookingUrl ?? null,
