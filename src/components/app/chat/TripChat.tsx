@@ -50,6 +50,7 @@ export default function TripChat({
   bare = false,
   prefill,
   onPrefillConsumed,
+  initialSend,
 }: {
   tripId: string
   tripTitle: string
@@ -64,6 +65,8 @@ export default function TripChat({
   /** When set, loads into the composer (e.g. "Ask Drift about this" from the inspector). */
   prefill?: string | null
   onPrefillConsumed?: () => void
+  /** When set, auto-sends this message once on mount (docked-composer handoff). */
+  initialSend?: string | null
 }) {
   const router = useRouter()
   const [messages, setMessages] = useState<Msg[]>([])
@@ -102,6 +105,18 @@ export default function TripChat({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill])
+
+  // Docked-composer handoff: fire the opening message once when this thread
+  // mounts with an initialSend (after history has had a tick to hydrate).
+  const initialSentRef = useRef(false)
+  useEffect(() => {
+    const msg = initialSend?.trim()
+    if (msg && !initialSentRef.current) {
+      initialSentRef.current = true
+      void send(msg)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSend])
 
   useEffect(() => {
     const onAsk = (e: Event) => {

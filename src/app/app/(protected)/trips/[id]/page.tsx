@@ -25,6 +25,7 @@ import TripTabs, {
 } from "@/components/app/trip/TripTabs"
 import { balances, minimalTransfers } from "@/lib/drift/balances"
 import TripChat from "@/components/app/chat/TripChat"
+import TripDockComposer from "@/components/app/trip/TripDockComposer"
 
 // Trip workspace — web port of TripStepScrollView: title header, 4-tab strip
 // (Plan · Kit · Expenses · Track), DestinationDaysView-style Plan tab (hero +
@@ -390,8 +391,20 @@ export default async function TripDetailPage({
       ? "Multi-country"
       : chipCities[0] ?? chipCountries[0] ?? destinations[0]?.location_name ?? ""
 
+  // Shared chat destination list — used by the desktop Ask Drift panel and the
+  // mobile docked composer so both talk to the same trip context.
+  const chatDestinations = destVMs.map((d) => {
+    const src = destinations.find((x) => x.id === d.id)
+    return {
+      id: d.id,
+      date: src?.date ?? trip.start_date ?? "",
+      nights: d.nights,
+      label: d.label,
+    }
+  })
+
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 pt-4 lg:max-w-[1400px] lg:px-8 lg:pt-6">
+    <main className="mx-auto w-full max-w-2xl px-5 pb-36 pt-4 lg:max-w-[1400px] lg:px-8 lg:pb-8 lg:pt-6">
       <TripTabs
         tripId={trip.id}
         tripMeta={{
@@ -426,19 +439,18 @@ export default async function TripDetailPage({
           country={trip.countries?.[0] ?? null}
           fill
           prefill={searchParams?.ask ?? null}
-          destinations={destVMs.map((d) => {
-            // The synthetic "More stops" bucket has no steps row — fall back
-            // to the trip's start date for its day math.
-            const src = destinations.find((x) => x.id === d.id)
-            return {
-              id: d.id,
-              date: src?.date ?? trip.start_date ?? "",
-              nights: d.nights,
-              label: d.label,
-            }
-          })}
+          destinations={chatDestinations}
         />
       </TripTabs>
+
+      {/* Mobile: trip-scoped chat docked above the nav (desktop uses the panel above). */}
+      <TripDockComposer
+        tripId={trip.id}
+        tripTitle={trip.title || "your trip"}
+        tripStart={trip.start_date ?? null}
+        country={trip.countries?.[0] ?? null}
+        destinations={chatDestinations}
+      />
     </main>
   )
 }
