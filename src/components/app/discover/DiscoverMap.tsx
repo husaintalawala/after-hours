@@ -28,6 +28,62 @@ function escapeHtml(s: string): string {
   )
 }
 
+function humanize(s: string): string {
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function fmtCount(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
+}
+
+// Rich POI popup — photo hero, name, ★ rating + count, category/price chips, and
+// a Tickets/Book/Details CTA. Uses only fields already on DiscoverResult.
+function popupHTML(r: DiscoverResult): string {
+  const detail =
+    r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
+      ? `/app/place/${encodeURIComponent(r.id)}`
+      : null
+  const hero = r.photo
+    ? `<div style="height:104px;overflow:hidden"><img src="${escapeHtml(r.photo)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`
+    : `<div style="height:56px;background:linear-gradient(135deg,#16222f,#0b151d)"></div>`
+  const rating =
+    r.rating != null && r.rating > 0
+      ? `<div style="display:flex;align-items:center;gap:4px;margin-top:5px;font-size:12.5px"><span style="color:#e7a24b">★</span><b style="color:#f4f8f9">${r.rating.toFixed(1)}</b>${
+          r.reviewCount ? `<span style="color:#7d8c98">(${fmtCount(r.reviewCount)})</span>` : ""
+        }</div>`
+      : ""
+  const chips = [r.subtitle ? humanize(r.subtitle) : "", r.priceLabel]
+    .filter(Boolean)
+    .map(
+      (c) =>
+        `<span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#1b2a38;color:#c6d0d9;border:1px solid rgba(255,255,255,.14)">${escapeHtml(
+          c as string
+        )}</span>`
+    )
+    .join("")
+  const ctas: string[] = []
+  if (r.bookingUrl)
+    ctas.push(
+      `<a href="${escapeHtml(r.bookingUrl)}" target="_blank" rel="noreferrer" style="flex:1;text-align:center;font-size:12px;font-weight:700;padding:7px 0;border-radius:20px;background:#37d6c4;color:#04231f;text-decoration:none">${
+        r.source === "ticketmaster" ? "Tickets" : "Book"
+      }</a>`
+    )
+  if (detail)
+    ctas.push(
+      `<a href="${detail}" style="flex:1;text-align:center;font-size:12px;font-weight:700;padding:7px 0;border-radius:20px;border:1px solid rgba(255,255,255,.14);color:#f4f8f9;text-decoration:none">Details</a>`
+    )
+  return (
+    `<div style="width:220px">` +
+    hero +
+    `<div style="padding:10px 12px 12px">` +
+    `<div style="font-weight:700;font-size:14px;line-height:1.25;color:#f4f8f9">${escapeHtml(r.name)}</div>` +
+    rating +
+    (chips ? `<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">${chips}</div>` : "") +
+    (ctas.length ? `<div style="display:flex;gap:7px;margin-top:10px">${ctas.join("")}</div>` : "") +
+    `</div></div>`
+  )
+}
+
 export default function DiscoverMap({
   anchor,
   results,
@@ -105,17 +161,28 @@ export default function DiscoverMap({
     for (const r of results) {
       if (r.lat == null || r.lng == null) continue
       const el = document.createElement("div")
-      el.style.cssText =
-        "width:14px;height:14px;border-radius:50%;background:#37D6C4;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35)"
-      const sub = r.subtitle || ""
-      const html =
-        `<div style="max-width:200px"><div style="font-weight:700;font-size:13px;line-height:1.3;color:#F4F8F9">${escapeHtml(r.name)}</div>` +
-        (sub ? `<div style="font-size:11.5px;color:#9aa8b4;margin-top:2px">${escapeHtml(sub)}</div>` : "") +
-        `</div>`
+      if (r.photo) {
+        el.style.cssText =
+          "width:36px;height:36px;border-radius:50%;overflow:hidden;border:2.5px solid #37d6c4;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:pointer;background:#16222f"
+        const img = document.createElement("img")
+        img.src = r.photo
+        img.alt = ""
+        img.loading = "lazy"
+        img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block"
+        el.appendChild(img)
+      } else {
+        el.style.cssText =
+          "width:16px;height:16px;border-radius:50%;background:#37d6c4;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4);cursor:pointer"
+      }
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([r.lng, r.lat])
         .setPopup(
-          new mapboxgl.Popup({ offset: 14, closeButton: false, maxWidth: "220px" }).setHTML(html)
+          new mapboxgl.Popup({
+            offset: 18,
+            closeButton: false,
+            maxWidth: "244px",
+            className: "discover-pop",
+          }).setHTML(popupHTML(r))
         )
         .addTo(map)
       markersRef.current.set(r.id, marker)

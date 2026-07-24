@@ -104,4 +104,10 @@ body::after { display: none; }
 .mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
   border-left-color: #16222f !important;
 }
+/* Rich Discover popup — full-bleed photo hero, so the card provides its own
+   padding (the base rule above pads simple text popups like the trip map). */
+.discover-pop .mapboxgl-popup-content {
+  padding: 0 !important;
+  overflow: hidden;
+}
 
