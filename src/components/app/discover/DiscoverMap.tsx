@@ -84,6 +84,90 @@ function popupHTML(r: DiscoverResult): string {
   )
 }
 
+// A single POI photo-pin marker (dot fallback) + its rich popup.
+function singleMarker(r: DiscoverResult): mapboxgl.Marker {
+  const el = document.createElement("div")
+  if (r.photo) {
+    el.style.cssText =
+      "width:36px;height:36px;border-radius:50%;overflow:hidden;border:2.5px solid #37d6c4;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:pointer;background:#16222f"
+    const img = document.createElement("img")
+    img.src = r.photo
+    img.alt = ""
+    img.loading = "lazy"
+    img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block"
+    el.appendChild(img)
+  } else {
+    el.style.cssText =
+      "width:16px;height:16px;border-radius:50%;background:#37d6c4;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4);cursor:pointer"
+  }
+  return new mapboxgl.Marker({ element: el })
+    .setLngLat([r.lng as number, r.lat as number])
+    .setPopup(
+      new mapboxgl.Popup({
+        offset: 18,
+        closeButton: false,
+        maxWidth: "244px",
+        className: "discover-pop",
+      }).setHTML(popupHTML(r))
+    )
+}
+
+// A cluster of overlapping results. All-events clusters (same venue) open a
+// lineup popup; mixed/POI clusters zoom in to expand on click.
+function clusterMarker(items: DiscoverResult[], map: mapboxgl.Map): mapboxgl.Marker {
+  const lng = items.reduce((s, r) => s + (r.lng as number), 0) / items.length
+  const lat = items.reduce((s, r) => s + (r.lat as number), 0) / items.length
+  const allEvents = items.every((r) => r.source === "ticketmaster")
+  const el = document.createElement("div")
+  el.style.cssText =
+    "min-width:40px;height:40px;padding:0 9px;border-radius:20px;background:#37d6c4;color:#04231f;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:pointer;white-space:nowrap"
+  el.textContent = allEvents ? `${items.length} events` : `+${items.length}`
+  const m = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat])
+  if (allEvents) {
+    m.setPopup(
+      new mapboxgl.Popup({
+        offset: 18,
+        closeButton: false,
+        maxWidth: "288px",
+        className: "discover-pop",
+      }).setHTML(eventsListHTML(items))
+    )
+  } else {
+    el.addEventListener("click", () => {
+      const b = new mapboxgl.LngLatBounds()
+      items.forEach((r) => b.extend([r.lng as number, r.lat as number]))
+      map.fitBounds(b, { padding: 90, maxZoom: 16, duration: 600 })
+    })
+  }
+  return m
+}
+
+function eventsListHTML(items: DiscoverResult[]): string {
+  const rows = items
+    .slice(0, 8)
+    .map((r) => {
+      const thumb = r.photo
+        ? `<img src="${escapeHtml(r.photo)}" alt="" style="width:40px;height:40px;border-radius:9px;object-fit:cover;flex:0 0 auto">`
+        : `<div style="width:40px;height:40px;border-radius:9px;flex:0 0 auto;background:linear-gradient(135deg,#16222f,#0b151d)"></div>`
+      return (
+        `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid rgba(255,255,255,.07)">` +
+        thumb +
+        `<div style="min-width:0;flex:1"><div style="font-size:12.5px;font-weight:600;color:#f4f8f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(
+          r.name
+        )}</div>` +
+        (r.subtitle ? `<div style="font-size:10.5px;color:#7d8c98;margin-top:1px">${escapeHtml(r.subtitle)}</div>` : "") +
+        `</div></div>`
+      )
+    })
+    .join("")
+  return (
+    `<div style="width:264px;max-height:300px;overflow-y:auto">` +
+    `<div style="padding:10px 12px;font-weight:700;font-size:13px;color:#f4f8f9">${items.length} events here</div>` +
+    rows +
+    `</div>`
+  )
+}
+
 export default function DiscoverMap({
   anchor,
   results,
@@ -150,43 +234,56 @@ export default function DiscoverMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Markers follow results.
+  // Markers follow results, with lightweight pixel-space clustering that
+  // re-computes on pan/zoom. Right-sized for Discover's ~20 results — no
+  // supercluster dependency; overlapping pins collapse into a "+N" (or
+  // "N events" at a shared venue) that expands on click.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    markersRef.current.forEach((m) => m.remove())
-    markersRef.current.clear()
+    const pts = results.filter((r) => r.lat != null && r.lng != null)
+
+    const render = () => {
+      markersRef.current.forEach((m) => m.remove())
+      markersRef.current.clear()
+      // Greedy cluster by projected-pixel proximity (running centroid).
+      const TH = 44
+      type Cl = { items: DiscoverResult[]; sx: number; sy: number }
+      const clusters: Cl[] = []
+      for (const r of pts) {
+        const p = map.project([r.lng as number, r.lat as number])
+        let placed = false
+        for (const c of clusters) {
+          const cx = c.sx / c.items.length
+          const cy = c.sy / c.items.length
+          if (Math.hypot(cx - p.x, cy - p.y) < TH) {
+            c.items.push(r)
+            c.sx += p.x
+            c.sy += p.y
+            placed = true
+            break
+          }
+        }
+        if (!placed) clusters.push({ items: [r], sx: p.x, sy: p.y })
+      }
+      clusters.forEach((c, i) => {
+        if (c.items.length === 1) {
+          const r = c.items[0]
+          markersRef.current.set(r.id, singleMarker(r).addTo(map))
+        } else {
+          markersRef.current.set(`cluster-${i}`, clusterMarker(c.items, map).addTo(map))
+        }
+      })
+    }
+
+    render()
+
+    // Fit to results once per result-set change (not on every re-cluster, so
+    // the user's own pans/zooms stay put).
     const bounds = new mapboxgl.LngLatBounds()
     let any = false
-    for (const r of results) {
-      if (r.lat == null || r.lng == null) continue
-      const el = document.createElement("div")
-      if (r.photo) {
-        el.style.cssText =
-          "width:36px;height:36px;border-radius:50%;overflow:hidden;border:2.5px solid #37d6c4;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:pointer;background:#16222f"
-        const img = document.createElement("img")
-        img.src = r.photo
-        img.alt = ""
-        img.loading = "lazy"
-        img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block"
-        el.appendChild(img)
-      } else {
-        el.style.cssText =
-          "width:16px;height:16px;border-radius:50%;background:#37d6c4;border:2.5px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.4);cursor:pointer"
-      }
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([r.lng, r.lat])
-        .setPopup(
-          new mapboxgl.Popup({
-            offset: 18,
-            closeButton: false,
-            maxWidth: "244px",
-            className: "discover-pop",
-          }).setHTML(popupHTML(r))
-        )
-        .addTo(map)
-      markersRef.current.set(r.id, marker)
-      bounds.extend([r.lng, r.lat])
+    for (const r of pts) {
+      bounds.extend([r.lng as number, r.lat as number])
       any = true
     }
     if (any) {
@@ -195,6 +292,11 @@ export default function DiscoverMap({
     } else if (anchor?.lat != null && anchor?.lng != null) {
       beginProgrammatic()
       map.flyTo({ center: [anchor.lng, anchor.lat], zoom: 11, duration: 800 })
+    }
+
+    map.on("moveend", render)
+    return () => {
+      map.off("moveend", render)
     }
   }, [results, anchor])
 
