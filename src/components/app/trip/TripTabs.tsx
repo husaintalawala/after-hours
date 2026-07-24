@@ -15,7 +15,7 @@ import TripCoverChips from "./TripCoverChips"
 import TripWeather from "./TripWeather"
 import DayAddStop from "./DayAddStop"
 import TripMap, { type TripMapPoint } from "./TripMap"
-import MediaTab from "./MediaTab"
+import MediaSection from "./MediaSection"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -105,13 +105,12 @@ export interface LedgerVM {
   transfers: Array<{ from: string; to: string; amountMinor: number }>
 }
 
-type Tab = "plan" | "kit" | "expenses" | "track" | "media"
+type Tab = "plan" | "kit" | "expenses" | "track"
 const TABS: [Tab, string][] = [
   ["plan", "Plan"],
   ["kit", "Kit"],
   ["expenses", "Expenses"],
   ["track", "Track"],
-  ["media", "Media"],
 ]
 
 export interface KitItemVM {
@@ -443,6 +442,7 @@ export default function TripTabs({
                     setReviewSignal((s) => s + 1)
                   }}
                 />
+                <MediaSection tripId={tripId} />
                 {destinations.length === 0 && (
                   <p className="mt-3 text-drift-muted">
                     No itinerary yet. Ask Drift to start planning.
@@ -511,7 +511,6 @@ export default function TripTabs({
       {tab === "kit" && <KitTab items={kitItems} />}
       {tab === "expenses" && <ExpensesTab expenses={expenses} ledger={ledger} />}
       {tab === "track" && <TrackTab steps={trackSteps} />}
-      {tab === "media" && <MediaTab tripId={tripId} />}
     </div>
   )
 }
