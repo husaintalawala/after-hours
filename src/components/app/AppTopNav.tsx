@@ -43,7 +43,7 @@ export default function AppTopNav({
       >
         {/* Real Drift comet mark (ported from the iOS DriftLogo asset). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/drift-logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+        <img src="/drift-logo.png" alt="" width={40} height={40} className="h-10 w-10 object-contain" />
         <span className="font-drift-display text-[24px] font-semibold tracking-tight text-aurora-teal">drift</span>
       </Link>
 
