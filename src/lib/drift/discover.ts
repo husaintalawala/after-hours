@@ -193,6 +193,19 @@ export async function loadCategory(
   return await google
 }
 
+/** Gate a vendor-supplied URL to http(s) before it reaches an href — blocks
+ *  javascript:/data: schemes from an untrusted upstream (booking deep-links).
+ *  Returns the original URL if safe, else null. */
+export function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    const p = new URL(url).protocol
+    return p === "http:" || p === "https:" ? url : null
+  } catch {
+    return null
+  }
+}
+
 function dedupe(results: DiscoverResult[]): DiscoverResult[] {
   const seen = new Set<string>()
   return results.filter((r) => {

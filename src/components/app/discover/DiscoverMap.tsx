@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
-import type { DiscoverAnchor, DiscoverResult } from "@/lib/drift/discover"
+import { safeHttpUrl, type DiscoverAnchor, type DiscoverResult } from "@/lib/drift/discover"
 
 // ---- 2D results map ----
 
@@ -62,9 +62,10 @@ function popupHTML(r: DiscoverResult): string {
     )
     .join("")
   const ctas: string[] = []
-  if (r.bookingUrl)
+  const book = safeHttpUrl(r.bookingUrl)
+  if (book)
     ctas.push(
-      `<a href="${escapeHtml(r.bookingUrl)}" target="_blank" rel="noreferrer" style="flex:1;text-align:center;font-size:12px;font-weight:700;padding:7px 0;border-radius:20px;background:#37d6c4;color:#04231f;text-decoration:none">${
+      `<a href="${escapeHtml(book)}" target="_blank" rel="noreferrer" style="flex:1;text-align:center;font-size:12px;font-weight:700;padding:7px 0;border-radius:20px;background:#37d6c4;color:#04231f;text-decoration:none">${
         r.source === "ticketmaster" ? "Tickets" : "Book"
       }</a>`
     )

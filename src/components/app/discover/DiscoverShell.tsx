@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import {
   CATEGORY_META,
   loadCategory,
+  safeHttpUrl,
   type DiscoverAnchor,
   type DiscoverCategory,
   type DiscoverResult,
@@ -57,10 +58,18 @@ export default function DiscoverShell({
   const reqSeq = useRef(0)
 
   // The anchor actually driving results + the map — the override center if the
-  // user searched a panned area, otherwise the rail selection.
-  const fetchAnchor: DiscoverAnchor | null = override
-    ? { label: override.label, country: override.country, lat: override.lat, lng: override.lng }
-    : anchor
+  // user searched a panned area, otherwise the rail selection. Memoized so its
+  // identity is stable: in override mode it would otherwise be a fresh object
+  // literal every render, and passing that to <DiscoverMap anchor> re-runs the
+  // fit/cluster effect (re-animating the camera + rebuilding markers) on every
+  // unrelated re-render, e.g. hovering a card.
+  const fetchAnchor: DiscoverAnchor | null = useMemo(
+    () =>
+      override
+        ? { label: override.label, country: override.country, lat: override.lat, lng: override.lng }
+        : anchor,
+    [override, anchor]
+  )
 
   // Picking a new rail location supersedes any "search this area" override.
   function selectAnchor(a: DiscoverAnchor) {
@@ -395,10 +404,13 @@ function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) 
   const hasRating = r.rating != null && r.rating > 0
   const sub = r.subtitle?.trim() ?? ""
   // subtitle is a type slug ("tourist_attraction") / duration ("2 hours") for
-  // google+viator → a clean chip; a street address or "Venue · Date" for
-  // stays/events → a plain muted text line reads better.
-  const asChip = sub.length > 0 && sub.length <= 22 && (r.source === "google" || r.source === "viator")
-  const metaText = sub.length > 0 && !asChip ? sub : ""
+  // google+viator → humanize it (a clean chip when short, else a muted line —
+  // NOT raw snake_case); a street address or "Venue · Date" for stays/events →
+  // show raw as a text line.
+  const isSlug = r.source === "google" || r.source === "viator"
+  const asChip = sub.length > 0 && sub.length <= 22 && isSlug
+  const metaText = sub.length > 0 && !asChip ? (isSlug ? humanize(sub) : sub) : ""
+  const book = safeHttpUrl(r.bookingUrl)
 
   const hero = r.photo ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -457,9 +469,9 @@ function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) 
         )}
 
         <div className="mt-3 flex gap-2">
-          {r.bookingUrl && (
+          {book && (
             <a
-              href={r.bookingUrl}
+              href={book}
               target="_blank"
               rel="noreferrer"
               className={`${ctaBase} bg-drift-coral font-semibold text-white`}
