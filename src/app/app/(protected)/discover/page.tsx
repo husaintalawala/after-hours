@@ -69,7 +69,7 @@ export default async function DiscoverPage() {
   if (tripIds.length) {
     const { data: destRows } = await supabase
       .from("steps")
-      .select("id,trip_id,title,location_name,country,latitude,longitude,date")
+      .select("id,trip_id,title,location_name,country,latitude,longitude,date,nights")
       .in("trip_id", tripIds)
       .eq("step_type", "destination")
       .is("parent_step_id", null)
@@ -93,7 +93,10 @@ export default async function DiscoverPage() {
           // itinerary (mirrors iOS performAdd → applyCreateStep).
           tripId: d.trip_id ?? "",
           destinationRef: d.title || d.location_name || "",
-          days: tripDays(t?.start_date ?? null, t?.end_date ?? null),
+          // Days come from THIS destination's own date + nights (mirrors iOS
+          // dayOptions) — the clean date-only `steps.date`, not trips.start_date
+          // (a timestamptz that parses to an invalid Date and yielded 0 days).
+          days: destinationDays(d.date, d.nights ?? null),
         } satisfies DiscoverPlace
       })
   }
@@ -101,20 +104,25 @@ export default async function DiscoverPage() {
   return <DiscoverShell initialAnchor={anchor} places={places} />
 }
 
-// The trip's day list (start_date…end_date) for the Discover add-to-itinerary
-// day picker. Empty for dateless trips (the add then goes in unscheduled).
-function tripDays(
-  start: string | null,
-  end: string | null
+// A destination's day list for the Discover add-to-itinerary day picker, from
+// its own start date + nights (mirrors iOS dayOptions: for i in 0...nights).
+// `date` is the clean date-only steps.date; slice defends against a timestamp.
+// Empty for a dateless destination (the add then goes in unscheduled).
+function destinationDays(
+  date: string | null,
+  nights: number | null
 ): { date: string; label: string }[] {
-  if (!start) return []
+  const day0 = date?.slice(0, 10)
+  if (!day0) return []
+  const start = new Date(`${day0}T00:00:00Z`)
+  if (Number.isNaN(start.getTime())) return []
+  const n = Math.min(30, Math.max(0, nights ?? 0))
   const out: { date: string; label: string }[] = []
-  const s = new Date(`${start}T00:00:00Z`)
-  const e = end ? new Date(`${end}T00:00:00Z`) : s
-  for (let d = new Date(s); d <= e && out.length < 30; d.setUTCDate(d.getUTCDate() + 1)) {
-    const iso = d.toISOString().slice(0, 10)
+  for (let i = 0; i <= n; i++) {
+    const d = new Date(start)
+    d.setUTCDate(d.getUTCDate() + i)
     out.push({
-      date: iso,
+      date: d.toISOString().slice(0, 10),
       label: d.toLocaleDateString("en-US", {
         weekday: "short",
         month: "short",
