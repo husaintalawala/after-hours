@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "@/styles/globals.css"
 
 export const metadata: Metadata = {
@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   other: {
     "impact-site-verification": "d801b9d7-f165-4297-814c-bd75223d116b",
   },
+}
+
+// Global viewport — applies to every route under this root layout. Pinch-zoom is
+// intentionally left enabled (no maximumScale/userScalable) for accessibility;
+// the iOS refresh/focus zoom is prevented by the >=16px input rule in globals.css.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

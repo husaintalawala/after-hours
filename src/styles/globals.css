@@ -24,6 +24,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* iOS Safari auto-zooms into any focused <input>/<textarea>/<select> whose
+   font-size is < 16px and does NOT zoom back out — so after tapping a search
+   box or the Ask-Drift composer the whole app renders zoomed, and the zoom
+   persists across refresh on every screen. The app's inputs use 14–15.5px, so
+   force >=16px on the mobile layout to prevent the zoom entirely. Desktop keeps
+   its designed input sizes; pinch-zoom stays enabled (accessibility). The
+   !important is needed to beat the per-input Tailwind text-[..px] utilities. */
+@media (max-width: 1023px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: #000; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
