@@ -492,7 +492,7 @@ export default function TripTabs({
 
           {/* Desktop-only Ask Drift panel — on mobile the docked composer (page
               level) replaces this, so the chat isn't a big block below the plan. */}
-          <div className="hidden lg:sticky lg:top-[76px] lg:block lg:h-[calc(100vh-108px)]">
+          <div className="hidden lg:sticky lg:top-6 lg:block lg:h-[calc(100vh-3rem)]">
             {inspector && <div className="hidden h-full lg:block">{inspector}</div>}
             <div className={`h-full ${inspector ? "lg:hidden" : ""}`}>{children}</div>
           </div>
