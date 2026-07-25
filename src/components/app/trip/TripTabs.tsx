@@ -234,7 +234,7 @@ export default function TripTabs({
 
   const segmented = (glass: boolean) => (
     <div
-      className={`hidden gap-0.5 rounded-full p-1 md:flex ${
+      className={`hidden gap-0.5 rounded-full p-1 md:flex lg:hidden ${
         glass ? "border border-white/25 bg-white/15 backdrop-blur-xl" : "bg-aurora-glass/95 shadow-sm"
       }`}
     >
@@ -264,9 +264,98 @@ export default function TripTabs({
     setSelected(null)
   }
 
+  // Desktop-only day/section rail — a vertical index of the trip that drives the
+  // SAME tab/destination/day state as the mobile hero pills + tab bar. Purely
+  // additive: hidden below lg, so the mobile iOS trip screen is untouched.
+  const desktopSidebar = (
+    <aside className="hidden lg:sticky lg:top-6 lg:block lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
+      <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-2.5">
+        <div className="px-2.5 pb-1.5 pt-1">
+          <div className="truncate font-drift-display text-[16px] font-semibold leading-tight">
+            {tripMeta.title} {tripMeta.flag ?? ""}
+          </div>
+          <div className="mt-0.5 truncate text-[12px] text-drift-text-tertiary">{tripMeta.dateRange}</div>
+        </div>
+
+        <SidebarLink
+          active={tab === "plan" && !selectedDestId}
+          onClick={() => {
+            setTab("plan")
+            setSelectedDestId(null)
+            setSelected(null)
+          }}
+        >
+          Overview
+        </SidebarLink>
+
+        <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-bold uppercase tracking-wider text-drift-text-tertiary">
+          Itinerary
+        </div>
+        {destinations.map((d) => (
+          <div key={d.id}>
+            {destinations.length > 1 && (
+              <SidebarLink
+                active={tab === "plan" && selectedDestId === d.id && selectedDay === "overview"}
+                onClick={() => {
+                  setTab("plan")
+                  openDest(d.id)
+                }}
+              >
+                {d.label}
+              </SidebarLink>
+            )}
+            {d.days.map((day) => (
+              <SidebarLink
+                key={day.dayNumber}
+                indent={destinations.length > 1}
+                badge={day.dayNumber}
+                active={tab === "plan" && selectedDestId === d.id && selectedDay === day.dayNumber}
+                onClick={() => {
+                  setTab("plan")
+                  setSelectedDestId(d.id)
+                  setSelectedDay(day.dayNumber)
+                  setSelected(null)
+                }}
+              >
+                {shortDay(day.date)}
+              </SidebarLink>
+            ))}
+            {destinations.length === 1 && (
+              <SidebarLink
+                indent
+                active={tab === "plan" && selectedDestId === d.id && selectedDay === "overview"}
+                onClick={() => {
+                  setTab("plan")
+                  openDest(d.id)
+                }}
+              >
+                Guide
+              </SidebarLink>
+            )}
+          </div>
+        ))}
+
+        <div className="px-2.5 pb-1 pt-3 text-[10.5px] font-bold uppercase tracking-wider text-drift-text-tertiary">
+          Trip
+        </div>
+        <SidebarLink active={tab === "kit"} onClick={() => setTab("kit")}>
+          Kit
+        </SidebarLink>
+        <SidebarLink active={tab === "expenses"} onClick={() => setTab("expenses")}>
+          Expenses
+        </SidebarLink>
+        <SidebarLink active={tab === "track"} onClick={() => setTab("track")}>
+          Track
+        </SidebarLink>
+      </div>
+    </aside>
+  )
+
   return (
-    <div>
-      {/* ---------- Hero: destination (drill-in) or trip ---------- */}
+    <div className="lg:grid lg:grid-cols-[228px_minmax(0,1fr)] lg:items-start lg:gap-6">
+      {desktopSidebar}
+      <div className="min-w-0">
+        {/* ---------- Hero: destination (drill-in) or trip ---------- */}
       {inDest && dest ? (
         <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
           {heroFor(dest) ? (
@@ -511,6 +600,7 @@ export default function TripTabs({
       {tab === "kit" && <KitTab items={kitItems} />}
       {tab === "expenses" && <ExpensesTab expenses={expenses} ledger={ledger} />}
       {tab === "track" && <TrackTab steps={trackSteps} />}
+      </div>
     </div>
   )
 }
@@ -531,6 +621,41 @@ function monthFromDate(iso: string | undefined): number | null {
   if (!iso || iso.startsWith("1970")) return null // 1970 = dateless-trip sentinel
   const m = Number(iso.slice(5, 7))
   return m >= 1 && m <= 12 ? m : null
+}
+
+// One row in the desktop day/section sidebar.
+function SidebarLink({
+  active,
+  indent,
+  badge,
+  onClick,
+  children,
+}: {
+  active: boolean
+  indent?: boolean
+  badge?: React.ReactNode
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-2.5 rounded-xl py-2 pr-3 text-left text-[13.5px] transition-colors ${
+        indent ? "pl-9" : "pl-3"
+      } ${active ? "bg-aurora-glass2 font-semibold text-aurora-ink" : "text-drift-muted hover:text-aurora-ink"}`}
+    >
+      {badge != null && (
+        <span
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tabular-nums ${
+            active ? "bg-drift-coral text-white" : "bg-aurora-glass2 text-drift-text-tertiary"
+          }`}
+        >
+          {badge}
+        </span>
+      )}
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+    </button>
+  )
 }
 
 function GlassPill({
