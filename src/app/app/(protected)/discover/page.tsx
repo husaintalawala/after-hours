@@ -89,9 +89,39 @@ export default async function DiscoverPage() {
           lng: d.longitude,
           bucket: t ? bucketFor(t) : "past",
           subtitle: t?.title || "",
+          // Trip context so the Discover "+" can add a POI to this destination's
+          // itinerary (mirrors iOS performAdd → applyCreateStep).
+          tripId: d.trip_id ?? "",
+          destinationRef: d.title || d.location_name || "",
+          days: tripDays(t?.start_date ?? null, t?.end_date ?? null),
         } satisfies DiscoverPlace
       })
   }
 
   return <DiscoverShell initialAnchor={anchor} places={places} />
+}
+
+// The trip's day list (start_date…end_date) for the Discover add-to-itinerary
+// day picker. Empty for dateless trips (the add then goes in unscheduled).
+function tripDays(
+  start: string | null,
+  end: string | null
+): { date: string; label: string }[] {
+  if (!start) return []
+  const out: { date: string; label: string }[] = []
+  const s = new Date(`${start}T00:00:00Z`)
+  const e = end ? new Date(`${end}T00:00:00Z`) : s
+  for (let d = new Date(s); d <= e && out.length < 30; d.setUTCDate(d.getUTCDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10)
+    out.push({
+      date: iso,
+      label: d.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
+    })
+  }
+  return out
 }

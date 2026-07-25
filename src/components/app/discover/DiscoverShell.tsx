@@ -12,6 +12,7 @@ import {
   type DiscoverResult,
 } from "@/lib/drift/discover"
 import { resolvePlaceCandidates } from "@/lib/drift/chat"
+import { applyCreateStep, type CreateStepOp } from "@/lib/drift/quickOp"
 
 // mapbox-gl is heavy — load the map after the rail paints.
 const DiscoverMap = dynamic(() => import("./DiscoverMap"), {
@@ -35,6 +36,25 @@ export interface DiscoverPlace {
   lng: number | null
   bucket: "now" | "upcoming" | "past"
   subtitle: string
+  // Trip context for the Discover "+" add-to-itinerary flow.
+  tripId: string
+  destinationRef: string
+  days: { date: string; label: string }[]
+}
+
+// Discover category → itinerary step type (mirrors iOS category.stepType).
+function stepTypeForCategory(cat: DiscoverCategory): CreateStepOp["type"] {
+  switch (cat) {
+    case "restaurants":
+      return "food"
+    case "thingsToDo":
+    case "events":
+      return "activity"
+    case "stays":
+      return "stay"
+    default:
+      return "spot"
+  }
 }
 
 export default function DiscoverShell({
@@ -61,8 +81,16 @@ export default function DiscoverShell({
   // back doesn't re-request blurbs we already have this session. The server
   // caches permanently too; this just avoids the round-trip.
   const blurbCache = useRef<Map<string, string>>(new Map())
+  // Add-to-itinerary flow: the POI the "+" was tapped on, and a transient toast.
+  const [addTarget, setAddTarget] = useState<DiscoverResult | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(null), 2800)
+    return () => window.clearTimeout(t)
+  }, [toast])
 
-  // The anchor actually driving results + the map — the override center if the
+  // The anchor actually driving results — the override center if the
   // user searched a panned area, otherwise the rail selection. Memoized so its
   // identity is stable: in override mode it would otherwise be a fresh object
   // literal every render, and passing that to <DiscoverMap anchor> re-runs the
@@ -75,6 +103,23 @@ export default function DiscoverShell({
         : anchor,
     [override, anchor]
   )
+
+  // The trip destination the current anchor corresponds to (when the user is
+  // browsing one of their own trip places) — the default add-to-itinerary target.
+  const currentPlace = useMemo<DiscoverPlace | null>(() => {
+    const a = fetchAnchor
+    if (a?.lat == null || a?.lng == null) return null
+    return (
+      places.find(
+        (p) =>
+          !!p.tripId &&
+          p.lat != null &&
+          p.lng != null &&
+          Math.abs(p.lat - a.lat!) < 0.03 &&
+          Math.abs(p.lng - a.lng!) < 0.03
+      ) ?? null
+    )
+  }, [fetchAnchor, places])
 
   // Picking a new rail location supersedes any "search this area" override.
   function selectAnchor(a: DiscoverAnchor) {
@@ -222,11 +267,33 @@ export default function DiscoverShell({
         <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {results.map((r) => (
             <div key={`${r.source}-${r.id}`} className="w-[300px] shrink-0 snap-center">
-              <CarouselCard r={r} anchor={fetchAnchor} />
+              <CarouselCard r={r} anchor={fetchAnchor} onAdd={() => setAddTarget(r)} />
             </div>
           ))}
         </div>
       </div>
+
+      {/* Add-to-itinerary flow (the "+" on a card) + success toast. */}
+      {addTarget && (
+        <AddToTripSheet
+          poi={addTarget}
+          places={places}
+          current={currentPlace}
+          category={cat}
+          onClose={() => setAddTarget(null)}
+          onDone={(msg) => {
+            setAddTarget(null)
+            setToast(msg)
+          }}
+        />
+      )}
+      {toast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[80] flex justify-center px-4 lg:bottom-6">
+          <div className="rounded-full bg-aurora-glass2 px-4 py-2.5 text-[13.5px] font-semibold text-aurora-ink shadow-[0_14px_34px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/10">
+            {toast}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -235,7 +302,15 @@ export default function DiscoverShell({
 // iOS card: square image left; name, ★rating (full count), category · distance,
 // and address on the right, with heart + add circular actions. No description,
 // no "Details" button (the whole card / add button open the detail or booking).
-function CarouselCard({ r, anchor }: { r: DiscoverResult; anchor: DiscoverAnchor | null }) {
+function CarouselCard({
+  r,
+  anchor,
+  onAdd,
+}: {
+  r: DiscoverResult
+  anchor: DiscoverAnchor | null
+  onAdd: () => void
+}) {
   const [saved, setSaved] = useState(false)
   const detailHref =
     r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
@@ -291,15 +366,15 @@ function CarouselCard({ r, anchor }: { r: DiscoverResult; anchor: DiscoverAnchor
               <path d="M12 21s-7-4.6-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z" />
             </svg>
           </button>
-          <a
-            href={openHref}
-            aria-label="Add"
+          <button
+            onClick={onAdd}
+            aria-label="Add to a trip"
             className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-white"
           >
             <svg viewBox="0 0 24 24" className="h-[17px] w-[17px] fill-current">
               <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z" />
             </svg>
-          </a>
+          </button>
         </div>
       </div>
     </div>
@@ -320,6 +395,141 @@ function distanceMi(a: DiscoverAnchor | null, r: DiscoverResult): string | null 
   const mi = R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s))
   if (mi < 0.1) return null
   return mi < 10 ? `${mi.toFixed(1)} mi` : `${Math.round(mi)} mi`
+}
+
+// Add-to-itinerary sheet — the web equivalent of the iOS Discover "+" flow
+// (performAdd → applyCreateStep). Pick a trip destination (defaults to the one
+// the user is browsing) then a day, and the POI is inserted as an itinerary step.
+function AddToTripSheet({
+  poi,
+  places,
+  current,
+  category,
+  onClose,
+  onDone,
+}: {
+  poi: DiscoverResult
+  places: DiscoverPlace[]
+  current: DiscoverPlace | null
+  category: DiscoverCategory
+  onClose: () => void
+  onDone: (msg: string) => void
+}) {
+  const destinations = useMemo(() => places.filter((p) => p.tripId), [places])
+  const [dest, setDest] = useState<DiscoverPlace | null>(current)
+  const [adding, setAdding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function doAdd(target: DiscoverPlace, date: string | null) {
+    if (adding) return
+    setAdding(true)
+    setError(null)
+    const placeId =
+      poi.source === "google" && !poi.id.startsWith("osm:") && !poi.id.startsWith("geonames:")
+        ? poi.id
+        : null
+    try {
+      await applyCreateStep(
+        target.tripId,
+        {
+          op: "create_step",
+          type: stepTypeForCategory(category),
+          title: poi.name,
+          destination_ref: target.destinationRef || target.label,
+          date: date,
+        },
+        { name: poi.name, lat: poi.lat, lng: poi.lng, place_id: placeId }
+      )
+      onDone(`Added ${poi.name} to ${target.label}`)
+    } catch {
+      setError("Couldn't add — try again.")
+      setAdding(false)
+    }
+  }
+
+  const pill =
+    "rounded-full border border-drift-divider bg-aurora-glass px-3.5 py-2 text-[13px] font-semibold text-drift-ink transition-colors hover:border-drift-coral/50 disabled:opacity-50"
+
+  return (
+    <div className="fixed inset-0 z-[70] lg:flex lg:items-center lg:justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-[24px] border-t border-aurora-border bg-aurora-glass pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-aurora-glow lg:static lg:max-h-[70vh] lg:w-[430px] lg:rounded-3xl lg:border">
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-aurora-border bg-aurora-glass px-4 py-3.5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-drift-display text-[16px] font-semibold">Add to itinerary</p>
+            <p className="truncate text-[12.5px] text-drift-text-tertiary">{poi.name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-drift-divider text-drift-muted"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="p-4">
+          {destinations.length === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-[14px] text-drift-muted">Create a trip first to add places to it.</p>
+              <a
+                href="/app/trips/new"
+                className="mt-3 inline-block rounded-full bg-drift-coral px-4 py-2 text-[13px] font-semibold text-white"
+              >
+                Plan a new trip
+              </a>
+            </div>
+          ) : !dest ? (
+            <>
+              <p className="mb-2 text-[12.5px] font-semibold text-drift-muted">Choose a trip destination</p>
+              <div className="space-y-1.5">
+                {destinations.map((p) => (
+                  <button
+                    key={`${p.tripId}-${p.id}`}
+                    onClick={() => setDest(p)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-drift-divider px-3 py-2.5 text-left transition-colors hover:border-drift-coral/50"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-aurora-glass2 text-[15px]">
+                      📍
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold">{p.label}</span>
+                      {p.subtitle && (
+                        <span className="block truncate text-[12px] text-drift-muted">{p.subtitle}</span>
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setDest(null)}
+                className="mb-3 flex items-center gap-1.5 text-[12.5px] font-medium text-drift-muted"
+              >
+                <span className="text-drift-coral">‹</span> {dest.label}
+                {destinations.length > 1 && <span className="text-drift-text-tertiary"> · change</span>}
+              </button>
+              <p className="mb-2.5 text-[13px] font-semibold">Which day?</p>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => doAdd(dest, null)} disabled={adding} className={pill}>
+                  Unscheduled
+                </button>
+                {dest.days.map((d) => (
+                  <button key={d.date} onClick={() => doAdd(dest, d.date)} disabled={adding} className={pill}>
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              {error && <p className="mt-3 text-[13px] font-medium text-drift-coral">{error}</p>}
+              {adding && <p className="mt-3 text-[13px] text-drift-text-tertiary">Adding…</p>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Location picker — the web port of the iOS Discover location selector. A
