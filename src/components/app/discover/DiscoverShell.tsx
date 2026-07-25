@@ -212,8 +212,8 @@ export default function DiscoverShell({
         <LocationPicker anchor={anchor} places={places} onSelect={selectAnchor} />
         <div className="mt-3">{chipsRow}</div>
       </div>
-      {/* Swipeable card carousel pinned above the dock. */}
-      <div className="absolute inset-x-0 bottom-[100px] z-20 lg:hidden">
+      {/* Swipeable compact card carousel (iOS parity), flush above the attached nav. */}
+      <div className="absolute inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)] z-20 lg:hidden">
         {fetchAnchor && loading && results.length === 0 && (
           <p className="mx-4 rounded-full border border-drift-divider bg-aurora-glass px-4 py-2 text-center text-[13px] text-drift-text-tertiary shadow-lg">
             Finding {CATEGORY_META[cat].label.toLowerCase()} in {fetchAnchor.label}…
@@ -221,14 +221,105 @@ export default function DiscoverShell({
         )}
         <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {results.map((r) => (
-            <div key={`${r.source}-${r.id}`} className="w-[280px] shrink-0 snap-center">
-              <ResultCard r={r} onHover={() => setHovered(r.id)} />
+            <div key={`${r.source}-${r.id}`} className="w-[300px] shrink-0 snap-center">
+              <CarouselCard r={r} anchor={fetchAnchor} />
             </div>
           ))}
         </div>
       </div>
     </div>
   )
+}
+
+// Compact horizontal Discover card for the mobile map carousel — mirrors the
+// iOS card: square image left; name, ★rating (full count), category · distance,
+// and address on the right, with heart + add circular actions. No description,
+// no "Details" button (the whole card / add button open the detail or booking).
+function CarouselCard({ r, anchor }: { r: DiscoverResult; anchor: DiscoverAnchor | null }) {
+  const [saved, setSaved] = useState(false)
+  const detailHref =
+    r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
+      ? `/app/place/${encodeURIComponent(r.id)}`
+      : null
+  const openHref =
+    safeHttpUrl(r.bookingUrl) ??
+    detailHref ??
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
+  const category = r.subtitle ? humanize(r.subtitle) : null
+  const dist = distanceMi(anchor, r)
+  const metaLine = [category, dist].filter(Boolean).join(" · ")
+  const address = r.address && r.address !== r.subtitle ? r.address : null
+
+  return (
+    <div className="flex gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-2.5 shadow-[0_14px_34px_-18px_rgba(0,0,0,0.6)]">
+      <a href={openHref} className="block shrink-0" aria-label={r.name}>
+        {r.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={r.photo} alt="" loading="lazy" className="h-[86px] w-[86px] rounded-xl object-cover" />
+        ) : (
+          <div className="h-[86px] w-[86px] rounded-xl" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
+        )}
+      </a>
+      <div className="flex min-w-0 flex-1 gap-2">
+        <div className="min-w-0 flex-1 py-0.5">
+          <a href={openHref} className="block truncate text-[14.5px] font-semibold leading-tight text-drift-ink">
+            {r.name}
+          </a>
+          {r.rating != null && r.rating > 0 && (
+            <div className="mt-1 flex items-center gap-1 text-[12.5px]">
+              <span style={{ color: "#E7A24B" }}>★</span>
+              <span className="font-semibold text-drift-ink">{r.rating.toFixed(1)}</span>
+              {r.reviewCount ? (
+                <span className="text-drift-text-tertiary">({r.reviewCount.toLocaleString()})</span>
+              ) : null}
+            </div>
+          )}
+          {metaLine && <p className="mt-0.5 truncate text-[12px] text-drift-muted">{metaLine}</p>}
+          {address && <p className="mt-0.5 truncate text-[11.5px] text-drift-text-tertiary">{address}</p>}
+        </div>
+        {/* Actions: save (heart) + add. */}
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <button
+            onClick={() => setSaved((v) => !v)}
+            aria-label={saved ? "Saved" : "Save"}
+            aria-pressed={saved}
+            className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+              saved ? "border-drift-coral bg-drift-coral/15 text-drift-coral" : "border-drift-divider text-drift-muted"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+              <path d="M12 21s-7-4.6-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z" />
+            </svg>
+          </button>
+          <a
+            href={openHref}
+            aria-label="Add"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-white"
+          >
+            <svg viewBox="0 0 24 24" className="h-[17px] w-[17px] fill-current">
+              <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Great-circle distance anchor → result, in miles, for the compact card. null
+// when either point lacks coords or the distance rounds to ~0.
+function distanceMi(a: DiscoverAnchor | null, r: DiscoverResult): string | null {
+  if (a?.lat == null || a?.lng == null || r.lat == null || r.lng == null) return null
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const R = 3958.8 // miles
+  const dLat = toRad(r.lat - a.lat)
+  const dLng = toRad(r.lng - a.lng)
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(r.lat)) * Math.sin(dLng / 2) ** 2
+  const mi = R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s))
+  if (mi < 0.1) return null
+  return mi < 10 ? `${mi.toFixed(1)} mi` : `${Math.round(mi)} mi`
 }
 
 // Location picker — the web port of the iOS Discover location selector. A

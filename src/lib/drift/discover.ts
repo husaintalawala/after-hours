@@ -25,6 +25,9 @@ export interface DiscoverResult {
   reviewCount: number | null
   priceLabel: string | null
   subtitle: string | null
+  // Street/area address, kept separate from `subtitle` (which is the category)
+  // so the compact iOS-style card can show category · distance AND an address line.
+  address: string | null
   // A short human-readable blurb (2-line clamp in the UI). Present today for
   // Viator activities (upstream carries it); null for other sources until a
   // description source is wired (Google editorial summary is Pro-SKU + gated).
@@ -51,6 +54,7 @@ function fromGoogle(c: PlaceCandidate): DiscoverResult {
     reviewCount: c.reviewCount ?? null,
     priceLabel: null,
     subtitle: c.primaryType ?? c.address ?? null,
+    address: c.address ?? null,
     description: c.editorialSummary ?? null,
     lat: c.latitude ?? null,
     lng: c.longitude ?? null,
@@ -106,6 +110,7 @@ const fromVendor =
   reviewCount: c.reviewCount ?? null,
   priceLabel: c.priceLabel ?? null,
   subtitle: c.address ?? null,
+  address: c.address ?? null,
   description: c.description ?? null,
   lat: c.latitude ?? null,
   lng: c.longitude ?? null,

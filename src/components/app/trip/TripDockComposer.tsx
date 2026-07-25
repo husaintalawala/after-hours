@@ -41,8 +41,10 @@ export default function TripDockComposer({
   return (
     <>
       {!open && (
-        <div className="fixed inset-x-0 bottom-[calc(74px+env(safe-area-inset-bottom))] z-40 px-3 lg:hidden">
-          <div className="mx-auto flex max-w-md items-center gap-2 rounded-full border border-aurora-border bg-aurora-glass/95 px-2.5 py-2 shadow-lg backdrop-blur-xl">
+        // Docked flush above the attached bottom nav (56px) — one integrated
+        // bottom unit, matching iOS (no floating gap).
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-drift-divider bg-aurora-glass/95 px-3 py-2.5 backdrop-blur-xl lg:hidden">
+          <div className="flex items-center gap-2 rounded-full border border-aurora-border bg-aurora-midnight2/60 px-2.5 py-1.5">
             <span
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[15px] text-white"
               style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}

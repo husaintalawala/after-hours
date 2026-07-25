@@ -39,8 +39,11 @@ export default function AppNav() {
     href === "/app" ? pathname === "/app" : pathname.startsWith(href)
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-3 mb-3 flex w-full max-w-md items-center gap-1.5 rounded-[26px] border border-drift-divider bg-aurora-glass/95 px-3 py-2 shadow-lg backdrop-blur-xl">
+    // Attached to the bottom edge, full-width, flush — matching the native iOS
+    // tab bar (not a floating pill). Content is 56px tall; env() adds the home-
+    // indicator safe area below it.
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-drift-divider bg-aurora-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+      <div className="flex h-14 items-center gap-1 px-3">
         {tabs.map((tab) => {
           const active = isActive(tab.href)
           return (
@@ -48,15 +51,13 @@ export default function AppNav() {
               key={tab.href}
               href={tab.href}
               aria-label={tab.label}
-              className={`flex h-11 flex-1 items-center justify-center rounded-full transition-colors ${
+              className={`flex h-11 flex-1 items-center justify-center rounded-2xl transition-colors ${
                 active ? "bg-drift-coral/15" : "bg-transparent"
               }`}
             >
               <svg
                 viewBox="0 0 24 24"
-                className={`h-5 w-5 ${
-                  active ? "fill-drift-coral" : "fill-drift-muted/60"
-                }`}
+                className={`h-6 w-6 ${active ? "fill-drift-coral" : "fill-drift-muted/60"}`}
               >
                 {tab.icon}
               </svg>
@@ -69,7 +70,7 @@ export default function AppNav() {
         <Link
           href="/app/trips/new"
           aria-label="Create new trip"
-          className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-white shadow-md shadow-drift-coral/25"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-drift-coral text-white shadow-md shadow-drift-coral/25"
         >
           <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
             <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z" />
