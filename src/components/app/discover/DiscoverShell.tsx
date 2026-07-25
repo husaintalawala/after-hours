@@ -209,10 +209,11 @@ export default function DiscoverShell({
 
   return (
     // Full-bleed on both breakpoints. Desktop: split grid (results panel + map,
-    // right of the 76px nav rail). Mobile: iOS map-forward — full-bleed map with
-    // floating location picker + chips on top and a swipeable card carousel over
-    // the map at the bottom. One shared DiscoverMap instance either way.
-    <div className="fixed inset-0 bottom-0 top-0 lg:left-[76px] lg:right-0 lg:grid lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)]">
+    // right of the 76px nav rail). Mobile: iOS map-forward. The add-to-itinerary
+    // sheet + toast are siblings of this fixed container (below) so they escape
+    // its stacking context and layer above the bottom nav.
+    <>
+      <div className="fixed inset-0 bottom-0 top-0 lg:left-[76px] lg:right-0 lg:grid lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)]">
       {/* ===== Desktop results panel (grid col 1) ===== */}
       <div className="relative z-10 hidden h-full min-h-0 flex-col overflow-y-auto border-r border-drift-divider bg-aurora-glass px-6 pt-6 lg:flex">
         <h1 className="font-drift-display text-3xl font-medium tracking-tight">Discover</h1>
@@ -272,8 +273,11 @@ export default function DiscoverShell({
           ))}
         </div>
       </div>
+      </div>
 
-      {/* Add-to-itinerary flow (the "+" on a card) + success toast. */}
+      {/* Add-to-itinerary flow (the "+" on a card) + success toast. Rendered as
+          siblings of the fixed map container so they escape its stacking context
+          and layer above the bottom nav. */}
       {addTarget && (
         <AddToTripSheet
           poi={addTarget}
@@ -294,7 +298,7 @@ export default function DiscoverShell({
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -447,14 +451,21 @@ function AddToTripSheet({
     }
   }
 
-  const pill =
-    "rounded-full border border-drift-divider bg-aurora-glass px-3.5 py-2 text-[13px] font-semibold text-drift-ink transition-colors hover:border-drift-coral/50 disabled:opacity-50"
+  const dayRow =
+    "flex w-full items-center justify-between rounded-xl border border-drift-divider px-3.5 py-3 text-left text-[14px] font-semibold text-drift-ink transition-colors hover:border-drift-coral/50 active:bg-drift-coral/10 disabled:opacity-60"
 
+  // NOTE: DiscoverShell renders this OUTSIDE its own position:fixed map container
+  // (as a sibling, in the root stacking context) — otherwise the fixed container
+  // forms a stacking context that sits below the bottom nav (z-50) and the nav
+  // paints over the sheet. Here z-[90] beats the nav and the scrim covers it.
   return (
-    <div className="fixed inset-0 z-[70] lg:flex lg:items-center lg:justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-[24px] border-t border-aurora-border bg-aurora-glass pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-aurora-glow lg:static lg:max-h-[70vh] lg:w-[430px] lg:rounded-3xl lg:border">
-        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-aurora-border bg-aurora-glass px-4 py-3.5">
+    <div className="fixed inset-0 z-[90] flex flex-col justify-end lg:items-center lg:justify-center">
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <div className="relative flex max-h-[90vh] min-h-[56vh] flex-col overflow-hidden rounded-t-[26px] border-t border-aurora-border bg-aurora-glass shadow-aurora-glow lg:max-h-[80vh] lg:min-h-0 lg:w-[440px] lg:rounded-3xl lg:border">
+        <div className="flex justify-center pt-2.5 lg:hidden">
+          <span className="h-1 w-9 rounded-full bg-white/20" />
+        </div>
+        <div className="flex items-center gap-3 border-b border-aurora-border px-4 py-3.5">
           <div className="min-w-0 flex-1">
             <p className="truncate font-drift-display text-[16px] font-semibold">Add to itinerary</p>
             <p className="truncate text-[12.5px] text-drift-text-tertiary">{poi.name}</p>
@@ -468,9 +479,9 @@ function AddToTripSheet({
           </button>
         </div>
 
-        <div className="p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           {destinations.length === 0 ? (
-            <div className="py-6 text-center">
+            <div className="py-8 text-center">
               <p className="text-[14px] text-drift-muted">Create a trip first to add places to it.</p>
               <a
                 href="/app/trips/new"
@@ -487,7 +498,7 @@ function AddToTripSheet({
                   <button
                     key={`${p.tripId}-${p.id}`}
                     onClick={() => setDest(p)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-drift-divider px-3 py-2.5 text-left transition-colors hover:border-drift-coral/50"
+                    className="flex w-full items-center gap-3 rounded-xl border border-drift-divider px-3 py-3 text-left transition-colors hover:border-drift-coral/50"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-aurora-glass2 text-[15px]">
                       📍
@@ -504,23 +515,27 @@ function AddToTripSheet({
             </>
           ) : (
             <>
-              <button
-                onClick={() => setDest(null)}
-                className="mb-3 flex items-center gap-1.5 text-[12.5px] font-medium text-drift-muted"
-              >
-                <span className="text-drift-coral">‹</span> {dest.label}
-                {destinations.length > 1 && <span className="text-drift-text-tertiary"> · change</span>}
-              </button>
-              <p className="mb-2.5 text-[13px] font-semibold">Which day?</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => doAdd(dest, null)} disabled={adding} className={pill}>
-                  Unscheduled
+              {destinations.length > 1 && (
+                <button
+                  onClick={() => setDest(null)}
+                  className="mb-3 flex items-center gap-1.5 text-[12.5px] font-medium text-drift-muted"
+                >
+                  <span className="text-drift-coral">‹</span> {dest.label}
+                  <span className="text-drift-text-tertiary"> · change</span>
                 </button>
+              )}
+              <p className="mb-2.5 text-[13px] font-semibold">Which day?</p>
+              <div className="space-y-1.5">
                 {dest.days.map((d) => (
-                  <button key={d.date} onClick={() => doAdd(dest, d.date)} disabled={adding} className={pill}>
-                    {d.label}
+                  <button key={d.date} onClick={() => doAdd(dest, d.date)} disabled={adding} className={dayRow}>
+                    <span>{d.label}</span>
+                    <span className="text-[19px] leading-none text-drift-coral">+</span>
                   </button>
                 ))}
+                <button onClick={() => doAdd(dest, null)} disabled={adding} className={dayRow}>
+                  <span className="text-drift-muted">Unscheduled</span>
+                  <span className="text-[19px] leading-none text-drift-coral">+</span>
+                </button>
               </div>
               {error && <p className="mt-3 text-[13px] font-medium text-drift-coral">{error}</p>}
               {adding && <p className="mt-3 text-[13px] text-drift-text-tertiary">Adding…</p>}
