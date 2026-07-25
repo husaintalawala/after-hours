@@ -343,7 +343,7 @@ export default function ChatsShell({
   return (
     <>
       {/* ---------- Desktop ---------- */}
-      <div className="fixed inset-x-0 bottom-0 top-[60px] hidden lg:flex">
+      <div className="fixed bottom-0 left-[76px] right-0 top-0 hidden lg:flex">
         <aside className="flex w-[284px] shrink-0 flex-col border-r border-aurora-border bg-aurora-glass">
           {sidebar}
         </aside>

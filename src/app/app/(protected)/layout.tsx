@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import AppNav from "@/components/app/AppNav"
-import AppTopNav from "@/components/app/AppTopNav"
+import AppRail from "@/components/app/AppRail"
 
 // The logged-in app owns its own browser-tab identity (the marketing landing
 // keeps the "Side Quest" title from the root layout).
@@ -48,9 +48,13 @@ export default async function ProtectedLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
         rel="stylesheet"
       />
-      <div className="min-h-screen bg-aurora-midnight pb-24 font-drift-body text-aurora-ink lg:pb-12">
-        <AppTopNav initial={initial} avatarUrl={profile?.avatar_url ?? null} />
-        {children}
+      <div className="min-h-screen bg-aurora-midnight font-drift-body text-aurora-ink">
+        {/* Desktop: persistent left nav rail. Mobile: floating bottom dock. */}
+        <div className="hidden lg:block">
+          <AppRail initial={initial} avatarUrl={profile?.avatar_url ?? null} />
+        </div>
+        {/* Content clears the mobile dock (pb) and the desktop rail (pl). */}
+        <div className="pb-24 lg:pb-0 lg:pl-[76px]">{children}</div>
         <div className="lg:hidden">
           <AppNav />
         </div>

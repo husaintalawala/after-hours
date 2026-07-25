@@ -59,8 +59,8 @@ export default function HomeShell({ data }: { data: HomeData }) {
         <GlobeHero pins={data.pins} focusTripId={focusTripId} />
       </div>
 
-      {/* ---------- Desktop: floating glass trip rail ---------- */}
-      <aside className="fixed bottom-8 left-6 top-[76px] z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex">
+      {/* ---------- Desktop: floating glass trip rail (clears the 76px nav rail) ---------- */}
+      <aside className="fixed bottom-8 left-[100px] top-6 z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex">
         <div className="overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
           {/* Header */}
           <div className="flex items-center gap-3.5">
