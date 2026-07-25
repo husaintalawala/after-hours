@@ -235,7 +235,12 @@ export default function DiscoverShell({
           )}
           <div className="grid grid-cols-2 gap-4">
             {results.map((r) => (
-              <ResultCard key={`${r.source}-${r.id}`} r={r} onHover={() => setHovered(r.id)} />
+              <ResultCard
+                key={`${r.source}-${r.id}`}
+                r={r}
+                onHover={() => setHovered(r.id)}
+                onAdd={() => setAddTarget(r)}
+              />
             ))}
           </div>
         </div>
@@ -292,7 +297,7 @@ export default function DiscoverShell({
         />
       )}
       {toast && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[80] flex justify-center px-4 lg:bottom-6">
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[80] flex justify-center px-4 lg:bottom-6 lg:left-[76px]">
           <div className="rounded-full bg-aurora-glass2 px-4 py-2.5 text-[13.5px] font-semibold text-aurora-ink shadow-[0_14px_34px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/10">
             {toast}
           </div>
@@ -760,7 +765,15 @@ function LocationPicker({
 // rating → chips (price/category) → description → dual CTAs. Adapts per source
 // since coverage differs (events have no rating; stays/events carry an address
 // or "Venue · Date" subtitle better shown as text than a chip).
-function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) {
+function ResultCard({
+  r,
+  onHover,
+  onAdd,
+}: {
+  r: DiscoverResult
+  onHover: () => void
+  onAdd: () => void
+}) {
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
   // Google-sourced places have a rich in-app detail page; vendor results deep-link out.
   const detailHref =
@@ -791,7 +804,19 @@ function ResultCard({ r, onHover }: { r: DiscoverResult; onHover: () => void }) 
       onMouseEnter={onHover}
       className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.5)]"
     >
-      {detailHref ? <a href={detailHref} className="block">{hero}</a> : hero}
+      <div className="relative">
+        {detailHref ? <a href={detailHref} className="block">{hero}</a> : hero}
+        {/* Add-to-itinerary — same flow as mobile; opens the trip/day picker. */}
+        <button
+          onClick={onAdd}
+          aria-label="Add to a trip"
+          className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.5)] transition-transform hover:scale-105"
+        >
+          <svg viewBox="0 0 24 24" className="h-[17px] w-[17px] fill-current">
+            <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z" />
+          </svg>
+        </button>
+      </div>
       <div className="p-3">
         {detailHref ? (
           <a href={detailHref} className="block text-[15px] font-semibold leading-snug line-clamp-2 hover:text-drift-coral">
