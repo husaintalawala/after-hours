@@ -342,7 +342,7 @@ export default function DiscoverMap({
       {showSearchHere && onSearchArea && (
         <button
           onClick={handleSearchHere}
-          className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border border-aurora-border bg-drift-coral px-4 py-2 text-[13px] font-semibold text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.65)] transition-transform hover:-translate-y-0.5 hover:-translate-x-1/2"
+          className="absolute left-1/2 top-[132px] z-10 -translate-x-1/2 rounded-full border border-aurora-border bg-drift-coral px-4 py-2 text-[13px] font-semibold text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.65)] transition-transform hover:-translate-y-0.5 hover:-translate-x-1/2 lg:top-4"
         >
           Search this area
         </button>

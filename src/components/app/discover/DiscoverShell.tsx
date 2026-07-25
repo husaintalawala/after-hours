@@ -142,82 +142,89 @@ export default function DiscoverShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cat, anchor, override])
 
+  // Category chip row — shared by the desktop panel and the mobile top chrome.
+  const chipsRow = (
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {CATS.map((c) => (
+        <button
+          key={c}
+          onClick={() => setCat(c)}
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold shadow-sm transition-colors ${
+            cat === c
+              ? "bg-drift-coral text-white"
+              : "border border-drift-divider bg-aurora-glass text-drift-muted"
+          }`}
+        >
+          {CATEGORY_META[c].icon && <span className="mr-1">{CATEGORY_META[c].icon}</span>}
+          {CATEGORY_META[c].label}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    // Start below the 60px sticky top nav — pinning to top-0 slid the location
-    // picker + category chips under the nav.
-    <div className="lg:fixed lg:bottom-0 lg:left-[76px] lg:right-0 lg:top-0">
-      <div className="mx-auto h-full w-full max-w-2xl px-5 pt-6 lg:max-w-none lg:px-0 lg:pt-0">
-        <div className="h-full lg:grid lg:grid-cols-[440px_minmax(0,1fr)]">
-          {/* Rail */}
-          <div className="flex h-full flex-col lg:overflow-y-auto lg:border-r lg:border-drift-divider lg:bg-aurora-glass lg:px-6 lg:pt-6">
-            <h1 className="font-drift-display text-3xl font-medium tracking-tight">
-              Discover
-            </h1>
-
-            {/* Location picker — current location + your trip places + city search */}
-            <div className="mt-4">
-              <LocationPicker anchor={anchor} places={places} onSelect={selectAnchor} />
-            </div>
-
-            {/* Category chips — shrink-0 keeps the row from collapsing: as a
-                flex child with overflow-x-auto its automatic min-height is 0,
-                so the growing flex-1 results list below would otherwise squash
-                it to a sliver. flex-nowrap + overflow-x-auto = horizontal scroll. */}
-            <div className="mt-3 flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {CATS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCat(c)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
-                    cat === c
-                      ? "bg-drift-coral text-white"
-                      : "border border-drift-divider bg-aurora-glass text-drift-muted"
-                  }`}
-                >
-                  {CATEGORY_META[c].icon && (
-                    <span className="mr-1">{CATEGORY_META[c].icon}</span>
-                  )}
-                  {CATEGORY_META[c].label}
-                </button>
-              ))}
-            </div>
-
-            {/* Results */}
-            <div className="mt-4 flex-1 space-y-3 pb-28">
-              {!fetchAnchor && (
-                <p className="pt-8 text-center text-drift-muted">
-                  Search a city to start exploring.
-                </p>
-              )}
-              {fetchAnchor && loading && results.length === 0 && (
-                <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">
-                  Finding {CATEGORY_META[cat].label.toLowerCase()} in {fetchAnchor.label}…
-                </p>
-              )}
-              {fetchAnchor && !loading && results.length === 0 && (
-                <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">
-                  Nothing found here yet.
-                </p>
-              )}
-              {results.map((r) => (
-                <ResultCard
-                  key={`${r.source}-${r.id}`}
-                  r={r}
-                  onHover={() => setHovered(r.id)}
-                />
-              ))}
-            </div>
+    // Full-bleed on both breakpoints. Desktop: split grid (results panel + map,
+    // right of the 76px nav rail). Mobile: iOS map-forward — full-bleed map with
+    // floating location picker + chips on top and a swipeable card carousel over
+    // the map at the bottom. One shared DiscoverMap instance either way.
+    <div className="fixed inset-0 bottom-0 top-0 lg:left-[76px] lg:right-0 lg:grid lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)]">
+      {/* ===== Desktop results panel (grid col 1) ===== */}
+      <div className="relative z-10 hidden h-full min-h-0 flex-col overflow-y-auto border-r border-drift-divider bg-aurora-glass px-6 pt-6 lg:flex">
+        <h1 className="font-drift-display text-3xl font-medium tracking-tight">Discover</h1>
+        <div className="mt-4">
+          <LocationPicker anchor={anchor} places={places} onSelect={selectAnchor} />
+        </div>
+        <div className="mt-3 shrink-0">{chipsRow}</div>
+        <div className="mt-4 flex-1 pb-8">
+          {!fetchAnchor && (
+            <p className="pt-8 text-center text-drift-muted">Search a city to start exploring.</p>
+          )}
+          {fetchAnchor && loading && results.length === 0 && (
+            <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">
+              Finding {CATEGORY_META[cat].label.toLowerCase()} in {fetchAnchor.label}…
+            </p>
+          )}
+          {fetchAnchor && !loading && results.length === 0 && (
+            <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">Nothing found here yet.</p>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            {results.map((r) => (
+              <ResultCard key={`${r.source}-${r.id}`} r={r} onHover={() => setHovered(r.id)} />
+            ))}
           </div>
+        </div>
+      </div>
 
-          {/* Map (desktop) */}
-          <div className="hidden lg:block">
-            <DiscoverMap
-              anchor={fetchAnchor}
-              results={results}
-              hoveredId={hovered}
-              onSearchArea={searchArea}
-            />
+      {/* ===== Map — single instance (grid col 2 on desktop, full-bleed on mobile) ===== */}
+      <div className="discover-map-pane absolute inset-0 lg:relative lg:inset-auto lg:h-full">
+        {fetchAnchor ? (
+          <DiscoverMap anchor={fetchAnchor} results={results} hoveredId={hovered} onSearchArea={searchArea} />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-aurora-midnight2 px-8 text-center text-drift-muted">
+            Search a city to start exploring.
           </div>
+        )}
+      </div>
+
+      {/* ===== Mobile floating chrome (over the map) ===== */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-44 bg-gradient-to-b from-black/70 via-black/25 to-transparent lg:hidden" />
+      <div className="absolute inset-x-0 top-0 z-30 px-4 pt-4 lg:hidden">
+        <LocationPicker anchor={anchor} places={places} onSelect={selectAnchor} />
+        <div className="mt-3">{chipsRow}</div>
+      </div>
+      {/* Swipeable card carousel pinned above the dock. */}
+      <div className="absolute inset-x-0 bottom-[100px] z-20 lg:hidden">
+        {fetchAnchor && loading && results.length === 0 && (
+          <p className="mx-4 rounded-full border border-drift-divider bg-aurora-glass px-4 py-2 text-center text-[13px] text-drift-text-tertiary shadow-lg">
+            Finding {CATEGORY_META[cat].label.toLowerCase()} in {fetchAnchor.label}…
+          </p>
+        )}
+        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {results.map((r) => (
+            <div key={`${r.source}-${r.id}`} className="w-[280px] shrink-0 snap-center">
+              <ResultCard r={r} onHover={() => setHovered(r.id)} />
+            </div>
+          ))}
         </div>
       </div>
     </div>

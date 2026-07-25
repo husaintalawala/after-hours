@@ -111,3 +111,12 @@ body::after { display: none; }
   overflow: hidden;
 }
 
+/* Mobile map-forward Discover: hide the mapbox zoom control (pinch-to-zoom is
+   the phone idiom, and it would collide with the bottom card carousel). Desktop
+   keeps it. Scoped to the Discover map so the trip map is unaffected. */
+@media (max-width: 1023px) {
+  .discover-map-pane .mapboxgl-ctrl-bottom-right {
+    display: none;
+  }
+}
+
