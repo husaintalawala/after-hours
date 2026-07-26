@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
@@ -15,10 +16,15 @@ import CompleteYourTrip, { type StayGap } from "./CompleteYourTrip"
 import TripCoverChips from "./TripCoverChips"
 import TripWeather from "./TripWeather"
 import DayAddStop from "./DayAddStop"
-import TripMap, { type TripMapPoint } from "./TripMap"
+import type { TripMapPoint } from "./TripMap"
 import MediaSection from "./MediaSection"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
+
+// Mapbox GL is ~heavy; keep it OUT of the trip page's first-load bundle. Lazy-
+// load the map (client-only) so it downloads only when a map actually renders —
+// the same pattern Discover/Home already use to stay small.
+const TripMap = dynamic(() => import("./TripMap"), { ssr: false })
 
 // The trip workspace, aligned with iOS:
 //  Plan (trip level)  = trip hero + "Your stops" destination cards
