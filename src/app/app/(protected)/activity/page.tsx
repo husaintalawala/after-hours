@@ -35,22 +35,25 @@ export default async function ActivityPage() {
   const tripIds = [...new Set(notifs.map((n) => n.trip_id).filter((x): x is string => !!x))]
   const actors = new Map<string, Pick<ProfileRow, "username" | "display_name" | "avatar_url">>()
   const tripTitles = new Map<string, string>()
-  if (actorIds.length) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id,username,display_name,avatar_url")
-      .in("id", actorIds)
-      .returns<Array<Pick<ProfileRow, "id" | "username" | "display_name" | "avatar_url">>>()
-    for (const p of data ?? []) actors.set(p.id, p)
-  }
-  if (tripIds.length) {
-    const { data } = await supabase
-      .from("trips")
-      .select("id,title")
-      .in("id", tripIds)
-      .returns<Pick<TripRow, "id" | "title">[]>()
-    for (const t of data ?? []) tripTitles.set(t.id, t.title)
-  }
+  // Actors + trip titles are independent — fetch them in parallel, not serially.
+  const [actorRes, tripRes] = await Promise.all([
+    actorIds.length
+      ? supabase
+          .from("profiles")
+          .select("id,username,display_name,avatar_url")
+          .in("id", actorIds)
+          .returns<Array<Pick<ProfileRow, "id" | "username" | "display_name" | "avatar_url">>>()
+      : Promise.resolve({ data: [] as Array<Pick<ProfileRow, "id" | "username" | "display_name" | "avatar_url">> }),
+    tripIds.length
+      ? supabase
+          .from("trips")
+          .select("id,title")
+          .in("id", tripIds)
+          .returns<Pick<TripRow, "id" | "title">[]>()
+      : Promise.resolve({ data: [] as Pick<TripRow, "id" | "title">[] }),
+  ])
+  for (const p of actorRes.data ?? []) actors.set(p.id, p)
+  for (const t of tripRes.data ?? []) tripTitles.set(t.id, t.title)
 
   // Group by recency.
   const now = Date.now()

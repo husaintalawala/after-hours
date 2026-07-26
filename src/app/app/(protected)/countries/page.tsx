@@ -21,12 +21,18 @@ export default async function CountriesPage() {
   const user = session?.user
   if (!user) return null
 
-  const { data: buddyRows } = await supabase
-    .from("trip_buddies")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("status", "accepted")
-    .returns<TripBuddyRow[]>()
+  // The home profile only needs user.id — fetch it alongside the buddy list
+  // instead of serially after the whole trips→steps chain.
+  const [profileRes, buddyRes] = await Promise.all([
+    supabase.from("profiles").select("home_city,home_lat,home_lng").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("trip_buddies")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "accepted")
+      .returns<TripBuddyRow[]>(),
+  ])
+  const buddyRows = buddyRes.data
   const buddyTripIds = (buddyRows ?? []).map((b) => b.trip_id)
 
   const orFilter = buddyTripIds.length
@@ -76,11 +82,7 @@ export default async function CountriesPage() {
 
   // Furthest from home — needs a home location (Settings → Home city) + the
   // farthest visited step by great-circle distance.
-  const { data: profileRow } = await supabase
-    .from("profiles")
-    .select("home_city,home_lat,home_lng")
-    .eq("id", user.id)
-    .maybeSingle()
+  const profileRow = profileRes.data
   const home = profileRow as
     | { home_city?: string | null; home_lat?: number | null; home_lng?: number | null }
     | null

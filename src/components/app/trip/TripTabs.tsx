@@ -9,7 +9,6 @@ import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
-import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
 import CompleteYourTrip, { type StayGap } from "./CompleteYourTrip"
@@ -25,6 +24,10 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 // load the map (client-only) so it downloads only when a map actually renders —
 // the same pattern Discover/Home already use to stay small.
 const TripMap = dynamic(() => import("./TripMap"), { ssr: false })
+// The destination Guide (top sights/tours) renders only when a destination's
+// Overview is opened — not on the trip page's first paint. Split it out so its
+// ~400 lines download on demand instead of bloating the trip First Load.
+const DestinationGuide = dynamic(() => import("./DestinationGuide"))
 
 // The trip workspace, aligned with iOS:
 //  Plan (trip level)  = trip hero + "Your stops" destination cards
