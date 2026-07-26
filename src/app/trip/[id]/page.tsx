@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import OptimizedImg from "@/components/app/OptimizedImg"
 
 const SUPABASE_URL = "https://ykueoalpqeuqmhfbontz.supabase.co"
 const SUPABASE_ANON_KEY =
@@ -119,10 +120,9 @@ export async function generateMetadata({
   params: Promise<{ id: string }>
 }): Promise<Metadata> {
   const { id } = await params
-  const trip = await fetchTrip(id)
+  const [trip, steps] = await Promise.all([fetchTrip(id), fetchSteps(id)])
   if (!trip) return { title: "Trip Not Found" }
 
-  const steps = await fetchSteps(id)
   const mapUrl = buildMapUrl(steps)
   const location = [trip.city, trip.country].filter(Boolean).join(", ")
   const description = trip.ai_story
@@ -155,10 +155,9 @@ export default async function TripPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const trip = await fetchTrip(id)
+  const [trip, steps] = await Promise.all([fetchTrip(id), fetchSteps(id)])
   if (!trip) notFound()
 
-  const steps = await fetchSteps(id)
   const mapUrl = buildMapUrl(steps)
   const distance = haversineKm(steps)
   const location = [trip.city, trip.country].filter(Boolean).join(", ")
@@ -170,11 +169,13 @@ export default async function TripPage({
     <main className="min-h-screen bg-midnight text-cream">
       {/* Map Hero */}
       <div className="relative w-full aspect-[2/1] max-h-[70vh] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <OptimizedImg
           src={mapUrl}
           alt={`Map of ${trip.title}`}
-          className="w-full h-full object-cover"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">

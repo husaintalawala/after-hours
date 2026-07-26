@@ -5,6 +5,7 @@ import type { ProfileRow, TripRow } from "@/lib/db-types"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 import FollowButton from "@/components/app/people/FollowButton"
 import BackLink from "@/components/app/BackLink"
+import OptimizedImg from "@/components/app/OptimizedImg"
 
 // Public profile — reached by tapping a person in the followers/following list.
 // Shows their identity, follower/following counts, and the trips visible to the
@@ -52,10 +53,11 @@ export default async function ProfilePage({ params }: { params: { id: string } }
       {/* Identity */}
       <div className="flex items-center gap-4">
         {profile.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <OptimizedImg
             src={profile.avatar_url}
             alt=""
+            width={80}
+            height={80}
             className="h-20 w-20 shrink-0 rounded-full object-cover ring-2 ring-drift-coral/60"
           />
         ) : (
@@ -94,8 +96,13 @@ export default async function ProfilePage({ params }: { params: { id: string } }
                 className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition-colors hover:bg-drift-card-active"
               >
                 {t.cover_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.cover_url} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+                  <OptimizedImg
+                    src={t.cover_url}
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                  />
                 ) : (
                   <div
                     className="h-12 w-12 shrink-0 rounded-xl"

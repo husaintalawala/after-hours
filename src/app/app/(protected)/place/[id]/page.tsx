@@ -16,24 +16,32 @@ export default async function PlacePage({
 }: {
   params: { id: string }
 }) {
-  const place = await fetchPlaceDetails(decodeURIComponent(params.id))
-  if (!place) notFound()
-
-  // Featured trip → the Ask-Drift hand-off target.
+  // The Google Place Details call and the user's trips lookup are independent.
+  // getSession() is a local JWT decode (no network), so awaiting it first to
+  // learn the user id costs nothing; then both network calls race in Promise.all
+  // instead of the Google call blocking the trips query (or vice-versa).
   const supabase = createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
+  const [place, tripsRes] = await Promise.all([
+    fetchPlaceDetails(decodeURIComponent(params.id)),
+    session?.user
+      ? supabase
+          .from("trips")
+          .select("id,title,start_date,is_active")
+          .eq("user_id", session.user.id)
+          .returns<Pick<TripRow, "id" | "title" | "start_date" | "is_active">[]>()
+      : Promise.resolve({ data: [] as Pick<TripRow, "id" | "title" | "start_date" | "is_active">[] }),
+  ])
+  if (!place) notFound()
+
+  // Featured trip → the Ask-Drift hand-off target.
   let askHref: string | null = null
-  if (session?.user) {
-    const { data: tripsRaw } = await supabase
-      .from("trips")
-      .select("id,title,start_date,is_active")
-      .eq("user_id", session.user.id)
-      .returns<Pick<TripRow, "id" | "title" | "start_date" | "is_active">[]>()
-    const trips = (tripsRaw ?? []).sort((a, b) =>
-      (b.start_date ?? "").localeCompare(a.start_date ?? "")
-    )
+  const trips = (tripsRes.data ?? []).slice().sort((a, b) =>
+    (b.start_date ?? "").localeCompare(a.start_date ?? "")
+  )
+  if (trips.length) {
     const today = new Date().toISOString().slice(0, 10)
     const featured =
       trips.find((t) => t.is_active) ??

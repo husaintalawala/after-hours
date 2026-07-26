@@ -33,37 +33,10 @@ export default async function DiscoverPage() {
       .sort((a, b) => (a.start_date ?? "").localeCompare(b.start_date ?? ""))[0] ??
     trips[0]
 
-  if (featured) {
-    const { data: dest } = await supabase
-      .from("steps")
-      .select("*")
-      .eq("trip_id", featured.id)
-      .eq("step_type", "destination")
-      .is("parent_step_id", null)
-      .order("date", { ascending: true })
-      .limit(1)
-      .maybeSingle()
-    const d = dest as StepRow | null
-    if (d) {
-      anchor = {
-        label: d.title || d.location_name || featured.cities?.[0] || "Destination",
-        country: d.country ?? featured.countries?.[0] ?? null,
-        lat: d.latitude,
-        lng: d.longitude,
-      }
-    } else if (featured.cities?.[0]) {
-      anchor = {
-        label: featured.cities[0],
-        country: featured.countries?.[0] ?? null,
-        lat: null,
-        lng: null,
-      }
-    }
-  }
-
-  // All destination places across the user's trips → quick-select options in
-  // the Discover location picker (mirrors iOS "your destinations grouped by
-  // your timeline"). Current location is added client-side via geolocation.
+  // All destination places across the user's trips power BOTH the Discover
+  // picker options AND the trip anchor — from ONE query. (The anchor used to be
+  // a second, redundant `steps` query for the featured trip's earliest
+  // destination; that row is already in this superset, so derive it in memory.)
   const tripIds = trips.map((t) => t.id)
   let places: DiscoverPlace[] = []
   if (tripIds.length) {
@@ -74,10 +47,34 @@ export default async function DiscoverPage() {
       .eq("step_type", "destination")
       .is("parent_step_id", null)
       .returns<StepRow[]>()
+    const rows = destRows ?? []
+
+    // Anchor = the featured trip's earliest destination, else its first city.
+    if (featured) {
+      const d = rows
+        .filter((r) => r.trip_id === featured.id)
+        .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))[0]
+      if (d) {
+        anchor = {
+          label: d.title || d.location_name || featured.cities?.[0] || "Destination",
+          country: d.country ?? featured.countries?.[0] ?? null,
+          lat: d.latitude,
+          lng: d.longitude,
+        }
+      } else if (featured.cities?.[0]) {
+        anchor = {
+          label: featured.cities[0],
+          country: featured.countries?.[0] ?? null,
+          lat: null,
+          lng: null,
+        }
+      }
+    }
+
     const tripById = new Map(trips.map((t) => [t.id, t]))
     const bucketFor = (t: TripRow): DiscoverPlace["bucket"] =>
       t.is_active ? "now" : (t.start_date ?? "") > today ? "upcoming" : "past"
-    places = (destRows ?? [])
+    places = rows
       .filter((d) => d.latitude != null && d.longitude != null)
       .map((d) => {
         const t = d.trip_id ? tripById.get(d.trip_id) : undefined

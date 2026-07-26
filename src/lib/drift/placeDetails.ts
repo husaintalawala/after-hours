@@ -52,7 +52,18 @@ const FIELD_MASK = [
 ].join(",")
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Google Place Details are identical for every user and change slowly, but the
+// call to Google (~150-400ms via the proxy) sat directly on the /app/place/[id]
+// TTFB on EVERY view. Memoize per placeId with a short TTL so repeat views (by
+// any user) are served from RAM on a warm serverless instance. Successful
+// results only — transient failures retry. (A `next: { revalidate }` fetch
+// option would be a no-op here: Next only caches GET, and this is a POST.)
+const DETAILS_TTL_MS = 15 * 60 * 1000
+const detailsMemo = new Map<string, { at: number; data: PlaceDetails }>()
+
 export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
+  const hit = detailsMemo.get(placeId)
+  if (hit && Date.now() - hit.at < DETAILS_TTL_MS) return hit.data
   try {
     const up = await getDriftUpstream()
     if (!up) return null
@@ -64,12 +75,11 @@ export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails |
         apikey: up.anonKey,
       },
       body: JSON.stringify({ api: "placeDetails", placeID: placeId, fieldMask: FIELD_MASK }),
-      cache: "no-store",
     })
     if (!res.ok) return null
     const g: any = await res.json()
     if (!g?.id) return null
-    return {
+    const details = {
       id: g.id,
       name: g.displayName?.text ?? "Place",
       address: g.formattedAddress ?? null,
@@ -96,6 +106,9 @@ export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails |
       lng: g.location?.longitude ?? null,
       typeLabel: g.primaryTypeDisplayName?.text ?? null,
     }
+    if (detailsMemo.size > 500) detailsMemo.clear()
+    detailsMemo.set(placeId, { at: Date.now(), data: details })
+    return details
   } catch {
     return null
   }
