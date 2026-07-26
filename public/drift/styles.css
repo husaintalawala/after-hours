@@ -2,9 +2,9 @@
    index.html stays self-contained; this mirrors its design system so the
    pages read as one site: warm cream ground, Fraunces + Inter, coral CTAs. */
 :root {
-  --canvas:#F7F2EA; --cream:#EFE7DA; --surface:#fffdf9;
-  --ink:#211C17; --sec:#6b6156; --ter:#a99d8c;
-  --hair:#E2D9CB; --coral:#C9603F; --coralDeep:#A8482B;
+  --canvas:#FFFFFF; --cream:#F5F8FA; --surface:#FFFFFF;
+  --ink:#0C1626; --sec:#5B6672; --ter:#8B93A0;
+  --hair:#E7EBEE; --coral:#14B8A6; --coralDeep:#0E8C7E;
   --ed:"Fraunces",Georgia,serif; --meta:"Inter",system-ui,-apple-system,sans-serif;
   --maxw:1160px;
 }
@@ -30,7 +30,7 @@ header.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srg
 .nav-links a { color: var(--sec); font-size: 15px; font-weight: 500; }
 .nav-links a:hover { color: var(--ink); }
 .btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--meta); font-weight: 500; font-size: 15px; text-decoration: none; padding: 10px 20px; border-radius: 999px; border: 1px solid transparent; transition: opacity .2s, transform .16s cubic-bezier(.4,0,.2,1); }
-.btn-primary { background: var(--coralDeep); color: #fff; box-shadow: 0 10px 24px -12px rgba(168,72,43,.7); }
+.btn-primary { background: var(--coralDeep); color: #fff; box-shadow: 0 10px 24px -12px rgba(20,184,166,.7); }
 .btn-primary:hover { color: #fff; opacity: .94; }
 .btn-primary:active { transform: scale(.97); }
 .nav-links a.cta { color: #fff; }
