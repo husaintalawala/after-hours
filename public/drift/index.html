@@ -55,7 +55,10 @@
   .nav-cta{font-weight:700;font-size:14px;background:var(--coral);color:#fff;padding:9px 17px;border-radius:100px;display:inline-flex;align-items:center;gap:7px;transition:transform .2s}
   .nav-cta:hover{transform:translateY(-1px)}
   .nav-cta svg{width:14px;height:14px}
-  @media(max-width:560px){.nav-login{display:none}}
+  /* "Log in" stays visible on mobile — returning users reach the web app from
+     the header. On very narrow phones, drop the "Drift" wordmark (keep the mark)
+     so both the Log in link and the Get-the-app pill still fit. */
+  @media(max-width:360px){.brand{font-size:0}.brand img{width:34px!important;height:34px!important;margin:0!important}.nav-r{gap:10px}}
 
   /* ============ EPIC HERO — persistent photo backdrop + rising phone ============ */
   .stage-photo{position:absolute;inset:0;z-index:0;will-change:opacity}
