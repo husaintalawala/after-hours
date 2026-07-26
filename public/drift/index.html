@@ -253,7 +253,7 @@
   .cs-chips span{font-weight:600;font-size:13.5px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:9px 15px;border-radius:100px;box-shadow:0 6px 16px -12px rgba(40,26,12,.4)}
   .cs-stage{display:flex;justify-content:center;position:relative}
   .cs-stage .cglow{position:absolute;left:50%;top:48%;width:min(520px,124%);height:82%;transform:translate(-50%,-50%);z-index:0;background:radial-gradient(closest-side,rgba(20,184,166,.18),rgba(20,184,166,.05) 55%,transparent 74%);filter:blur(8px)}
-  .cphone{position:relative;z-index:2;width:min(300px,80vw);padding:8px;border-radius:46px;background:linear-gradient(160deg,#0c1626,#08131d);box-shadow:0 50px 90px -40px rgba(20,14,6,.55),0 16px 34px -20px rgba(0,0,0,.35);transform:perspective(1500px) rotateY(-7deg) rotateZ(.6deg);transition:transform .55s var(--e)}
+  .cphone{position:relative;z-index:2;width:min(300px,36vh,80vw);padding:8px;border-radius:46px;background:linear-gradient(160deg,#0c1626,#08131d);box-shadow:0 50px 90px -40px rgba(20,14,6,.55),0 16px 34px -20px rgba(0,0,0,.35);transform:perspective(1500px) rotateY(-7deg) rotateZ(.6deg);transition:transform .55s var(--e)}
   .cs-stage:hover .cphone{transform:perspective(1500px) rotateY(0) rotateZ(0)}
   .cfloat{position:absolute;z-index:3;font-weight:700;font-size:12.5px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:9px 14px;border-radius:100px 100px 100px 5px;box-shadow:0 14px 30px -14px rgba(40,26,12,.4);animation:cfl 7s ease-in-out infinite;white-space:nowrap}
   .cfloat.f1{top:-5%;left:-7%;color:var(--coralDeep)}
@@ -1055,7 +1055,7 @@
     // into view (a 185vh section tops out around ratio ~0.5 vs the viewport).
     if('IntersectionObserver'in window){
       new IntersectionObserver(function(en){en.forEach(function(x){
-        if(x.isIntersecting && x.intersectionRatio>=0.35) chatPlay();
+        if(x.isIntersecting && x.intersectionRatio>=0.5) chatPlay();
       });},{threshold:[0.35]}).observe(chatsec);
     }
   }
