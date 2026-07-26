@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 // 1:1 web port of the iOS AuthView (Views/AuthView.swift): dark amber-tinted
@@ -25,8 +25,49 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [resending, setResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const widgetIdRef = useRef<string | null>(null)
 
   const supabase = createClient()
+
+  // Cloudflare Turnstile — the site key is public. Rendering the widget now means
+  // enabling Captcha in Supabase (Auth → Attack Protection) needs no client
+  // redeploy: legit users already carry a token; bots that don't run the widget
+  // are rejected server-side. Harmless while Captcha is off (token is ignored).
+  const TURNSTILE_SITE_KEY =
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAD-cdaIM6leMfipc"
+
+  useEffect(() => {
+    const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+    function render() {
+      const w = (window as { turnstile?: any }).turnstile
+      if (!w || !turnstileRef.current || widgetIdRef.current) return
+      widgetIdRef.current = w.render(turnstileRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: "dark",
+        callback: (t: string) => setCaptchaToken(t),
+        "expired-callback": () => setCaptchaToken(null),
+        "error-callback": () => setCaptchaToken(null),
+      })
+    }
+    if ((window as { turnstile?: any }).turnstile) { render(); return }
+    if (!document.querySelector(`script[src^="${SRC.split("?")[0]}"]`)) {
+      const s = document.createElement("script")
+      s.src = SRC; s.async = true; s.defer = true
+      document.head.appendChild(s)
+    }
+    const iv = setInterval(() => {
+      if ((window as { turnstile?: any }).turnstile) { render(); clearInterval(iv) }
+    }, 250)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function resetCaptcha() {
+    const w = (window as { turnstile?: any }).turnstile
+    if (w && widgetIdRef.current) { w.reset(widgetIdRef.current); setCaptchaToken(null) }
+  }
 
   // Surface auth-callback failures (?error=...) — a silent bounce back to
   // this page is exactly what reads as "login got stuck".
@@ -51,8 +92,9 @@ export default function LoginPage() {
     setError(null)
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo: redirectTo, captchaToken: captchaToken ?? undefined },
     })
+    resetCaptcha() // Turnstile tokens are single-use
     setBusy(false)
     if (error) setError(error.message)
     else setSent(true)
@@ -62,8 +104,9 @@ export default function LoginPage() {
     setResending(true)
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo: redirectTo, captchaToken: captchaToken ?? undefined },
     })
+    resetCaptcha()
     setResending(false)
     if (error) setError(error.message)
   }
@@ -157,6 +200,8 @@ export default function LoginPage() {
                   {error}
                 </p>
               )}
+
+              <div ref={turnstileRef} className="mt-4 flex justify-center empty:mt-0" />
 
               <button
                 type="submit"
