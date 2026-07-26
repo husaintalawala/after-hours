@@ -1,26 +1,40 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import type { EmailOtpType } from "@supabase/supabase-js"
 import type { Database } from "@/lib/database.types"
 import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/cookie-options"
 
-// PKCE code-exchange endpoint for magic-link + OAuth (Google/Apple). Supabase
-// redirects here with ?code=...; we swap it for a session and write the auth
-// cookies DIRECTLY onto the redirect response, then forward to /app.
+// Auth landing endpoint for BOTH sign-in flows:
 //
-// Why the explicit-response cookies (the "login every refresh" fix): the prior
-// version used the next/headers server client and then returned a *separate*
-// NextResponse.redirect(). Set-Cookie written via next/headers does not
-// reliably attach to a manually-constructed redirect response — so the session
-// cookie was never persisted to the browser, every SSR render saw no cookie,
-// and the app bounced back to login on each refresh. Binding the Supabase
-// cookie writes to THIS `response` guarantees the Set-Cookie headers ship with
-// the redirect. Errors are forwarded to login as ?error=<detail>.
+//  • OAuth (Google / Apple / X): ?code=...  → exchangeCodeForSession (PKCE).
+//    The code verifier was written to a cookie in THIS browser during
+//    signInWithOAuth, and OAuth always completes in the same browser, so the
+//    verifier is present — the PKCE exchange works.
 //
-// Redirect URLs allow-listed in Supabase → Auth → URL Configuration:
-//   http://localhost:3000/auth/callback  and  https://drift.after-hours.app/auth/callback
+//  • Magic link / email OTP: ?token_hash=...&type=...  → verifyOtp.
+//    This path must NOT use the PKCE `code` flow. That flow stores the code
+//    verifier in a cookie in the browser that INITIATED sign-in; when the user
+//    opens the email on a different device/browser (phone vs. the desktop they
+//    typed their email on), the verifier isn't there and exchangeCodeForSession
+//    throws "PKCE code verifier not found in storage", blocking ALL email
+//    sign-in. verifyOtp({ token_hash }) needs no client verifier → cross-device
+//    safe. Requires the email templates to link here with token_hash (see below).
+//
+// >>> REQUIRED Supabase dashboard change (Auth → Email Templates) <<<
+//   Magic Link template link:
+//     {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=/app
+//   Confirm signup template link:
+//     {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup&next=/app
+//   (Default templates use {{ .ConfirmationURL }}, which is the PKCE code flow
+//    that breaks cross-device — replace them with the token_hash links above.)
+//
+// Session cookies are written directly onto the redirect `response` so the
+// Set-Cookie headers ship with the redirect (the "login every refresh" fix).
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
+  const tokenHash = searchParams.get("token_hash")
+  const type = searchParams.get("type") as EmailOtpType | null
   const next = searchParams.get("next") ?? "/app"
 
   // Supabase signals provider/flow errors as query params on the redirect.
@@ -32,9 +46,10 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  if (!code) {
+  const hasOtp = !!(tokenHash && type)
+  if (!code && !hasOtp) {
     return NextResponse.redirect(
-      `${origin}/app/login?error=${encodeURIComponent("Sign-in link was missing its code — try again.")}`
+      `${origin}/app/login?error=${encodeURIComponent("Sign-in link was incomplete — request a new one.")}`
     )
   }
 
@@ -62,7 +77,12 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  // Email/magic-link (token_hash) is verifier-free and works cross-device;
+  // OAuth falls back to the PKCE code exchange (same-browser, verifier present).
+  const { error } = hasOtp
+    ? await supabase.auth.verifyOtp({ type: type!, token_hash: tokenHash! })
+    : await supabase.auth.exchangeCodeForSession(code!)
+
   if (error) {
     return NextResponse.redirect(
       `${origin}/app/login?error=${encodeURIComponent(error.message)}`
