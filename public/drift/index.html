@@ -292,8 +292,23 @@
   .cinput span:first-child{flex:1;font-size:11.5px;color:#A99E8C;font-weight:500}
   .cinput .send{flex:0 0 32px;width:32px;height:32px;border-radius:50%;background:var(--coral);display:grid;place-items:center}
   .cinput .send svg{width:15px;height:15px}
+  /* ----- chat phone: Aurora dark ----- */
+  .cscr{background:linear-gradient(172deg,#0f1e30,#0b1522 55%,#081019)}
+  .ctop{background:rgba(10,20,32,.92);border-bottom:1px solid rgba(255,255,255,.08)}
+  .ctop .t{color:#fff}
+  .ctop .s{color:rgba(234,242,244,.6)}
+  .bot .bub{background:rgba(255,255,255,.06);color:#eaf2f4;border:1px solid rgba(255,255,255,.1)}
+  .me .bub{background:linear-gradient(135deg,#19c8b6,#14b8a6 55%,#6d5fe8);color:#fff}
+  .typ i{background:rgba(234,242,244,.5)}
+  .pcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 22px -14px rgba(0,0,0,.7)}
+  .pcard .nm{color:#fff}
+  .pcard .cat{color:#37D6C4}
+  .pcard .mt{color:rgba(234,242,244,.6)}
+  .qchips b{background:rgba(55,214,196,.13);color:#37D6C4;border:1px solid rgba(55,214,196,.28)}
+  .cinput{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+  .cinput span:first-child{color:rgba(234,242,244,.55)}
   /* scroll-driven reveal — messages appear as you scroll through the section */
-  .chatsec{height:210vh}
+  .chatsec{height:185vh}
   .cs-sticky{position:sticky;top:0;min-height:100vh;display:flex;align-items:center;padding:70px 0}
   .anim{opacity:0;transform:translateY(12px);transition:opacity .55s var(--e),transform .55s var(--e)}
   .anim.shown{opacity:1;transform:none}
@@ -555,7 +570,11 @@
 
   /* DISCOVER — CSS map with pins + a place carousel */
   .ap-disc{padding:0}
-  .dmap{position:absolute;inset:0;z-index:0;overflow:hidden;background:radial-gradient(120% 92% at 32% 18%,#123043 0%,#0b1a28 58%,#081019 100%)}
+  .dmap{position:absolute;inset:0;z-index:0;overflow:hidden;background:#0b1a28 center/cover no-repeat;background-image:url(assets/app/discover-map.webp)}
+  .dmap::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 42%,transparent 52%,rgba(6,12,20,.5)),linear-gradient(180deg,rgba(6,12,20,.35),transparent 26%,transparent 58%,rgba(6,12,20,.65))}
+  .dlabel{position:absolute;z-index:3;transform:translateX(-50%);white-space:nowrap;font-size:9.5px;font-weight:800;color:#0c1626;background:#fff;padding:4px 9px;border-radius:100px;box-shadow:0 6px 15px rgba(0,0,0,.5);opacity:0}
+  .s.on .dlabel{animation:dlabelin .5s var(--e) .95s forwards}
+  @keyframes dlabelin{from{opacity:0}to{opacity:1}}
   .dmap .wtr{position:absolute;background:rgba(34,132,150,.24);filter:blur(7px);border-radius:50%}
   .dmap .wtr.w1{width:190px;height:150px;left:-46px;top:44px}
   .dmap .wtr.w2{width:150px;height:150px;right:-46px;bottom:130px}
@@ -573,7 +592,7 @@
   .dchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.17);backdrop-filter:blur(8px);padding:7px 12px;border-radius:100px}
   .dchip i{width:6px;height:6px;border-radius:50%;background:#37D6C4;box-shadow:0 0 8px #37D6C4}
   .dcar{position:absolute;left:0;right:0;bottom:13px;z-index:5;display:flex;gap:9px;padding:0 13px}
-  .dc{flex:0 0 62%;display:flex;align-items:center;gap:9px;padding:7px;border-radius:14px;
+  .dc{flex:0 0 67%;display:flex;align-items:center;gap:9px;padding:7px;border-radius:14px;
      background:rgba(14,24,38,.74);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.13);box-shadow:0 18px 32px -18px rgba(0,0,0,.8);opacity:0;transform:translateY(20px)}
   .dc .im{width:42px;height:42px;border-radius:10px;background-size:cover;background-position:center;flex-shrink:0}
   .dc .nn{font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -608,16 +627,24 @@
   .ap-globe{padding:0;background:#070c14}
   .gl-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;z-index:0}
   .ap-globe::before{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(78% 58% at 50% 30%,transparent 40%,rgba(6,10,18,.55))}
+  .ap-globe::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40%;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(7,12,20,.94) 74%)}
+  .gl-bg{object-position:center top}
   .gl-head{position:absolute;top:0;left:0;right:0;z-index:3;padding:15px 15px 30px;background:linear-gradient(180deg,rgba(6,11,20,.75),transparent);color:#fff}
   .gl-head .tt{font-family:var(--serif);font-size:16px;font-weight:500}
   .gl-head .mt{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.72);margin-top:3px}
-  .kmo{position:absolute;z-index:2;border-radius:13px;background-size:cover;background-position:center;
-     border:2.5px solid #fff;box-shadow:0 14px 28px -10px rgba(0,0,0,.85);transform:scale(0)}
-  .s.on .kmo{animation:rm-pop .55s var(--e) forwards}
-  .kmo.m1{width:58px;height:74px;left:11%;top:23%;rotate:-6deg;animation-delay:.35s}
-  .kmo.m2{width:52px;height:66px;right:12%;top:19%;rotate:5deg;animation-delay:.55s}
-  .kmo.m3{width:56px;height:70px;left:15%;bottom:32%;rotate:4deg;animation-delay:.75s}
-  .kmo.m4{width:50px;height:64px;right:14%;bottom:36%;rotate:-5deg;animation-delay:.95s}
+  /* dropping map pins on the living globe */
+  .gpin{position:absolute;z-index:2;width:19px;height:19px;margin:-19px 0 0 -9.5px;border-radius:50% 50% 50% 2px;rotate:45deg;
+     background:linear-gradient(150deg,#37D6C4,#14b8a6);border:2px solid #eafcf8;box-shadow:0 6px 13px rgba(0,0,0,.65);opacity:0}
+  .gpin.v{background:linear-gradient(150deg,#8A7DF2,#6d5fe8)}
+  .gpin::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#fff;opacity:.6}
+  .s.on .gpin{animation:gdrop .6s var(--e) forwards}
+  @keyframes gdrop{0%{opacity:0;transform:translateY(-30px) scale(.4)}55%{opacity:1;transform:translateY(0) scale(1.18)}78%{transform:translateY(0) scale(.94)}100%{opacity:1;transform:translateY(0) scale(1)}}
+  .gpin.p1{left:37%;top:40%;animation-delay:.25s}
+  .gpin.p2{left:56%;top:33%;animation-delay:.45s}
+  .gpin.p3{left:46%;top:51%;animation-delay:.62s}
+  .gpin.p4{left:62%;top:47%;animation-delay:.8s}
+  .gpin.p5{left:40%;top:58%;animation-delay:.98s}
+  .gpin.p6{left:64%;top:60%;animation-delay:1.15s}
   .gl-card{position:absolute;left:12px;right:12px;bottom:14px;z-index:3;padding:14px 15px;border-radius:16px;color:#fff;opacity:0;transform:translateY(18px);
      background:rgba(9,15,25,.62);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);box-shadow:0 22px 42px -22px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.11)}
   .s.on .gl-card{animation:appin .6s var(--e) .3s forwards}
@@ -629,7 +656,7 @@
 
   /* reduced-motion: reveal every aurora-screen element statically */
   @media(prefers-reduced-motion:reduce){
-    .ap-card,.ap-day,.rz,.dc,.xrow,.settle,.ap-live,.gl-card,.kmo{opacity:1!important;transform:none!important}
+    .ap-card,.ap-day,.rz,.dc,.xrow,.settle,.ap-live,.gl-card,.gpin{opacity:1!important;transform:none!important}
     .rz .ok,.dpin{transform:scale(1)!important}
     .settle .sbar i{width:100%!important}
   }
@@ -650,7 +677,7 @@
 <section class="story" id="story"><span id="top"></span>
   <div class="stage" id="stage">
     <!-- persistent full-bleed photo backdrop (fades out as the phone rises) -->
-    <div class="stage-photo" id="ephoto"><picture><source type="image/webp" srcset="assets/photo/paris.webp"><img src="assets/photo/paris.webp" alt="The Eiffel Tower glowing over Paris at golden hour" width="2000" height="1333" style="object-position:center 44%"></picture></div>
+    <div class="stage-photo" id="ephoto"><picture><source type="image/webp" srcset="assets/photo/hero-aurora.webp"><img src="assets/photo/hero-aurora.webp" alt="Tents glowing under the northern lights on a group trip" width="2000" height="1333" style="object-position:center 52%"></picture></div>
     <div class="stage-scrim" id="escrim"></div>
     <!-- hero copy — fades away as the phone rises into frame -->
     <div class="stage-hero" id="ehero">
@@ -694,13 +721,12 @@
         <!-- 2 · DISCOVER — live map with pins + a place carousel -->
         <div class="s appscr aur ap-disc" data-i="2">
           <div class="dmap">
-            <span class="wtr w1"></span><span class="wtr w2"></span>
-            <span class="rd r1"></span><span class="rd r2"></span><span class="rd r3"></span><span class="rd r4"></span>
-            <span class="dpin sel p1" style="left:31%;top:44%"></span>
-            <span class="dpin p2" style="left:58%;top:33%"></span>
-            <span class="dpin p3" style="left:45%;top:61%"></span>
-            <span class="dpin p4" style="left:71%;top:57%"></span>
-            <span class="dpin p5" style="left:22%;top:66%"></span>
+            <span class="dpin p2" style="left:38%;top:39%"></span>
+            <span class="dpin p3" style="left:64%;top:44%"></span>
+            <span class="dpin p4" style="left:57%;top:65%"></span>
+            <span class="dpin p5" style="left:33%;top:62%"></span>
+            <span class="dpin sel p1" style="left:49%;top:53%"></span>
+            <span class="dlabel" style="left:49%;top:44%">◎ Shibuya Crossing</span>
           </div>
           <div class="dmap-top"><span class="dchip"><i></i>Shibuya · Tokyo</span></div>
           <div class="dcar">
@@ -728,10 +754,12 @@
         <div class="s appscr aur ap-globe" data-i="4">
           <img class="gl-bg" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trips, rotating">
           <div class="gl-head"><div class="tt">Your world</div><div class="mt">Everywhere you've been, together</div></div>
-          <span class="kmo m1" style="background-image:url(assets/photo/paris.webp)"></span>
-          <span class="kmo m2" style="background-image:url(assets/photo/tokyo.webp)"></span>
-          <span class="kmo m3" style="background-image:url(assets/photo/santorini.webp)"></span>
-          <span class="kmo m4" style="background-image:url(assets/photo/tajmahal.webp)"></span>
+          <span class="gpin p1"></span>
+          <span class="gpin v p2"></span>
+          <span class="gpin p3"></span>
+          <span class="gpin v p4"></span>
+          <span class="gpin p5"></span>
+          <span class="gpin v p6"></span>
           <div class="gl-card">
             <div class="big">14<em>countries</em></div>
             <div class="grow"><div><b>36</b><span>Cities</span></div><div><b>1,204</b><span>Photos</span></div><div><b>5</b><span>Trips</span></div></div>
@@ -986,7 +1014,7 @@
   /* ---- chat: scroll-driven conversation reveal ---- */
   var chatsec=document.querySelector('.chatsec');
   var chatEls=[].slice.call(document.querySelectorAll('.chatsec .anim'));
-  var chatTh={k1:.06,k2:.15,k3:.26,k4:.4,k5:.58,k6:.7};
+  var chatTh={k1:.05,k2:.13,k3:.22,k4:.33,k5:.45,k6:.56};
   function elK(el){for(var k in chatTh){if(el.classList.contains(k))return k;}return null;}
   function onChat(){
     if(!chatsec)return;
