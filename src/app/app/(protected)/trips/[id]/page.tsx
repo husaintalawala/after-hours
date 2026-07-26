@@ -453,6 +453,11 @@ export default async function TripDetailPage({
         trackSteps={trackSteps}
         ledger={ledger}
         stayGaps={stayGaps}
+        budget={{
+          amountUsd: trip.budget_amount_usd ?? null,
+          startDate: trip.start_date,
+          endDate: trip.end_date,
+        }}
         destinations={destVMs}
         stepDetails={stepDetails}
         bookingDetails={bookingDetails}

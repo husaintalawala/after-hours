@@ -134,6 +134,7 @@ export default function TripTabs({
   trackSteps = [],
   ledger = null,
   stayGaps = [],
+  budget = null,
   chipData,
   children,
 }: {
@@ -157,6 +158,7 @@ export default function TripTabs({
   trackSteps?: TrackStepVM[]
   ledger?: LedgerVM | null
   stayGaps?: StayGap[]
+  budget?: { amountUsd: number | null; startDate: string | null; endDate: string | null } | null
   children?: React.ReactNode
 }) {
   const [tab, setTab] = useState<Tab>("plan")
@@ -601,8 +603,10 @@ export default function TripTabs({
         </div>
       )}
 
-      {tab === "kit" && <KitTab items={kitItems} />}
-      {tab === "expenses" && <ExpensesTab expenses={expenses} ledger={ledger} />}
+      {tab === "kit" && <KitTab items={kitItems} startDate={chipData?.startDate ?? null} />}
+      {tab === "expenses" && (
+        <ExpensesTab expenses={expenses} ledger={ledger} budget={budget} />
+      )}
       {tab === "track" && <TrackTab steps={trackSteps} />}
       </div>
     </div>
@@ -1375,65 +1379,164 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ---------- Kit ----------
 
-const KIT_STATE_ORDER = ["suggested", "in_kit", "bought", "packed"]
-const KIT_STATE_LABEL: Record<string, string> = {
-  suggested: "Suggested",
-  in_kit: "In kit",
-  bought: "Bought",
-  packed: "Packed",
-}
+// Preferred category display order; unknown categories fall to the end.
+const KIT_CATEGORY_ORDER = [
+  "documents", "electronics", "clothing", "toiletries",
+  "health", "gear", "activities", "other",
+]
 
-function KitTab({ items }: { items: KitItemVM[] }) {
-  const groups = KIT_STATE_ORDER.map((state) => ({
-    state,
-    items: items.filter((i) => i.state === state),
-  })).filter((g) => g.items.length)
-
-  if (!groups.length) {
+function KitTab({ items, startDate }: { items: KitItemVM[]; startDate: string | null }) {
+  if (!items.length) {
     return (
-      <p className="mt-6 text-drift-muted">
-        No packing kit yet — ask Drift to suggest one for this trip.
-      </p>
+      <div className="mt-6 lg:max-w-2xl">
+        <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-8 text-center">
+          <p className="font-drift-display text-[19px] font-semibold">Nothing packed yet</p>
+          <p className="mt-1.5 text-[14px] text-drift-muted">
+            Ask Drift to build a packing list for this trip.
+          </p>
+        </div>
+      </div>
     )
   }
 
+  const active = items.filter((i) => i.state !== "dismissed")
+  const packedCount = active.filter((i) => i.state === "packed").length
+  const toPack = active.length - packedCount
+  const pct = active.length ? Math.round((packedCount / active.length) * 100) : 0
+
+  // Group by CATEGORY (state becomes row treatment, never its own group — so an
+  // item never teleports to a different bucket when it's checked). Most-unpacked
+  // categories float to the top; within a section, packed items sink.
+  const byCat = new Map<string, KitItemVM[]>()
+  for (const i of active) {
+    const key = (i.category || "other").toLowerCase()
+    const arr = byCat.get(key)
+    if (arr) arr.push(i)
+    else byCat.set(key, [i])
+  }
+  const cats = [...byCat.entries()]
+    .map(([key, arr]) => ({
+      key,
+      packed: arr.filter((i) => i.state === "packed").length,
+      total: arr.length,
+      items: [...arr].sort(
+        (a, b) => (a.state === "packed" ? 1 : 0) - (b.state === "packed" ? 1 : 0)
+      ),
+    }))
+    .sort((a, b) => {
+      const ua = a.total - a.packed
+      const ub = b.total - b.packed
+      if (ua !== ub) return ub - ua
+      const ia = KIT_CATEGORY_ORDER.indexOf(a.key)
+      const ib = KIT_CATEGORY_ORDER.indexOf(b.key)
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+    })
+
+  const days = daysUntilDeparture(startDate)
+
   return (
-    <div className="mt-6 space-y-6 lg:max-w-2xl">
-      {groups.map((g) => (
-        <div key={g.state}>
-          <h3 className="font-drift-display text-[19px] font-semibold">
-            {KIT_STATE_LABEL[g.state] ?? g.state}{" "}
-            <span className="text-[13px] font-normal text-drift-text-tertiary">
-              {g.items.length}
-            </span>
-          </h3>
-          <ul className="mt-2 space-y-1.5">
-            {g.items.map((i) => (
-              <li
-                key={i.id}
-                className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
-              >
-                <span
-                  className={`h-4 w-4 rounded-full border-2 ${
-                    i.state === "packed" || i.state === "bought"
-                      ? "border-drift-coral bg-drift-coral"
-                      : "border-drift-divider"
-                  }`}
-                />
-                <span className="min-w-0 flex-1 truncate text-[15px]">{i.title}</span>
-                {i.quantity > 1 && (
-                  <span className="text-[12px] text-drift-muted">×{i.quantity}</span>
-                )}
-                <span className="rounded-full bg-aurora-midnight px-2.5 py-0.5 text-[11.5px] text-drift-muted">
-                  {i.category}
-                </span>
-              </li>
-            ))}
-          </ul>
+    <div className="mt-6 lg:max-w-2xl">
+      {/* Action-queue header — what's LEFT, not a vanity percentage. */}
+      <div className="flex items-baseline gap-2">
+        <h2 className="font-drift-display text-[24px] font-semibold tracking-tight">
+          {toPack > 0 ? (
+            <>
+              {toPack} <span className="text-drift-text-tertiary">left to pack</span>
+            </>
+          ) : (
+            "All packed"
+          )}
+        </h2>
+        {toPack === 0 && <span className="text-[19px]">✓</span>}
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-aurora-glass2">
+          <span className="block h-full rounded-full bg-aurora-teal" style={{ width: `${pct}%` }} />
         </div>
-      ))}
+        <span className="shrink-0 text-[12px] tabular-nums text-drift-muted">
+          {packedCount} of {active.length}
+        </span>
+      </div>
+      {days != null && (
+        <p className="mt-1.5 text-[12px] font-medium" style={{ color: "#F0C48A" }}>
+          You leave {days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`}
+        </p>
+      )}
+
+      {/* Category sections */}
+      <div className="mt-6 space-y-6">
+        {cats.map((c) => (
+          <div key={c.key}>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-[15px] font-semibold capitalize">{c.key}</h3>
+              <span className="text-[12.5px] tabular-nums text-drift-text-tertiary">
+                {c.packed}/{c.total}
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {c.items.map((i) => {
+                const done = i.state === "packed"
+                return (
+                  <li
+                    key={i.id}
+                    className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
+                  >
+                    <span
+                      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 ${
+                        done ? "border-aurora-teal bg-aurora-teal" : "border-drift-divider"
+                      }`}
+                    >
+                      {done && (
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="#04231f"
+                          strokeWidth={3.2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12l5 5L20 6" />
+                        </svg>
+                      )}
+                    </span>
+                    <span
+                      className={`min-w-0 flex-1 truncate text-[15px] ${
+                        done ? "text-drift-text-tertiary line-through" : ""
+                      }`}
+                    >
+                      {i.title}
+                    </span>
+                    {i.state === "bought" && (
+                      <span className="rounded-full bg-aurora-glass2 px-2 py-0.5 text-[10.5px] text-drift-muted">
+                        bought
+                      </span>
+                    )}
+                    {i.quantity > 1 && (
+                      <span className="text-[12px] tabular-nums text-drift-muted">×{i.quantity}</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   )
+}
+
+// Whole days until departure, only within a 3-week pre-trip window (else null).
+function daysUntilDeparture(startDate: string | null): number | null {
+  const d = startDate?.slice(0, 10)
+  if (!d) return null
+  const [y, m, day] = d.split("-").map(Number)
+  if (!y || !m || !day) return null
+  const start = Date.UTC(y, m - 1, day)
+  const now = new Date()
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const diff = Math.round((start - today) / 86_400_000)
+  return diff >= 0 && diff <= 21 ? diff : null
 }
 
 // ---------- Expenses ----------
@@ -1448,121 +1551,341 @@ const CATEGORY_EMOJI: Record<string, string> = {
   other: "💳",
 }
 
+const CATEGORY_COLOR: Record<string, string> = {
+  stays: "#37D6C4",
+  food: "#E7614B",
+  activities: "#7F77DD",
+  transport: "#378ADD",
+  flights: "#E7A24B",
+  shopping: "#D4537E",
+  other: "#5F5E5A",
+}
+
 function ExpensesTab({
   expenses,
   ledger,
+  budget,
 }: {
   expenses: ExpenseVM[]
   ledger: LedgerVM | null
+  budget: { amountUsd: number | null; startDate: string | null; endDate: string | null } | null
 }) {
+  const [facet, setFacet] = useState<"date" | "category">("date")
+
   if (!expenses.length) {
     return (
-      <p className="mt-6 text-drift-muted">
-        No expenses yet — add one from chat (&ldquo;dinner 6400 ISK&rdquo;).
-      </p>
+      <div className="mt-6 lg:max-w-2xl">
+        <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-8 text-center">
+          <p className="font-drift-display text-[19px] font-semibold">Track the trip&rsquo;s money</p>
+          <p className="mt-1.5 text-[14px] text-drift-muted">
+            Ask Drift in chat — &ldquo;dinner 6400 ISK, split 4 ways&rdquo; — and it lands here.
+          </p>
+        </div>
+      </div>
     )
   }
 
+  // Per-currency totals — never invent an FX rate.
   const totals = new Map<string, number>()
   for (const e of expenses) totals.set(e.currency, (totals.get(e.currency) ?? 0) + e.amount)
+  const totalLabel = [...totals.entries()].map(([c, a]) => formatMoney(a, c)).join(" + ")
+  const primaryCurrency = [...totals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "USD"
+
+  // My net + settle summary from the ledger (already in USD minor units).
+  const myRow = ledger?.rows.find((r) => r.mine) ?? null
+  const myNet = myRow?.netMinor ?? 0
+  const settleCTA = buildSettleCTA(ledger, myNet)
+
+  // Category breakdown within the primary currency (mixing currencies is meaningless).
+  const catTotals = new Map<string, number>()
+  for (const e of expenses)
+    if (e.currency === primaryCurrency)
+      catTotals.set(e.category, (catTotals.get(e.category) ?? 0) + e.amount)
+  const catList = [...catTotals.entries()].sort((a, b) => b[1] - a[1])
+  const primaryTotal = totals.get(primaryCurrency) ?? 0
+
+  // Budget rail — USD budget vs USD spend, only when both are present.
+  const spentUsd = expenses.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0)
+  const budgetUsd = budget?.amountUsd ?? 0
+  const showBudget = budgetUsd > 0 && spentUsd > 0
+  const budgetPct = showBudget ? Math.min(100, Math.round((spentUsd / budgetUsd) * 100)) : 0
+  const pacePct = tripPacePct(budget?.startDate, budget?.endDate)
+
   const sorted = [...expenses].sort((a, b) => b.expense_date.localeCompare(a.expense_date))
 
   return (
     <div className="mt-6 lg:max-w-2xl">
-      <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
-          Trip total
-        </p>
-        <p className="mt-1 font-drift-display text-[30px] font-semibold tracking-tight">
-          {[...totals.entries()].map(([cur, amt]) => formatMoney(amt, cur)).join(" + ")}
-        </p>
-      </div>
-
-      {ledger && (
-        <div className="mt-4 rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
-            Balances
+      {/* Hero — the personal question first: am I up or down? */}
+      {myRow ? (
+        <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-drift-text-tertiary">
+            Your household · {myNet > 0 ? "you get back" : myNet < 0 ? "you owe" : "all square"}
           </p>
-          <ul className="mt-2.5 space-y-2">
-            {ledger.rows.map((r) => (
-              <li key={r.label} className="flex items-baseline justify-between">
-                <span className={`text-[15px] ${r.mine ? "font-semibold" : ""}`}>{r.label}</span>
-                <span
-                  className={`text-[15px] font-semibold tabular-nums ${
-                    r.netMinor > 0
-                      ? "text-[#3E9B5F]"
-                      : r.netMinor < 0
-                        ? "text-drift-coral-deep"
-                        : "text-drift-text-tertiary"
-                  }`}
-                >
-                  {r.netMinor === 0
-                    ? "settled"
-                    : `${r.netMinor > 0 ? "gets back" : "owes"} ${usd(Math.abs(r.netMinor))}`}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          {ledger.transfers.length > 0 && (
-            <>
-              <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.1em] text-drift-text-tertiary">
-                Settle up
-              </p>
-              <ul className="mt-2.5 space-y-2">
-                {ledger.transfers.map((t, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center justify-between rounded-xl bg-aurora-midnight px-3.5 py-2.5"
-                  >
-                    <span className="text-[14.5px]">
-                      <span className="font-semibold">{t.from}</span> pays{" "}
-                      <span className="font-semibold">{t.to}</span>
-                    </span>
-                    <span className="text-[15px] font-bold tabular-nums">
-                      {usd(t.amountMinor)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-[11.5px] leading-snug text-drift-text-tertiary">
-                Drift never moves money — settle over Venmo, Cash App or cash, then
-                record it in the iOS app.
-              </p>
-            </>
+          {myNet === 0 ? (
+            <p className="mt-1 flex items-center gap-2 font-drift-display text-[26px] font-semibold">
+              All square <span className="text-[19px]">✓</span>
+            </p>
+          ) : (
+            <p className="mt-1 flex items-center gap-2">
+              <span
+                className="font-drift-display text-[34px] font-semibold tabular-nums"
+                style={{ color: myNet > 0 ? "#37D6C4" : "#E7614B" }}
+              >
+                {usd(Math.abs(myNet))}
+              </span>
+              <span className="text-[20px]" style={{ color: myNet > 0 ? "#37D6C4" : "#E7614B" }}>
+                {myNet > 0 ? "↗" : "↘"}
+              </span>
+            </p>
           )}
+          {settleCTA && <p className="mt-3 text-[13px] text-drift-muted">{settleCTA}</p>}
+          <p className="mt-2 text-[11px] text-drift-text-tertiary">
+            Trip total {totalLabel}
+            {ledger && ledger.rows.length > 1 ? ` · ${ledger.rows.length} households` : ""}
+            {totals.size > 1 ? ` · ${totals.size} currencies` : ""}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-drift-text-tertiary">
+            Trip total
+          </p>
+          <p className="mt-1 font-drift-display text-[30px] font-semibold tracking-tight tabular-nums">
+            {totalLabel}
+          </p>
         </div>
       )}
 
-      <ul className="mt-4 space-y-1.5">
-        {sorted.map((e) => (
-          <li
-            key={e.id}
-            className="flex items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
+      {/* Budget burn-down with a pace tick (itinerary dates × actuals). */}
+      {showBudget && (
+        <div className="mt-4 rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
+          <div className="flex items-baseline justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-drift-text-tertiary">
+              Budget
+            </p>
+            <p className="text-[13px] font-semibold tabular-nums">
+              {usd(Math.round(spentUsd * 100))}{" "}
+              <span className="font-normal text-drift-text-tertiary">
+                of {usd(Math.round(budgetUsd * 100))}
+              </span>
+            </p>
+          </div>
+          <div className="relative mt-3 h-2.5 rounded-full bg-aurora-midnight">
+            <span
+              className="block h-full rounded-full"
+              style={{ width: `${budgetPct}%`, background: budgetPct >= 100 ? "#E7614B" : "#37D6C4" }}
+            />
+            {pacePct != null && (
+              <span
+                className="absolute -top-1 h-[18px] w-0.5 rounded bg-aurora-ink"
+                style={{ left: `${pacePct}%` }}
+              />
+            )}
+          </div>
+          <p className="mt-2 text-[11.5px] text-drift-muted">
+            {budgetPct}% used
+            {pacePct != null ? ` · ${budgetPct > pacePct ? "ahead of pace" : "under pace"}` : ""}
+          </p>
+        </div>
+      )}
+
+      {/* Where it went — one stacked bar, labelled beside the values. */}
+      {catList.length > 1 && (
+        <div className="mt-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-drift-text-tertiary">
+            Where it went{totals.size > 1 ? ` · in ${primaryCurrency}` : ""}
+          </p>
+          <div className="mt-2.5 flex h-2.5 gap-[2px] overflow-hidden rounded-full">
+            {catList.map(([cat, amt]) => (
+              <span key={cat} style={{ flexGrow: amt, background: CATEGORY_COLOR[cat] ?? "#5F5E5A" }} />
+            ))}
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1.5">
+            {catList.slice(0, 5).map(([cat, amt]) => (
+              <span key={cat} className="text-[11.5px] text-drift-muted">
+                <span style={{ color: CATEGORY_COLOR[cat] ?? "#5F5E5A" }}>●</span> {humanCat(cat)}
+                {primaryTotal ? ` · ${Math.round((amt / primaryTotal) * 100)}%` : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Settle up — the minimum set of real payments. */}
+      {ledger && ledger.transfers.length > 0 && (
+        <div className="mt-4 rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-drift-text-tertiary">
+            Settle up · {ledger.transfers.length} payment{ledger.transfers.length === 1 ? "" : "s"}
+          </p>
+          <ul className="mt-2.5 space-y-2">
+            {ledger.transfers.map((t, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between rounded-xl bg-aurora-midnight px-3.5 py-2.5"
+              >
+                <span className="text-[14px]">
+                  <span className="font-semibold">{t.from}</span> pays{" "}
+                  <span className="font-semibold">{t.to}</span>
+                </span>
+                <span className="text-[15px] font-bold tabular-nums">{usd(t.amountMinor)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[11.5px] leading-snug text-drift-text-tertiary">
+            Drift never moves money — settle over Venmo, Cash App or cash, then record it in the iOS app.
+          </p>
+        </div>
+      )}
+
+      {/* The trip's spending diary — faceted, grouped, with running subtotals. */}
+      <div className="mt-5 flex gap-1.5 rounded-xl bg-aurora-midnight p-1">
+        {(["date", "category"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFacet(f)}
+            className={`flex-1 rounded-lg py-1.5 text-[12.5px] font-medium transition-colors ${
+              facet === f ? "bg-aurora-glass2 text-drift-ink" : "text-drift-muted"
+            }`}
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-aurora-midnight text-[17px]">
-              {CATEGORY_EMOJI[e.category] ?? "💳"}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-semibold">{e.label}</p>
-              <p className="truncate text-[12.5px] text-drift-muted">
-                {[
-                  e.payer ? `${e.payer} paid` : null,
-                  e.subtitle,
-                  shortExpenseDate(e.expense_date),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            </div>
-            <span className="text-[15px] font-semibold tabular-nums">
-              {formatMoney(e.amount, e.currency)}
-            </span>
-          </li>
+            {f === "date" ? "By date" : "By category"}
+          </button>
         ))}
-      </ul>
+      </div>
+      <div className="mt-3">{facet === "date" ? renderByDate(sorted) : renderByCategory(sorted)}</div>
     </div>
   )
+}
+
+function ExpenseRow({ e }: { e: ExpenseVM }) {
+  return (
+    <li className="flex items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-aurora-midnight text-[17px]">
+        {CATEGORY_EMOJI[e.category] ?? "💳"}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-semibold">{e.label}</p>
+        <p className="truncate text-[12.5px] text-drift-muted">
+          {[e.payer ? `${e.payer} paid` : null, e.subtitle, shortExpenseDate(e.expense_date)]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+      <span className="text-[15px] font-semibold tabular-nums">{formatMoney(e.amount, e.currency)}</span>
+    </li>
+  )
+}
+
+function renderByDate(sorted: ExpenseVM[]) {
+  const groups: { day: string; items: ExpenseVM[] }[] = []
+  for (const e of sorted) {
+    const day = e.expense_date.slice(0, 10)
+    const last = groups[groups.length - 1]
+    if (last && last.day === day) last.items.push(e)
+    else groups.push({ day, items: [e] })
+  }
+  return (
+    <div className="space-y-4">
+      {groups.map((g) => (
+        <div key={g.day}>
+          <div className="flex items-baseline justify-between px-1 pb-1.5">
+            <span className="text-[11.5px] font-semibold text-drift-muted">{longDay(g.day)}</span>
+            <span className="text-[11.5px] tabular-nums text-drift-text-tertiary">
+              {subtotalLabel(g.items)}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {g.items.map((e) => (
+              <ExpenseRow key={e.id} e={e} />
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function renderByCategory(sorted: ExpenseVM[]) {
+  const byCat = new Map<string, ExpenseVM[]>()
+  for (const e of sorted) {
+    const arr = byCat.get(e.category)
+    if (arr) arr.push(e)
+    else byCat.set(e.category, [e])
+  }
+  const cats = [...byCat.entries()].sort((a, b) => b[1].length - a[1].length)
+  return (
+    <div className="space-y-4">
+      {cats.map(([cat, items]) => (
+        <div key={cat}>
+          <div className="flex items-baseline justify-between px-1 pb-1.5">
+            <span className="text-[11.5px] font-semibold text-drift-muted">
+              {CATEGORY_EMOJI[cat] ?? "💳"} {humanCat(cat)}
+            </span>
+            <span className="text-[11.5px] tabular-nums text-drift-text-tertiary">
+              {subtotalLabel(items)}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {items.map((e) => (
+              <ExpenseRow key={e.id} e={e} />
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function subtotalLabel(items: ExpenseVM[]): string {
+  const m = new Map<string, number>()
+  for (const e of items) m.set(e.currency, (m.get(e.currency) ?? 0) + e.amount)
+  return [...m.entries()].map(([c, a]) => formatMoney(a, c)).join(" + ")
+}
+
+// "Collect from Maya and Ravi" / "Pay Sam's household" — derived from the ledger's
+// minimal transfers, from the current user's ("You") perspective.
+function buildSettleCTA(ledger: LedgerVM | null, myNet: number): string | null {
+  if (!ledger || myNet === 0) return null
+  if (myNet > 0) {
+    const names = ledger.transfers.filter((t) => t.to === "You").map((t) => t.from)
+    return names.length ? `Collect from ${humanList(names)}` : null
+  }
+  const names = ledger.transfers.filter((t) => t.from === "You").map((t) => t.to)
+  return names.length ? `Pay ${humanList(names)}` : null
+}
+
+function humanList(xs: string[]): string {
+  if (xs.length <= 1) return xs[0] ?? ""
+  if (xs.length === 2) return `${xs[0]} and ${xs[1]}`
+  return `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`
+}
+
+// How far through the trip we are, 0–100, for the budget pace tick.
+function tripPacePct(start: string | null | undefined, end: string | null | undefined): number | null {
+  const s = start?.slice(0, 10)
+  const e = end?.slice(0, 10)
+  if (!s || !e) return null
+  const sd = Date.parse(s)
+  const ed = Date.parse(e)
+  if (Number.isNaN(sd) || Number.isNaN(ed) || ed <= sd) return null
+  const now = Date.now()
+  if (now <= sd) return 0
+  if (now >= ed) return 100
+  return Math.round(((now - sd) / (ed - sd)) * 100)
+}
+
+function humanCat(cat: string): string {
+  return cat.charAt(0).toUpperCase() + cat.slice(1)
+}
+
+function longDay(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number)
+  if (!y) return iso
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  })
 }
 
 function shortExpenseDate(iso: string): string {
