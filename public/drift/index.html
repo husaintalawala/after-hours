@@ -316,7 +316,7 @@
   .bcard.navy{background:linear-gradient(158deg,#173C56 0%,#0C2739 46%,#061621 100%);color:#fff}.bcard.navy p{color:rgba(255,255,255,.7)}
   .bcard.dark{background:linear-gradient(158deg,#15264A 0%,#0B1830 48%,#05101E 100%);color:#fff}.bcard.dark p{color:rgba(255,255,255,.7)}
   .bcard.greenc{background:linear-gradient(158deg,#2E8A64 0%,#166046 45%,#0B4A31 100%);color:#fff}.bcard.greenc p{color:rgba(255,255,255,.78)}
-  .bcard.coralc{background:linear-gradient(150deg,#17b7a6 0%,#C1502A 50%,#A5421F 100%);color:#fff}.bcard.coralc p{color:rgba(255,255,255,.9)}
+  .bcard.coralc{background:linear-gradient(150deg,#17b7a6 0%,#14b8a6 50%,#0e8c7e 100%);color:#fff}.bcard.coralc p{color:rgba(255,255,255,.9)}
   .bcard.lite{background:linear-gradient(160deg,#FFFFFF 0%,#f5f8fa 100%);color:var(--ink);border:1px solid var(--line)}.bcard.lite p{color:var(--muted)}
   .bcard.photo{color:#fff}
   .bcard .bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;transform:scale(1.02)}
@@ -438,7 +438,7 @@
   .outro{position:relative;overflow:hidden;text-align:center;color:#fff;padding:clamp(110px,16vw,190px) 0 clamp(90px,12vw,140px)}
   .outro .bg{position:absolute;inset:-10% 0;z-index:0;will-change:transform}
   .outro .bg img{width:100%;height:100%;object-fit:cover;object-position:center 40%}
-  .outro .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(168,66,31,.5),rgba(6,12,20,.72) 62%,var(--night))}
+  .outro .bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,184,166,.5),rgba(6,12,20,.72) 62%,var(--night))}
   .outro .in{position:relative;z-index:2;padding:0 24px}
   .outro h2{font-size:clamp(34px,6.4vw,66px);max-width:16ch;margin:0 auto;color:#fff}
   .outro h2 .w{opacity:.22;transition:opacity .5s var(--e)}
@@ -671,15 +671,15 @@
       tabs=[].slice.call(document.querySelectorAll('#tabs .tab')),
       N=screens.length;
   // background journey keypoints [progress, [r,g,b]]  cream -> navy -> light
-  var CREAM=[251,242,230], NAVY=[10,34,51], NIGHT=[6,19,28];
-  var stops=[[0,CREAM],[0.34,CREAM],[0.46,NAVY],[0.80,NIGHT],[0.94,NAVY],[1,[245,234,218]]];
+  var CREAM=[255,255,255], NAVY=[12,22,38], NIGHT=[8,19,29];
+  var stops=[[0,CREAM],[0.34,CREAM],[0.46,NAVY],[0.80,NIGHT],[0.94,NAVY],[1,[255,255,255]]];
   function lerp(a,b,t){return Math.round(a+(b-a)*t);}
   function bgAt(p){
     for(var i=1;i<stops.length;i++){
       if(p<=stops[i][0]){var a=stops[i-1],b=stops[i];var t=(p-a[0])/(b[0]-a[0]||1);
         return 'rgb('+lerp(a[1][0],b[1][0],t)+','+lerp(a[1][1],b[1][1],t)+','+lerp(a[1][2],b[1][2],t)+')';}
     }
-    return 'rgb(245,234,218)';
+    return 'rgb(255,255,255)';
   }
   var cur=-1, HERO_END=0.15;
   var ephoto=document.getElementById('ephoto'),escrim=document.getElementById('escrim'),ehero=document.getElementById('ehero'),tabsWrap=document.getElementById('tabs'),heroGlobe=document.getElementById('heroGlobe');
