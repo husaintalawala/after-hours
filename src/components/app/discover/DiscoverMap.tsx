@@ -179,13 +179,19 @@ export default function DiscoverMap({
   results,
   hoveredId,
   onSearchArea,
+  onSelectResult,
 }: {
   anchor: DiscoverAnchor | null
   results: DiscoverResult[]
   hoveredId: string | null
   onSearchArea?: (c: { lat: number; lng: number; radiusKm: number }) => void
+  onSelectResult?: (r: DiscoverResult) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  // Kept current so a marker click (attached once, inside a stale-deps effect)
+  // always calls the latest handler.
+  const onSelectRef = useRef(onSelectResult)
+  onSelectRef.current = onSelectResult
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map())
   // Fingerprint of the last coords/anchor we camera-fit to, so a results change
@@ -279,7 +285,15 @@ export default function DiscoverMap({
       clusters.forEach((c, i) => {
         if (c.items.length === 1) {
           const r = c.items[0]
-          markersRef.current.set(r.id, singleMarker(r).addTo(map))
+          const marker = singleMarker(r)
+          // Tapping a pin opens the rich place sheet. Mapbox's own click handler
+          // toggles the hover-popup first; we close every popup in the same tick
+          // (before paint) so none lingers behind the sheet after it's dismissed.
+          marker.getElement().addEventListener("click", () => {
+            markersRef.current.forEach((m) => m.getPopup()?.remove())
+            onSelectRef.current?.(r)
+          })
+          markersRef.current.set(r.id, marker.addTo(map))
         } else {
           markersRef.current.set(`cluster-${i}`, clusterMarker(c.items, map).addTo(map))
         }

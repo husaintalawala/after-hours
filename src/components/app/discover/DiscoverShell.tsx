@@ -13,6 +13,7 @@ import {
 } from "@/lib/drift/discover"
 import { resolvePlaceCandidates } from "@/lib/drift/chat"
 import { applyCreateStep, type CreateStepOp } from "@/lib/drift/quickOp"
+import PlaceSheet from "./PlaceSheet"
 
 // mapbox-gl is heavy — load the map after the rail paints.
 const DiscoverMap = dynamic(() => import("./DiscoverMap"), {
@@ -84,6 +85,8 @@ export default function DiscoverShell({
   // Add-to-itinerary flow: the POI the "+" was tapped on, and a transient toast.
   const [addTarget, setAddTarget] = useState<DiscoverResult | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // Place-details sheet: the POI whose card body / map pin was tapped.
+  const [sheetPoi, setSheetPoi] = useState<DiscoverResult | null>(null)
   useEffect(() => {
     if (!toast) return
     const t = window.setTimeout(() => setToast(null), 2800)
@@ -240,6 +243,7 @@ export default function DiscoverShell({
                 r={r}
                 onHover={() => setHovered(r.id)}
                 onAdd={() => setAddTarget(r)}
+                onOpen={() => setSheetPoi(r)}
               />
             ))}
           </div>
@@ -249,7 +253,13 @@ export default function DiscoverShell({
       {/* ===== Map — single instance (grid col 2 on desktop, full-bleed on mobile) ===== */}
       <div className="discover-map-pane absolute inset-0 lg:relative lg:inset-auto lg:h-full">
         {fetchAnchor ? (
-          <DiscoverMap anchor={fetchAnchor} results={results} hoveredId={hovered} onSearchArea={searchArea} />
+          <DiscoverMap
+            anchor={fetchAnchor}
+            results={results}
+            hoveredId={hovered}
+            onSearchArea={searchArea}
+            onSelectResult={(r) => setSheetPoi(r)}
+          />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-aurora-midnight2 px-8 text-center text-drift-muted">
             Search a city to start exploring.
@@ -273,7 +283,12 @@ export default function DiscoverShell({
         <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {results.map((r) => (
             <div key={`${r.source}-${r.id}`} className="w-[300px] shrink-0 snap-center">
-              <CarouselCard r={r} anchor={fetchAnchor} onAdd={() => setAddTarget(r)} />
+              <CarouselCard
+                r={r}
+                anchor={fetchAnchor}
+                onAdd={() => setAddTarget(r)}
+                onOpen={() => setSheetPoi(r)}
+              />
             </div>
           ))}
         </div>
@@ -296,6 +311,17 @@ export default function DiscoverShell({
           }}
         />
       )}
+      {sheetPoi && (
+        <PlaceSheet
+          poi={sheetPoi}
+          distanceLabel={distanceMi(fetchAnchor, sheetPoi)}
+          onClose={() => setSheetPoi(null)}
+          onAdd={() => {
+            setAddTarget(sheetPoi)
+            setSheetPoi(null)
+          }}
+        />
+      )}
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[80] flex justify-center px-4 lg:bottom-6 lg:left-[76px]">
           <div className="rounded-full bg-aurora-glass2 px-4 py-2.5 text-[13.5px] font-semibold text-aurora-ink shadow-[0_14px_34px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/10">
@@ -315,20 +341,14 @@ function CarouselCard({
   r,
   anchor,
   onAdd,
+  onOpen,
 }: {
   r: DiscoverResult
   anchor: DiscoverAnchor | null
   onAdd: () => void
+  onOpen: () => void
 }) {
   const [saved, setSaved] = useState(false)
-  const detailHref =
-    r.source === "google" && !r.id.startsWith("osm:") && !r.id.startsWith("geonames:")
-      ? `/app/place/${encodeURIComponent(r.id)}`
-      : null
-  const openHref =
-    safeHttpUrl(r.bookingUrl) ??
-    detailHref ??
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
   const category = r.subtitle ? humanize(r.subtitle) : null
   const dist = distanceMi(anchor, r)
   const metaLine = [category, dist].filter(Boolean).join(" · ")
@@ -336,19 +356,19 @@ function CarouselCard({
 
   return (
     <div className="flex gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-2.5 shadow-[0_14px_34px_-18px_rgba(0,0,0,0.6)]">
-      <a href={openHref} className="block shrink-0" aria-label={r.name}>
+      <button onClick={onOpen} className="block shrink-0" aria-label={`View ${r.name}`}>
         {r.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={r.photo} alt="" loading="lazy" className="h-[86px] w-[86px] rounded-xl object-cover" />
         ) : (
           <div className="h-[86px] w-[86px] rounded-xl" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
         )}
-      </a>
+      </button>
       <div className="flex min-w-0 flex-1 gap-2">
-        <div className="min-w-0 flex-1 py-0.5">
-          <a href={openHref} className="block truncate text-[14.5px] font-semibold leading-tight text-drift-ink">
+        <button onClick={onOpen} className="min-w-0 flex-1 py-0.5 text-left">
+          <span className="block truncate text-[14.5px] font-semibold leading-tight text-drift-ink">
             {r.name}
-          </a>
+          </span>
           {r.rating != null && r.rating > 0 && (
             <div className="mt-1 flex items-center gap-1 text-[12.5px]">
               <span style={{ color: "#E7A24B" }}>★</span>
@@ -360,7 +380,7 @@ function CarouselCard({
           )}
           {metaLine && <p className="mt-0.5 truncate text-[12px] text-drift-muted">{metaLine}</p>}
           {address && <p className="mt-0.5 truncate text-[11.5px] text-drift-text-tertiary">{address}</p>}
-        </div>
+        </button>
         {/* Actions: save (heart) + add. */}
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
@@ -769,10 +789,12 @@ function ResultCard({
   r,
   onHover,
   onAdd,
+  onOpen,
 }: {
   r: DiscoverResult
   onHover: () => void
   onAdd: () => void
+  onOpen: () => void
 }) {
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`
   // Google-sourced places have a rich in-app detail page; vendor results deep-link out.
@@ -805,7 +827,9 @@ function ResultCard({
       className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass transition-all duration-150 hover:-translate-y-0.5 hover:border-drift-coral/40 hover:shadow-[0_14px_34px_-18px_rgba(0,0,0,0.5)]"
     >
       <div className="relative">
-        {detailHref ? <a href={detailHref} className="block">{hero}</a> : hero}
+        <button onClick={onOpen} className="block w-full" aria-label={`View ${r.name}`}>
+          {hero}
+        </button>
         {/* Add-to-itinerary — same flow as mobile; opens the trip/day picker. */}
         <button
           onClick={onAdd}
@@ -818,13 +842,12 @@ function ResultCard({
         </button>
       </div>
       <div className="p-3">
-        {detailHref ? (
-          <a href={detailHref} className="block text-[15px] font-semibold leading-snug line-clamp-2 hover:text-drift-coral">
-            {r.name}
-          </a>
-        ) : (
-          <p className="text-[15px] font-semibold leading-snug line-clamp-2">{r.name}</p>
-        )}
+        <button
+          onClick={onOpen}
+          className="block text-left text-[15px] font-semibold leading-snug line-clamp-2 hover:text-drift-coral"
+        >
+          {r.name}
+        </button>
 
         {hasRating && (
           <div className="mt-1.5 flex items-center gap-1 text-[12.5px]">
@@ -871,9 +894,12 @@ function ResultCard({
             </a>
           )}
           {detailHref ? (
-            <a href={detailHref} className={`${ctaBase} border border-drift-divider font-medium text-drift-ink`}>
+            <button
+              onClick={onOpen}
+              className={`${ctaBase} border border-drift-divider font-medium text-drift-ink`}
+            >
               Details
-            </a>
+            </button>
           ) : (
             <a
               href={mapHref}
