@@ -1031,33 +1031,30 @@
   function chatShow(k){chatEls.forEach(function(el){if(el.classList.contains(k))el.classList.add('shown');});}
   function chatHide(k){chatEls.forEach(function(el){if(el.classList.contains(k))el.classList.remove('shown');});}
   var chatTimers=[], chatPlaying=false;
-  function chatReset(){chatTimers.forEach(clearTimeout);chatTimers=[];chatPlaying=false;chatEls.forEach(function(el){el.classList.remove('shown');});}
   function chatPlay(){
-    if(chatPlaying)return; chatPlaying=true;
+    if(chatPlaying)return; chatPlaying=true;   // play once; messages stay shown after
     // [delay(ms), key, stopTyping?] — user msg → typing → reply → cards → follow-up → chips/input
-    [[180,'k1'],[650,'k2'],[1450,'k3',true],[2000,'k4'],[2700,'k5'],[3250,'k6']].forEach(function(s){
+    [[150,'k1'],[560,'k2'],[1150,'k3',true],[1560,'k4'],[2150,'k5'],[2600,'k6']].forEach(function(s){
       chatTimers.push(setTimeout(function(){ if(s[2])chatHide('k2'); chatShow(s[1]); },s[0]));
     });
   }
   if(reduce||!('IntersectionObserver'in window)){
     chatEls.forEach(function(el){if(!el.classList.contains('k2'))el.classList.add('shown');});
   }else{
-    // Fire once the section spans the viewport middle (its sticky phone is
-    // pinned + centered); reset when the section is well clear so it re-plays.
-    function chatOnScroll(){
-      if(!chatsec)return;
-      var r=chatsec.getBoundingClientRect(), vh=innerHeight||document.documentElement.clientHeight||800;
-      if(r.top < vh*0.5 && r.bottom > vh*0.5) chatPlay();
-      else if(r.bottom < vh*0.1 || r.top > vh*0.9) chatReset();
-    }
-    scrollCbs.push(chatOnScroll); chatOnScroll();
-    // Viewport-metric-independent fallback: play once the tall section is well
-    // into view (a 185vh section tops out around ratio ~0.5 vs the viewport).
-    if('IntersectionObserver'in window){
-      new IntersectionObserver(function(en){en.forEach(function(x){
-        if(x.isIntersecting && x.intersectionRatio>=0.5) chatPlay();
-      });},{threshold:[0.35]}).observe(chatsec);
-    }
+    // Play the moment the phone enters the viewport, then keep it shown — never
+    // empty after the first view; the sticky section holds it centered while it
+    // animates. (Prior bug: a 0.35 observer threshold gated behind a >=0.5 test
+    // that never passed, so nothing fired.)
+    var chatTarget=document.querySelector('.cscr')||chatsec;
+    new IntersectionObserver(function(en){
+      en.forEach(function(x){ if(x.isIntersecting) chatPlay(); });
+    },{threshold:0.2}).observe(chatTarget);
+    // Scroll fallback (covers a late/missed observer): play when the phone box
+    // is anywhere in the viewport.
+    scrollCbs.push(function(){
+      var r=chatTarget.getBoundingClientRect(), vh=innerHeight||document.documentElement.clientHeight||800;
+      if(r.top < vh*0.85 && r.bottom > vh*0.15) chatPlay();
+    });
   }
 
 })();
