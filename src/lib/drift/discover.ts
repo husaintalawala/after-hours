@@ -198,6 +198,29 @@ export async function loadCategory(
   return await google
 }
 
+/** Commissioned Stay22 stays for a specific point + date window — powers the
+ *  trip "Complete your trip" module. Unlike loadCategory("stays"), this is
+ *  Stay22-only (every result is bookable via an affiliate `bookingUrl`) — it
+ *  does NOT blend in Google POIs (which carry no bookingUrl) — and it passes the
+ *  check-in/out window through for date-accurate, better-converting pricing. */
+export async function loadStays(
+  point: { lat: number; lng: number },
+  opts?: { checkIn?: string; checkOut?: string; count?: number }
+): Promise<DiscoverResult[]> {
+  const stays = await withTimeout(
+    vendor("stays", {
+      lat: point.lat,
+      lng: point.lng,
+      count: opts?.count ?? 6,
+      checkIn: opts?.checkIn,
+      checkOut: opts?.checkOut,
+    }).then((cs) => cs.map(fromVendor("stay22"))),
+    7000,
+    [] as DiscoverResult[]
+  )
+  return dedupe(stays).filter((s) => s.bookingUrl)
+}
+
 /** Fetch AI one-line blurbs for a batch of places (cached server-side, generated
  *  with Gemini Flash-Lite on a miss). Returns an { id → blurb } map; ids without
  *  a blurb are simply absent. Best-effort — never throws. */

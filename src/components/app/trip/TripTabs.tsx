@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client"
 import DestinationGuide from "./DestinationGuide"
 import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
+import CompleteYourTrip, { type StayGap } from "./CompleteYourTrip"
 import TripCoverChips from "./TripCoverChips"
 import TripWeather from "./TripWeather"
 import DayAddStop from "./DayAddStop"
@@ -132,6 +133,7 @@ export default function TripTabs({
   kitItems,
   trackSteps = [],
   ledger = null,
+  stayGaps = [],
   chipData,
   children,
 }: {
@@ -154,6 +156,7 @@ export default function TripTabs({
   kitItems: KitItemVM[]
   trackSteps?: TrackStepVM[]
   ledger?: LedgerVM | null
+  stayGaps?: StayGap[]
   children?: React.ReactNode
 }) {
   const [tab, setTab] = useState<Tab>("plan")
@@ -549,6 +552,7 @@ export default function TripTabs({
                     </li>
                   ))}
                 </ul>
+                <CompleteYourTrip gaps={stayGaps} />
               </div>
             ) : selectedDay === "overview" && dest ? (
               /* -------- Overview = the Guide -------- */

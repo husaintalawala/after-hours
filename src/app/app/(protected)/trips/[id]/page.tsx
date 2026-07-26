@@ -24,6 +24,7 @@ import TripTabs, {
   type LedgerVM,
 } from "@/components/app/trip/TripTabs"
 import { balances, minimalTransfers } from "@/lib/drift/balances"
+import type { StayGap } from "@/components/app/trip/CompleteYourTrip"
 import TripChat from "@/components/app/chat/TripChat"
 import TripDockComposer from "@/components/app/trip/TripDockComposer"
 
@@ -82,6 +83,31 @@ export default async function TripDetailPage({
   const destinations = steps
     .filter((s) => s.step_type === "destination" && !s.parent_step_id)
     .sort((a, b) => compareDate(dateOnly(a.date) ?? "", dateOnly(b.date) ?? ""))
+
+  // ---- Commission: "Complete your trip" stay gaps ----
+  // A destination with nights but no booked stay (a child step_type "stay") is a
+  // gap we can fill with commissioned Stay22 listings. Only surface gaps whose
+  // stay window hasn't fully passed, require coords for the lookup, cap at 3.
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const stayGaps: StayGap[] = destinations
+    .filter((d) => (d.nights ?? 0) >= 1 && d.latitude != null && d.longitude != null)
+    .filter((d) => !steps.some((s) => s.parent_step_id === d.id && s.step_type === "stay"))
+    .map((d) => {
+      const checkIn = dateOnly(d.date) ?? todayStr
+      const nights = d.nights ?? 1
+      return {
+        destId: d.id,
+        label: d.title || d.location_name || "Destination",
+        country: d.country,
+        lat: d.latitude as number,
+        lng: d.longitude as number,
+        checkIn,
+        checkOut: addDaysStr(checkIn, nights),
+        nights,
+      }
+    })
+    .filter((g) => g.checkOut >= todayStr)
+    .slice(0, 3)
 
   const transport: TransportBookingLike[] = transportRows.map((b) => ({
     id: b.id,
@@ -426,6 +452,7 @@ export default async function TripDetailPage({
         }}
         trackSteps={trackSteps}
         ledger={ledger}
+        stayGaps={stayGaps}
         destinations={destVMs}
         stepDetails={stepDetails}
         bookingDetails={bookingDetails}
