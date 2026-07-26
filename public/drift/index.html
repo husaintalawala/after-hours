@@ -1023,23 +1023,42 @@
   if(reduce){ws.forEach(function(w){w.classList.add('lit');});}
   else{scrollCbs.push(onOutro);onOutro();}
 
-  /* ---- chat: scroll-driven conversation reveal ---- */
+  /* ---- chat: auto-play the whole conversation once the phone scrolls into
+     view (time-based, not scroll-scrubbed) so it never sits empty; the sticky
+     section keeps the phone pinned while it plays. Re-plays on re-entry. ---- */
   var chatsec=document.querySelector('.chatsec');
   var chatEls=[].slice.call(document.querySelectorAll('.chatsec .anim'));
-  var chatTh={k1:.05,k2:.13,k3:.22,k4:.33,k5:.45,k6:.56};
-  function elK(el){for(var k in chatTh){if(el.classList.contains(k))return k;}return null;}
-  function onChat(){
-    if(!chatsec)return;
-    var total=chatsec.offsetHeight-innerHeight;
-    var cp=clamp01(-chatsec.getBoundingClientRect().top/(total||1));
-    chatEls.forEach(function(el){
-      var k=elK(el);if(!k)return;
-      var show = (k==='k2') ? (cp>=chatTh.k2 && cp<chatTh.k3) : (cp>=chatTh[k]);
-      el.classList.toggle('shown',show);
+  function chatShow(k){chatEls.forEach(function(el){if(el.classList.contains(k))el.classList.add('shown');});}
+  function chatHide(k){chatEls.forEach(function(el){if(el.classList.contains(k))el.classList.remove('shown');});}
+  var chatTimers=[], chatPlaying=false;
+  function chatReset(){chatTimers.forEach(clearTimeout);chatTimers=[];chatPlaying=false;chatEls.forEach(function(el){el.classList.remove('shown');});}
+  function chatPlay(){
+    if(chatPlaying)return; chatPlaying=true;
+    // [delay(ms), key, stopTyping?] — user msg → typing → reply → cards → follow-up → chips/input
+    [[180,'k1'],[650,'k2'],[1450,'k3',true],[2000,'k4'],[2700,'k5'],[3250,'k6']].forEach(function(s){
+      chatTimers.push(setTimeout(function(){ if(s[2])chatHide('k2'); chatShow(s[1]); },s[0]));
     });
   }
-  if(reduce){chatEls.forEach(function(el){if(!el.classList.contains('k2'))el.classList.add('shown');});}
-  else{scrollCbs.push(onChat);onChat();}
+  if(reduce||!('IntersectionObserver'in window)){
+    chatEls.forEach(function(el){if(!el.classList.contains('k2'))el.classList.add('shown');});
+  }else{
+    // Fire once the section spans the viewport middle (its sticky phone is
+    // pinned + centered); reset when the section is well clear so it re-plays.
+    function chatOnScroll(){
+      if(!chatsec)return;
+      var r=chatsec.getBoundingClientRect(), vh=innerHeight||document.documentElement.clientHeight||800;
+      if(r.top < vh*0.5 && r.bottom > vh*0.5) chatPlay();
+      else if(r.bottom < vh*0.1 || r.top > vh*0.9) chatReset();
+    }
+    scrollCbs.push(chatOnScroll); chatOnScroll();
+    // Viewport-metric-independent fallback: play once the tall section is well
+    // into view (a 185vh section tops out around ratio ~0.5 vs the viewport).
+    if('IntersectionObserver'in window){
+      new IntersectionObserver(function(en){en.forEach(function(x){
+        if(x.isIntersecting && x.intersectionRatio>=0.35) chatPlay();
+      });},{threshold:[0.35]}).observe(chatsec);
+    }
+  }
 
 })();
 </script>
