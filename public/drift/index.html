@@ -287,7 +287,7 @@
   .pcard .tx{padding:7px 8px 8px}
   .pcard .nm{font-weight:700;font-size:11px;line-height:1.1}
   .pcard .cat{font-size:8.5px;font-weight:800;letter-spacing:.02em;color:var(--coralDeep);margin-top:2px;text-transform:uppercase}
-  .pcard .mt{font-size:9px;color:var(--muted);font-weight:600;margin-top:2px}
+  .pcard .mt{font-size:9px;color:var(--muted);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pcard .st{color:#E8A33A}
   .qchips{display:flex;gap:6px;align-self:flex-start;flex-wrap:wrap}
   .qchips b{font-weight:700;font-size:10.5px;color:var(--coralDeep);background:var(--paper);border:1px solid rgba(20,184,166,.3);padding:6px 11px;border-radius:100px}
@@ -317,8 +317,8 @@
   .cs-models .mb i{width:8px;height:8px;border-radius:50%;display:inline-block}
   .cs-models .mnote{font-size:12px;color:var(--muted);font-weight:600}
   @media(min-width:900px){.cs-models{justify-content:flex-start}}
-  .cmodel{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:.02em;color:#37D6C4;background:rgba(55,214,196,.14);border:1px solid rgba(55,214,196,.3);border-radius:100px;padding:4px 9px;white-space:nowrap}
-  .cvia{display:block;font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:rgba(55,214,196,.9);margin-top:5px}
+  .cvia{display:flex;align-items:center;gap:4px;font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:rgba(55,214,196,.9);margin-top:5px}
+  .cvia svg{width:9px;height:9px;flex-shrink:0}
   /* scroll-driven reveal — messages appear as you scroll through the section */
   .chatsec{height:185vh}
   .cs-sticky{position:sticky;top:0;min-height:100vh;display:flex;align-items:center;padding:70px 0}
@@ -609,8 +609,8 @@
   .dmap-top{position:absolute;top:0;left:0;right:0;z-index:4;padding:14px 14px 30px;background:linear-gradient(180deg,rgba(8,16,25,.7),transparent)}
   .dchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.17);backdrop-filter:blur(8px);padding:7px 12px;border-radius:100px}
   .dchip i{width:6px;height:6px;border-radius:50%;background:#37D6C4;box-shadow:0 0 8px #37D6C4}
-  .dcar{position:absolute;left:0;right:0;bottom:13px;z-index:5;display:flex;gap:9px;padding:0 13px}
-  .dc{flex:0 0 67%;display:flex;align-items:center;gap:9px;padding:7px;border-radius:14px;
+  .dcar{position:absolute;left:0;right:0;bottom:13px;z-index:5;display:flex;gap:9px;padding:0 13px;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+  .dc{flex:0 0 82%;display:flex;align-items:center;gap:9px;padding:7px;border-radius:14px;
      background:rgba(14,24,38,.74);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.13);box-shadow:0 18px 32px -18px rgba(0,0,0,.8);opacity:0;transform:translateY(20px)}
   .dc .im{width:42px;height:42px;border-radius:10px;background-size:cover;background-position:center;flex-shrink:0}
   .dc .nn{font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -644,25 +644,12 @@
   /* GLOBE — living globe, pins + Kodak moments */
   .ap-globe{padding:0;background:#070c14}
   .gl-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;z-index:0}
-  .ap-globe::before{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(78% 58% at 50% 30%,transparent 40%,rgba(6,10,18,.55))}
+  .ap-globe::before{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(82% 62% at 50% 36%,transparent 30%,rgba(6,10,18,.32) 58%,rgba(6,10,18,.9) 90%)}
   .ap-globe::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40%;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(7,12,20,.94) 74%)}
   .gl-bg{object-position:center top}
   .gl-head{position:absolute;top:0;left:0;right:0;z-index:3;padding:15px 15px 30px;background:linear-gradient(180deg,rgba(6,11,20,.75),transparent);color:#fff}
   .gl-head .tt{font-family:var(--serif);font-size:16px;font-weight:500}
   .gl-head .mt{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.72);margin-top:3px}
-  /* dropping map pins on the living globe */
-  .gpin{position:absolute;z-index:2;width:19px;height:19px;margin:-19px 0 0 -9.5px;border-radius:50% 50% 50% 2px;rotate:45deg;
-     background:linear-gradient(150deg,#37D6C4,#14b8a6);border:2px solid #eafcf8;box-shadow:0 6px 13px rgba(0,0,0,.65);opacity:0}
-  .gpin.v{background:linear-gradient(150deg,#8A7DF2,#6d5fe8)}
-  .gpin::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#fff;opacity:.6}
-  .s.on .gpin{animation:gdrop .6s var(--e) forwards}
-  @keyframes gdrop{0%{opacity:0;transform:translateY(-30px) scale(.4)}55%{opacity:1;transform:translateY(0) scale(1.18)}78%{transform:translateY(0) scale(.94)}100%{opacity:1;transform:translateY(0) scale(1)}}
-  .gpin.p1{left:37%;top:40%;animation-delay:.25s}
-  .gpin.p2{left:56%;top:33%;animation-delay:.45s}
-  .gpin.p3{left:46%;top:51%;animation-delay:.62s}
-  .gpin.p4{left:62%;top:47%;animation-delay:.8s}
-  .gpin.p5{left:40%;top:58%;animation-delay:.98s}
-  .gpin.p6{left:64%;top:60%;animation-delay:1.15s}
   .gl-card{position:absolute;left:12px;right:12px;bottom:14px;z-index:3;padding:14px 15px;border-radius:16px;color:#fff;opacity:0;transform:translateY(18px);
      background:rgba(9,15,25,.62);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);box-shadow:0 22px 42px -22px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.11)}
   .s.on .gl-card{animation:appin .6s var(--e) .3s forwards}
@@ -674,7 +661,7 @@
 
   /* reduced-motion: reveal every aurora-screen element statically */
   @media(prefers-reduced-motion:reduce){
-    .ap-card,.ap-day,.rz,.dc,.xrow,.settle,.ap-live,.gl-card,.gpin{opacity:1!important;transform:none!important}
+    .ap-card,.ap-day,.rz,.dc,.xrow,.settle,.ap-live,.gl-card{opacity:1!important;transform:none!important}
     .rz .ok,.dpin{transform:scale(1)!important}
     .settle .sbar i{width:100%!important}
   }
@@ -773,12 +760,6 @@
         <div class="s appscr aur ap-globe" data-i="4">
           <img loading="lazy" decoding="async" class="gl-bg" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trips, rotating">
           <div class="gl-head"><div class="tt">Your world</div><div class="mt">Everywhere you've been, together</div></div>
-          <span class="gpin p1"></span>
-          <span class="gpin v p2"></span>
-          <span class="gpin p3"></span>
-          <span class="gpin v p4"></span>
-          <span class="gpin p5"></span>
-          <span class="gpin v p6"></span>
           <div class="gl-card">
             <div class="big">14<em>countries</em></div>
             <div class="grow"><div><b>36</b><span>Cities</span></div><div><b>1,204</b><span>Photos</span></div><div><b>5</b><span>Trips</span></div></div>
@@ -807,7 +788,7 @@
 <!-- ============ CHAT (Ask Drift) ============ -->
 <section class="chatsec"><div class="cs-sticky"><div class="cs-wrap">
   <div class="cs-copy">
-    <span class="eyebrow" data-r>Powered by frontier AI</span>
+    <span class="eyebrow" data-r>Powered by frontier models</span>
     <h2 data-ghost>Ask Drift <em>anything.</em></h2>
     <p class="lead" data-r>Your travel buddy runs on the world&rsquo;s best models — <b>GPT&#8209;5, Claude &amp; Gemini</b> — so the answers are actually good, not a generic top&#8209;10. Ask for the must&#8209;sees, the best coffee or a rainy&#8209;day plan, and drop it straight into the trip.</p>
     <div class="cs-models" data-r><span class="mb"><i style="background:#10a37f"></i>GPT&#8209;5</span><span class="mb"><i style="background:#ff6a4d"></i>Claude</span><span class="mb"><i style="background:#9b7bff"></i>Gemini</span><span class="mnote">auto&#8209;picked per question</span></div>
@@ -819,13 +800,13 @@
     <span class="cfloat f2">A rainy-day plan?</span>
     <span class="cfloat f3">Split tonight&rsquo;s dinner</span>
     <div class="cphone"><div class="cscr"><div class="cin">
-      <div class="ctop"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:34px;height:34px;object-fit:contain;display:block"><div><div class="t">Ask Drift</div><div class="s">Reykjavík · with the crew</div></div><span class="cmodel">GPT-5 · Claude · Gemini</span></div>
+      <div class="ctop"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:34px;height:34px;object-fit:contain;display:block"><div><div class="t">Ask Drift</div><div class="s">Reykjavík · with the crew</div></div></div>
       <div class="cbody">
         <div class="crow me anim k1"><div class="bub">What can&rsquo;t we miss around Reykjavík?</div></div>
         <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
-        <div class="crow bot anim k3"><div class="bub">A perfect first day — hot springs, city &amp; ice:<span class="cvia">✦ via Claude · live web</span></div></div>
+        <div class="crow bot anim k3"><div class="bub">A perfect first day — hot springs, city &amp; ice:<span class="cvia"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0l2.3 9.7L24 12l-9.7 2.3L12 24l-2.3-9.7L0 12l9.7-2.3z"/></svg>via Claude · live web</span></div></div>
         <div class="pcards anim k4">
-          <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-lagoon.webp)"></div><div class="tx"><div class="nm">Blue Lagoon</div><div class="cat">Geothermal spa</div><div class="mt"><span class="st">★</span> 4.8 · 3 hr · book ahead</div></div></div>
+          <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-lagoon.webp)"></div><div class="tx"><div class="nm">Blue Lagoon</div><div class="cat">Geothermal spa</div><div class="mt"><span class="st">★</span> 4.8 · 3 hr</div></div></div>
           <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-church.webp)"></div><div class="tx"><div class="nm">Hallgrímskirkja</div><div class="cat">Landmark church</div><div class="mt"><span class="st">★</span> 4.7 · tower views</div></div></div>
           <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-cave.webp)"></div><div class="tx"><div class="nm">Katla Ice Cave</div><div class="cat">Guided tour</div><div class="mt"><span class="st">★</span> 4.9 · half-day</div></div></div>
         </div>
