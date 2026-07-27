@@ -45,6 +45,8 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Run on everything except Next internals and API routes.
-  matcher: ["/((?!_next/|api/).*)"],
+  // Run on everything except Next internals, API routes, and the Vercel
+  // Analytics/Speed-Insights endpoints (/_vercel/insights/*) — the latter must
+  // reach Vercel's handler, not get swallowed by the marketing rewrite.
+  matcher: ["/((?!_next/|api/|_vercel/).*)"],
 };

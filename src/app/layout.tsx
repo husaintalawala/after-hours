@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next"
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import "@/styles/globals.css"
 
 export const metadata: Metadata = {
@@ -33,7 +35,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="bg-black text-[#f5f5f7] antialiased">{children}</body>
+      <body className="bg-black text-[#f5f5f7] antialiased">
+        {children}
+        {/* Vercel Web Analytics (pageviews/visitors/top-pages) + Speed Insights.
+            Covers every React route; the static marketing landing has its own
+            /_vercel/insights script tag. Requires enabling Analytics in the
+            Vercel dashboard (Project → Analytics). */}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   )
 }
