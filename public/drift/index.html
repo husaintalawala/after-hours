@@ -310,6 +310,15 @@
   .qchips b{background:rgba(55,214,196,.13);color:#37D6C4;border:1px solid rgba(55,214,196,.28)}
   .cinput{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
   .cinput span:first-child{color:rgba(234,242,244,.55)}
+  /* ----- AI-model promotion (frontier models are the hook) ----- */
+  .cs-copy .lead b{color:var(--ink);font-weight:800}
+  .cs-models{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:20px;justify-content:center}
+  .cs-models .mb{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--line);padding:8px 14px;border-radius:100px;box-shadow:0 6px 16px -12px rgba(40,26,12,.4)}
+  .cs-models .mb i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .cs-models .mnote{font-size:12px;color:var(--muted);font-weight:600}
+  @media(min-width:900px){.cs-models{justify-content:flex-start}}
+  .cmodel{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:.02em;color:#37D6C4;background:rgba(55,214,196,.14);border:1px solid rgba(55,214,196,.3);border-radius:100px;padding:4px 9px;white-space:nowrap}
+  .cvia{display:block;font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:rgba(55,214,196,.9);margin-top:5px}
   /* scroll-driven reveal — messages appear as you scroll through the section */
   .chatsec{height:185vh}
   .cs-sticky{position:sticky;top:0;min-height:100vh;display:flex;align-items:center;padding:70px 0}
@@ -798,9 +807,10 @@
 <!-- ============ CHAT (Ask Drift) ============ -->
 <section class="chatsec"><div class="cs-sticky"><div class="cs-wrap">
   <div class="cs-copy">
-    <span class="eyebrow" data-r>Your local, in your pocket</span>
+    <span class="eyebrow" data-r>Powered by frontier AI</span>
     <h2 data-ghost>Ask Drift <em>anything.</em></h2>
-    <p class="lead" data-r>A travel buddy who actually knows the place — ask for the must-sees, the best coffee or a rainy-day plan, and drop it straight into the trip.</p>
+    <p class="lead" data-r>Your travel buddy runs on the world&rsquo;s best models — <b>GPT&#8209;5, Claude &amp; Gemini</b> — so the answers are actually good, not a generic top&#8209;10. Ask for the must&#8209;sees, the best coffee or a rainy&#8209;day plan, and drop it straight into the trip.</p>
+    <div class="cs-models" data-r><span class="mb"><i style="background:#10a37f"></i>GPT&#8209;5</span><span class="mb"><i style="background:#ff6a4d"></i>Claude</span><span class="mb"><i style="background:#9b7bff"></i>Gemini</span><span class="mnote">auto&#8209;picked per question</span></div>
     <div class="cs-chips" data-r><span>What can&rsquo;t we miss?</span><span>Best coffee nearby</span><span>Rainy-day ideas</span><span>Skip-the-line tips</span></div>
   </div>
   <div class="cs-stage" data-r>
@@ -809,11 +819,11 @@
     <span class="cfloat f2">A rainy-day plan?</span>
     <span class="cfloat f3">Split tonight&rsquo;s dinner</span>
     <div class="cphone"><div class="cscr"><div class="cin">
-      <div class="ctop"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:34px;height:34px;object-fit:contain;display:block"><div><div class="t">Ask Drift</div><div class="s">Reykjavík · with the crew</div></div></div>
+      <div class="ctop"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:34px;height:34px;object-fit:contain;display:block"><div><div class="t">Ask Drift</div><div class="s">Reykjavík · with the crew</div></div><span class="cmodel">GPT-5 · Claude · Gemini</span></div>
       <div class="cbody">
         <div class="crow me anim k1"><div class="bub">What can&rsquo;t we miss around Reykjavík?</div></div>
         <div class="crow bot anim k2"><div class="bub typ"><i></i><i></i><i></i></div></div>
-        <div class="crow bot anim k3"><div class="bub">A perfect first day — hot springs, city &amp; ice:</div></div>
+        <div class="crow bot anim k3"><div class="bub">A perfect first day — hot springs, city &amp; ice:<span class="cvia">✦ via Claude · live web</span></div></div>
         <div class="pcards anim k4">
           <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-lagoon.webp)"></div><div class="tx"><div class="nm">Blue Lagoon</div><div class="cat">Geothermal spa</div><div class="mt"><span class="st">★</span> 4.8 · 3 hr · book ahead</div></div></div>
           <div class="pcard"><div class="im" style="background-image:url(assets/app/poi-church.webp)"></div><div class="tx"><div class="nm">Hallgrímskirkja</div><div class="cat">Landmark church</div><div class="mt"><span class="st">★</span> 4.7 · tower views</div></div></div>
