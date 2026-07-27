@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
 
 // 1:1 web port of the iOS AuthView (Views/AuthView.swift): dark amber-tinted
 // glass card, lowercase "drift" wordmark, email → magic link, coral→gold
@@ -90,6 +91,7 @@ export default function LoginPage() {
     if (!email.trim() || busy) return
     setBusy(true)
     setError(null)
+    capture(AnalyticsEvent.LoginAttempt, { method: "magic_link" })
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo, captchaToken: captchaToken ?? undefined },
@@ -113,6 +115,8 @@ export default function LoginPage() {
 
   async function oauth(provider: "google" | "apple" | "twitter") {
     setError(null)
+    // Fire before signInWithOAuth navigates away (posthog beacons on unload).
+    capture(AnalyticsEvent.LoginAttempt, { method: provider })
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },

@@ -13,6 +13,7 @@ import {
 } from "@/lib/drift/discover"
 import { resolvePlaceCandidates } from "@/lib/drift/chat"
 import { applyCreateStep, type CreateStepOp } from "@/lib/drift/quickOp"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
 import PlaceSheet from "./PlaceSheet"
 
 // mapbox-gl is heavy — load the map after the rail paints.
@@ -469,6 +470,7 @@ function AddToTripSheet({
         },
         { name: poi.name, lat: poi.lat, lng: poi.lng, place_id: placeId }
       )
+      capture(AnalyticsEvent.AddToItinerary, { source: "discover", category })
       onDone(`Added ${poi.name} to ${target.label}`)
     } catch {
       setError("Couldn't add — try again.")

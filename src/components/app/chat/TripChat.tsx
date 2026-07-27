@@ -14,6 +14,7 @@ import {
 import { applyCreateStep, applyRemoveStep, type CreateStepOp } from "@/lib/drift/quickOp"
 import { addDays, dateOnly } from "@/lib/drift/dates"
 import { ensureTripSession, loadTripMessages, saveMessage } from "@/lib/drift/chatStore"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
 
 // Trip-scoped Ask Drift: streaming answers, photo place-card carousel
 // (hydrated via resolve-place, like DriftChatView), "You might want to ask"
@@ -205,6 +206,7 @@ export default function TripChat({
     const text = (textArg ?? input).trim()
     const img = attached
     if ((!text && !img) || busy) return
+    capture(AnalyticsEvent.StartChat, { has_trip: !!tripId, has_image: !!img })
     setError(null)
     setInput("")
     setAttached(null)

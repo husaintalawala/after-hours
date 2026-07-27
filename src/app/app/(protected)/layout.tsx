@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import AppNav from "@/components/app/AppNav"
 import AppRail from "@/components/app/AppRail"
+import PostHogAuthBridge from "@/components/app/PostHogAuthBridge"
 
 // The logged-in app owns its own browser-tab identity (the marketing landing
 // keeps the "Side Quest" title from the root layout).
@@ -48,6 +49,7 @@ export default async function ProtectedLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
         rel="stylesheet"
       />
+      <PostHogAuthBridge userId={user.id} email={user.email} />
       <div className="min-h-screen bg-aurora-midnight font-drift-body text-aurora-ink">
         {/* Desktop: persistent left nav rail. Mobile: floating bottom dock. */}
         <div className="hidden lg:block">

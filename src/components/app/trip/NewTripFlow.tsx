@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
 import BackLink from "@/components/app/BackLink"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
 
 // Web port of the iOS new-trip flow: TripTypeSheet ("What kind of trip?" —
 // past / currently traveling / future) → destination search → title + dates →
@@ -135,6 +136,7 @@ export default function NewTripFlow() {
       // Anchor failure is non-fatal on iOS too — the trip still exists.
       if (stepErr) console.warn("[NewTrip] destination anchor failed:", stepErr.message)
 
+      capture(AnalyticsEvent.CreateTrip, { trip_type: tripType, has_end_date: !!end })
       router.push(`/app/trips/${trip.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong")
