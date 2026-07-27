@@ -70,6 +70,10 @@ export default function TripChat({
   initialSend?: string | null
 }) {
   const router = useRouter()
+  // start_chat is a funnel step ("the user engaged Ask Drift"), so it fires on
+  // the first message of a mounted thread — not on every turn, which would
+  // count messages instead of chat starts.
+  const startedRef = useRef(false)
   const [messages, setMessages] = useState<Msg[]>([])
   const [streaming, setStreaming] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
@@ -206,7 +210,10 @@ export default function TripChat({
     const text = (textArg ?? input).trim()
     const img = attached
     if ((!text && !img) || busy) return
-    capture(AnalyticsEvent.StartChat, { has_trip: !!tripId, has_image: !!img })
+    if (!startedRef.current) {
+      startedRef.current = true
+      capture(AnalyticsEvent.StartChat, { has_trip: !!tripId, has_image: !!img })
+    }
     setError(null)
     setInput("")
     setAttached(null)
@@ -289,6 +296,14 @@ export default function TripChat({
       : { name: card.title }
     try {
       const step = await applyCreateStep(tripId, op, resolved)
+      // The other half of add_to_itinerary: confirming a chat suggestion card.
+      // Discover's "+" sheet is already instrumented; without this the
+      // activation step under-counts every add that came from Ask Drift.
+      capture(AnalyticsEvent.AddToItinerary, {
+        source: "chat",
+        step_type: op.type,
+        has_day: !!op.date,
+      })
       setUndo({ label: `Added ${op.title}`, stepId: step.id })
       setMessages((m) =>
         m.map((msg) =>

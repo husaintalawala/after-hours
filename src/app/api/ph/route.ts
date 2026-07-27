@@ -38,6 +38,9 @@ export function GET() {
     SNIPPET +
     `\nposthog.init(${JSON.stringify(key)},{api_host:${JSON.stringify(host)},person_profiles:'identified_only',capture_pageview:true,capture_pageleave:true});` +
     // Landing → app: any anchor into the web app is the "open the web app"/login CTA.
-    `\ndocument.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href^="/app"],a[data-ph-cta]');if(a){try{posthog.capture('landing_cta_click',{href:a.getAttribute('href'),label:(a.textContent||'').trim().slice(0,40)});}catch(_){}}},true);`
+    `\ndocument.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href^="/app"],a[data-ph-cta]');if(a){try{posthog.capture('landing_cta_click',{href:a.getAttribute('href'),label:(a.textContent||'').trim().slice(0,40)});}catch(_){}}},true);` +
+    // Named step 1. $pageview alone can't be the funnel entry: this loader also
+    // runs on /terms and /privacy, which are not the landing.
+    `\n(function(){var p=location.pathname;if(p==='/'||p==='/index.html'){try{posthog.capture('marketing_landing_view',{referrer:document.referrer||null});}catch(_){}}})();`
   return new NextResponse(body, { headers })
 }

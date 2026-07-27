@@ -42,6 +42,10 @@ export default async function ProtectedLayout({
     .slice(0, 1)
     .toUpperCase()
 
+  // Magic link serves both sign-up and sign-in, so a just-created auth user is
+  // the only signal that this app entry is a signup (funnel step).
+  const isNew = Date.now() - new Date(user.created_at).getTime() < 5 * 60 * 1000
+
   return (
     <>
       {/* Fraunces (display) — Inter is already loaded by the root layout. */}
@@ -49,7 +53,7 @@ export default async function ProtectedLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
         rel="stylesheet"
       />
-      <PostHogAuthBridge userId={user.id} email={user.email} />
+      <PostHogAuthBridge userId={user.id} email={user.email} isNew={isNew} />
       <div className="min-h-screen bg-aurora-midnight font-drift-body text-aurora-ink">
         {/* Desktop: persistent left nav rail. Mobile: floating bottom dock. */}
         <div className="hidden lg:block">

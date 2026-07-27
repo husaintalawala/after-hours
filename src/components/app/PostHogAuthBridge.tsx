@@ -13,9 +13,12 @@ import { AnalyticsEvent, capture, identifyUser } from "@/lib/analytics"
 export default function PostHogAuthBridge({
   userId,
   email,
+  isNew = false,
 }: {
   userId: string
   email?: string | null
+  /** Auth user created moments ago — this app entry is a signup, not a return. */
+  isNew?: boolean
 }) {
   useEffect(() => {
     identifyUser(userId, email ? { email } : undefined)
@@ -23,11 +26,14 @@ export default function PostHogAuthBridge({
       const k = "ph_session_started"
       if (!sessionStorage.getItem(k)) {
         sessionStorage.setItem(k, "1")
-        capture(AnalyticsEvent.LoginSuccess)
+        capture(AnalyticsEvent.LoginSuccess, { is_new_user: isNew })
+        // signup is a distinct funnel step, so fire both: every signup is also
+        // a login_success, and the funnel narrows from one to the other.
+        if (isNew) capture(AnalyticsEvent.Signup)
       }
     } catch {
       /* sessionStorage can throw in private mode — analytics is best-effort */
     }
-  }, [userId, email])
+  }, [userId, email, isNew])
   return null
 }

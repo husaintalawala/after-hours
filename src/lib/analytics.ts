@@ -18,9 +18,14 @@ import posthog from "posthog-js"
 // The distinct_id persists across the marketing→app hop (same domain, same
 // posthog cookie), so the whole landing→signup→activation path is one funnel.
 export const AnalyticsEvent = {
+  // Fired by the /api/ph loader on the static landing (keep the string in sync).
+  MarketingLandingView: "marketing_landing_view",
   LandingCtaClick: "landing_cta_click",
   LoginAttempt: "login_attempt",
   LoginSuccess: "login_success",
+  // A first-ever session for this auth user — the funnel's signup step, which
+  // magic-link can't distinguish from a return login any other way.
+  Signup: "signup",
   CreateTrip: "create_trip",
   AddToItinerary: "add_to_itinerary",
   StartChat: "start_chat",
