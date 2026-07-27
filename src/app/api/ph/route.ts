@@ -19,7 +19,9 @@ const SNIPPET =
 
 export function GET() {
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com"
+  // Strip any trailing slash — the snippet derives the assets URL by string
+  // replace, so "…posthog.com/" would yield "…//static/array.js".
+  const host = (process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com").replace(/\/+$/, "")
   const headers = {
     "content-type": "application/javascript; charset=utf-8",
     // Short edge cache to shield PostHog under a traffic spike; a redeploy
