@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { PostHogProvider as PHProvider } from "posthog-js/react"
-import { initAnalytics, posthog, trackPageview } from "@/lib/analytics"
+import { initAnalytics, trackPageview } from "@/lib/analytics"
 
 // App Router is a SPA after the first load, so posthog's automatic pageview
 // capture is off (see analytics.ts) and we fire $pageview on every client
@@ -27,12 +26,15 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
   useEffect(() => {
     initAnalytics()
   }, [])
+  // No <PHProvider> wrapper: nothing in the app uses posthog-js/react's hooks,
+  // and importing it here would statically pull posthog-js into the shared
+  // bundle — the exact cost initAnalytics()'s dynamic import avoids.
   return (
-    <PHProvider client={posthog}>
+    <>
       <Suspense fallback={null}>
         <Pageview />
       </Suspense>
       {children}
-    </PHProvider>
+    </>
   )
 }
