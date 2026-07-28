@@ -79,6 +79,9 @@
   .stage-hero .rate .av span{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.85);margin-left:-8px;background-size:cover;background-position:center}
   .stage-hero .rate .av span:first-child{margin-left:0}
   .hero-cap{margin-top:18px;color:#d6f2ec;font-family:var(--hand);font-weight:700;font-size:20px;letter-spacing:.04em;text-shadow:0 1px 10px rgba(0,0,0,.4)}
+  /* the single understated secondary path — iOS beta, well below the primary button */
+  .hero-alt{display:inline-block;margin-top:15px;color:rgba(255,255,255,.82);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(255,255,255,.32);text-shadow:0 1px 10px rgba(0,0,0,.4);transition:color .2s}
+  .hero-alt:hover{color:#fff;text-decoration-color:rgba(255,255,255,.7)}
 
   /* ============ PHONE (one crisp device, native-res screens) ============ */
   .phone{position:relative;width:var(--pw,274px);padding:7px;border-radius:44px;
@@ -674,7 +677,7 @@
   <a class="brand" href="#top"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:46px;height:46px;object-fit:contain;display:block;margin:-6px 0">Drift</a>
   <div class="nav-r">
     <a class="nav-login" href="/app/login">Log in</a>
-    <a class="nav-cta" href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get the app</a>
+    <a class="nav-cta" href="/app">Open Drift</a>
   </div>
 </div></header>
 
@@ -686,14 +689,12 @@
     <div class="stage-scrim" id="escrim"></div>
     <!-- hero copy — fades away as the phone rises into frame -->
     <div class="stage-hero" id="ehero">
-      <span class="laurel"><i></i>Free beta now live · iPhone</span>
       <h1 data-ghost>Every trip,<br><em>together.</em></h1>
       <p class="sub">Plan it with your people, track the journey and split every cost — then watch it map itself.</p>
       <div class="cta">
-        <a class="btn light" href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.89-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.47 7.84 1.31 10.41.87 1.26 1.9 2.67 3.26 2.62 1.31-.05 1.8-.85 3.39-.85 1.58 0 2.03.85 3.41.82 1.41-.02 2.3-1.28 3.16-2.55.99-1.46 1.4-2.87 1.42-2.94-.03-.01-2.73-1.05-2.76-4.16zM14.5 4.6c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.59 3.04-1.46z"/></svg>Get the free beta</a>
-        <span class="rate"><span class="av"><span style="background-image:url(assets/photo/friends-kl.jpg)"></span><span style="background-image:url(assets/photo/friends-bali.jpg)"></span><span style="background-image:url(assets/photo/hero.jpg)"></span></span>Free during the beta · <a href="/app/login" style="color:inherit;text-decoration:underline;text-underline-offset:3px">open on the web</a></span>
+        <a class="btn light" href="/app">Start planning — free</a>
       </div>
-      <div class="hero-cap">↓&nbsp;&nbsp;Explore the app</div>
+      <a class="hero-alt" href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener">or get the iOS app</a>
     </div>
     <!-- pinned phone — rises from the bottom, screens evolve as you scroll -->
     <div class="stage-phone" id="stagePhone">
