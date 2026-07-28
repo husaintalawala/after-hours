@@ -46,7 +46,11 @@ export default function DestinationGuide({
   const [facts, setFacts] = useState<DestinationFacts | null>(null)
   const [things, setThings] = useState<PlaceCandidate[] | null>(null)
   const [tours, setTours] = useState<Tour[] | null>(null)
-  const [sub, setSub] = useState<Sub>("vibe")
+  const [active, setActive] = useState<Sub>("vibe")
+  const vibeRef = useRef<HTMLDivElement>(null)
+  const thingsRef = useRef<HTMLDivElement>(null)
+  const stayRef = useRef<HTMLDivElement>(null)
+  const curiousRef = useRef<HTMLDivElement>(null)
   const loaded = useRef<string | null>(null)
 
   useEffect(() => {
@@ -77,16 +81,42 @@ export default function DestinationGuide({
       .catch(() => setTours([]))
   }, [label, country, lat, lng])
 
+  // Scroll-spy: the sticky sub-tab bar highlights whichever section is at the top.
+  useEffect(() => {
+    const els = [vibeRef, thingsRef, stayRef, curiousRef]
+      .map((r) => r.current)
+      .filter(Boolean) as HTMLElement[]
+    if (!els.length) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const top = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+        const k = top?.target.getAttribute("data-sub")
+        if (k) setActive(k as Sub)
+      },
+      { rootMargin: "-120px 0px -60% 0px" }
+    )
+    els.forEach((el) => obs.observe(el))
+    return () => obs.disconnect()
+  }, [label])
+
+  const scrollTo = (k: Sub) => {
+    const el = { vibe: vibeRef, things: thingsRef, stay: stayRef, curious: curiousRef }[k].current
+    if (!el) return
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 112, behavior: "smooth" })
+  }
+
   return (
-    <div className="space-y-5">
-      {/* Sub-tabs — mirrors the iOS destination guide */}
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="space-y-6">
+      {/* Sticky sub-tab nav — sections stack + scroll; the bar scroll-spies (iOS parity) */}
+      <div className="sticky top-0 z-20 -mx-1 flex gap-2 overflow-x-auto bg-aurora-midnight/95 px-1 py-2.5 backdrop-blur [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {SUBS.map(([k, lab]) => (
           <button
             key={k}
-            onClick={() => setSub(k)}
+            onClick={() => scrollTo(k)}
             className={`shrink-0 rounded-full px-4 py-2 text-[13.5px] font-semibold transition-colors ${
-              sub === k ? "bg-aurora-teal text-aurora-ink" : "bg-aurora-glass2 text-drift-muted"
+              active === k ? "bg-aurora-teal text-aurora-ink" : "bg-aurora-glass2 text-drift-muted"
             }`}
           >
             {lab}
@@ -94,11 +124,11 @@ export default function DestinationGuide({
         ))}
       </div>
 
-      {sub === "vibe" &&
-        (facts === null ? <GuideSkeleton /> : <GuideFacts facts={facts} month={month ?? null} />)}
+      <div ref={vibeRef} data-sub="vibe" className="scroll-mt-24">
+        {facts === null ? <GuideSkeleton /> : <GuideFacts facts={facts} month={month ?? null} />}
+      </div>
 
-      {sub === "things" && (
-        <div className="space-y-7">
+      <div ref={thingsRef} data-sub="things" className="scroll-mt-24 space-y-7">
       {/* Top things to do — polaroid rail */}
       <section>
         <h3 className="font-drift-display text-[22px] font-semibold">Top things to do</h3>
@@ -186,12 +216,17 @@ export default function DestinationGuide({
           </div>
         )}
       </section>
-        </div>
-      )}
+      </div>
 
-      {sub === "stay" && <StaySection facts={facts} label={label} />}
+      <div ref={stayRef} data-sub="stay" className="scroll-mt-24">
+        <h3 className="mb-3 font-drift-display text-[22px] font-semibold">Where to stay</h3>
+        <StaySection facts={facts} label={label} />
+      </div>
 
-      {sub === "curious" && <CuriousSection tripId={tripId} label={label} />}
+      <div ref={curiousRef} data-sub="curious" className="scroll-mt-24">
+        <h3 className="mb-3 font-drift-display text-[22px] font-semibold">Curious about {label}?</h3>
+        <CuriousSection tripId={tripId} label={label} />
+      </div>
     </div>
   )
 }

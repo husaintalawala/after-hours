@@ -736,30 +736,42 @@ function OverviewStopCard({
 
   return (
     <div className="overflow-hidden rounded-[20px] border border-aurora-border bg-aurora-glass">
-      <button
-        onClick={() => (items.length ? setExpanded((v) => !v) : onOpen())}
-        className="flex w-full items-center gap-4 p-3.5 text-left transition-colors hover:bg-aurora-glass2"
-      >
-        {hero ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={hero} alt="" loading="lazy" className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover" />
-        ) : (
-          <div className="h-[72px] w-[72px] shrink-0 rounded-2xl" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
+      <div className="flex w-full items-stretch">
+        {/* Tapping the destination opens its guide directly (iOS parity). */}
+        <button
+          onClick={onOpen}
+          className="flex min-w-0 flex-1 items-center gap-4 p-3.5 text-left transition-colors hover:bg-aurora-glass2"
+        >
+          {hero ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hero} alt="" loading="lazy" className="h-[72px] w-[72px] shrink-0 rounded-2xl object-cover" />
+          ) : (
+            <div className="h-[72px] w-[72px] shrink-0 rounded-2xl" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-drift-display text-[19px] font-semibold tracking-tight">{dest.label}</p>
+            <p className="mt-0.5 text-[13.5px] text-drift-muted">{dest.dateRange}</p>
+            <p className="mt-1 text-[12.5px] text-drift-text-tertiary">
+              {dest.plansCount} plan{dest.plansCount === 1 ? "" : "s"}
+            </p>
+          </div>
+          {dest.bookedChip && (
+            <span className="shrink-0 rounded-full bg-aurora-indigo/20 px-3 py-1.5 text-[12px] font-semibold text-aurora-indigo">
+              ● {dest.bookedChip}
+            </span>
+          )}
+        </button>
+        {/* Separate chevron just previews the stops inline. */}
+        {items.length > 0 && (
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? "Collapse stops" : "Expand stops"}
+            className="flex shrink-0 items-center px-4 text-[18px] text-aurora-ink3 transition-colors hover:bg-aurora-glass2"
+          >
+            <span className={`inline-block transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}>›</span>
+          </button>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-drift-display text-[19px] font-semibold tracking-tight">{dest.label}</p>
-          <p className="mt-0.5 text-[13.5px] text-drift-muted">{dest.dateRange}</p>
-          <p className="mt-1 text-[12.5px] text-drift-text-tertiary">
-            {dest.plansCount} plan{dest.plansCount === 1 ? "" : "s"}
-          </p>
-        </div>
-        {dest.bookedChip && (
-          <span className="shrink-0 rounded-full bg-aurora-indigo/20 px-3 py-1.5 text-[12px] font-semibold text-aurora-indigo">
-            ● {dest.bookedChip}
-          </span>
-        )}
-        <span className={`shrink-0 text-[18px] text-aurora-ink3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}>›</span>
-      </button>
+      </div>
 
       {expanded && (
         <div className="border-t border-aurora-border px-3.5 pb-2.5 pt-1">
