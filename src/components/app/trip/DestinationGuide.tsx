@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { resolvePlaceCandidates, placePhotoUrl, askDrift, type PlaceCandidate } from "@/lib/drift/chat"
 import { fetchDestinationFacts, type DestinationFacts } from "@/lib/drift/facts"
+import { renderRich } from "@/lib/drift/richText"
 
 // The Overview's sub-tabs, mirroring the iOS destination guide.
 type Sub = "vibe" | "things" | "stay" | "curious"
@@ -554,10 +555,13 @@ function CuriousSection({ tripId, label }: { tripId: string; label: string }) {
           <p className="flex items-center gap-2 font-drift-display text-[16px] font-semibold text-aurora-ink">
             <span className="text-aurora-teal">✦</span> {question}
           </p>
-          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-aurora-ink2">
-            {answer || (busy ? "Thinking…" : "")}
-            {busy && answer ? <span className="ml-0.5 animate-pulse">▍</span> : null}
-          </p>
+          <div className="mt-2 text-[14px] leading-relaxed text-aurora-ink2">
+            {answer ? (
+              renderRich(answer)
+            ) : busy ? (
+              <p className="text-drift-text-tertiary">Thinking…</p>
+            ) : null}
+          </div>
         </div>
       )}
     </div>

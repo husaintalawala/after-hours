@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import TripChat, { renderRich } from "@/components/app/chat/TripChat"
+import TripChat from "@/components/app/chat/TripChat"
+import { renderRich } from "@/lib/drift/richText"
 import BackLink from "@/components/app/BackLink"
 import { loadSessionMessages, type StoredMessage } from "@/lib/drift/chatStore"
 
