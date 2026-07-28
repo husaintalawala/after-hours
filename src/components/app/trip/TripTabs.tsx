@@ -108,6 +108,7 @@ export interface ExpenseVM {
   category: string
   expense_date: string
   payer?: string | null
+  payerUserId?: string | null
 }
 
 export interface LedgerVM {
@@ -134,6 +135,9 @@ export interface KitItemVM {
 
 export default function TripTabs({
   tripId,
+  meId,
+  members,
+  isOwner,
   tripMeta,
   destinations,
   stepDetails,
@@ -148,6 +152,9 @@ export default function TripTabs({
   children,
 }: {
   tripId: string
+  meId: string
+  members: { id: string; name: string }[]
+  isOwner: boolean
   tripMeta: TripMetaVM
   chipData?: {
     placeName: string
@@ -612,9 +619,19 @@ export default function TripTabs({
         </div>
       )}
 
-      {tab === "kit" && <KitTab items={kitItems} startDate={chipData?.startDate ?? null} />}
+      {tab === "kit" && (
+        <KitTab items={kitItems} startDate={chipData?.startDate ?? null} tripId={tripId} />
+      )}
       {tab === "expenses" && (
-        <ExpensesTab expenses={expenses} ledger={ledger} budget={budget} />
+        <ExpensesTab
+          expenses={expenses}
+          ledger={ledger}
+          budget={budget}
+          tripId={tripId}
+          meId={meId}
+          members={members}
+          isOwner={isOwner}
+        />
       )}
       {tab === "track" && <TrackTab steps={trackSteps} />}
       </div>
@@ -1394,28 +1411,102 @@ const KIT_CATEGORY_ORDER = [
   "health", "gear", "activities", "other",
 ]
 
-function KitTab({ items, startDate }: { items: KitItemVM[]; startDate: string | null }) {
-  if (!items.length) {
+// Phase decides an item's "done" target: pack/prep finish at packed, buy at bought.
+function kitDone(i: KitItemVM): boolean {
+  if (i.phase === "buy") return i.state === "bought" || i.state === "packed"
+  return i.state === "packed" || i.state === "bought"
+}
+function kitToggleTarget(i: KitItemVM): "in_kit" | "packed" | "bought" {
+  if (kitDone(i)) return "in_kit"
+  return i.phase === "buy" ? "bought" : "packed"
+}
+
+function KitTab({
+  items,
+  startDate,
+  tripId,
+}: {
+  items: KitItemVM[]
+  startDate: string | null
+  tripId: string
+}) {
+  const router = useRouter()
+  const [supabase] = useState(() => createClient())
+  const [local, setLocal] = useState<KitItemVM[]>(items)
+  useEffect(() => setLocal(items), [items])
+  const [building, setBuilding] = useState(false)
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const toggle = async (i: KitItemVM) => {
+    const target = kitToggleTarget(i)
+    setLocal((prev) => prev.map((x) => (x.id === i.id ? { ...x, state: target } : x)))
+    await (supabase as any).from("kit_items").update({ state: target }).eq("id", i.id)
+    router.refresh()
+  }
+  const remove = async (id: string) => {
+    setLocal((prev) => prev.filter((x) => x.id !== id))
+    await (supabase as any).from("kit_items").delete().eq("id", id)
+    router.refresh()
+  }
+  const add = async (category: string, title: string) => {
+    const t = title.trim()
+    if (!t) return
+    setLocal((prev) => [
+      ...prev,
+      { id: `tmp-${Date.now()}`, title: t, category, phase: "pack", state: "in_kit", quantity: 1 },
+    ])
+    await (supabase as any).from("kit_items").insert({
+      trip_id: tripId,
+      title: t,
+      category,
+      quantity: 1,
+      phase: "pack",
+      state: "in_kit",
+      source: "manual",
+    })
+    router.refresh()
+  }
+  const build = async () => {
+    setBuilding(true)
+    try {
+      await (supabase as any).functions.invoke("derive-kit", { body: { trip_id: tripId } })
+    } catch {
+      /* derive-kit is idempotent; the refresh shows whatever landed */
+    }
+    router.refresh()
+    setBuilding(false)
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  if (!local.length) {
     return (
       <div className="mt-6 lg:max-w-2xl">
         <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-8 text-center">
           <p className="font-drift-display text-[19px] font-semibold">Nothing packed yet</p>
-          <p className="mt-1.5 text-[14px] text-drift-muted">
-            Ask Drift to build a packing list for this trip.
+          <p className="mx-auto mt-1.5 max-w-xs text-[14px] text-drift-muted">
+            Let Drift build a packing list from your trip, or add items yourself.
           </p>
+          <button
+            onClick={build}
+            disabled={building}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-aurora-teal px-5 py-2.5 text-[14px] font-semibold text-aurora-ink transition-opacity disabled:opacity-60"
+          >
+            {building ? "Building…" : "✦ Build my packing list"}
+          </button>
+        </div>
+        <div className="mt-3">
+          <KitAddRow category="other" onAdd={add} placeholder="Add an item…" />
         </div>
       </div>
     )
   }
 
-  const active = items.filter((i) => i.state !== "dismissed")
-  const packedCount = active.filter((i) => i.state === "packed").length
+  const active = local
+  const packedCount = active.filter(kitDone).length
   const toPack = active.length - packedCount
   const pct = active.length ? Math.round((packedCount / active.length) * 100) : 0
 
-  // Group by CATEGORY (state becomes row treatment, never its own group — so an
-  // item never teleports to a different bucket when it's checked). Most-unpacked
-  // categories float to the top; within a section, packed items sink.
+  // Group by CATEGORY; done-ness is a row treatment (an item never jumps buckets).
   const byCat = new Map<string, KitItemVM[]>()
   for (const i of active) {
     const key = (i.category || "other").toLowerCase()
@@ -1426,11 +1517,9 @@ function KitTab({ items, startDate }: { items: KitItemVM[]; startDate: string | 
   const cats = [...byCat.entries()]
     .map(([key, arr]) => ({
       key,
-      packed: arr.filter((i) => i.state === "packed").length,
+      packed: arr.filter(kitDone).length,
       total: arr.length,
-      items: [...arr].sort(
-        (a, b) => (a.state === "packed" ? 1 : 0) - (b.state === "packed" ? 1 : 0)
-      ),
+      items: [...arr].sort((a, b) => (kitDone(a) ? 1 : 0) - (kitDone(b) ? 1 : 0)),
     }))
     .sort((a, b) => {
       const ua = a.total - a.packed
@@ -1460,7 +1549,10 @@ function KitTab({ items, startDate }: { items: KitItemVM[]; startDate: string | 
       </div>
       <div className="mt-3 flex items-center gap-3">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-aurora-glass2">
-          <span className="block h-full rounded-full bg-aurora-teal" style={{ width: `${pct}%` }} />
+          <span
+            className="block h-full rounded-full bg-aurora-teal transition-[width] duration-300"
+            style={{ width: `${pct}%` }}
+          />
         </div>
         <span className="shrink-0 text-[12px] tabular-nums text-drift-muted">
           {packedCount} of {active.length}
@@ -1484,15 +1576,19 @@ function KitTab({ items, startDate }: { items: KitItemVM[]; startDate: string | 
             </div>
             <ul className="mt-2 space-y-1.5">
               {c.items.map((i) => {
-                const done = i.state === "packed"
+                const done = kitDone(i)
                 return (
                   <li
                     key={i.id}
-                    className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
+                    className="group flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
                   >
-                    <span
-                      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 ${
-                        done ? "border-aurora-teal bg-aurora-teal" : "border-drift-divider"
+                    <button
+                      onClick={() => toggle(i)}
+                      aria-label={done ? "Mark not packed" : "Mark packed"}
+                      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                        done
+                          ? "border-aurora-teal bg-aurora-teal"
+                          : "border-drift-divider hover:border-aurora-teal"
                       }`}
                     >
                       {done && (
@@ -1508,29 +1604,83 @@ function KitTab({ items, startDate }: { items: KitItemVM[]; startDate: string | 
                           <path d="M5 12l5 5L20 6" />
                         </svg>
                       )}
-                    </span>
-                    <span
-                      className={`min-w-0 flex-1 truncate text-[15px] ${
+                    </button>
+                    <button
+                      onClick={() => toggle(i)}
+                      className={`min-w-0 flex-1 truncate text-left text-[15px] ${
                         done ? "text-drift-text-tertiary line-through" : ""
                       }`}
                     >
                       {i.title}
-                    </span>
-                    {i.state === "bought" && (
+                    </button>
+                    {i.phase === "buy" && !kitDone(i) && (
                       <span className="rounded-full bg-aurora-glass2 px-2 py-0.5 text-[10.5px] text-drift-muted">
-                        bought
+                        to buy
                       </span>
                     )}
                     {i.quantity > 1 && (
                       <span className="text-[12px] tabular-nums text-drift-muted">×{i.quantity}</span>
                     )}
+                    <button
+                      onClick={() => remove(i.id)}
+                      aria-label="Remove item"
+                      className="shrink-0 text-drift-text-tertiary opacity-0 transition-opacity hover:text-[#E7614B] group-hover:opacity-100"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
                   </li>
                 )
               })}
             </ul>
+            <div className="mt-1.5">
+              <KitAddRow category={c.key} onAdd={add} />
+            </div>
           </div>
         ))}
       </div>
+
+      <div className="mt-6">
+        <KitAddRow category="other" onAdd={add} placeholder="Add an item…" />
+      </div>
+    </div>
+  )
+}
+
+// Inline "add an item" input — used at the end of each Kit category and the empty state.
+function KitAddRow({
+  category,
+  onAdd,
+  placeholder,
+}: {
+  category: string
+  onAdd: (category: string, title: string) => void
+  placeholder?: string
+}) {
+  const [text, setText] = useState("")
+  const submit = () => {
+    if (!text.trim()) return
+    onAdd(category, text)
+    setText("")
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-2xl border border-dashed border-aurora-border px-4 py-2">
+      <span className="text-[16px] leading-none text-drift-text-tertiary">+</span>
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit()
+        }}
+        placeholder={placeholder ?? `Add to ${category}…`}
+        className="min-w-0 flex-1 bg-transparent text-[14px] placeholder:text-drift-text-tertiary focus:outline-none"
+      />
+      {text.trim() && (
+        <button onClick={submit} className="shrink-0 text-[13px] font-semibold text-aurora-teal">
+          Add
+        </button>
+      )}
     </div>
   )
 }
@@ -1574,22 +1724,53 @@ function ExpensesTab({
   expenses,
   ledger,
   budget,
+  tripId,
+  meId,
+  members,
+  isOwner,
 }: {
   expenses: ExpenseVM[]
   ledger: LedgerVM | null
   budget: { amountUsd: number | null; startDate: string | null; endDate: string | null } | null
+  tripId: string
+  meId: string
+  members: { id: string; name: string }[]
+  isOwner: boolean
 }) {
   const [facet, setFacet] = useState<"date" | "category">("date")
+  const [editing, setEditing] = useState<ExpenseVM | "new" | null>(null)
+
+  // Who can change a row: the person who paid it, or the trip owner (RLS-mirrored).
+  const canEdit = (e: ExpenseVM) => isOwner || (e.payerUserId ?? null) === meId
+  const openEdit = (e: ExpenseVM) => {
+    if (canEdit(e)) setEditing(e)
+  }
 
   if (!expenses.length) {
     return (
       <div className="mt-6 lg:max-w-2xl">
         <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-8 text-center">
           <p className="font-drift-display text-[19px] font-semibold">Track the trip&rsquo;s money</p>
-          <p className="mt-1.5 text-[14px] text-drift-muted">
-            Ask Drift in chat — &ldquo;dinner 6400 ISK, split 4 ways&rdquo; — and it lands here.
+          <p className="mx-auto mt-1.5 max-w-xs text-[14px] text-drift-muted">
+            Add expenses as you go — Drift splits them and shows who owes whom.
           </p>
+          <button
+            onClick={() => setEditing("new")}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-aurora-teal px-5 py-2.5 text-[14px] font-semibold text-aurora-ink"
+          >
+            + Add an expense
+          </button>
         </div>
+        {editing && (
+          <ExpenseForm
+            expense={editing === "new" ? null : editing}
+            tripId={tripId}
+            meId={meId}
+            members={members}
+            canDelete={editing !== "new"}
+            onClose={() => setEditing(null)}
+          />
+        )}
       </div>
     )
   }
@@ -1624,6 +1805,15 @@ function ExpensesTab({
 
   return (
     <div className="mt-6 lg:max-w-2xl">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-drift-display text-[22px] font-semibold tracking-tight">Expenses</h2>
+        <button
+          onClick={() => setEditing("new")}
+          className="rounded-full bg-aurora-teal px-4 py-2 text-[13px] font-semibold text-aurora-ink"
+        >
+          + Add
+        </button>
+      </div>
       {/* Hero — the personal question first: am I up or down? */}
       {myRow ? (
         <div className="rounded-[22px] border border-aurora-border bg-aurora-glass p-5">
@@ -1760,14 +1950,37 @@ function ExpensesTab({
           </button>
         ))}
       </div>
-      <div className="mt-3">{facet === "date" ? renderByDate(sorted) : renderByCategory(sorted)}</div>
+      <div className="mt-3">
+        {facet === "date"
+          ? renderByDate(sorted, openEdit, canEdit)
+          : renderByCategory(sorted, openEdit, canEdit)}
+      </div>
+
+      {editing && (
+        <ExpenseForm
+          expense={editing === "new" ? null : editing}
+          tripId={tripId}
+          meId={meId}
+          members={members}
+          canDelete={editing !== "new"}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </div>
   )
 }
 
-function ExpenseRow({ e }: { e: ExpenseVM }) {
-  return (
-    <li className="flex items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3">
+function ExpenseRow({
+  e,
+  onEdit,
+  editable,
+}: {
+  e: ExpenseVM
+  onEdit: (e: ExpenseVM) => void
+  editable: boolean
+}) {
+  const inner = (
+    <>
       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-aurora-midnight text-[17px]">
         {CATEGORY_EMOJI[e.category] ?? "💳"}
       </span>
@@ -1780,11 +1993,32 @@ function ExpenseRow({ e }: { e: ExpenseVM }) {
         </p>
       </div>
       <span className="text-[15px] font-semibold tabular-nums">{formatMoney(e.amount, e.currency)}</span>
+    </>
+  )
+  if (!editable) {
+    return (
+      <li className="flex items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3">
+        {inner}
+      </li>
+    )
+  }
+  return (
+    <li>
+      <button
+        onClick={() => onEdit(e)}
+        className="flex w-full items-center gap-3.5 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3 text-left transition-colors hover:border-aurora-teal/50"
+      >
+        {inner}
+      </button>
     </li>
   )
 }
 
-function renderByDate(sorted: ExpenseVM[]) {
+function renderByDate(
+  sorted: ExpenseVM[],
+  onEdit: (e: ExpenseVM) => void,
+  canEdit: (e: ExpenseVM) => boolean
+) {
   const groups: { day: string; items: ExpenseVM[] }[] = []
   for (const e of sorted) {
     const day = e.expense_date.slice(0, 10)
@@ -1804,7 +2038,7 @@ function renderByDate(sorted: ExpenseVM[]) {
           </div>
           <ul className="space-y-1.5">
             {g.items.map((e) => (
-              <ExpenseRow key={e.id} e={e} />
+              <ExpenseRow key={e.id} e={e} onEdit={onEdit} editable={canEdit(e)} />
             ))}
           </ul>
         </div>
@@ -1813,7 +2047,11 @@ function renderByDate(sorted: ExpenseVM[]) {
   )
 }
 
-function renderByCategory(sorted: ExpenseVM[]) {
+function renderByCategory(
+  sorted: ExpenseVM[],
+  onEdit: (e: ExpenseVM) => void,
+  canEdit: (e: ExpenseVM) => boolean
+) {
   const byCat = new Map<string, ExpenseVM[]>()
   for (const e of sorted) {
     const arr = byCat.get(e.category)
@@ -1835,7 +2073,7 @@ function renderByCategory(sorted: ExpenseVM[]) {
           </div>
           <ul className="space-y-1.5">
             {items.map((e) => (
-              <ExpenseRow key={e.id} e={e} />
+              <ExpenseRow key={e.id} e={e} onEdit={onEdit} editable={canEdit(e)} />
             ))}
           </ul>
         </div>
@@ -1928,6 +2166,200 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
+// The 7 category values allowed by the expenses.category CHECK constraint.
+const EXPENSE_CATEGORIES = [
+  "food", "stays", "transport", "flights", "activities", "shopping", "other",
+] as const
+
+// Add / edit / delete an expense. Writes directly via the browser client
+// (RLS: insert = any member own-paid; update/delete = payer or trip owner).
+// Equal split is materialized by the DB trigger for split_mode='all_households'.
+function ExpenseForm({
+  expense,
+  tripId,
+  meId,
+  members,
+  canDelete,
+  onClose,
+}: {
+  expense: ExpenseVM | null
+  tripId: string
+  meId: string
+  members: { id: string; name: string }[]
+  canDelete: boolean
+  onClose: () => void
+}) {
+  const router = useRouter()
+  const [supabase] = useState(() => createClient())
+  const [label, setLabel] = useState(expense?.label ?? "")
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : "")
+  const [category, setCategory] = useState<string>(expense?.category ?? "food")
+  const [date, setDate] = useState(
+    (expense?.expense_date ?? new Date().toISOString()).slice(0, 10)
+  )
+  const [payer, setPayer] = useState<string>(expense?.payerUserId ?? meId)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  const amt = Number(amount)
+  const valid = label.trim().length > 0 && Number.isFinite(amt) && amt > 0
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const save = async () => {
+    if (!valid || busy) return
+    setBusy(true)
+    setErr(null)
+    const payload = {
+      label: label.trim(),
+      amount: Math.round(amt * 100) / 100,
+      currency: "USD",
+      category,
+      expense_date: `${date}T12:00:00.000Z`,
+      payer_user_id: payer,
+    }
+    const sb = supabase as any
+    const res = expense
+      ? await sb.from("expenses").update(payload).eq("id", expense.id).select("id")
+      : await sb
+          .from("expenses")
+          .insert({ ...payload, trip_id: tripId, user_id: meId, source: "manual", split_mode: "all_households" })
+          .select("id")
+    if (res.error || !res.data?.length) {
+      setErr("Couldn't save — only who paid or the trip owner can change an expense.")
+      setBusy(false)
+      return
+    }
+    router.refresh()
+    onClose()
+  }
+  const del = async () => {
+    if (!expense || busy) return
+    setBusy(true)
+    setErr(null)
+    const res = await (supabase as any).from("expenses").delete().eq("id", expense.id).select("id")
+    if (res.error || !res.data?.length) {
+      setErr("Couldn't delete — only who paid or the trip owner can remove an expense.")
+      setBusy(false)
+      return
+    }
+    router.refresh()
+    onClose()
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-[26px] border border-aurora-border bg-aurora-ink p-5 [color-scheme:dark] sm:rounded-[26px]"
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-drift-display text-[19px] font-semibold">
+            {expense ? "Edit expense" : "New expense"}
+          </h3>
+          <button onClick={onClose} className="text-[18px] text-drift-muted" aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {EXPENSE_CATEGORIES.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCategory(c)}
+              className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                category === c ? "bg-aurora-teal text-aurora-ink" : "bg-aurora-glass2 text-drift-muted"
+              }`}
+            >
+              {CATEGORY_EMOJI[c]} {humanCat(c)}
+            </button>
+          ))}
+        </div>
+
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="What for? (e.g. Dinner at Septime)"
+          className="mt-3 w-full rounded-xl border border-aurora-border bg-aurora-glass px-3.5 py-2.5 text-[15px] focus:border-aurora-teal focus:outline-none"
+        />
+
+        <div className="mt-2.5 flex gap-2.5">
+          <div className="flex flex-1 items-center rounded-xl border border-aurora-border bg-aurora-glass px-3.5">
+            <span className="text-[15px] text-drift-muted">$</span>
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              inputMode="decimal"
+              placeholder="0.00"
+              className="w-full bg-transparent py-2.5 pl-1 text-[15px] tabular-nums focus:outline-none"
+            />
+          </div>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="rounded-xl border border-aurora-border bg-aurora-glass px-3 py-2.5 text-[14px] focus:border-aurora-teal focus:outline-none"
+          />
+        </div>
+
+        {members.length > 1 && (
+          <div className="mt-3">
+            <label className="text-[11px] font-bold uppercase tracking-[0.08em] text-drift-text-tertiary">
+              Paid by
+            </label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {members.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setPayer(m.id)}
+                  className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition ${
+                    payer === m.id
+                      ? "bg-aurora-glass2 text-drift-ink ring-1 ring-aurora-teal"
+                      : "bg-aurora-glass2 text-drift-muted"
+                  }`}
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[11.5px] text-drift-text-tertiary">
+              Split equally across {members.length} travelers.
+            </p>
+          </div>
+        )}
+
+        {err && <p className="mt-3 text-[12.5px] text-[#E7614B]">{err}</p>}
+
+        <div className="mt-4 flex items-center gap-2">
+          {canDelete && (
+            <button
+              onClick={del}
+              disabled={busy}
+              className="rounded-full px-4 py-2.5 text-[14px] font-semibold text-[#E7614B] disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
+          <div className="flex-1" />
+          <button onClick={onClose} className="rounded-full px-4 py-2.5 text-[14px] font-semibold text-drift-muted">
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={!valid || busy}
+            className="rounded-full bg-aurora-teal px-5 py-2.5 text-[14px] font-semibold text-aurora-ink disabled:opacity-50"
+          >
+            {busy ? "Saving…" : expense ? "Save" : "Add expense"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------- Track: the recorded journey ----------
 
 function TrackTab({ steps }: { steps: TrackStepVM[] }) {
@@ -1956,23 +2388,29 @@ function TrackTab({ steps }: { steps: TrackStepVM[] }) {
 
   return (
     <div className="mt-6 lg:max-w-2xl">
-      <p className="text-[13.5px] text-drift-muted">
+      <div className="flex items-baseline gap-2">
+        <h2 className="font-drift-display text-[24px] font-semibold tracking-tight">Your journey</h2>
+        <span className="text-[13px] tabular-nums text-drift-text-tertiary">
+          {steps.length} moment{steps.length === 1 ? "" : "s"} · {byDay.size} day
+          {byDay.size === 1 ? "" : "s"}
+        </span>
+      </div>
+      <p className="mt-1 text-[12.5px] text-drift-muted">
         Recorded with the Drift tracker on your phone.
       </p>
-      <div className="mt-4 space-y-6">
+      <div className="mt-5 space-y-6">
         {[...byDay.entries()].map(([dateLabel, items]) => (
           <div key={dateLabel}>
-            <h3 className="font-drift-display text-[17px] font-semibold">{dateLabel}</h3>
-            <ul className="mt-2 space-y-1.5">
-              {items.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-aurora-teal/10 text-[15px]">
-                    📍
-                  </span>
-                  <div className="min-w-0 flex-1">
+            <h3 className="font-drift-display text-[16px] font-semibold text-drift-muted">{dateLabel}</h3>
+            <ul className="mt-2.5">
+              {items.map((s, idx) => (
+                <li key={s.id} className="flex gap-3.5">
+                  {/* timeline rail: teal dot + connector to the next moment */}
+                  <div className="flex flex-col items-center">
+                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-aurora-teal ring-4 ring-aurora-teal/15" />
+                    {idx < items.length - 1 && <span className="w-px flex-1 bg-drift-divider" />}
+                  </div>
+                  <div className="min-w-0 flex-1 pb-4">
                     <p className="truncate text-[15px] font-medium">{s.title}</p>
                     {s.subtitle && s.subtitle !== s.title && (
                       <p className="truncate text-[12.5px] text-drift-muted">{s.subtitle}</p>

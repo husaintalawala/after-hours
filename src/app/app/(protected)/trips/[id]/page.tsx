@@ -274,6 +274,12 @@ export default async function TripDetailPage({
   const payerLabel = (uid: string | null): string | null =>
     !uid ? null : uid === meId ? "You" : memberNames.get(uid) ?? null
 
+  // Trip members for the "paid by" picker (solo trip = just you).
+  const members = (memberIds.length ? memberIds : [meId]).filter(Boolean).map((id) => ({
+    id,
+    name: id === meId ? "You" : memberNames.get(id) ?? "Traveler",
+  }))
+
   const expenseVMs: ExpenseVM[] = expenseRows.map((e) => ({
     id: e.id,
     label: e.label,
@@ -283,6 +289,7 @@ export default async function TripDetailPage({
     category: e.category,
     expense_date: e.expense_date,
     payer: payerLabel(e.payer_user_id),
+    payerUserId: e.payer_user_id,
   }))
 
   let ledger: LedgerVM | null = null
@@ -433,6 +440,9 @@ export default async function TripDetailPage({
     <main className="mx-auto w-full max-w-2xl px-5 pb-36 pt-4 lg:max-w-[1400px] lg:px-8 lg:pb-8 lg:pt-6">
       <TripTabs
         tripId={trip.id}
+        meId={meId}
+        members={members}
+        isOwner={meId === trip.user_id}
         tripMeta={{
           title: trip.title || "Untitled trip",
           flag,
