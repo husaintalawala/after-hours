@@ -575,6 +575,7 @@ export default function TripTabs({
             ) : selectedDay === "overview" && dest ? (
               /* -------- Overview = the Guide -------- */
               <DestinationGuide
+                tripId={tripId}
                 label={dest.label}
                 country={dest.country}
                 lat={dest.lat}
@@ -2249,12 +2250,12 @@ function ExpenseForm({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-[26px] border border-aurora-border bg-aurora-ink p-5 [color-scheme:dark] sm:rounded-[26px]"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[26px] border border-aurora-border bg-aurora-ink p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] [color-scheme:dark] sm:rounded-[26px] sm:pb-5"
       >
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-drift-display text-[19px] font-semibold">

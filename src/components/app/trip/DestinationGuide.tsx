@@ -1,8 +1,17 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { resolvePlaceCandidates, placePhotoUrl, type PlaceCandidate } from "@/lib/drift/chat"
+import { resolvePlaceCandidates, placePhotoUrl, askDrift, type PlaceCandidate } from "@/lib/drift/chat"
 import { fetchDestinationFacts, type DestinationFacts } from "@/lib/drift/facts"
+
+// The Overview's sub-tabs, mirroring the iOS destination guide.
+type Sub = "vibe" | "things" | "stay" | "curious"
+const SUBS: [Sub, string][] = [
+  ["vibe", "The vibe"],
+  ["things", "Top things"],
+  ["stay", "Where to stay"],
+  ["curious", "Curious"],
+]
 
 // The destination Overview guide (web slice of DestinationOverviewGuide):
 // glanceable "guide facts" (quick-facts chips + best-time seasonality bar +
@@ -19,12 +28,14 @@ interface Tour {
 }
 
 export default function DestinationGuide({
+  tripId,
   label,
   country,
   lat,
   lng,
   month,
 }: {
+  tripId: string
   label: string
   country: string | null
   lat: number | null
@@ -35,6 +46,7 @@ export default function DestinationGuide({
   const [facts, setFacts] = useState<DestinationFacts | null>(null)
   const [things, setThings] = useState<PlaceCandidate[] | null>(null)
   const [tours, setTours] = useState<Tour[] | null>(null)
+  const [sub, setSub] = useState<Sub>("vibe")
   const loaded = useRef<string | null>(null)
 
   useEffect(() => {
@@ -66,10 +78,27 @@ export default function DestinationGuide({
   }, [label, country, lat, lng])
 
   return (
-    <div className="space-y-7">
-      {/* Guide facts — chips + best-time + budget (fails open to nothing) */}
-      <GuideFacts facts={facts} month={month ?? null} />
+    <div className="space-y-5">
+      {/* Sub-tabs — mirrors the iOS destination guide */}
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {SUBS.map(([k, lab]) => (
+          <button
+            key={k}
+            onClick={() => setSub(k)}
+            className={`shrink-0 rounded-full px-4 py-2 text-[13.5px] font-semibold transition-colors ${
+              sub === k ? "bg-aurora-teal text-aurora-ink" : "bg-aurora-glass2 text-drift-muted"
+            }`}
+          >
+            {lab}
+          </button>
+        ))}
+      </div>
 
+      {sub === "vibe" &&
+        (facts === null ? <GuideSkeleton /> : <GuideFacts facts={facts} month={month ?? null} />)}
+
+      {sub === "things" && (
+        <div className="space-y-7">
       {/* Top things to do — polaroid rail */}
       <section>
         <h3 className="font-drift-display text-[22px] font-semibold">Top things to do</h3>
@@ -157,6 +186,12 @@ export default function DestinationGuide({
           </div>
         )}
       </section>
+        </div>
+      )}
+
+      {sub === "stay" && <StaySection facts={facts} label={label} />}
+
+      {sub === "curious" && <CuriousSection tripId={tripId} label={label} />}
     </div>
   )
 }
@@ -396,6 +431,100 @@ function GuideSkeleton() {
       {[0, 1, 2].map((i) => (
         <div key={i} className="h-[180px] w-[150px] animate-pulse rounded-2xl bg-aurora-glass" />
       ))}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Where to stay — the neighborhood guide (facts.neighborhoods).
+// ---------------------------------------------------------------------------
+
+function StaySection({ facts, label }: { facts: DestinationFacts | null; label: string }) {
+  if (facts === null) return <GuideSkeleton />
+  const hoods = facts.neighborhoods ?? []
+  if (!hoods.length) {
+    return (
+      <p className="text-[14px] text-drift-text-tertiary">
+        No neighborhood guide for {label} yet — ask Drift where to base yourself.
+      </p>
+    )
+  }
+  return (
+    <div className="space-y-2.5">
+      {hoods.map((n) => (
+        <div key={n.name} className="rounded-2xl border border-aurora-border bg-aurora-glass p-4">
+          <p className="text-[15.5px] font-semibold text-aurora-ink">{n.name}</p>
+          <p className="mt-1 text-[13.5px] leading-snug text-drift-muted">{n.character}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Curious — the iOS "is it worth the hype?" AI Q&A, powered by ask-drift-chat.
+// ---------------------------------------------------------------------------
+
+function CuriousSection({ tripId, label }: { tripId: string; label: string }) {
+  const suggestions = [
+    `Is ${label} worth the hype?`,
+    `How many days should we spend in ${label}?`,
+    `When is the best time to visit ${label}?`,
+    `What should we not miss in ${label}?`,
+  ]
+  const [question, setQuestion] = useState<string | null>(null)
+  const [answer, setAnswer] = useState("")
+  const [busy, setBusy] = useState(false)
+
+  const ask = async (q: string) => {
+    if (busy) return
+    setQuestion(q)
+    setAnswer("")
+    setBusy(true)
+    try {
+      await askDrift(
+        { tripId, message: q, conversation: [] },
+        {
+          onDelta: (d) => setAnswer((prev) => prev + d),
+          onPayload: (a) => {
+            if (a.assistant_text) setAnswer(a.assistant_text)
+          },
+        }
+      )
+    } catch {
+      setAnswer("Couldn't reach Drift just now — try again.")
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {suggestions.map((q) => (
+          <button
+            key={q}
+            onClick={() => ask(q)}
+            className={`rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors ${
+              question === q
+                ? "border-aurora-teal bg-aurora-teal/10 text-aurora-ink"
+                : "border-aurora-border bg-aurora-glass text-drift-muted hover:border-aurora-teal/50"
+            }`}
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+      {question && (
+        <div className="mt-4 rounded-2xl border border-aurora-border bg-aurora-glass p-4">
+          <p className="flex items-center gap-2 font-drift-display text-[16px] font-semibold text-aurora-ink">
+            <span className="text-aurora-teal">✦</span> {question}
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-aurora-ink2">
+            {answer || (busy ? "Thinking…" : "")}
+            {busy && answer ? <span className="ml-0.5 animate-pulse">▍</span> : null}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
