@@ -20,8 +20,23 @@ const TEAL_END = "#22B7D4"    // CTA gradient bottom stop
 const TITLE = "#F4F8F9"       // near-white ink
 const SUBTITLE = "rgba(198,208,217,0.9)" // aurora ink2 (#C6D0D9)
 
+// Demo accounts sign in with a password instead of a magic link — the App
+// Review account (Apple's reviewer can't open the emailed code) and the
+// marketing capture account (a recording session never stalls on an inbox).
+// Mirrors the iOS AuthView allow-list. Typing one of these exact emails reveals
+// a password field; every real user stays passwordless (magic-link + OAuth).
+// Passwords are typed here, never stored in the client.
+const PASSWORD_DEMO_EMAILS = [
+  "driftappreview001@gmail.com", // App Review
+  "h.talawala+maya@gmail.com", // marketing / demo capture
+]
+const isDemoEmail = (v: string) =>
+  PASSWORD_DEMO_EMAILS.some((x) => x.toLowerCase() === v.trim().toLowerCase())
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false) // demo-account path
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [resending, setResending] = useState(false)
@@ -89,6 +104,16 @@ export default function LoginPage() {
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || busy) return
+    // Demo accounts use a password, not a magic link: first submit reveals the
+    // field, second submit signs in. Real users never hit this branch.
+    if (isDemoEmail(email)) {
+      if (!showPassword) {
+        setShowPassword(true)
+        setError(null)
+        return
+      }
+      return signInWithPassword()
+    }
     setBusy(true)
     setError(null)
     capture(AnalyticsEvent.LoginAttempt, { method: "magic_link" })
@@ -100,6 +125,28 @@ export default function LoginPage() {
     setBusy(false)
     if (error) setError(error.message)
     else setSent(true)
+  }
+
+  // Demo-account password sign-in (iOS AuthView parity). No password is stored
+  // in the client — the operator types it. Full-page nav on success so the SSR
+  // protected layout picks up the freshly-set session cookie.
+  async function signInWithPassword() {
+    if (!password || busy) return
+    setBusy(true)
+    setError(null)
+    capture(AnalyticsEvent.LoginAttempt, { method: "password" })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+      options: { captchaToken: captchaToken ?? undefined },
+    })
+    resetCaptcha()
+    setBusy(false)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    window.location.assign("/app")
   }
 
   async function resend() {
@@ -183,7 +230,10 @@ export default function LoginPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (showPassword && !isDemoEmail(e.target.value)) setShowPassword(false)
+                }}
                 placeholder="Email address"
                 className="w-full rounded-xl border px-4 py-3.5 text-[16px] outline-none transition-colors placeholder:text-[rgba(250,245,235,0.5)]"
                 style={{
@@ -198,6 +248,31 @@ export default function LoginPage() {
                   (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")
                 }
               />
+
+              {/* Demo accounts only: password field, revealed after the first
+                  Continue. Real users never see this. */}
+              {showPassword && (
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="mt-3 w-full rounded-xl border px-4 py-3.5 text-[16px] outline-none transition-colors placeholder:text-[rgba(198,208,217,0.5)]"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    borderColor: "rgba(255,255,255,0.15)",
+                    color: TITLE,
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.borderColor = "rgba(55,214,196,0.7)")
+                  }
+                  onBlur={(e) =>
+                    (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")
+                  }
+                />
+              )}
 
               {error && (
                 <p className="mt-2 text-[12px]" style={{ color: "rgba(255,99,88,0.9)" }}>
@@ -215,7 +290,13 @@ export default function LoginPage() {
                   background: `linear-gradient(135deg, ${TEAL}, ${TEAL_END})`,
                 }}
               >
-                {busy ? "Sending…" : "Continue"}
+                {showPassword
+                  ? busy
+                    ? "Signing in…"
+                    : "Sign in"
+                  : busy
+                    ? "Sending…"
+                    : "Continue"}
               </button>
             </form>
 
