@@ -126,13 +126,31 @@ function stripMarkdown(text: string): string {
     .replace(/`/g, "")
 }
 
+// The model writes place links with a HUMAN-READABLE query — spaces and commas
+// and all:
+//   [Hallgrímskirkja](places:?q=Hallgrímskirkja, Reykjavík Iceland)
+// CommonMark forbids unescaped spaces in a link destination, so a strict parser
+// (correctly) refuses to see a link there and prints the whole thing literally.
+// The old hand-rolled regex accepted any characters, which is why these worked
+// before. Wrapping the destination in angle brackets is the CommonMark-blessed
+// way to say "spaces are part of this URL", so do that before parsing rather
+// than asking the model to encode them.
+function normalizeLinkDestinations(text: string): string {
+  return text.replace(/\]\(\s*([^)\n]+?)\s*\)/g, (whole, dest: string) => {
+    if (dest.startsWith("<")) return whole // already bracketed
+    if (!/[ \t]/.test(dest)) return whole // no spaces → already valid
+    return `](<${dest.replace(/[<>]/g, "")}>)`
+  })
+}
+
 export function renderRich(text: string): ReactNode {
+  const md = normalizeLinkDestinations(text)
   return (
     <Suspense
       fallback={<p className="whitespace-pre-line leading-[1.6]">{stripMarkdown(text)}</p>}
     >
       <Markdown components={components} urlTransform={urlTransform}>
-        {text}
+        {md}
       </Markdown>
     </Suspense>
   )
