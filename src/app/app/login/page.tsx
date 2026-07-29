@@ -4,21 +4,21 @@ import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 
-// 1:1 web port of the iOS AuthView (Views/AuthView.swift): dark amber-tinted
-// glass card, lowercase "drift" wordmark, email → magic link, coral→gold
-// gradient Continue, "or continue with" + three cream social squares
-// (Google / Apple / X), and the "Check your inbox" state with Open Mail +
-// Resend. The iOS card floats over the onboarding globe — the dark backdrop
-// here is the globe's placeholder until the web globe ships.
+// Login card in the Aurora identity — matches the logged-in app (Deep Midnight
+// ground, teal action accent), NOT the old amber/coral marketing palette. Cool
+// navy backdrop, midnight glass card with a faint teal edge, teal "drift"
+// wordmark, email → magic link, teal-gradient Continue (deep-teal ink), "or
+// continue with" + three cream social squares (Google / Apple / X), and the
+// "Check your inbox" state with Open Mail + Resend.
 //
-// Exact iOS colors: amber #E0563B, amberDark rgb(191,120,10), title cream
-// rgb(250,245,235), subtitle rgb(235,224,209)/.85, input white/8, social
-// squares rgb(245,240,230), glyphs near-black rgb(20,20,20).
+// Aurora tokens: teal #37D6C4, teal-end #22B7D4, teal-ink #04231F (on teal),
+// midnight #08131D / midnight2 #0B1A25 / glass #16222F, ink #F4F8F9, ink2
+// #C6D0D9. Social squares stay cream (brand-neutral for Google/Apple/X).
 
-const AMBER = "#E0563B"
-const AMBER_DARK = "rgb(191,120,10)"
-const TITLE = "rgb(250,245,235)"
-const SUBTITLE = "rgba(235,224,209,0.85)"
+const TEAL = "#37D6C4"        // Aurora action accent (brand)
+const TEAL_END = "#22B7D4"    // CTA gradient bottom stop
+const TITLE = "#F4F8F9"       // near-white ink
+const SUBTITLE = "rgba(198,208,217,0.9)" // aurora ink2 (#C6D0D9)
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -128,7 +128,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-5 py-10 font-drift-body"
       style={{
         background:
-          "radial-gradient(120% 90% at 50% 0%, #1a1410 0%, #0c0a08 55%, #060505 100%)",
+          "radial-gradient(120% 90% at 50% 0%, #0B1A25 0%, #08131D 55%, #050B10 100%)",
       }}
     >
       <link
@@ -140,8 +140,8 @@ export default function LoginPage() {
       <div
         className="w-full max-w-md rounded-[28px] border px-6 pb-8 pt-4 backdrop-blur-xl"
         style={{
-          background: "rgba(24,19,15,0.88)",
-          borderColor: "rgba(224,86,59,0.28)",
+          background: "rgba(16,34,47,0.92)",
+          borderColor: "rgba(55,214,196,0.22)",
           boxShadow: "0 12px 48px rgba(0,0,0,0.55)",
           color: TITLE,
         }}
@@ -169,7 +169,7 @@ export default function LoginPage() {
 
             <p
               className="text-center font-drift-display text-[46px] leading-none"
-              style={{ color: AMBER }}
+              style={{ color: TEAL }}
             >
               drift
             </p>
@@ -192,7 +192,7 @@ export default function LoginPage() {
                   color: TITLE,
                 }}
                 onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = "rgba(224,86,59,0.7)")
+                  (e.currentTarget.style.borderColor = "rgba(55,214,196,0.7)")
                 }
                 onBlur={(e) =>
                   (e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)")
@@ -210,9 +210,9 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="mt-4 h-[52px] w-full rounded-full text-[17px] font-semibold text-white disabled:opacity-60"
+                className="mt-4 h-[52px] w-full rounded-full text-[17px] font-semibold text-aurora-teal-ink disabled:opacity-60"
                 style={{
-                  background: `linear-gradient(135deg, ${AMBER}, ${AMBER_DARK})`,
+                  background: `linear-gradient(135deg, ${TEAL}, ${TEAL_END})`,
                 }}
               >
                 {busy ? "Sending…" : "Continue"}
@@ -277,7 +277,7 @@ function SentState({
       </button>
 
       <div className="mt-2 text-center">
-        <div className="text-[52px]" style={{ color: AMBER }}>
+        <div className="text-[52px]" style={{ color: TEAL }}>
           ✉
         </div>
         <p className="mt-3 font-drift-display text-[24px] font-semibold">
@@ -291,8 +291,8 @@ function SentState({
           href="https://mail.google.com"
           target="_blank"
           rel="noreferrer"
-          className="mt-6 flex h-[52px] w-full items-center justify-center rounded-full text-[17px] font-bold text-white"
-          style={{ background: `linear-gradient(135deg, ${AMBER}, ${AMBER_DARK})` }}
+          className="mt-6 flex h-[52px] w-full items-center justify-center rounded-full text-[17px] font-bold text-aurora-teal-ink"
+          style={{ background: `linear-gradient(135deg, ${TEAL}, ${TEAL_END})` }}
         >
           Open Mail
         </a>
@@ -301,7 +301,7 @@ function SentState({
           onClick={onResend}
           disabled={resending}
           className="mt-4 text-[14px] font-medium disabled:opacity-60"
-          style={{ color: AMBER }}
+          style={{ color: TEAL }}
         >
           {resending ? "Sending…" : "Resend link"}
         </button>

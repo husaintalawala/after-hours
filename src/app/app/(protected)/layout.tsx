@@ -1,16 +1,12 @@
-import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import AppNav from "@/components/app/AppNav"
 import AppRail from "@/components/app/AppRail"
 import PostHogAuthBridge from "@/components/app/PostHogAuthBridge"
 
-// The logged-in app owns its own browser-tab identity (the marketing landing
-// keeps the "Side Quest" title from the root layout).
-export const metadata: Metadata = {
-  title: "Drift",
-  icons: { icon: "/drift-icon.svg" },
-}
+// Browser-tab identity (title + favicon) is inherited from the /app section
+// layout (src/app/app/layout.tsx) so login and the logged-in app match; the
+// marketing/Side Quest root layout keeps its own.
 
 // Auth gate for the whole logged-in app. Runs on the server: no session ->
 // bounce to /app/login (which lives OUTSIDE this route group, so no loop).
