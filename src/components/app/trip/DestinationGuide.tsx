@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { resolvePlaceCandidates, placePhotoUrl, askDrift, type PlaceCandidate } from "@/lib/drift/chat"
 import { fetchDestinationFacts, type DestinationFacts } from "@/lib/drift/facts"
 import { renderRich } from "@/lib/drift/richText"
@@ -221,7 +222,7 @@ export default function DestinationGuide({
 
       <div ref={stayRef} data-sub="stay" className="scroll-mt-24">
         <h3 className="mb-3 font-drift-display text-[22px] font-semibold">Where to stay</h3>
-        <StaySection facts={facts} label={label} />
+        <StaySection facts={facts} label={label} country={country} lat={lat} lng={lng} />
       </div>
 
       <div ref={curiousRef} data-sub="curious" className="scroll-mt-24">
@@ -475,24 +476,67 @@ function GuideSkeleton() {
 // Where to stay — the neighborhood guide (facts.neighborhoods).
 // ---------------------------------------------------------------------------
 
-function StaySection({ facts, label }: { facts: DestinationFacts | null; label: string }) {
+function StaySection({
+  facts,
+  label,
+  country,
+  lat,
+  lng,
+}: {
+  facts: DestinationFacts | null
+  label: string
+  country: string | null
+  lat: number | null
+  lng: number | null
+}) {
+  // Deep-link into Discover → Stays, anchored to this destination, so tapping a
+  // neighborhood (or the CTA) opens every real stay option for the trip's city.
+  const staysHref = (() => {
+    const p = new URLSearchParams({ cat: "stays", label })
+    if (country) p.set("country", country)
+    if (lat != null) p.set("lat", String(lat))
+    if (lng != null) p.set("lng", String(lng))
+    return `/app/discover?${p.toString()}`
+  })()
+  const seeAll = (
+    <Link
+      href={staysHref}
+      className="flex items-center justify-center gap-1.5 rounded-2xl bg-aurora-teal px-4 py-3 text-[14px] font-semibold text-aurora-teal-ink transition-transform active:scale-[0.99]"
+    >
+      See all stays in {label}
+      <span aria-hidden>→</span>
+    </Link>
+  )
   if (facts === null) return <GuideSkeleton />
   const hoods = facts.neighborhoods ?? []
   if (!hoods.length) {
     return (
-      <p className="text-[14px] text-drift-text-tertiary">
-        No neighborhood guide for {label} yet — ask Drift where to base yourself.
-      </p>
+      <div className="space-y-3">
+        <p className="text-[14px] text-drift-text-tertiary">
+          No neighborhood guide for {label} yet — browse stays to find where to base yourself.
+        </p>
+        {seeAll}
+      </div>
     )
   }
   return (
     <div className="space-y-2.5">
       {hoods.map((n) => (
-        <div key={n.name} className="rounded-2xl border border-aurora-border bg-aurora-glass p-4">
-          <p className="text-[15.5px] font-semibold text-aurora-ink">{n.name}</p>
-          <p className="mt-1 text-[13.5px] leading-snug text-drift-muted">{n.character}</p>
-        </div>
+        <Link
+          key={n.name}
+          href={staysHref}
+          className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-4 transition-colors hover:border-aurora-border-strong hover:bg-aurora-glass2"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[15.5px] font-semibold text-aurora-ink">{n.name}</p>
+            <p className="mt-1 text-[13.5px] leading-snug text-drift-muted">{n.character}</p>
+          </div>
+          <span aria-hidden className="shrink-0 text-[18px] leading-none text-drift-text-tertiary">
+            ›
+          </span>
+        </Link>
       ))}
+      {seeAll}
     </div>
   )
 }

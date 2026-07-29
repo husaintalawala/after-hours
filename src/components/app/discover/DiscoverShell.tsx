@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
+import { useSearchParams } from "next/navigation"
 import {
   CATEGORY_META,
   fetchPlaceBlurbs,
@@ -66,8 +67,26 @@ export default function DiscoverShell({
   initialAnchor: DiscoverAnchor | null
   places: DiscoverPlace[]
 }) {
-  const [anchor, setAnchor] = useState<DiscoverAnchor | null>(initialAnchor)
-  const [cat, setCat] = useState<DiscoverCategory>("forYou")
+  // Deep-link params (e.g. from the Guide's "Where to stay" → all stays for this
+  // trip's city): ?cat=stays&label=&country=&lat=&lng= overrides the featured-trip
+  // anchor + default category so the tab opens straight on the intended view.
+  const params = useSearchParams()
+  const paramCat = params.get("cat")
+  const initialCat: DiscoverCategory =
+    paramCat && (CATS as string[]).includes(paramCat)
+      ? (paramCat as DiscoverCategory)
+      : "forYou"
+  const paramAnchor: DiscoverAnchor | null = params.get("label")
+    ? {
+        label: params.get("label")!,
+        country: params.get("country"),
+        lat: params.get("lat") != null ? Number(params.get("lat")) : null,
+        lng: params.get("lng") != null ? Number(params.get("lng")) : null,
+      }
+    : null
+
+  const [anchor, setAnchor] = useState<DiscoverAnchor | null>(paramAnchor ?? initialAnchor)
+  const [cat, setCat] = useState<DiscoverCategory>(initialCat)
   const [results, setResults] = useState<DiscoverResult[]>([])
   const [loading, setLoading] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
