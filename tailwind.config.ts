@@ -5,6 +5,11 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    // src/lib holds rendering components too (lib/drift/richText.tsx). Without
+    // this glob its classes are only generated when they happen to appear
+    // elsewhere in the app — which silently dropped list-disc/list-decimal, so
+    // AI answers rendered bullet lists with no bullets.
+    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {

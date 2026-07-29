@@ -1,162 +1,139 @@
 "use client"
 
-import { type ReactNode } from "react"
+import { Suspense, lazy, type ReactNode } from "react"
+import { type Components } from "react-markdown"
+
+// react-markdown is ~37 kB and only ever renders AFTER an async answer arrives,
+// so it's a lazy chunk rather than weight on every trip page (/app/trips/[id]
+// measured 207 kB → 244 kB when imported statically). React.lazy rather than
+// next/dynamic because the fallback needs the text: while the chunk loads we
+// show the answer with its markers STRIPPED, since a flash of raw "**" is the
+// exact bug this file exists to fix.
+const Markdown = lazy(() => import("react-markdown"))
 
 // ---- Rich text renderer for assistant messages ----
-// The model emits markdown-ish text: **bold**, [label](places:?q=...) place
-// links (plus occasional http links), and block structure — headings (##/###),
-// unordered lists (- / *) and ordered lists (1.). Render bold as <strong>,
-// place links as coral tappable spans (tap → prefill "Tell me about {label}"),
-// http links as real anchors. Consecutive bullet/number lines group into one
-// <ul>/<ol>; other text splits into paragraphs on blank lines.
-// Shared by the trip chat and the destination "Curious" Q&A.
+// The model emits markdown: **bold**, *italic*, headings, ordered/unordered
+// lists, and [label](places:?q=…) place links (plus the occasional http link).
+// Shared by the trip chat, the Chats tab, and the destination "Curious" Q&A.
+//
+// This used to be a hand-rolled parser, and it had a bug worth remembering: it
+// tokenized LINKS first and only then looked for **bold** inside each remaining
+// text fragment. So a bold span that CONTAINED a link —
+//   "**July 2 is a great time to visit [Reykjavík](places:?q=…): …**"
+// which is how the model actually writes these answers — got split by the link
+// into two fragments, each holding one orphaned "**" that matched nothing and
+// rendered as literal asterisks. Nested inline markup is exactly what a real
+// parser gets right for free, so the parsing is react-markdown's job now and
+// this file only owns presentation.
+//
+// Raw HTML is NOT enabled (no rehype-raw), so model output can't inject markup —
+// react-markdown escapes it, which is the sanitisation story here.
 
-export function renderRich(text: string): ReactNode {
-  const lines = text.replace(/\r/g, "").split("\n")
-  const blocks: ReactNode[] = []
-  let para: string[] = []
-  let list: { ordered: boolean; items: string[] } | null = null
-  let key = 0
-  const gap = () => (blocks.length ? "mt-2.5" : "")
-
-  const flushPara = () => {
-    if (!para.length) return
-    blocks.push(
-      <p key={`p${key++}`} className={gap() || undefined}>
-        {renderInline(para.join("\n"))}
-      </p>
-    )
-    para = []
-  }
-  const flushList = () => {
-    if (!list) return
-    const { ordered, items } = list
-    const rows = items.map((it, i) => (
-      <li key={i} className="pl-1 leading-[1.55] marker:text-drift-text-tertiary">
-        {renderInline(it)}
-      </li>
-    ))
-    const cls = `${gap()} space-y-1 pl-5 ${ordered ? "list-decimal" : "list-disc"}`
-    blocks.push(
-      ordered ? (
-        <ol key={`l${key++}`} className={cls}>
-          {rows}
-        </ol>
-      ) : (
-        <ul key={`l${key++}`} className={cls}>
-          {rows}
-        </ul>
-      )
-    )
-    list = null
-  }
-
-  for (const raw of lines) {
-    const trimmed = raw.trim()
-    if (!trimmed) {
-      flushPara()
-      flushList()
-      continue
-    }
-    // Heading: #, ##, ### … → a small bold heading.
-    const h = /^#{1,6}\s+(.*)$/.exec(trimmed)
-    if (h) {
-      flushPara()
-      flushList()
-      blocks.push(
-        <p
-          key={`h${key++}`}
-          className={`${blocks.length ? "mt-3.5" : ""} text-[14px] font-semibold text-drift-ink`}
-        >
-          {renderInline(h[1])}
-        </p>
-      )
-      continue
-    }
-    // Ordered list item: "1. " / "2) ".
-    const ol = /^\d+[.)]\s+(.*)$/.exec(trimmed)
-    if (ol) {
-      flushPara()
-      if (!list || !list.ordered) {
-        flushList()
-        list = { ordered: true, items: [] }
-      }
-      list.items.push(ol[1])
-      continue
-    }
-    // Unordered list item: "- " / "* " / "• ".
-    const ul = /^[-*•]\s+(.*)$/.exec(trimmed)
-    if (ul) {
-      flushPara()
-      if (!list || list.ordered) {
-        flushList()
-        list = { ordered: false, items: [] }
-      }
-      list.items.push(ul[1])
-      continue
-    }
-    // Plain paragraph line (a stray non-list line closes any open list).
-    flushList()
-    para.push(raw)
-  }
-  flushPara()
-  flushList()
-  return blocks
+// Keep `places:` links alive. react-markdown's default urlTransform strips any
+// scheme outside its safe list, which would silently kill every place link.
+function urlTransform(url: string): string {
+  return /^(https?:|mailto:|places:|#|\/|\.)/i.test(url) ? url : ""
 }
 
-function renderInline(text: string): ReactNode[] {
-  const out: ReactNode[] = []
-  // Tokenize links first, then bold within the remaining text.
-  const linkRe = /\[([^\]]+)\]\(([^)]+)\)/g
-  let last = 0
-  let m: RegExpExecArray | null
-  let key = 0
-  const pushText = (t: string) => {
-    // Bold segments within plain text.
-    const parts = t.split(/\*\*([^*]+)\*\*/g)
-    parts.forEach((part, i) => {
-      if (!part) return
-      if (i % 2 === 1) out.push(<strong key={`b${key++}`}>{part}</strong>)
-      else
-        part.split("\n").forEach((line, li, arr) => {
-          out.push(<span key={`t${key++}`}>{line}</span>)
-          if (li < arr.length - 1) out.push(<br key={`br${key++}`} />)
-        })
-    })
-  }
-  while ((m = linkRe.exec(text))) {
-    pushText(text.slice(last, m.index))
-    const [, label, href] = m
-    if (href.startsWith("http")) {
-      out.push(
+// Typography: quiet and well-set rather than a markdown dump. Bold is semibold
+// (600) — enough to lift a phrase without the clunky black of <strong>'s
+// default — and paragraphs/lists share one rhythm so an over-bolded answer
+// still reads calmly. Sizing/colour are inherited from the host card.
+const components: Components = {
+  p: ({ children }) => <p className="mt-2.5 leading-[1.6] first:mt-0">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  ul: ({ children }) => (
+    <ul className="mt-2.5 list-disc space-y-1 pl-5 first:mt-0">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mt-2.5 list-decimal space-y-1 pl-5 first:mt-0">{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="pl-1 leading-[1.55] marker:text-drift-text-tertiary">{children}</li>
+  ),
+  h1: ({ children }) => <Heading>{children}</Heading>,
+  h2: ({ children }) => <Heading>{children}</Heading>,
+  h3: ({ children }) => <Heading>{children}</Heading>,
+  h4: ({ children }) => <Heading>{children}</Heading>,
+  h5: ({ children }) => <Heading>{children}</Heading>,
+  h6: ({ children }) => <Heading>{children}</Heading>,
+  hr: () => <hr className="my-3 border-drift-divider" />,
+  blockquote: ({ children }) => (
+    <blockquote className="mt-2.5 border-l-2 border-drift-divider pl-3 text-drift-muted first:mt-0">
+      {children}
+    </blockquote>
+  ),
+  code: ({ children }) => (
+    <code className="rounded bg-black/10 px-1 py-0.5 text-[0.92em]">{children}</code>
+  ),
+  a: ({ href, children }) => {
+    // Real links open out; places:?q=… stays in-app as a tappable coral chip
+    // that asks Drift about it (unchanged behaviour — the chat listens for
+    // "drift:ask-about").
+    if (href && /^https?:/i.test(href)) {
+      return (
         <a
-          key={`l${key++}`}
           href={href}
           target="_blank"
           rel="noreferrer"
           className="font-semibold text-drift-coral underline decoration-drift-coral/50 underline-offset-2"
         >
-          {label}
+          {children}
         </a>
       )
-    } else {
-      // places:?q=… (or any app link): coral tappable → ask Drift about it.
-      out.push(
-        <button
-          key={`p${key++}`}
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent("drift:ask-about", { detail: `Tell me about ${label}` })
-            )
-          }
-          className="font-semibold text-drift-coral [border-bottom:1.5px_dotted_rgba(224,86,59,0.5)]"
-        >
-          {label}
-        </button>
-      )
     }
-    last = m.index + m[0].length
-  }
-  pushText(text.slice(last))
-  return out
+    const label = typeof children === "string" ? children : plainText(children)
+    return (
+      <button
+        onClick={() =>
+          window.dispatchEvent(
+            new CustomEvent("drift:ask-about", { detail: `Tell me about ${label}` })
+          )
+        }
+        className="font-semibold text-drift-coral [border-bottom:1.5px_dotted_rgba(224,86,59,0.5)]"
+      >
+        {children}
+      </button>
+    )
+  },
+}
+
+function Heading({ children }: { children?: ReactNode }) {
+  return (
+    <p className="mt-3.5 text-[14px] font-semibold text-drift-ink first:mt-0">{children}</p>
+  )
+}
+
+// A link label is usually a plain string, but emphasis inside it ([**X**](…))
+// arrives as elements — flatten for the "Tell me about {label}" prompt.
+function plainText(node: ReactNode): string {
+  if (node == null || typeof node === "boolean") return ""
+  if (typeof node === "string" || typeof node === "number") return String(node)
+  if (Array.isArray(node)) return node.map(plainText).join("")
+  const props = (node as { props?: { children?: ReactNode } }).props
+  return props?.children ? plainText(props.children) : ""
+}
+
+// Readable text for the pre-load moment: drop the syntax rather than print it.
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // [label](url) → label
+    .replace(/(\*\*|__)(.*?)\1/g, "$2") // bold
+    .replace(/(^|[^*])\*(?!\s)([^*]+?)\*/g, "$1$2") // italic (not list bullets)
+    .replace(/^#{1,6}\s+/gm, "") // headings
+    .replace(/^\s*[-*•]\s+/gm, "• ") // bullets
+    .replace(/`/g, "")
+}
+
+export function renderRich(text: string): ReactNode {
+  return (
+    <Suspense
+      fallback={<p className="whitespace-pre-line leading-[1.6]">{stripMarkdown(text)}</p>}
+    >
+      <Markdown components={components} urlTransform={urlTransform}>
+        {text}
+      </Markdown>
+    </Suspense>
+  )
 }
