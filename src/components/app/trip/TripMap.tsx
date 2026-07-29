@@ -14,9 +14,11 @@ export type TripMapPoint = { id: string; lat: number; lng: number; label: string
 export default function TripMap({
   points,
   className,
+  onExpand,
 }: {
   points: TripMapPoint[]
   className?: string
+  onExpand?: () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
@@ -93,9 +95,23 @@ export default function TripMap({
   }, [points.map((p) => `${p.id}:${p.lat},${p.lng}`).join("|")])
 
   return (
-    <div
-      ref={containerRef}
-      className={className ?? "h-[210px] w-full overflow-hidden rounded-card border border-aurora-border"}
-    />
+    <div className="relative">
+      <div
+        ref={containerRef}
+        className={className ?? "h-[210px] w-full overflow-hidden rounded-card border border-aurora-border"}
+      />
+      {onExpand && (
+        <button
+          onClick={onExpand}
+          aria-label="Open full map"
+          className="absolute right-2.5 top-2.5 z-[1] flex items-center gap-1.5 rounded-full border border-aurora-border bg-aurora-midnight/80 px-3 py-1.5 text-[12px] font-semibold text-aurora-ink backdrop-blur-md transition-colors hover:bg-aurora-midnight"
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14v6h6M20 10V4h-6M14 10l6-6M10 14l-6 6" />
+          </svg>
+          Expand
+        </button>
+      )}
+    </div>
   )
 }

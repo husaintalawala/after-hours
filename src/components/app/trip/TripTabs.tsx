@@ -24,6 +24,7 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 // load the map (client-only) so it downloads only when a map actually renders —
 // the same pattern Discover/Home already use to stay small.
 const TripMap = dynamic(() => import("./TripMap"), { ssr: false })
+const TripMapView = dynamic(() => import("./TripMapView"), { ssr: false })
 // The destination Guide (top sights/tours) renders only when a destination's
 // Overview is opened — not on the trip page's first paint. Split it out so its
 // ~400 lines download on demand instead of bloating the trip First Load.
@@ -181,6 +182,8 @@ export default function TripTabs({
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
   const [selected, setSelected] = useState<TimelineItem | null>(null)
+  // Full-screen Map: the day number it opened on, or null when closed.
+  const [mapOpenDay, setMapOpenDay] = useState<number | null>(null)
   // Background-scan wiring: bumping scanNonce wakes the ScanStatus chip after a
   // scan is kicked off; bumping reviewSignal opens the bookings sheet to review.
   const [scanNonce, setScanNonce] = useState(0)
@@ -374,6 +377,16 @@ export default function TripTabs({
 
   return (
     <div className="lg:grid lg:grid-cols-[228px_minmax(0,1fr)] lg:items-start lg:gap-6">
+      {dest && (
+        <TripMapView
+          open={mapOpenDay != null}
+          initialDay={mapOpenDay ?? 1}
+          onClose={() => setMapOpenDay(null)}
+          tripId={tripId}
+          dest={dest}
+          stepDetails={stepDetails}
+        />
+      )}
       {desktopSidebar}
       <div className="min-w-0">
         {/* ---------- Hero: destination (drill-in) or trip ---------- */}
@@ -597,6 +610,7 @@ export default function TripTabs({
                     bookingDetails={bookingDetails}
                     stepDetails={stepDetails}
                     onSelect={setSelected}
+                    onExpandMap={() => setMapOpenDay(day.dayNumber)}
                   />
                 ))
             )}
@@ -845,6 +859,7 @@ function DaySection({
   stepDetails,
   bookingDetails,
   onSelect,
+  onExpandMap,
 }: {
   day: DestinationDay
   tripId: string
@@ -853,6 +868,7 @@ function DaySection({
   stepDetails: Record<string, StepDetailVM>
   bookingDetails: Record<string, BookingDetailVM>
   onSelect: (item: TimelineItem) => void
+  onExpandMap?: () => void
 }) {
   const router = useRouter()
 
@@ -939,7 +955,7 @@ function DaySection({
 
       {mapPoints.length > 0 && (
         <div className="mb-4">
-          <TripMap points={mapPoints} />
+          <TripMap points={mapPoints} onExpand={onExpandMap} />
         </div>
       )}
 
