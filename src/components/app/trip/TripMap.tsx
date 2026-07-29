@@ -4,9 +4,10 @@ import { useEffect, useRef } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 
-// Interactive day/trip map (web port of the iOS DayMap peek) — numbered teal
-// pins for the day's stops in order, joined by a dashed route line, on the dark
-// Aurora Mapbox style. Non-blocking: renders nothing without a token or points.
+// Interactive day/trip map (web port of the iOS DayMap peek) — glowing teal
+// pins for the day's stops in order, joined by a glowing teal→indigo route line,
+// on the legible navigation-night basemap. Non-blocking: renders nothing without
+// a token or points. Kept in sync with the iOS DayPeekMap styling.
 
 export type TripMapPoint = { id: string; lat: number; lng: number; label: string; n: number }
 
@@ -26,7 +27,7 @@ export default function TripMap({
     mapboxgl.accessToken = token
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: "mapbox://styles/mapbox/navigation-night-v1",
       center: [points[0].lng, points[0].lat],
       zoom: 12,
       attributionControl: false,
@@ -37,7 +38,9 @@ export default function TripMap({
       const logo = containerRef.current?.querySelector(".mapboxgl-ctrl-logo") as HTMLElement | null
       if (logo) logo.style.display = "none"
 
-      // Dashed teal route line through the ordered stops.
+      // The day's route through the ordered stops as a glowing line — the
+      // spotlight upgrade over scattered dots. A wide, blurred teal halo sits
+      // under a crisp indigo core (Aurora two-tone), mirroring the iOS day map.
       if (points.length > 1) {
         map.addSource("route", {
           type: "geojson",
@@ -48,10 +51,18 @@ export default function TripMap({
           },
         })
         map.addLayer({
+          id: "route-glow",
+          type: "line",
+          source: "route",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#37D6C4", "line-width": 9, "line-blur": 5, "line-opacity": 0.4 },
+        })
+        map.addLayer({
           id: "route",
           type: "line",
           source: "route",
-          paint: { "line-color": "#37D6C4", "line-width": 2.5, "line-opacity": 0.55, "line-dasharray": [1, 1.6] },
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#6B5CFF", "line-width": 3.5, "line-opacity": 0.95 },
         })
       }
 
@@ -62,7 +73,7 @@ export default function TripMap({
         el.style.cssText =
           "display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;" +
           "background:#37D6C4;color:#04231F;font-weight:700;font-size:12px;border:2px solid #fff;" +
-          "box-shadow:0 1px 6px rgba(0,0,0,.4);cursor:pointer"
+          "box-shadow:0 0 0 4px rgba(55,214,196,.18),0 0 12px 2px rgba(55,214,196,.55),0 1px 6px rgba(0,0,0,.45);cursor:pointer"
         new mapboxgl.Marker({ element: el })
           .setLngLat([p.lng, p.lat])
           .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setText(p.label))
