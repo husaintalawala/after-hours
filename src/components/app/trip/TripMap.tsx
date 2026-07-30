@@ -29,7 +29,7 @@ export default function TripMap({
     mapboxgl.accessToken = token
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/navigation-night-v1",
+      style: "mapbox://styles/mapbox/dark-v11",
       center: [points[0].lng, points[0].lat],
       zoom: 12,
       attributionControl: false,

@@ -192,7 +192,9 @@ export default function TripMapView({
     const first = visible[0] ?? (dest.lat != null && dest.lng != null ? { lng: dest.lng, lat: dest.lat } : null)
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/navigation-night-v1",
+      // dark-v11 is the style proven to render in this mapbox-gl version (it's
+      // what DiscoverMap uses); navigation-night-v1 was coming up blank.
+      style: "mapbox://styles/mapbox/dark-v11",
       center: first ? [first.lng, first.lat] : [2.1734, 41.3851],
       zoom: 12,
       attributionControl: false,
@@ -277,7 +279,23 @@ export default function TripMapView({
       markersRef.current.push(new mapboxgl.Marker({ element: el }).setLngLat([c.longitude, c.latitude]).addTo(map))
       bounds.extend([c.longitude, c.latitude])
     }
-    if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: { top: 130, right: 60, bottom: 190, left: 340 }, maxZoom: 15, duration: 500 })
+    if (!bounds.isEmpty()) {
+      const cw = map.getContainer().clientWidth || 800
+      const ch = map.getContainer().clientHeight || 600
+      // Cap padding to a fraction of the canvas so fitBounds can always fit
+      // (avoids the "cannot fit within canvas" no-op that left the map unposed).
+      const pad = {
+        top: Math.min(120, ch * 0.18),
+        bottom: Math.min(150, ch * 0.22),
+        left: Math.min(330, cw * 0.34),
+        right: Math.min(60, cw * 0.1),
+      }
+      if (visible.length + results.length === 1) {
+        map.easeTo({ center: bounds.getCenter(), zoom: 14, duration: 500 })
+      } else {
+        map.fitBounds(bounds, { padding: pad, maxZoom: 15, duration: 500 })
+      }
+    }
   }
 
   // ---- Search (Phase 2) ----
@@ -344,7 +362,7 @@ export default function TripMapView({
 
   return (
     <div className="fixed inset-0 z-[100] bg-aurora-midnight font-drift-body text-aurora-ink">
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="h-full w-full" />
       <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(5,11,16,.55),rgba(5,11,16,0) 20%),linear-gradient(90deg,rgba(5,11,16,.5),rgba(5,11,16,0) 32%)" }} />
 
       {/* Top bar */}
