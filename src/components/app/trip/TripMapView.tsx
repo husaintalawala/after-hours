@@ -115,7 +115,6 @@ export default function TripMapView({
   const [mode, setMode] = useState<Mode>("walking")
   const [dir, setDir] = useState<Dir | null>(null)
   const [dirBusy, setDirBusy] = useState(false)
-  const [mapErr, setMapErr] = useState<string | null>(null)
   // Optimistic reorder per day (dayNumber → ordered point ids). Cleared when the
   // server order changes (after router.refresh), mirroring DaySection.
   const [orderOverride, setOrderOverride] = useState<Record<number, string[]>>({})
@@ -200,19 +199,9 @@ export default function TripMapView({
       attributionControl: false,
     })
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right")
-    setMapErr(null)
-    map.on("error", (e) => {
-      const m = e.error?.message ?? "map error"
-      console.warn("[TripMapView] map error:", m)
-      setMapErr(m)
-    })
-    // If the style never finishes loading, surface it on-screen (diagnostic).
-    const loadTimer = window.setTimeout(() => {
-      if (!styleReadyRef.current) setMapErr("Map style didn't load (6s timeout)")
-    }, 6000)
+    map.on("error", (e) => console.warn("[TripMapView] map error:", e.error?.message ?? e))
     map.on("load", () => {
       styleReadyRef.current = true
-      window.clearTimeout(loadTimer)
       // The map is created inside a fixed overlay that may not have finished
       // layout yet — resize so the GL canvas matches the full container.
       map.resize()
@@ -227,7 +216,7 @@ export default function TripMapView({
     const ro = new ResizeObserver(() => map.resize())
     if (containerRef.current) ro.observe(containerRef.current)
     mapRef.current = map
-    return () => { window.clearTimeout(loadTimer); ro.disconnect(); map.remove(); mapRef.current = null; styleReadyRef.current = false; markersRef.current = [] }
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; styleReadyRef.current = false; markersRef.current = [] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -473,7 +462,6 @@ export default function TripMapView({
       )}
 
       {toast && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-aurora-teal px-4 py-2 text-[13px] font-semibold text-aurora-teal-ink shadow-lg">{toast}</div>}
-      {mapErr && <div className="absolute bottom-4 left-3 max-w-[calc(100%-24px)] rounded-lg bg-red-500/90 px-3 py-2 text-[12px] font-medium text-white">Map: {mapErr}</div>}
     </div>
   )
 }
