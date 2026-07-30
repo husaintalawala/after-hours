@@ -197,14 +197,24 @@ export default function TripMapView({
       attributionControl: false,
     })
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right")
+    map.on("error", (e) => console.warn("[TripMapView] map error:", e.error?.message ?? e))
     map.on("load", () => {
       styleReadyRef.current = true
+      // The map is created inside a fixed overlay that may not have finished
+      // layout yet — resize so the GL canvas matches the full container.
+      map.resize()
       const logo = containerRef.current?.querySelector(".mapboxgl-ctrl-logo") as HTMLElement | null
       if (logo) logo.style.display = "none"
       draw()
     })
+    // Belt-and-suspenders: resize again once the overlay has painted.
+    requestAnimationFrame(() => map.resize())
+    // Keep the GL canvas matched to the container as the overlay settles/animates
+    // (a fixed overlay can report a stale height at creation time).
+    const ro = new ResizeObserver(() => map.resize())
+    if (containerRef.current) ro.observe(containerRef.current)
     mapRef.current = map
-    return () => { map.remove(); mapRef.current = null; styleReadyRef.current = false; markersRef.current = [] }
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; styleReadyRef.current = false; markersRef.current = [] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
