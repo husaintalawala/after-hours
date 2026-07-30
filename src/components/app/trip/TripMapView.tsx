@@ -6,7 +6,7 @@ import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import { createClient } from "@/lib/supabase/client"
 import { resolvePlaceCandidates, placePhotoUrl, type PlaceCandidate } from "@/lib/drift/chat"
-import { applyCreateStep, type CreateStepOp } from "@/lib/drift/quickOp"
+import { applyCreateStep, applyRemoveStep, type CreateStepOp } from "@/lib/drift/quickOp"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import type { DestinationVM, StepDetailVM } from "./TripTabs"
 
@@ -20,7 +20,7 @@ import type { DestinationVM, StepDetailVM } from "./TripTabs"
 //    stops — the route + ETAs recompute live.
 // Aurora dark, single-theme by design (a map surface).
 
-type MapPoint = { id: string; stepId: string | null; lat: number; lng: number; label: string; n: number; time: string | null }
+type MapPoint = { id: string; stepId: string | null; lat: number; lng: number; label: string; n: number; time: string | null; timeMin: number | null }
 type MapDay = { dayNumber: number; date: string; label: string; points: MapPoint[] }
 type Selected = { kind: "stop"; point: MapPoint } | { kind: "search"; cand: PlaceCandidate } | null
 type Mode = "walking" | "transit" | "driving"
@@ -118,6 +118,8 @@ export default function TripMapView({
   // Optimistic reorder per day (dayNumber → ordered point ids). Cleared when the
   // server order changes (after router.refresh), mirroring DaySection.
   const [orderOverride, setOrderOverride] = useState<Record<number, string[]>>({})
+  // Optimistically-removed point ids; cleared once the server order changes.
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
@@ -131,7 +133,7 @@ export default function TripMapView({
           const lat = s?.lat ?? it.latitude
           const lng = s?.lng ?? it.longitude
           if (lat != null && lng != null) {
-            points.push({ id: it.id, stepId: it.linkedStepId, lat, lng, label: it.title, n: points.length + 1, time: fmtTime(it.startTimeMinutes) })
+            points.push({ id: it.id, stepId: it.linkedStepId, lat, lng, label: it.title, n: points.length + 1, time: fmtTime(it.startTimeMinutes), timeMin: it.startTimeMinutes })
           }
         })
         return { dayNumber: d.dayNumber, date: d.date, label: fmtDay(d.date), points }
@@ -139,16 +141,17 @@ export default function TripMapView({
     [dest, stepDetails]
   )
   const serverSig = useMemo(() => serverDays.map((d) => `${d.dayNumber}:${d.points.map((p) => p.id).join(",")}`).join("|"), [serverDays])
-  useEffect(() => setOrderOverride({}), [serverSig])
+  useEffect(() => { setOrderOverride({}); setRemovedIds(new Set()) }, [serverSig])
 
-  // Apply any optimistic reorder, then renumber.
+  // Apply optimistic remove + reorder, then renumber.
   const orderedFor = useCallback(
     (d: MapDay): MapPoint[] => {
       const ov = orderOverride[d.dayNumber]
-      const src = ov ? [...d.points].sort((a, b) => ov.indexOf(a.id) - ov.indexOf(b.id)) : d.points
+      const kept = d.points.filter((p) => !removedIds.has(p.id))
+      const src = ov ? [...kept].sort((a, b) => ov.indexOf(a.id) - ov.indexOf(b.id)) : kept
       return src.map((p, i) => ({ ...p, n: i + 1 }))
     },
-    [orderOverride]
+    [orderOverride, removedIds]
   )
 
   const days = useMemo(() => serverDays.map((d) => ({ ...d, points: orderedFor(d) })), [serverDays, orderedFor])
@@ -318,6 +321,20 @@ export default function TripMapView({
     }
   }
 
+  // ---- Delete a stop (inline, per row) ----
+  async function deleteStop(p: MapPoint) {
+    if (!p.stepId) return
+    setRemovedIds((prev) => new Set(prev).add(p.id))   // optimistic
+    if (selected?.kind === "stop" && selected.point.id === p.id) setSelected(null)
+    try {
+      await applyRemoveStep(tripId, p.stepId)
+      router.refresh()
+    } catch {
+      setRemovedIds((prev) => { const n = new Set(prev); n.delete(p.id); return n })
+      setToast("Couldn't remove — try again.")
+    }
+  }
+
   // ---- Drag reorder (Phase 3) ----
   const dragId = useRef<string | null>(null)
   function reorder(fromId: string, toId: string) {
@@ -340,6 +357,10 @@ export default function TripMapView({
 
   if (!open) return null
 
+  const timesOutOfOrder = (() => {
+    const mins = (targetDay?.points ?? []).map((p) => p.timeMin).filter((m): m is number => m != null)
+    return mins.some((m, i) => i > 0 && m < mins[i - 1])
+  })()
   const activeMode = MODES.find((m) => m.id === mode)!
   const totalLabel = mode === "transit"
     ? "Transit via Google Maps"
@@ -386,6 +407,12 @@ export default function TripMapView({
       {activeDay !== "all" && targetDay && (
         <aside className="absolute left-3 top-[110px] hidden w-[300px] overflow-auto rounded-2xl border border-aurora-border bg-aurora-midnight/70 p-3.5 backdrop-blur-xl lg:block" style={{ maxHeight: "calc(100% - 130px)" }}>
           <h3 className="mb-2.5 px-1 font-drift-display text-[17px]">Day {targetDay.dayNumber} <span className="text-[12px] font-normal text-aurora-ink3">· {targetDay.label}</span></h3>
+          {timesOutOfOrder && (
+            <div className="mb-2.5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ color: "#E7A24B", background: "rgba(231,162,75,0.15)" }}>
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+              Times out of order
+            </div>
+          )}
           <ModeToggle mode={mode} setMode={setMode} />
           <p className="mb-2 mt-2 px-1 text-[12px] text-aurora-ink2">
             {activeMode.label}: <span className="font-semibold text-aurora-ink">{totalLabel}</span>
@@ -405,14 +432,25 @@ export default function TripMapView({
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => { if (dragId.current) reorder(dragId.current, p.id); dragId.current = null }}
                     onClick={() => { setSelected({ kind: "stop", point: p }); mapRef.current?.flyTo({ center: [p.lng, p.lat], zoom: 15, duration: 500 }) }}
-                    className={`flex cursor-grab items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/[0.05] active:cursor-grabbing ${selected?.kind === "stop" && selected.point.id === p.id ? "bg-aurora-teal/10 ring-1 ring-aurora-teal/40" : ""}`}
+                    className={`group flex cursor-grab items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/[0.05] active:cursor-grabbing ${selected?.kind === "stop" && selected.point.id === p.id ? "bg-aurora-teal/10 ring-1 ring-aurora-teal/40" : ""}`}
                   >
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-aurora-teal text-[12px] font-bold text-aurora-teal-ink">{p.n}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[14px] font-semibold text-aurora-ink">{p.label}</span>
                       {p.time && <span className="block text-[11.5px] text-aurora-ink3">{p.time}</span>}
                     </span>
-                    <span className="shrink-0 text-aurora-ink3" aria-hidden>⠿</span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      {p.stepId && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); void deleteStop(p) }}
+                          aria-label={`Remove ${p.label}`}
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-aurora-ink3 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-300 group-hover:opacity-100"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+                        </button>
+                      )}
+                      <span className="text-aurora-ink3" aria-hidden>⠿</span>
+                    </span>
                   </div>
                   {i < targetDay.points.length - 1 && (
                     <div className="ml-[22px] flex items-center gap-2 border-l-2 border-dashed border-white/15 py-1 pl-3.5 text-[11px] text-aurora-ink3">
