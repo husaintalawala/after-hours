@@ -14,12 +14,10 @@ export type TripMapPoint = { id: string; lat: number; lng: number; label: string
 export default function TripMap({
   points,
   className,
-  wrapperClassName,
   onExpand,
 }: {
   points: TripMapPoint[]
   className?: string
-  wrapperClassName?: string
   onExpand?: () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -97,7 +95,7 @@ export default function TripMap({
   }, [points.map((p) => `${p.id}:${p.lat},${p.lng}`).join("|")])
 
   return (
-    <div className={wrapperClassName ?? "relative"}>
+    <div className="relative">
       <div
         ref={containerRef}
         className={className ?? "h-[210px] w-full overflow-hidden rounded-card border border-aurora-border"}
