@@ -243,6 +243,23 @@ export default function TripTabs({
   const dest = destinations.find((d) => d.id === selectedDestId) ?? null
   const inDest = tab === "plan" && dest != null
 
+  // P5 (map-anchored day view): the selected day's mapped stops. When a specific
+  // day is picked, the destination hero shows this day's route map instead of the
+  // photo — parity with the iOS PlanDayMap base. Empty on Overview / no coords.
+  const heroDayPoints: TripMapPoint[] = (() => {
+    if (selectedDay === "overview" || !dest) return []
+    const dayObj = dest.days.find((d) => d.dayNumber === selectedDay)
+    if (!dayObj) return []
+    const pts: TripMapPoint[] = []
+    dayObj.items.forEach((it) => {
+      const s = it.linkedStepId ? stepDetails[it.linkedStepId] : null
+      if (s?.lat != null && s?.lng != null) {
+        pts.push({ id: it.id, lat: s.lat, lng: s.lng, label: it.title, n: pts.length + 1 })
+      }
+    })
+    return pts
+  })()
+
   const selStep = selected?.linkedStepId ? stepDetails[selected.linkedStepId] : null
   const selBooking = selected && !selected.linkedStepId ? bookingDetails[selected.id] : null
   const inspector =
@@ -392,7 +409,11 @@ export default function TripTabs({
         {/* ---------- Hero: destination (drill-in) or trip ---------- */}
       {inDest && dest ? (
         <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
-          {heroFor(dest) ? (
+          {selectedDay !== "overview" && heroDayPoints.length > 0 ? (
+            // Map-anchored day view: this day's route map is the hero (parity
+            // with the iOS PlanDayMap base). Chrome below stays overlaid on top.
+            <TripMap points={heroDayPoints} wrapperClassName="absolute inset-0" className="h-full w-full" />
+          ) : heroFor(dest) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={heroFor(dest)!} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
@@ -404,12 +425,26 @@ export default function TripTabs({
           />
           <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
             <div className="flex items-start justify-between gap-3">
-              <button
-                onClick={() => setSelectedDestId(null)}
-                className="rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white backdrop-blur-xl"
-              >
-                ← Your stops
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedDestId(null)}
+                  className="rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-[13px] font-semibold text-white backdrop-blur-xl"
+                >
+                  ← Your stops
+                </button>
+                {selectedDay !== "overview" && heroDayPoints.length > 0 && (
+                  <button
+                    onClick={() => setMapOpenDay(selectedDay as number)}
+                    aria-label="Open full map"
+                    className="flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-[13px] font-semibold text-white backdrop-blur-xl"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 14v6h6M20 10V4h-6M14 10l6-6M10 14l-6 6" />
+                    </svg>
+                    Map
+                  </button>
+                )}
+              </div>
               {segmented(true)}
             </div>
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -894,15 +929,6 @@ function DaySection({
       }`
     : null
 
-  // Day map: the day's stops that carry coordinates, numbered in itinerary order.
-  const mapPoints: TripMapPoint[] = []
-  items.forEach((it) => {
-    const s = it.linkedStepId ? stepDetails[it.linkedStepId] : null
-    if (s?.lat != null && s?.lng != null) {
-      mapPoints.push({ id: it.id, lat: s.lat, lng: s.lng, label: it.title, n: mapPoints.length + 1 })
-    }
-  })
-
   // Persist the new order: rewrite display_order (spaced by 10) for every
   // step-backed item in visual order. Bookings carry no step, so they keep their
   // nature-based slot (see timeline.ts). router.refresh() reconciles after.
@@ -953,11 +979,8 @@ function DaySection({
         )}
       </div>
 
-      {mapPoints.length > 0 && (
-        <div className="mb-4">
-          <TripMap points={mapPoints} onExpand={onExpandMap} />
-        </div>
-      )}
+      {/* The day's map now anchors the destination hero (map-anchored day view),
+          so the inline per-day map is retired to avoid showing it twice. */}
 
       {items.length === 0 ? (
         <p className="text-[14px] text-drift-text-tertiary">
