@@ -9,6 +9,11 @@ import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
+const TrackMap = dynamic(() => import("./TrackMap"), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse bg-aurora-glass2" />,
+})
+
 import FindBookings from "./FindBookings"
 import ScanStatus from "./ScanStatus"
 import CompleteYourTrip, { type StayGap } from "./CompleteYourTrip"
@@ -64,6 +69,12 @@ export interface TrackStepVM {
   title: string
   subtitle: string | null
   dateLabel: string
+  /** yyyy-MM-dd — groups moments into days and drives the scrubber. */
+  dayKey: string
+  /** HH:mm from scheduled_at, when the moment carries a time. */
+  timeLabel: string | null
+  lat: number | null
+  lng: number | null
 }
 
 export interface StepDetailVM {
@@ -2404,6 +2415,70 @@ function ExpenseForm({
 // ---------- Track: the recorded journey ----------
 
 function TrackTab({ steps }: { steps: TrackStepVM[] }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [day, setDay] = useState<string | "all">("all")
+  const [dark, setDark] = useState(false)
+
+  // Track the resolved theme so the basemap matches the page. The app stamps
+  // data-theme on <html>; fall back to the OS preference when it has not.
+  useEffect(() => {
+    const root = document.documentElement
+    const read = () => {
+      const attr = root.getAttribute("data-theme")
+      setDark(
+        attr === "dark" ||
+          (attr == null &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches)
+      )
+    }
+    read()
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    mq.addEventListener("change", read)
+    const obs = new MutationObserver(read)
+    obs.observe(root, { attributes: true, attributeFilter: ["data-theme"] })
+    return () => {
+      mq.removeEventListener("change", read)
+      obs.disconnect()
+    }
+  }, [])
+
+  // Group into days, preserving the server's chronological order.
+  const days: { key: string; label: string; items: TrackStepVM[] }[] = []
+  for (const s of steps) {
+    const last = days[days.length - 1]
+    if (last && last.key === s.dayKey) last.items.push(s)
+    else days.push({ key: s.dayKey, label: s.dateLabel, items: [s] })
+  }
+
+  const visible = day === "all" ? steps : (days.find((d) => d.key === day)?.items ?? [])
+  const located = visible.filter((s) => s.lat != null && s.lng != null)
+  const points = located.map((s, i) => ({
+    id: s.id,
+    lat: s.lat as number,
+    lng: s.lng as number,
+    index: i + 1,
+  }))
+  const busiest = Math.max(1, ...days.map((d) => d.items.length))
+
+  // Keyboard review: ↑/↓ walk the journey. Reviewing twenty moments with the
+  // keyboard is meaningfully faster than reaching for twenty tap targets, and
+  // it is the kind of affordance a phone cannot offer at all.
+  function onKey(e: React.KeyboardEvent) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
+    e.preventDefault()
+    const idx = visible.findIndex((s) => s.id === selected)
+    const next =
+      e.key === "ArrowDown"
+        ? Math.min(visible.length - 1, idx + 1)
+        : Math.max(0, idx - 1)
+    const target = visible[idx === -1 ? 0 : next]
+    if (!target) return
+    setSelected(target.id)
+    document
+      .getElementById(`moment-${target.id}`)
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  }
+
   if (!steps.length) {
     return (
       <div className="mt-10 text-center">
@@ -2419,50 +2494,163 @@ function TrackTab({ steps }: { steps: TrackStepVM[] }) {
     )
   }
 
-  // Group recorded steps by day.
-  const byDay = new Map<string, TrackStepVM[]>()
-  for (const s of steps) {
-    const arr = byDay.get(s.dateLabel) ?? []
-    arr.push(s)
-    byDay.set(s.dateLabel, arr)
-  }
-
   return (
-    <div className="mt-6 lg:max-w-2xl">
+    <div className="mt-5">
       <div className="flex items-baseline gap-2">
-        <h2 className="font-drift-display text-[24px] font-semibold tracking-tight">Your journey</h2>
+        <h2 className="font-drift-display text-[24px] font-semibold tracking-tight">
+          Your journey
+        </h2>
         <span className="text-[13px] tabular-nums text-drift-text-tertiary">
-          {steps.length} moment{steps.length === 1 ? "" : "s"} · {byDay.size} day
-          {byDay.size === 1 ? "" : "s"}
+          {steps.length} moment{steps.length === 1 ? "" : "s"} · {days.length} day
+          {days.length === 1 ? "" : "s"}
         </span>
       </div>
-      <p className="mt-1 text-[12.5px] text-drift-muted">
-        Recorded with the Drift tracker on your phone.
-      </p>
-      <div className="mt-5 space-y-6">
-        {[...byDay.entries()].map(([dateLabel, items]) => (
-          <div key={dateLabel}>
-            <h3 className="font-drift-display text-[16px] font-semibold text-drift-muted">{dateLabel}</h3>
-            <ul className="mt-2.5">
-              {items.map((s, idx) => (
-                <li key={s.id} className="flex gap-3.5">
-                  {/* timeline rail: teal dot + connector to the next moment */}
-                  <div className="flex flex-col items-center">
-                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-aurora-teal ring-4 ring-aurora-teal/15" />
-                    {idx < items.length - 1 && <span className="w-px flex-1 bg-drift-divider" />}
-                  </div>
-                  <div className="min-w-0 flex-1 pb-4">
-                    <p className="truncate text-[15px] font-medium">{s.title}</p>
-                    {s.subtitle && s.subtitle !== s.title && (
-                      <p className="truncate text-[12.5px] text-drift-muted">{s.subtitle}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+
+      {/* Day scrubber — each pill carries its own density, so where the trip
+          was busy reads at a glance rather than needing a click. */}
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        <ScrubPill
+          on={day === "all"}
+          label="All days"
+          sub={`${steps.length} moments`}
+          fill={1}
+          onClick={() => setDay("all")}
+        />
+        {days.map((d, i) => (
+          <ScrubPill
+            key={d.key || i}
+            on={day === d.key}
+            label={`Day ${i + 1}`}
+            sub={`${d.label} · ${d.items.length}`}
+            fill={d.items.length / busiest}
+            onClick={() => setDay(d.key)}
+          />
         ))}
       </div>
+
+      {/* Linked two-pane. On a phone the map stacks above the list; from lg it
+          sits beside it and both halves share one selection. */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div
+          tabIndex={0}
+          onKeyDown={onKey}
+          aria-label="Journey moments. Use up and down arrows to review."
+          className="order-2 max-h-[560px] overflow-y-auto rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-drift-coral lg:order-1"
+        >
+          {(day === "all" ? days : days.filter((d) => d.key === day)).map((d, di) => (
+            <div key={d.key || di}>
+              <div className="sticky top-0 z-10 flex items-baseline gap-2 bg-aurora-midnight/85 py-2 backdrop-blur">
+                <span className="font-drift-display text-[16px] font-semibold">
+                  Day {days.findIndex((x) => x.key === d.key) + 1}
+                </span>
+                <span className="text-[12px] tabular-nums text-drift-text-tertiary">
+                  {d.label} · {d.items.length} moment{d.items.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              {d.items.map((s) => {
+                const n = located.findIndex((x) => x.id === s.id)
+                return (
+                  <button
+                    key={s.id}
+                    id={`moment-${s.id}`}
+                    onClick={() => setSelected(s.id)}
+                    aria-current={selected === s.id}
+                    className={`mb-1 grid w-full grid-cols-[46px_1fr_auto] items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                      selected === s.id
+                        ? "border-drift-coral bg-aurora-glass"
+                        : "border-transparent hover:bg-aurora-glass2"
+                    }`}
+                  >
+                    <span className="pt-0.5 text-right text-[12.5px] font-bold tabular-nums text-drift-muted">
+                      {s.timeLabel ?? "—"}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14.5px] font-semibold">
+                        {s.title}
+                      </span>
+                      {s.subtitle && (
+                        <span className="block truncate text-[12.5px] text-drift-text-tertiary">
+                          {s.subtitle}
+                        </span>
+                      )}
+                    </span>
+                    {n >= 0 ? (
+                      <span className="grid h-6 w-6 place-items-center rounded-full bg-drift-coral text-[11px] font-bold tabular-nums text-white">
+                        {n + 1}
+                      </span>
+                    ) : (
+                      <span
+                        title="No location recorded"
+                        className="grid h-6 w-6 place-items-center rounded-full bg-aurora-glass2 text-[11px] text-drift-text-tertiary"
+                      >
+                        –
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+
+        <div className="order-1 h-[300px] overflow-hidden rounded-2xl border border-aurora-glass-border lg:sticky lg:top-4 lg:order-2 lg:h-[560px]">
+          {points.length ? (
+            <TrackMap
+              points={points}
+              selectedId={selected}
+              onSelect={(id) => {
+                setSelected(id)
+                document
+                  .getElementById(`moment-${id}`)
+                  ?.scrollIntoView({ block: "center", behavior: "smooth" })
+              }}
+              dark={dark}
+            />
+          ) : (
+            <div className="grid h-full place-items-center px-6 text-center text-[13px] text-drift-text-tertiary">
+              These moments have no location recorded, so there is nothing to map
+              yet.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
+  )
+}
+
+function ScrubPill({
+  on,
+  label,
+  sub,
+  fill,
+  onClick,
+}: {
+  on: boolean
+  label: string
+  sub: string
+  fill: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+        on
+          ? "border-drift-coral bg-drift-coral/10"
+          : "border-aurora-glass-border hover:bg-aurora-glass2"
+      }`}
+    >
+      <span className="block text-[12.5px] font-bold">{label}</span>
+      <span className="block text-[11px] tabular-nums text-drift-text-tertiary">
+        {sub}
+      </span>
+      <span className="mt-1.5 block h-1 w-full rounded-full bg-aurora-glass2">
+        <span
+          className="block h-1 rounded-full bg-drift-coral"
+          style={{ width: `${Math.round(fill * 100)}%` }}
+        />
+      </span>
+    </button>
   )
 }

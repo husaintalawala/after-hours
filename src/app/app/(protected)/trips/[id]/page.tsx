@@ -180,6 +180,15 @@ export default async function TripDetailPage({
       title: s.title || s.location_name || "Moment",
       subtitle: s.location_name,
       dateLabel: dateOnly(s.date) ? fmtShort(dateOnly(s.date)!) : "",
+      dayKey: dateOnly(s.date) ?? "",
+      // scheduled_at is a FLOATING wall clock (see the iOS StepClock contract) —
+      // read the literal HH:mm rather than converting through a timezone.
+      timeLabel:
+        typeof s.scheduled_at === "string" && s.scheduled_at.length >= 16
+          ? s.scheduled_at.slice(11, 16)
+          : null,
+      lat: typeof s.latitude === "number" ? s.latitude : null,
+      lng: typeof s.longitude === "number" ? s.longitude : null,
     }))
   if (unassigned.length) {
     const startD = dateOnly(trip.start_date) ?? dateOnly(unassigned[0].date) ?? "1970-01-01"
