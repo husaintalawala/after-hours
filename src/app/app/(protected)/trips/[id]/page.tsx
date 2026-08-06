@@ -230,7 +230,9 @@ export default async function TripDetailPage({
     .map((s) => ({
       id: s.id,
       title: s.title || s.location_name || "Moment",
-      subtitle: s.location_name,
+      // Only a SECOND line. A moment with no title falls back to location_name
+      // above, so repeating it here printed every row's name twice.
+      subtitle: s.title ? s.location_name : null,
       dateLabel: dateOnly(s.date) ? fmtShort(dateOnly(s.date)!) : "",
       dayKey: dateOnly(s.date) ?? "",
       // scheduled_at is a FLOATING wall clock (see the iOS StepClock contract) —
