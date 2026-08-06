@@ -172,6 +172,42 @@ export default async function TripDetailPage({
       s.parent_step_id != null &&
       !destIdSet.has(s.parent_step_id)
   )
+  // ---- Track readiness (pre-trip) ---------------------------------------
+  // Mirrors iOS trackCategoryDone(_:). Computed here because it needs the raw
+  // step + booking rows, not the trimmed view models the tabs receive.
+  const destCount = destinations.length
+  const stepType = (s: { step_type?: string | null }) => (s.step_type ?? "").toLowerCase()
+  const readiness = (() => {
+    const stays = steps.filter((s) => stepType(s) === "stay").length
+    const hasFlight =
+      transportRows.some((b) => (b.mode ?? "").toLowerCase() === "flight") ||
+      steps.some((s) => stepType(s) === "flight")
+    const legs = transportRows.length
+    const cats: { key: string; label: string; done: boolean }[] = [
+      { key: "flights", label: "Flights", done: hasFlight },
+      { key: "stays", label: "Stays", done: destCount > 0 && stays >= destCount },
+      { key: "route", label: "Route", done: destCount <= 1 || legs >= destCount - 1 },
+      {
+        key: "activities",
+        label: "Activities",
+        done: steps.some((s) =>
+          ["activity", "tour", "spot", "experience"].includes(stepType(s))
+        ),
+      },
+    ]
+    const doneCount = cats.filter((c) => c.done).length
+    const startMs = dateOnly(trip.start_date)
+      ? Date.parse(`${dateOnly(trip.start_date)}T00:00:00Z`)
+      : null
+    const todayMs = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)
+    return {
+      categories: cats,
+      pct: doneCount / cats.length,
+      nightsUntilStart:
+        startMs != null ? Math.round((startMs - todayMs) / 86_400_000) : null,
+    }
+  })()
+
   const trackSteps = steps
     .filter((s) => s.step_type !== "destination" && s.parent_step_id == null)
     .sort((a, b) => (dateOnly(a.date) ?? "").localeCompare(dateOnly(b.date) ?? ""))
@@ -470,6 +506,7 @@ export default async function TripDetailPage({
           budgetLevel: trip.budget_level ?? null,
         }}
         trackSteps={trackSteps}
+        trackReadiness={readiness}
         ledger={ledger}
         stayGaps={stayGaps}
         budget={{

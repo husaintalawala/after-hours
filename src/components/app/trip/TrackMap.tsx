@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 
@@ -28,13 +28,17 @@ export default function TrackMap({
   points,
   selectedId,
   onSelect,
+  onDropPhoto,
   dark,
 }: {
   points: TrackPoint[]
   selectedId: string | null
   onSelect: (id: string) => void
+  /** Drag a photo onto the map to place a moment where you dropped it. */
+  onDropPhoto?: (file: File, lat: number, lng: number) => void
   dark: boolean
 }) {
+  const [dragging, setDragging] = useState(false)
   const holder = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markers = useRef<Map<string, mapboxgl.Marker>>(new Map())
@@ -180,9 +184,41 @@ export default function TrackMap({
     m.fitBounds(b, { padding: 64, maxZoom: 14, duration: 0 })
   }
 
+  // Translate a drop's screen position into a map coordinate, so the moment
+  // lands exactly where the photo was released rather than at the centre.
+  function dropAt(e: React.DragEvent) {
+    e.preventDefault()
+    setDragging(false)
+    const m = map.current
+    const file = Array.from(e.dataTransfer.files).find((f) =>
+      f.type.startsWith("image/")
+    )
+    if (!m || !file || !onDropPhoto || !holder.current) return
+    const r = holder.current.getBoundingClientRect()
+    const ll = m.unproject([e.clientX - r.left, e.clientY - r.top])
+    onDropPhoto(file, ll.lat, ll.lng)
+  }
+
   return (
     <>
-      <div ref={holder} className="h-full w-full" />
+      <div
+        ref={holder}
+        className="h-full w-full"
+        onDragOver={(e) => {
+          if (!onDropPhoto) return
+          e.preventDefault()
+          setDragging(true)
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={dropAt}
+      />
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-2xl border-2 border-dashed border-drift-coral bg-drift-coral/10">
+          <p className="rounded-lg bg-aurora-midnight/85 px-3 py-1.5 text-[13px] font-semibold text-white">
+            Drop to place a moment here
+          </p>
+        </div>
+      )}
       <style jsx global>{`
         .track-pin {
           width: 30px;

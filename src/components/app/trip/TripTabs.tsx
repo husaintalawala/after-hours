@@ -7,7 +7,7 @@ import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
-import { applyRemoveStep } from "@/lib/drift/quickOp"
+import { applyCreateStep, applyRemoveStep } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
 const TrackMap = dynamic(() => import("./TrackMap"), {
   ssr: false,
@@ -62,6 +62,13 @@ export interface TripMetaVM {
   dateRange: string
   statusLine: string
   cover: string | null
+}
+
+/** Pre-trip readiness, computed server-side from raw step + booking rows. */
+export interface TrackReadinessVM {
+  categories: { key: string; label: string; done: boolean }[]
+  pct: number
+  nightsUntilStart: number | null
 }
 
 export interface TrackStepVM {
@@ -157,6 +164,7 @@ export default function TripTabs({
   expenses,
   kitItems,
   trackSteps = [],
+  trackReadiness,
   ledger = null,
   stayGaps = [],
   budget = null,
@@ -184,6 +192,7 @@ export default function TripTabs({
   expenses: ExpenseVM[]
   kitItems: KitItemVM[]
   trackSteps?: TrackStepVM[]
+  trackReadiness?: TrackReadinessVM
   ledger?: LedgerVM | null
   stayGaps?: StayGap[]
   budget?: { amountUsd: number | null; startDate: string | null; endDate: string | null } | null
@@ -671,7 +680,9 @@ export default function TripTabs({
           isOwner={isOwner}
         />
       )}
-      {tab === "track" && <TrackTab steps={trackSteps} />}
+      {tab === "track" && (
+        <TrackTab steps={trackSteps} readiness={trackReadiness} tripId={tripId} />
+      )}
       </div>
     </div>
   )
@@ -2414,7 +2425,17 @@ function ExpenseForm({
 
 // ---------- Track: the recorded journey ----------
 
-function TrackTab({ steps }: { steps: TrackStepVM[] }) {
+function TrackTab({
+  steps,
+  readiness,
+  tripId,
+}: {
+  steps: TrackStepVM[]
+  readiness?: TrackReadinessVM
+  tripId: string
+}) {
+  const router = useRouter()
+  const [placing, setPlacing] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [day, setDay] = useState<string | "all">("all")
   const [dark, setDark] = useState(false)
@@ -2479,7 +2500,135 @@ function TrackTab({ steps }: { steps: TrackStepVM[] }) {
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" })
   }
 
+  // Drag a photo onto the map to place a moment where it was dropped.
+  //
+  // The moment is created FIRST and the upload attempted second, deliberately:
+  // the coordinate and the photo's timestamp are the information worth keeping,
+  // and a failed upload (browser→S3 needs bucket CORS) should not cost you the
+  // moment. If the upload fails the moment still stands and we say so.
+  async function placeFromPhoto(file: File, lat: number, lng: number) {
+    if (placing) return
+    setPlacing("Placing moment…")
+    try {
+      const taken = new Date(file.lastModified)
+      const day = taken.toISOString().slice(0, 10)
+      const time = taken.toTimeString().slice(0, 5)
+      const step = await applyCreateStep(
+        tripId,
+        {
+          op: "create_step",
+          type: "spot",
+          title: file.name.replace(/\.[^.]+$/, "").slice(0, 60) || "Moment",
+          date: day,
+          time,
+        },
+        { name: null, lat, lng }
+      )
+      setPlacing("Uploading photo…")
+      try {
+        const res = await fetch("/api/drift/upload-url", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+        })
+        if (!res.ok) throw new Error(String(res.status))
+        // The route returns { presignedUrl, cdnUrl } — NOT uploadUrl.
+        const { presignedUrl } = await res.json()
+        if (!presignedUrl) throw new Error("no presigned url")
+        const put = await fetch(presignedUrl, {
+          method: "PUT",
+          headers: { "content-type": file.type },
+          body: file,
+        })
+        if (!put.ok) throw new Error(`PUT ${put.status}`)
+      } catch {
+        setPlacing("Moment placed — the photo could not be uploaded")
+        setTimeout(() => setPlacing(null), 3200)
+        router.refresh()
+        return
+      }
+      setPlacing(null)
+      setSelected(step.id)
+      router.refresh()
+    } catch {
+      setPlacing("Could not place that moment — try again")
+      setTimeout(() => setPlacing(null), 3200)
+    }
+  }
+
+  // Before a trip there is no journey to show, so Track shows READINESS —
+  // the same four categories and countdown as the iOS UpcomingTrackHero,
+  // widened into a row instead of stacked.
   if (!steps.length) {
+    const upcoming =
+      readiness != null &&
+      readiness.nightsUntilStart != null &&
+      readiness.nightsUntilStart > 0
+    if (upcoming && readiness) {
+      const pct = Math.round(readiness.pct * 100)
+      const missing = readiness.categories.filter((c) => !c.done)
+      return (
+        <div className="mt-6 max-w-3xl">
+          <p className="font-drift-display text-[28px] font-semibold tracking-tight">
+            {readiness.nightsUntilStart} night
+            {readiness.nightsUntilStart === 1 ? "" : "s"} until you wander
+          </p>
+          <p className="mt-1 text-[14px] text-drift-muted">
+            {pct >= 100
+              ? "You're trip-ready."
+              : missing.length === 1
+                ? `Almost there — ${missing[0].label.toLowerCase()} still to sort.`
+                : `${missing.length} things still to sort.`}
+          </p>
+
+          <div className="mt-4 flex items-center gap-3">
+            <div
+              className="h-2 flex-1 overflow-hidden rounded-full bg-aurora-glass2"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Trip readiness"
+            >
+              <div
+                className="h-2 rounded-full bg-drift-coral transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-[13px] font-bold tabular-nums">{pct}%</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {readiness.categories.map((c) => (
+              <div
+                key={c.key}
+                className={`rounded-xl border p-3 ${
+                  c.done
+                    ? "border-aurora-glass-border bg-aurora-glass"
+                    : "border-dashed border-drift-coral/45 bg-drift-coral/5"
+                }`}
+              >
+                <p className="text-[12px] font-semibold text-drift-text-tertiary">
+                  {c.label}
+                </p>
+                <p
+                  className={`mt-0.5 text-[14px] font-bold ${
+                    c.done ? "text-aurora-good" : "text-drift-coral"
+                  }`}
+                >
+                  {c.done ? "Ready" : "Not yet"}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-[13px] text-drift-text-tertiary">
+            Once you are travelling, your recorded moments appear here as a
+            journey — recording itself happens in the iOS app.
+          </p>
+        </div>
+      )
+    }
     return (
       <div className="mt-10 text-center">
         <p className="text-4xl opacity-40">📍</p>
@@ -2530,6 +2679,15 @@ function TrackTab({ steps }: { steps: TrackStepVM[] }) {
 
       {/* Linked two-pane. On a phone the map stacks above the list; from lg it
           sits beside it and both halves share one selection. */}
+      {placing && (
+        <p
+          role="status"
+          className="mt-3 rounded-lg border border-aurora-glass-border bg-aurora-glass px-3 py-2 text-[13px]"
+        >
+          {placing}
+        </p>
+      )}
+
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div
           tabIndex={0}
@@ -2604,6 +2762,7 @@ function TrackTab({ steps }: { steps: TrackStepVM[] }) {
                   .getElementById(`moment-${id}`)
                   ?.scrollIntoView({ block: "center", behavior: "smooth" })
               }}
+              onDropPhoto={placeFromPhoto}
               dark={dark}
             />
           ) : (
