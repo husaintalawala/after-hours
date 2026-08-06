@@ -92,7 +92,10 @@ export default function TrackMap({
     }
     const p = points.find((x) => x.id === selectedId)
     if (p && map.current && ready.current) {
-      map.current.easeTo({ center: [p.lng, p.lat], duration: 420 })
+      const reduced =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      map.current.easeTo({ center: [p.lng, p.lat], duration: reduced ? 0 : 420 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, points.length])
@@ -213,7 +216,9 @@ export default function TrackMap({
           height: 30px;
           border-radius: 999px;
           border: 2px solid #fff;
-          background: #17c1af;
+          /* aurora.teal / aurora.teal-ink — the list medallion mirrors this
+             number, so the two must be the same teal. */
+          background: #37d6c4;
           color: #04231f;
           font: 700 12px/1 ui-sans-serif, system-ui, sans-serif;
           font-variant-numeric: tabular-nums;

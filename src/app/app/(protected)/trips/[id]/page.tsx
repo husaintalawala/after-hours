@@ -71,7 +71,7 @@ export default async function TripDetailPage({
       .eq("trip_id", trip.id)
       .eq("type", "photo")
       .order("created_at", { ascending: true })
-      .limit(200)
+      .limit(400)
       .returns<Array<{ step_id: string | null; url: string }>>(),
   ])
 
@@ -85,13 +85,20 @@ export default async function TripDetailPage({
   // Reader 1: the hero cover falls back to the oldest photo (the iOS cover
   // chain). Reader 2: Track shows each moment its own photo.
   //
-  // Capped at 200 so a photo-heavy trip cannot grow the SSR payload without
-  // bound. Ascending order means row 0 is still the cover regardless, so only
-  // the tail of a very large library loses its thumbnail.
+  // Capped at 400 so a photo-heavy trip cannot grow the SSR payload without
+  // bound. Ascending order means row 0 is still the cover regardless. The cap
+  // is generous because Track now renders a whole plate per moment: exhausting
+  // it on early moments would leave late ones looking photo-less, which is a
+  // far louder failure than dropping one thumbnail.
   const photoRows = mediaRaw ?? []
-  const photoByStep = new Map<string, string>()
+  // An ARRAY per step, oldest first — capture order is journal order. Capped at
+  // 12 per moment: the plate shows at most 5 and the viewer pages the rest.
+  const photosByStep = new Map<string, string[]>()
   for (const m of photoRows) {
-    if (m.step_id && !photoByStep.has(m.step_id)) photoByStep.set(m.step_id, m.url)
+    if (!m.step_id) continue
+    const arr = photosByStep.get(m.step_id)
+    if (!arr) photosByStep.set(m.step_id, [m.url])
+    else if (arr.length < 12) arr.push(m.url)
   }
   // `||` not `??` — an empty-string cover_url must still fall through, which is
   // what the previous `if (!tripCover)` did.
@@ -243,7 +250,7 @@ export default async function TripDetailPage({
           : null,
       lat: typeof s.latitude === "number" ? s.latitude : null,
       lng: typeof s.longitude === "number" ? s.longitude : null,
-      photoUrl: photoByStep.get(s.id) ?? null,
+      photoUrls: photosByStep.get(s.id) ?? [],
     }))
   if (unassigned.length) {
     const startD = dateOnly(trip.start_date) ?? dateOnly(unassigned[0].date) ?? "1970-01-01"

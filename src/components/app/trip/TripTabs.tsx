@@ -22,6 +22,7 @@ import TripWeather from "./TripWeather"
 import DayAddStop from "./DayAddStop"
 import type { TripMapPoint } from "./TripMap"
 import MediaSection from "./MediaSection"
+import MomentViewer from "./MomentViewer"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 
@@ -82,8 +83,9 @@ export interface TrackStepVM {
   timeLabel: string | null
   lat: number | null
   lng: number | null
-  /** Oldest photo attached to this moment (media.url), when it has one. */
-  photoUrl: string | null
+  /** Photos attached to this moment (media.url), oldest first. Capped at 12.
+   *  Always an array — the no-photo case is [], so nothing branches on null. */
+  photoUrls: string[]
 }
 
 export interface StepDetailVM {
@@ -2427,6 +2429,38 @@ function ExpenseForm({
 
 // ---------- Track: the recorded journey ----------
 
+// Mosaic grain for a moment's contact-sheet plate. Every class is spelled out
+// as a literal: Tailwind's JIT scans source text, so `grid-cols-${n}` compiles
+// to no CSS and the plate silently collapses to one column at natural height.
+const BAND: Record<number, string> = {
+  1: "grid-cols-1 grid-rows-1",
+  2: "grid-cols-2 grid-rows-1",
+  3: "grid-cols-3 grid-rows-2",
+  4: "grid-cols-2 grid-rows-2",
+  5: "grid-cols-4 grid-rows-2",
+}
+// Tile 0 spans 2x2 at 3 and 5 so auto-placement fills the rest exactly:
+// n=3 -> hero + two stacked in col 3; n=5 -> hero + four across cols 3-4.
+const heroSpan = (shown: number) =>
+  shown === 3 || shown === 5 ? "col-span-2 row-span-2" : ""
+
+function sizeFor(shown: number, i: number) {
+  if (shown === 1) return "(max-width:1024px) 100vw, 500px"
+  if (shown === 2 || shown === 4 || i === 0) return "(max-width:1024px) 50vw, 250px"
+  return "(max-width:1024px) 25vw, 130px"
+}
+
+// Evaluated inside handlers, never at render — SSR has no window.
+const prefersReduced = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+function scrollToMoment(id: string, block: ScrollLogicalPosition) {
+  document
+    .getElementById(`moment-${id}`)
+    ?.scrollIntoView({ block, behavior: prefersReduced() ? "auto" : "smooth" })
+}
+
 function TrackTab({
   steps,
   readiness,
@@ -2440,6 +2474,7 @@ function TrackTab({
   const supabase = createClient()
   const [placing, setPlacing] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [viewer, setViewer] = useState<{ stepId: string; i: number } | null>(null)
   const [day, setDay] = useState<string | "all">("all")
 
   // Group into days, preserving the server's chronological order.
@@ -2459,25 +2494,14 @@ function TrackTab({
     index: i + 1,
   }))
   const busiest = Math.max(1, ...days.map((d) => d.items.length))
-  // Only reserve a column when the trip actually fills it — otherwise every row
-  // carries dead space, which on a trip whose moments have no recorded times
-  // meant a 46px column of em dashes.
-  const anyPhoto = steps.some((s) => s.photoUrl)
-  const anyTime = steps.some((s) => s.timeLabel)
-  // Spelled out, never interpolated: Tailwind's JIT scans source literals, so a
-  // class name built at runtime compiles to no CSS at all.
-  const rowCols = anyTime
-    ? anyPhoto
-      ? "grid-cols-[46px_40px_1fr_auto]"
-      : "grid-cols-[46px_1fr_auto]"
-    : anyPhoto
-      ? "grid-cols-[40px_1fr_auto]"
-      : "grid-cols-[1fr_auto]"
+  const tripPhotos = steps.reduce((a, s) => a + s.photoUrls.length, 0)
 
   // Keyboard review: ↑/↓ walk the journey. Reviewing twenty moments with the
   // keyboard is meaningfully faster than reaching for twenty tap targets, and
   // it is the kind of affordance a phone cannot offer at all.
   function onKey(e: React.KeyboardEvent) {
+    // While the viewer is open the arrows belong to it, not the list.
+    if (viewer) return
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
     e.preventDefault()
     const idx = visible.findIndex((s) => s.id === selected)
@@ -2488,9 +2512,7 @@ function TrackTab({
     const target = visible[idx === -1 ? 0 : next]
     if (!target) return
     setSelected(target.id)
-    document
-      .getElementById(`moment-${target.id}`)
-      ?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    scrollToMoment(target.id, "nearest")
   }
 
   // Drag a photo onto the map to place a moment where it was dropped.
@@ -2646,7 +2668,7 @@ function TrackTab({
                 key={c.key}
                 className={`rounded-xl border p-3 ${
                   c.done
-                    ? "border-aurora-glass-border bg-aurora-glass"
+                    ? "border-aurora-border bg-aurora-glass"
                     : "border-dashed border-drift-coral/45 bg-drift-coral/5"
                 }`}
               >
@@ -2655,7 +2677,7 @@ function TrackTab({
                 </p>
                 <p
                   className={`mt-0.5 text-[14px] font-bold ${
-                    c.done ? "text-aurora-good" : "text-drift-coral"
+                    c.done ? "text-aurora-teal" : "text-drift-coral"
                   }`}
                 >
                   {c.done ? "Ready" : "Not yet"}
@@ -2724,7 +2746,7 @@ function TrackTab({
       {placing && (
         <p
           role="status"
-          className="mt-3 rounded-lg border border-aurora-glass-border bg-aurora-glass px-3 py-2 text-[13px]"
+          className="mt-3 rounded-lg border border-aurora-border bg-aurora-glass px-3 py-2 text-[13px]"
         >
           {placing}
         </p>
@@ -2735,7 +2757,7 @@ function TrackTab({
           tabIndex={0}
           onKeyDown={onKey}
           aria-label="Journey moments. Use up and down arrows to review."
-          className="order-2 max-h-[560px] overflow-y-auto rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-drift-coral lg:order-1"
+          className="order-2 max-h-[560px] overflow-y-auto rounded-2xl pr-1 lg:max-h-[640px] outline-none focus-visible:ring-2 focus-visible:ring-drift-coral lg:order-1"
         >
           {(day === "all" ? days : days.filter((d) => d.key === day)).map((d, di) => (
             <div key={d.key || di}>
@@ -2746,78 +2768,129 @@ function TrackTab({
                 <span className="text-[12px] tabular-nums text-drift-text-tertiary">
                   {d.label} · {d.items.length} moment{d.items.length === 1 ? "" : "s"}
                 </span>
+                {tripPhotos > 0 &&
+                  (() => {
+                    const dp = d.items.reduce((a, s) => a + s.photoUrls.length, 0)
+                    return (
+                      <span className="ml-auto shrink-0 text-[11.5px] tabular-nums text-drift-text-tertiary">
+                        {dp === 0 ? "No photos" : `${dp} photo${dp === 1 ? "" : "s"}`}
+                      </span>
+                    )
+                  })()}
               </div>
               {d.items.map((s) => {
                 const n = located.findIndex((x) => x.id === s.id)
+                const photos = s.photoUrls
+                const shown = Math.min(photos.length, 5)
+                const isSel = selected === s.id
                 return (
-                  <button
+                  <article
                     key={s.id}
                     id={`moment-${s.id}`}
-                    onClick={() => setSelected(s.id)}
-                    aria-current={selected === s.id}
-                    className={`mb-1 grid w-full ${rowCols} items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
-                      selected === s.id
+                    className={`mb-3 rounded-[18px] border transition-colors ${
+                      isSel
                         ? "border-drift-coral bg-aurora-glass"
-                        : "border-transparent hover:bg-aurora-glass2"
+                        : "border-transparent hover:border-aurora-border hover:bg-aurora-glass/60"
                     }`}
                   >
-                    {anyTime && (
-                      <span className="pt-0.5 text-right text-[12.5px] font-bold tabular-nums text-drift-muted">
-                        {s.timeLabel ?? "—"}
-                      </span>
-                    )}
-                    {anyPhoto &&
-                      (s.photoUrl ? (
-                        <OptimizedImg
-                          src={s.photoUrl}
-                          alt=""
-                          width={40}
-                          height={40}
-                          sizes="40px"
-                          className="h-10 w-10 rounded-lg object-cover"
-                        />
+                    <button
+                      onClick={() => setSelected(s.id)}
+                      aria-current={isSel ? "true" : undefined}
+                      className={`flex w-full items-center gap-3 rounded-[16px] text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-drift-coral ${
+                        shown > 0 ? "px-3 pb-2.5 pt-3" : "p-3"
+                      }`}
+                    >
+                      {n >= 0 ? (
+                        // The medallion IS the map pin's number, so it uses the
+                        // same accent the pin does (drift-coral is re-pointed to
+                        // Aurora teal) on teal-ink, not white — white on this
+                        // fill is ~1.9:1.
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-drift-coral text-[12px] font-bold tabular-nums text-aurora-teal-ink">
+                          {n + 1}
+                        </span>
                       ) : (
-                        <span className="h-10 w-10 rounded-lg bg-aurora-glass2" />
-                      ))}
-                    <span className="min-w-0">
-                      <span className="block truncate text-[14.5px] font-semibold">
-                        {s.title}
-                      </span>
-                      {s.subtitle && (
-                        <span className="block truncate text-[12.5px] text-drift-text-tertiary">
-                          {s.subtitle}
+                        <span
+                          title="No location recorded"
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-aurora-glass2 text-[11px] text-drift-text-tertiary"
+                        >
+                          –
                         </span>
                       )}
-                    </span>
-                    {n >= 0 ? (
-                      <span className="grid h-6 w-6 place-items-center rounded-full bg-drift-coral text-[11px] font-bold tabular-nums text-white">
-                        {n + 1}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[16px] font-semibold leading-tight">
+                          {s.title}
+                        </span>
+                        {s.subtitle && (
+                          <span className="mt-0.5 block truncate text-[12.5px] text-drift-text-tertiary">
+                            {s.subtitle}
+                          </span>
+                        )}
                       </span>
-                    ) : (
-                      <span
-                        title="No location recorded"
-                        className="grid h-6 w-6 place-items-center rounded-full bg-aurora-glass2 text-[11px] text-drift-text-tertiary"
+                      {s.timeLabel && (
+                        <span className="shrink-0 text-[12.5px] font-bold tabular-nums text-drift-muted">
+                          {s.timeLabel}
+                        </span>
+                      )}
+                    </button>
+
+                    {shown > 0 && (
+                      // aurora-border shows through the 2px gaps as hairline
+                      // seams, so the band reads as ONE contact-sheet plate
+                      // rather than loose chips.
+                      <div
+                        className={`relative mx-3 mb-3 grid aspect-[16/10] max-h-[340px] gap-[2px] overflow-hidden rounded-[14px] bg-aurora-border ${BAND[shown]}`}
                       >
-                        –
-                      </span>
+                        {photos.slice(0, shown).map((u, i) => {
+                          const more = i === 4 && photos.length > 5
+                          return (
+                            <button
+                              key={`${s.id}-${i}`}
+                              id={`photo-${s.id}-${i}`}
+                              onClick={() => {
+                                setSelected(s.id)
+                                setViewer({ stepId: s.id, i })
+                              }}
+                              aria-label={
+                                more
+                                  ? `Show all ${photos.length} photos from ${s.title}`
+                                  : `Open photo ${i + 1} of ${photos.length} from ${s.title}`
+                              }
+                              className={`relative overflow-hidden bg-aurora-glass2 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-drift-coral ${
+                                i === 0 ? heroSpan(shown) : ""
+                              }`}
+                            >
+                              <OptimizedImg
+                                src={u}
+                                alt=""
+                                fill
+                                sizes={sizeFor(shown, i)}
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                              {more && (
+                                <span className="absolute inset-0 grid place-items-center bg-aurora-midnight/60 text-[15px] font-bold text-white">
+                                  +{photos.length - 5}
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
                     )}
-                  </button>
+                  </article>
                 )
               })}
             </div>
           ))}
         </div>
 
-        <div className="order-1 h-[300px] overflow-hidden rounded-2xl border border-aurora-glass-border lg:sticky lg:top-4 lg:order-2 lg:h-[560px]">
+        <div className="order-1 h-[300px] overflow-hidden rounded-2xl border border-aurora-border lg:sticky lg:top-4 lg:order-2 lg:h-[640px]">
           {points.length ? (
             <TrackMap
               points={points}
               selectedId={selected}
               onSelect={(id) => {
                 setSelected(id)
-                document
-                  .getElementById(`moment-${id}`)
-                  ?.scrollIntoView({ block: "center", behavior: "smooth" })
+                scrollToMoment(id, "center")
               }}
               onDropPhoto={placeFromPhoto}
             />
@@ -2829,6 +2902,28 @@ function TrackTab({
           )}
         </div>
       </div>
+
+      {viewer &&
+        (() => {
+          const st = steps.find((x) => x.id === viewer.stepId)
+          if (!st || !st.photoUrls.length) return null
+          return (
+            <MomentViewer
+              title={st.title}
+              photos={st.photoUrls}
+              index={viewer.i}
+              onIndex={(i) => setViewer({ stepId: viewer.stepId, i })}
+              onClose={() => {
+                // Return focus to the tile that opened it, after unmount.
+                const el = document.getElementById(
+                  `photo-${viewer.stepId}-${Math.min(viewer.i, 4)}`
+                )
+                setViewer(null)
+                requestAnimationFrame(() => el?.focus())
+              }}
+            />
+          )
+        })()}
     </div>
   )
 }
@@ -2853,7 +2948,7 @@ function ScrubPill({
       className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
         on
           ? "border-drift-coral bg-drift-coral/10"
-          : "border-aurora-glass-border hover:bg-aurora-glass2"
+          : "border-aurora-border hover:bg-aurora-glass2"
       }`}
     >
       <span className="block text-[12.5px] font-bold">{label}</span>
