@@ -54,32 +54,48 @@ export default async function TripDetailPage({
   const trip = tripRaw as TripRow | null
   if (!trip) notFound()
 
-  const [{ data: stepsRaw }, { data: transportRaw }, { data: expensesRaw }, { data: kitRaw }] =
-    await Promise.all([
-      supabase.from("steps").select("*").eq("trip_id", trip.id),
-      supabase.from("transport_bookings").select("*").eq("trip_id", trip.id),
-      supabase.from("expenses").select("*").eq("trip_id", trip.id),
-      supabase.from("kit_items").select("*").eq("trip_id", trip.id),
-    ])
+  const [
+    { data: stepsRaw },
+    { data: transportRaw },
+    { data: expensesRaw },
+    { data: kitRaw },
+    { data: mediaRaw },
+  ] = await Promise.all([
+    supabase.from("steps").select("*").eq("trip_id", trip.id),
+    supabase.from("transport_bookings").select("*").eq("trip_id", trip.id),
+    supabase.from("expenses").select("*").eq("trip_id", trip.id),
+    supabase.from("kit_items").select("*").eq("trip_id", trip.id),
+    supabase
+      .from("media")
+      .select("step_id,url,type,created_at")
+      .eq("trip_id", trip.id)
+      .eq("type", "photo")
+      .order("created_at", { ascending: true })
+      .limit(200)
+      .returns<Array<{ step_id: string | null; url: string }>>(),
+  ])
 
   const steps = (stepsRaw ?? []) as StepRow[]
   const transportRows = (transportRaw ?? []) as TransportBookingRow[]
   const expenseRows = (expensesRaw ?? []) as ExpenseRow[]
   const kitRows = (kitRaw ?? []) as KitItemRow[]
 
-  // Trip hero cover: explicit cover → first photo media (iOS cover chain).
-  let tripCover: string | null = trip.cover_url
-  if (!tripCover) {
-    const { data: media } = await supabase
-      .from("media")
-      .select("url,type,created_at")
-      .eq("trip_id", trip.id)
-      .eq("type", "photo")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .returns<Array<{ url: string }>>()
-    tripCover = media?.[0]?.url ?? null
+  // Trip photos, oldest first — ONE query serving two readers, because this
+  // page is SSR-latency sensitive and a second round trip is a second wait.
+  // Reader 1: the hero cover falls back to the oldest photo (the iOS cover
+  // chain). Reader 2: Track shows each moment its own photo.
+  //
+  // Capped at 200 so a photo-heavy trip cannot grow the SSR payload without
+  // bound. Ascending order means row 0 is still the cover regardless, so only
+  // the tail of a very large library loses its thumbnail.
+  const photoRows = mediaRaw ?? []
+  const photoByStep = new Map<string, string>()
+  for (const m of photoRows) {
+    if (m.step_id && !photoByStep.has(m.step_id)) photoByStep.set(m.step_id, m.url)
   }
+  // `||` not `??` — an empty-string cover_url must still fall through, which is
+  // what the previous `if (!tripCover)` did.
+  const tripCover: string | null = trip.cover_url || photoRows[0]?.url || null
   const destinations = steps
     .filter((s) => s.step_type === "destination" && !s.parent_step_id)
     .sort((a, b) => compareDate(dateOnly(a.date) ?? "", dateOnly(b.date) ?? ""))
@@ -225,6 +241,7 @@ export default async function TripDetailPage({
           : null,
       lat: typeof s.latitude === "number" ? s.latitude : null,
       lng: typeof s.longitude === "number" ? s.longitude : null,
+      photoUrl: photoByStep.get(s.id) ?? null,
     }))
   if (unassigned.length) {
     const startD = dateOnly(trip.start_date) ?? dateOnly(unassigned[0].date) ?? "1970-01-01"

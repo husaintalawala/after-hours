@@ -7,7 +7,7 @@ import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
-import { applyCreateStep, applyRemoveStep } from "@/lib/drift/quickOp"
+import { applyRemoveStep } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
 const TrackMap = dynamic(() => import("./TrackMap"), {
   ssr: false,
@@ -82,6 +82,8 @@ export interface TrackStepVM {
   timeLabel: string | null
   lat: number | null
   lng: number | null
+  /** Oldest photo attached to this moment (media.url), when it has one. */
+  photoUrl: string | null
 }
 
 export interface StepDetailVM {
@@ -2435,6 +2437,7 @@ function TrackTab({
   tripId: string
 }) {
   const router = useRouter()
+  const supabase = createClient()
   const [placing, setPlacing] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [day, setDay] = useState<string | "all">("all")
@@ -2480,6 +2483,9 @@ function TrackTab({
     index: i + 1,
   }))
   const busiest = Math.max(1, ...days.map((d) => d.items.length))
+  // Only reserve the thumbnail column when this trip actually has photos —
+  // otherwise every row on a photo-less trip carries 40px of dead space.
+  const anyPhoto = steps.some((s) => s.photoUrl)
 
   // Keyboard review: ↑/↓ walk the journey. Reviewing twenty moments with the
   // keyboard is meaningfully faster than reaching for twenty tap targets, and
@@ -2506,6 +2512,15 @@ function TrackTab({
   // the coordinate and the photo's timestamp are the information worth keeping,
   // and a failed upload (browser→S3 needs bucket CORS) should not cost you the
   // moment. If the upload fails the moment still stands and we say so.
+  //
+  // The step is inserted DIRECTLY rather than through applyCreateStep/quick-op.
+  // quick-op is a Plan-tab writer: its validator hard-requires a resolvable
+  // destination_ref, and apply-quick-op then always stamps parent_step_id onto
+  // the row. Track lists only UNPARENTED steps, so a quick-op step is
+  // structurally invisible here — it cannot produce a Track moment at all.
+  // The direct insert is not a privilege escalation: the steps INSERT policy is
+  // owner-or-accepted-buddy, the same rule apply-quick-op re-implements by hand
+  // with the service role.
   async function placeFromPhoto(file: File, lat: number, lng: number) {
     if (placing) return
     setPlacing("Placing moment…")
@@ -2513,17 +2528,30 @@ function TrackTab({
       const taken = new Date(file.lastModified)
       const day = taken.toISOString().slice(0, 10)
       const time = taken.toTimeString().slice(0, 5)
-      const step = await applyCreateStep(
-        tripId,
-        {
-          op: "create_step",
-          type: "spot",
-          title: file.name.replace(/\.[^.]+$/, "").slice(0, 60) || "Moment",
+      // media.user_id is NOT NULL and its RLS pins it to auth.uid(), so an
+      // expired session has to fail here rather than at the wire.
+      const { data: userRes } = await supabase.auth.getUser()
+      const userId = userRes?.user?.id
+      if (!userId) throw new Error("no session")
+
+      const { data: step, error: stepErr } = await (supabase as any)
+        .from("steps")
+        .insert({
+          trip_id: tripId,
           date: day,
-          time,
-        },
-        { name: null, lat, lng }
-      )
+          title: file.name.replace(/\.[^.]+$/, "").slice(0, 60) || "Moment",
+          latitude: lat,
+          longitude: lng,
+          // Floating wall clock (the iOS StepClock contract) — the literal
+          // HH:mm IS the destination's time, so write it with a Z offset and
+          // never convert.
+          scheduled_at: `${day}T${time}:00+00:00`,
+          nights: 0,
+        })
+        .select("id")
+        .single()
+      if (stepErr || !step?.id) throw stepErr ?? new Error("no step id")
+
       setPlacing("Uploading photo…")
       try {
         const res = await fetch("/api/drift/upload-url", {
@@ -2533,16 +2561,29 @@ function TrackTab({
         })
         if (!res.ok) throw new Error(String(res.status))
         // The route returns { presignedUrl, cdnUrl } — NOT uploadUrl.
-        const { presignedUrl } = await res.json()
-        if (!presignedUrl) throw new Error("no presigned url")
+        const { presignedUrl, cdnUrl } = await res.json()
+        if (!presignedUrl || !cdnUrl) throw new Error("no presigned url")
         const put = await fetch(presignedUrl, {
           method: "PUT",
           headers: { "content-type": file.type },
           body: file,
         })
         if (!put.ok) throw new Error(`PUT ${put.status}`)
+        // Link the photo to the moment — ONLY after the bytes have landed. A
+        // media row whose url points at a missing object renders a broken image
+        // on Track and can be picked up as the trip cover. Plain .insert, never
+        // .upsert: media has no UPDATE policy, so ON CONFLICT DO UPDATE is a
+        // 42501, and the id is server-generated so there is nothing to conflict
+        // on. Omitted columns take their defaults (id, type='photo', now()).
+        const { error: mediaErr } = await (supabase as any).from("media").insert({
+          trip_id: tripId,
+          step_id: step.id,
+          user_id: userId,
+          url: cdnUrl,
+        })
+        if (mediaErr) throw mediaErr
       } catch {
-        setPlacing("Moment placed — the photo could not be uploaded")
+        setPlacing("Moment placed — the photo could not be saved")
         setTimeout(() => setPlacing(null), 3200)
         router.refresh()
         return
@@ -2713,7 +2754,11 @@ function TrackTab({
                     id={`moment-${s.id}`}
                     onClick={() => setSelected(s.id)}
                     aria-current={selected === s.id}
-                    className={`mb-1 grid w-full grid-cols-[46px_1fr_auto] items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                    className={`mb-1 grid w-full ${
+                      anyPhoto
+                        ? "grid-cols-[46px_40px_1fr_auto]"
+                        : "grid-cols-[46px_1fr_auto]"
+                    } items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
                       selected === s.id
                         ? "border-drift-coral bg-aurora-glass"
                         : "border-transparent hover:bg-aurora-glass2"
@@ -2722,6 +2767,19 @@ function TrackTab({
                     <span className="pt-0.5 text-right text-[12.5px] font-bold tabular-nums text-drift-muted">
                       {s.timeLabel ?? "—"}
                     </span>
+                    {anyPhoto &&
+                      (s.photoUrl ? (
+                        <OptimizedImg
+                          src={s.photoUrl}
+                          alt=""
+                          width={40}
+                          height={40}
+                          sizes="40px"
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <span className="h-10 w-10 rounded-lg bg-aurora-glass2" />
+                      ))}
                     <span className="min-w-0">
                       <span className="block truncate text-[14.5px] font-semibold">
                         {s.title}
