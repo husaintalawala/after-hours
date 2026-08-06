@@ -44,12 +44,30 @@ export default function OptimizedImg({
 }) {
   if (!optimizable(src)) {
     // Non-allow-listed host (Google Place Photos, vendor, unknown) — untouched.
+    //
+    // `fill` must be HONOURED here, not dropped. next/image's fill sets
+    // position:absolute + inset:0 + a 100% box; a bare <img> without them
+    // collapses to its intrinsic size and escapes its container. Every
+    // machine-sourced trip cover (Unsplash, Wikimedia) takes this branch, so
+    // dropping fill broke all of them.
+    //
+    // Applied as inline style, exactly mirroring what fill does, so it cannot
+    // collide with a caller's Tailwind classes (object-cover still applies).
+    //
+    // NOT fixed by adding these hosts to OPTIMIZE_HOSTS: that routes the bytes
+    // through Vercel's optimizer, i.e. re-hosting them — an Unsplash/Google ToS
+    // breach and the precise thing this component exists to prevent.
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}
         className={className}
+        style={
+          fill
+            ? { position: "absolute", inset: 0, width: "100%", height: "100%" }
+            : undefined
+        }
         loading={priority ? undefined : "lazy"}
         decoding="async"
         {...(priority ? { fetchPriority: "high" as const } : {})}
