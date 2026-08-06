@@ -2554,10 +2554,24 @@ function TrackTab({
 
       setPlacing("Uploading photo…")
       try {
+        // Send a key-SAFE filename, never file.name. generate-upload-url signs
+        // the raw key (`${user.id}/${filename}`) — unlike its own read branch,
+        // which encodes each segment because "S3 requires single encoding" —
+        // while the browser percent-encodes the URL path before sending. Any
+        // space or '#' therefore signs one path and requests another, and S3
+        // answers 403 SignatureDoesNotMatch. Dropped files are precisely where
+        // odd names live ("Screenshot 2026-08-06 at 10.14.32.png").
+        //
+        // Keying on the step id also makes the object unique, so two photos
+        // that happen to share a name cannot overwrite each other in S3.
+        const ext = file.name.match(/\.[A-Za-z0-9]+$/)?.[0].toLowerCase() ?? ""
         const res = await fetch("/api/drift/upload-url", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+          body: JSON.stringify({
+            filename: `track-${step.id}${ext}`,
+            contentType: file.type,
+          }),
         })
         if (!res.ok) throw new Error(String(res.status))
         // The route returns { presignedUrl, cdnUrl } — NOT uploadUrl.
