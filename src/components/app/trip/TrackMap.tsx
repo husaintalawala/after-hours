@@ -29,14 +29,12 @@ export default function TrackMap({
   selectedId,
   onSelect,
   onDropPhoto,
-  dark,
 }: {
   points: TrackPoint[]
   selectedId: string | null
   onSelect: (id: string) => void
   /** Drag a photo onto the map to place a moment where you dropped it. */
   onDropPhoto?: (file: File, lat: number, lng: number) => void
-  dark: boolean
 }) {
   const [dragging, setDragging] = useState(false)
   const holder = useRef<HTMLDivElement>(null)
@@ -53,9 +51,11 @@ export default function TrackMap({
 
     const m = new mapboxgl.Map({
       container: holder.current,
-      style: dark
-        ? "mapbox://styles/mapbox/dark-v11"
-        : "mapbox://styles/mapbox/light-v11",
+      // Fixed dark, like every other map in the app (DiscoverMap, TripMapView,
+      // TripMap). The web app has no light theme — nothing ever stamps
+      // data-theme — so reading a theme here only made the basemap follow the
+      // OS preference and turn white inside a dark page.
+      style: "mapbox://styles/mapbox/dark-v11",
       center: points.length ? [points[0].lng, points[0].lat] : [0, 20],
       zoom: points.length ? 11 : 1.4,
       attributionControl: false,
@@ -75,18 +75,6 @@ export default function TrackMap({
     // Style swap is handled in its own effect; points/selection redraw below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // ---- restyle on theme change ------------------------------------------
-  useEffect(() => {
-    const m = map.current
-    if (!m || !ready.current) return
-    m.setStyle(
-      dark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11"
-    )
-    // setStyle drops custom sources/layers — re-add once the new style settles.
-    m.once("styledata", () => draw())
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dark])
 
   // ---- redraw when the visible moments change ---------------------------
   useEffect(() => {
@@ -132,14 +120,14 @@ export default function TrackMap({
           },
         },
       })
-      // Casing under the line so the route separates from the basemap in both
-      // themes — the same two-pass treatment the iOS map uses.
+      // Casing under the line so the route separates from the basemap — the
+      // same two-pass treatment the iOS map uses.
       m.addLayer({
         id: "track-casing",
         type: "line",
         source: "track",
         paint: {
-          "line-color": dark ? "#0A1522" : "#FFFFFF",
+          "line-color": "#0A1522",
           "line-width": 8,
           "line-opacity": 0.9,
         },

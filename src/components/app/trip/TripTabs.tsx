@@ -2441,30 +2441,6 @@ function TrackTab({
   const [placing, setPlacing] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [day, setDay] = useState<string | "all">("all")
-  const [dark, setDark] = useState(false)
-
-  // Track the resolved theme so the basemap matches the page. The app stamps
-  // data-theme on <html>; fall back to the OS preference when it has not.
-  useEffect(() => {
-    const root = document.documentElement
-    const read = () => {
-      const attr = root.getAttribute("data-theme")
-      setDark(
-        attr === "dark" ||
-          (attr == null &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches)
-      )
-    }
-    read()
-    const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    mq.addEventListener("change", read)
-    const obs = new MutationObserver(read)
-    obs.observe(root, { attributes: true, attributeFilter: ["data-theme"] })
-    return () => {
-      mq.removeEventListener("change", read)
-      obs.disconnect()
-    }
-  }, [])
 
   // Group into days, preserving the server's chronological order.
   const days: { key: string; label: string; items: TrackStepVM[] }[] = []
@@ -2483,9 +2459,20 @@ function TrackTab({
     index: i + 1,
   }))
   const busiest = Math.max(1, ...days.map((d) => d.items.length))
-  // Only reserve the thumbnail column when this trip actually has photos —
-  // otherwise every row on a photo-less trip carries 40px of dead space.
+  // Only reserve a column when the trip actually fills it — otherwise every row
+  // carries dead space, which on a trip whose moments have no recorded times
+  // meant a 46px column of em dashes.
   const anyPhoto = steps.some((s) => s.photoUrl)
+  const anyTime = steps.some((s) => s.timeLabel)
+  // Spelled out, never interpolated: Tailwind's JIT scans source literals, so a
+  // class name built at runtime compiles to no CSS at all.
+  const rowCols = anyTime
+    ? anyPhoto
+      ? "grid-cols-[46px_40px_1fr_auto]"
+      : "grid-cols-[46px_1fr_auto]"
+    : anyPhoto
+      ? "grid-cols-[40px_1fr_auto]"
+      : "grid-cols-[1fr_auto]"
 
   // Keyboard review: ↑/↓ walk the journey. Reviewing twenty moments with the
   // keyboard is meaningfully faster than reaching for twenty tap targets, and
@@ -2768,19 +2755,17 @@ function TrackTab({
                     id={`moment-${s.id}`}
                     onClick={() => setSelected(s.id)}
                     aria-current={selected === s.id}
-                    className={`mb-1 grid w-full ${
-                      anyPhoto
-                        ? "grid-cols-[46px_40px_1fr_auto]"
-                        : "grid-cols-[46px_1fr_auto]"
-                    } items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
+                    className={`mb-1 grid w-full ${rowCols} items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
                       selected === s.id
                         ? "border-drift-coral bg-aurora-glass"
                         : "border-transparent hover:bg-aurora-glass2"
                     }`}
                   >
-                    <span className="pt-0.5 text-right text-[12.5px] font-bold tabular-nums text-drift-muted">
-                      {s.timeLabel ?? "—"}
-                    </span>
+                    {anyTime && (
+                      <span className="pt-0.5 text-right text-[12.5px] font-bold tabular-nums text-drift-muted">
+                        {s.timeLabel ?? "—"}
+                      </span>
+                    )}
                     {anyPhoto &&
                       (s.photoUrl ? (
                         <OptimizedImg
@@ -2835,7 +2820,6 @@ function TrackTab({
                   ?.scrollIntoView({ block: "center", behavior: "smooth" })
               }}
               onDropPhoto={placeFromPhoto}
-              dark={dark}
             />
           ) : (
             <div className="grid h-full place-items-center px-6 text-center text-[13px] text-drift-text-tertiary">
