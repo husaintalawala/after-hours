@@ -7,7 +7,7 @@ import { extractPdfText } from "@/lib/drift/pdfText"
 import { icsToEventTexts } from "@/lib/drift/ics"
 import {
   requestGoogleAccessToken,
-  fetchUpcomingCalendarTexts,
+  fetchTripCalendarTexts,
   GMAIL_SCOPE,
   CALENDAR_SCOPE,
 } from "@/lib/drift/google"
@@ -57,11 +57,17 @@ const CATEGORY_ICON: Record<string, string> = {
 
 export default function FindBookings({
   tripId,
+  tripStart = null,
+  tripEnd = null,
   openSignal = 0,
   reviewBatchId = null,
   onScanStarted,
 }: {
   tripId: string
+  // The trip's date window. Scopes the Google Calendar pull so a scan imports
+  // the trip's events, not the next 50 things on the user's calendar.
+  tripStart?: string | null
+  tripEnd?: string | null
   // Bumping openSignal opens the sheet (the trip-view scan chip uses this to
   // jump straight to review). reviewBatchId scopes the review to one scan's
   // results so "Found N" matches what's shown. onScanStarted fires when a
@@ -98,6 +104,8 @@ export default function FindBookings({
       {open && (
         <FindBookingsSheet
           tripId={tripId}
+          tripStart={tripStart}
+          tripEnd={tripEnd}
           reviewBatchId={scopeBatchId}
           onScanStarted={onScanStarted}
           onClose={(didApply) => {
@@ -112,11 +120,15 @@ export default function FindBookings({
 
 function FindBookingsSheet({
   tripId,
+  tripStart = null,
+  tripEnd = null,
   onClose,
   onScanStarted,
   reviewBatchId = null,
 }: {
   tripId: string
+  tripStart?: string | null
+  tripEnd?: string | null
   onClose: (didApply: boolean) => void
   onScanStarted?: () => void
   reviewBatchId?: string | null
@@ -474,7 +486,8 @@ function FindBookingsSheet({
     }
   }
 
-  // Google Calendar: token (calendar.readonly) → fetch events (fast) → fire the
+  // Google Calendar: token (calendar.readonly) → fetch the events inside the
+  // TRIP's date window, travel-filtered (see fetchTripCalendarTexts) → fire the
   // parse in the background under source "google_calendar" (distinct from the
   // synchronous .ics path so the chip owns it). Hand off to the chip.
   async function handleCalendar() {
@@ -483,9 +496,16 @@ function FindBookingsSheet({
     setError(null)
     try {
       const accessToken = await requestGoogleAccessToken(CALENDAR_SCOPE)
-      const texts = await fetchUpcomingCalendarTexts(accessToken)
+      const texts = await fetchTripCalendarTexts(accessToken, {
+        start: tripStart,
+        end: tripEnd,
+      })
       if (!texts.length) {
-        setError("No upcoming events found in your Google Calendar.")
+        setError(
+          tripStart
+            ? "No travel events found in your Google Calendar for these trip dates."
+            : "No travel events found in your Google Calendar."
+        )
         setBusy(null)
         return
       }

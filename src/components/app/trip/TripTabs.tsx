@@ -598,6 +598,8 @@ export default function TripTabs({
                   <span className="ml-auto">
                     <FindBookings
                       tripId={tripId}
+                      tripStart={chipData?.startDate ?? null}
+                      tripEnd={chipData?.endDate ?? null}
                       openSignal={reviewSignal}
                       reviewBatchId={reviewBatchId}
                       onScanStarted={() => setScanNonce((n) => n + 1)}
