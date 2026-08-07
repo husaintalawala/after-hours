@@ -22,6 +22,7 @@ import TripWeather from "./TripWeather"
 import DayAddStop from "./DayAddStop"
 import type { TripMapPoint } from "./TripMap"
 import MediaSection from "./MediaSection"
+import ExportItinerary from "./ExportItinerary"
 import MomentViewer from "./MomentViewer"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
@@ -611,6 +612,9 @@ export default function TripTabs({
                     setReviewSignal((s) => s + 1)
                   }}
                 />
+                {/* Directly under Find bookings, as on iOS: renders the plan
+                    to a designed PDF + share/download. */}
+                <ExportItinerary tripId={tripId} />
                 <MediaSection tripId={tripId} />
                 {destinations.length === 0 && (
                   <p className="mt-3 text-drift-muted">

@@ -12,6 +12,18 @@ const nextConfig = {
       { protocol: "https", hostname: "d309w7wk5bnk1z.cloudfront.net" },
     ],
   },
+  experimental: {
+    // The itinerary PDF reads its brand TTFs off disk at render time. Nothing
+    // imports those files, so tracing wouldn't ship them with the function and
+    // the export would silently fall back to Helvetica in production.
+    // Both keys on purpose — the app-router entry is keyed "…/route", and the
+    // bare path is what the docs show. Verified against the emitted
+    // .next/server/app/api/drift/itinerary-pdf/route.js.nft.json.
+    outputFileTracingIncludes: {
+      "/api/drift/itinerary-pdf": ["./src/lib/pdf/fonts/**"],
+      "/api/drift/itinerary-pdf/route": ["./src/lib/pdf/fonts/**"],
+    },
+  },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   env: {
