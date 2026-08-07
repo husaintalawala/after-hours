@@ -12,6 +12,12 @@ import {
   CALENDAR_SCOPE,
 } from "@/lib/drift/google"
 import { openPlaidLink, PLAID_CANCELLED } from "@/lib/drift/plaid"
+import {
+  buildReviewList,
+  type ItineraryKeys,
+  type ReviewSegmentRow,
+  type TripScope,
+} from "@/lib/drift/reviewSegments"
 
 // Find my bookings — web port of the iOS booking-import surface. One card
 // language, one line-icon set (no emoji), consistent rows. Two groups:
@@ -21,6 +27,13 @@ import { openPlaidLink, PLAID_CANCELLED } from "@/lib/drift/plaid"
 
 interface SegmentVM {
   id: string
+  /** Every segment id this card stands for (duplicates collapsed into it) —
+   *  dismissing the card has to dismiss all of them, or the twin comes back. */
+  ids: string[]
+  /** Batches every member of the cluster came from — a scan-scoped review
+   *  keeps the card if THIS scan found any copy of the booking. */
+  batchIds: string[]
+  /** The representative's batch, used as the apply-import-batch anchor. */
   batchId: string | null
   category: string
   label: string
@@ -129,7 +142,7 @@ function FindBookingsSheet({
   // Undo within the window costs no round-trip (commit-on-timeout).
   const [undo, setUndo] = useState<{ seg: SegmentVM; index: number; wasSelected: boolean } | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingIgnoreId = useRef<string | null>(null)
+  const pendingIgnoreId = useRef<string[] | null>(null)
   const didApply = useMemo(() => appliedCount != null && appliedCount > 0, [appliedCount])
   const pdfInput = useRef<HTMLInputElement>(null)
   const icsInput = useRef<HTMLInputElement>(null)
@@ -157,24 +170,79 @@ function FindBookingsSheet({
       })
   }, [tripId])
 
-  async function loadSegments() {
+  /** `keepMode` holds the review screen open after an apply, so the
+   *  "Added N bookings ✓" confirmation isn't yanked away when the list it
+   *  belongs to empties out. */
+  async function loadSegments(opts: { keepMode?: boolean } = {}) {
     setLoadingSegments(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = createClient() as any
-    const { data: segs } = await db
-      .from("reservation_segments")
-      .select(
-        "id, category, origin_name, destination_name, starts_at, address, confirmation_number, needs_review, parsed_reservation_id, applied_at"
-      )
-      .eq("trip_id", tripId)
-      .is("applied_at", null)
-      .neq("status", "ignored")
-      .order("created_at", { ascending: false })
-      .limit(50)
+    // Pull EVERY segment for the trip — applied and ignored included. They're
+    // never rendered, but buildReviewList needs them to recognise a duplicate
+    // of something already added, or a booking the user dismissed.
+    const [segRes, tripRes, stepRes, transportRes] = await Promise.all([
+      db
+        .from("reservation_segments")
+        .select(
+          "id, category, status, title, origin_name, origin_code, destination_name, destination_code, starts_at, ends_at, address, confirmation_number, dedupe_key, needs_review, parsed_reservation_id, applied_at, applied_object_id, created_at"
+        )
+        .eq("trip_id", tripId)
+        .order("created_at", { ascending: false })
+        .limit(300),
+      db.from("trips").select("start_date, end_date, cities, countries").eq("id", tripId).limit(1),
+      db
+        .from("steps")
+        .select("step_type, city, title, location_name, confirmation_number, dedupe_key")
+        .eq("trip_id", tripId)
+        .limit(400),
+      db
+        .from("transport_bookings")
+        .select("confirmation_number, dedupe_key")
+        .eq("trip_id", tripId)
+        .limit(200),
+    ])
+    const rows: ReviewSegmentRow[] = segRes?.data ?? []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows: any[] = segs ?? []
+    const trip: any = tripRes?.data?.[0] ?? null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const steps: any[] = stepRes?.data ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transport: any[] = transportRes?.data ?? []
 
-    const resIds = [...new Set(rows.map((r) => r.parsed_reservation_id).filter(Boolean))]
+    // Trip scope: the window plus the places the trip actually covers. Only
+    // destination steps contribute place names — a spot in New York on the way
+    // out would otherwise anchor every New York booking to this trip.
+    const scope: TripScope = {
+      startDay: trip?.start_date ? String(trip.start_date).slice(0, 10) : null,
+      endDay: trip?.end_date ? String(trip.end_date).slice(0, 10) : null,
+      places: [
+        ...(trip?.cities ?? []),
+        ...(trip?.countries ?? []),
+        ...steps
+          .filter((s) => s.step_type === "destination")
+          .flatMap((s) => [s.city, s.title, s.location_name]),
+      ].filter((p): p is string => typeof p === "string" && p.length > 0),
+    }
+    // What's already on the itinerary — the strongest "already added" signal,
+    // because it survives the segment row being re-parsed under a new id.
+    const itinerary: ItineraryKeys = {
+      confirmationNumbers: [...steps, ...transport]
+        .map((r) => r.confirmation_number)
+        .filter((c): c is string => !!c),
+      dedupeKeys: [...steps, ...transport]
+        .map((r) => r.dedupe_key)
+        .filter((k): k is string => !!k),
+    }
+
+    const clusters = buildReviewList(rows, scope, itinerary)
+
+    // Batch lookup covers every cluster MEMBER, not just the representative:
+    // the fullest copy of a booking often came from an earlier scan, and a
+    // batch-scoped review must still show it if this scan found it too.
+    const parsedByRow = new Map(rows.map((r) => [r.id, r.parsed_reservation_id]))
+    const resIds = [
+      ...new Set(clusters.flatMap((c) => c.ids.map((id) => parsedByRow.get(id))).filter(Boolean)),
+    ]
     const batchByRes = new Map<string, string | null>()
     if (resIds.length > 0) {
       const { data: res } = await db
@@ -184,16 +252,26 @@ function FindBookingsSheet({
       for (const r of res ?? []) batchByRes.set(r.id, r.batch_id)
     }
 
-    const vms: SegmentVM[] = rows.map((r) => {
+    const vms: SegmentVM[] = clusters.map(({ segment: r, ids }) => {
       const route =
         r.origin_name && r.destination_name
           ? `${r.origin_name} → ${r.destination_name}`
-          : r.destination_name || r.origin_name || r.address || "Booking"
+          : r.destination_name || r.origin_name || r.address || r.title || "Booking"
       const when = r.starts_at
         ? new Date(r.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
         : null
+      const batchIds = [
+        ...new Set(
+          ids
+            .map((id) => parsedByRow.get(id))
+            .map((resId) => (resId ? batchByRes.get(resId) : null))
+            .filter((b): b is string => !!b)
+        ),
+      ]
       return {
         id: r.id,
+        ids,
+        batchIds,
         batchId: batchByRes.get(r.parsed_reservation_id) ?? null,
         category: r.category ?? "booking",
         label: route,
@@ -205,26 +283,40 @@ function FindBookingsSheet({
     })
     // When opened from a scan chip, show only that scan's segments so the
     // "Found N" count matches the list (not every accumulated segment).
-    const shown = reviewBatchId ? vms.filter((v) => v.batchId === reviewBatchId) : vms
+    const shown = reviewBatchId
+      ? vms.filter((v) => v.batchIds.includes(reviewBatchId))
+      : vms
     setSegments(shown)
     setSelected(new Set(shown.filter((v) => v.batchId).map((v) => v.id)))
     setLoadingSegments(false)
     // Results present → jump to the review screen (found bookings get their own
-    // screen instead of being appended below the add-sources list).
+    // screen instead of being appended below the add-sources list). Nothing
+    // left after filtering (the scan only re-found bookings already in the
+    // trip) → don't strand the user on an empty review screen.
     if (shown.length > 0) setMode("review")
+    else if (!opts.keepMode) setMode("sources")
   }
 
   // Write status=ignored (allowed value; RLS lets a trip member write it) so a
   // future scan won't resurface the booking. Fired only after the Undo window.
-  function commitIgnore(id: string) {
+  //
+  // Writes EVERY id in the card's cluster: the review list collapses duplicate
+  // segments into one card, so ignoring only the representative would leave its
+  // twin behind to reappear on the next load. And the update has to be awaited
+  // — a supabase-js builder is lazy, so the previous fire-and-forget call never
+  // reached the network and no dismissal ever persisted.
+  function commitIgnore(ids: string[]) {
     pendingIgnoreId.current = null
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = createClient() as any
-      db.from("reservation_segments").update({ status: "ignored" }).eq("id", id)
-    } catch {
-      /* best-effort — it's already gone from the list */
-    }
+    if (ids.length === 0) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createClient() as any
+    void db
+      .from("reservation_segments")
+      .update({ status: "ignored" })
+      .in("id", ids)
+      .then(({ error }: { error: { message: string } | null }) => {
+        if (error) console.warn("[FindBookings] dismiss failed", error.message)
+      })
   }
   // Commit any pending dismissal immediately (a new dismiss, or the sheet close).
   function flushUndo() {
@@ -250,9 +342,9 @@ function FindBookingsSheet({
       return next
     })
     setUndo({ seg, index, wasSelected })
-    pendingIgnoreId.current = id
+    pendingIgnoreId.current = seg.ids
     undoTimer.current = setTimeout(() => {
-      commitIgnore(id)
+      commitIgnore(seg.ids)
       setUndo(null)
       undoTimer.current = null
     }, 4000)
@@ -473,7 +565,7 @@ function FindBookingsSheet({
         else throw new Error(json?.error ?? "Apply failed")
       }
       setAppliedCount(applied)
-      await loadSegments()
+      await loadSegments({ keepMode: true })
     } catch (e) {
       setError(msg(e))
     }
