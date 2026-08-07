@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
+import { tripCover } from "@/lib/drift/tripCover"
 import ChatsShell, {
   type ChatSessionVM,
   type MeVM,
@@ -122,13 +123,22 @@ export default async function ChatsPage() {
   // chat (the "chats takes forever to load" bug — resolve-place is cache:
   // no-store, so every render paid it). Rows without a stored cover render the
   // compass/pin placeholder in ChatsShell instead. Home already works this way.
-  const tripCover = (t: TripRow): string | null =>
-    t.cover_url || mediaCovers.get(t.id) || null
+  const coverFor = (t: TripRow): string | null =>
+    tripCover({
+      id: t.id,
+      title: t.title,
+      cover_url: t.cover_url,
+      firstPhotoUrl: mediaCovers.get(t.id) ?? null,
+      cover_fallback_url: t.cover_fallback_url,
+      cover_fallback_attribution: t.cover_fallback_attribution,
+      cover_fallback_link: t.cover_fallback_link,
+      countries: t.countries,
+    }).url
 
   const tripVMs: TripPickVM[] = trips.map((t) => ({
     id: t.id,
     title: t.title,
-    photo: tripCover(t),
+    photo: coverFor(t),
     start: t.start_date,
     dateRange: [fmtShort(t.start_date), fmtShort(t.end_date)].filter(Boolean).join(" – "),
     destinations: (destByTrip.get(t.id) ?? []).map((d) => ({

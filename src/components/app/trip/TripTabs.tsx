@@ -63,6 +63,9 @@ export interface TripMetaVM {
   dateRange: string
   statusLine: string
   cover: string | null
+  /** Non-null only when `cover` came from a sourced stock photo. Rendering the
+   *  photo without this credit is an Unsplash ToS violation. */
+  coverCredit?: { text: string; href: string | null } | null
 }
 
 /** Pre-trip readiness, computed server-side from raw step + booking rows. */
@@ -486,13 +489,20 @@ export default function TripTabs({
         <div className="relative -mx-5 -mt-4 h-[300px] overflow-hidden shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:mx-0 md:mt-3 md:h-[300px] md:rounded-[26px] lg:mt-0">
           {tripMeta.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <OptimizedImg
-              src={tripMeta.cover}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 700px"
-              className="object-cover"
-            />
+            <>
+              <OptimizedImg
+                src={tripMeta.cover}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 700px"
+                className="object-cover"
+              />
+              {tripMeta.coverCredit && (
+                <span className="pointer-events-none absolute bottom-1.5 right-2 z-10 max-w-[70%] truncate rounded bg-black/45 px-1.5 py-0.5 text-[9.5px] text-white/85">
+                  {tripMeta.coverCredit.text}
+                </span>
+              )}
+            </>
           ) : lazyCover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { tripCover as resolveTripCover } from "@/lib/drift/tripCover"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type {
@@ -100,9 +101,19 @@ export default async function TripDetailPage({
     if (!arr) photosByStep.set(m.step_id, [m.url])
     else if (arr.length < 12) arr.push(m.url)
   }
-  // `||` not `??` — an empty-string cover_url must still fall through, which is
-  // what the previous `if (!tripCover)` did.
-  const tripCover: string | null = trip.cover_url || photoRows[0]?.url || null
+  // The shared 4-rung chain. Imported under an alias because this file already
+  // uses `tripCover` as the local hero variable.
+  const heroCover = resolveTripCover({
+    id: trip.id,
+    title: trip.title,
+    cover_url: trip.cover_url,
+    firstPhotoUrl: photoRows[0]?.url ?? null,
+    cover_fallback_url: trip.cover_fallback_url,
+    cover_fallback_attribution: trip.cover_fallback_attribution,
+    cover_fallback_link: trip.cover_fallback_link,
+    countries: trip.countries,
+  })
+  const tripCover: string | null = heroCover.url
   const destinations = steps
     .filter((s) => s.step_type === "destination" && !s.parent_step_id)
     .sort((a, b) => compareDate(dateOnly(a.date) ?? "", dateOnly(b.date) ?? ""))
@@ -520,6 +531,7 @@ export default async function TripDetailPage({
           dateRange: tripSubtitle(trip),
           statusLine: tripStatusLine(trip.start_date, trip.end_date),
           cover: tripCover,
+          coverCredit: heroCover.credit,
         }}
         chipData={{
           placeName,

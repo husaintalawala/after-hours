@@ -3111,6 +3111,10 @@ export type Database = {
           cities: string[] | null
           countries: string[] | null
           cover_url: string | null
+          cover_fallback_url: string | null
+          cover_fallback_attribution: string | null
+          cover_fallback_link: string | null
+          cover_fallback_attempted_at: string | null
           created_at: string | null
           distance_km: number | null
           end_date: string | null
@@ -3137,6 +3141,10 @@ export type Database = {
           cities?: string[] | null
           countries?: string[] | null
           cover_url?: string | null
+          cover_fallback_url?: string | null
+          cover_fallback_attribution?: string | null
+          cover_fallback_link?: string | null
+          cover_fallback_attempted_at?: string | null
           created_at?: string | null
           distance_km?: number | null
           end_date?: string | null
@@ -3163,6 +3171,10 @@ export type Database = {
           cities?: string[] | null
           countries?: string[] | null
           cover_url?: string | null
+          cover_fallback_url?: string | null
+          cover_fallback_attribution?: string | null
+          cover_fallback_link?: string | null
+          cover_fallback_attempted_at?: string | null
           created_at?: string | null
           distance_km?: number | null
           end_date?: string | null

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
 
 // mapbox-gl is ~1.7MB of JS — load it after the shell paints instead of
@@ -14,6 +13,8 @@ const GlobeHero = dynamic(() => import("@/components/app/GlobeHero"), {
 })
 import SignOutButton from "@/components/app/SignOutButton"
 import OptimizedImg from "@/components/app/OptimizedImg"
+import TripCoverImg from "@/components/app/TripCoverImg"
+import type { TripCoverResult } from "@/lib/drift/tripCover"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
 // Logged-in home. The globe is the room: it fills the entire viewport on
@@ -24,7 +25,8 @@ import { countryFlagEmoji } from "@/lib/drift/flags"
 export interface HomeTrip {
   id: string
   title: string
-  cover: string | null
+  /** The whole cover chain result — url, credit and placeholder together. */
+  cover: TripCoverResult
   city: string | null
   country: string | null
   startDate: string | null
@@ -280,7 +282,6 @@ function FeaturedCard({ trip, onHover }: { trip: HomeTrip; onHover: () => void }
 // Desktop compact row: thumbnail + title + dates + flag. Hover flies the globe.
 function TripRow({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
   const flag = countryFlagEmoji(trip.country)
-  const cover = useTripCover(trip)
   return (
     <li>
       <Link
@@ -288,28 +289,9 @@ function TripRow({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
         onMouseEnter={onHover}
         className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-drift-alt-bg"
       >
-        {trip.cover ? (
-          <OptimizedImg
-            src={trip.cover}
-            width={96}
-            height={96}
-            sizes="48px"
-            className="h-12 w-12 shrink-0 rounded-xl object-cover"
-          />
-        ) : cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={cover}
-            alt=""
-            loading="lazy"
-            className="h-12 w-12 shrink-0 rounded-xl object-cover"
-          />
-        ) : (
-          <div
-            className="h-12 w-12 shrink-0 rounded-xl"
-            style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
-          />
-        )}
+        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+          <TripCoverImg cover={trip.cover} sizes="48px" showCredit={false} />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14.5px] font-semibold">{trip.title}</p>
           <p className="truncate text-[12px] text-drift-muted">{trip.dateLabel}</p>
@@ -342,53 +324,13 @@ function BigCard({ trip, className = "" }: { trip: HomeTrip; className?: string 
   )
 }
 
-// Lazy trip cover. Trips usually lack cover_url/media, so — mirroring the
-// destination-hero resolver in TripTabs — we resolve the lead city's photo on
-// the client after mount and fill it in over the gradient. No SSR photo lookup
-// on the critical path (that was the perf regression). Returns a stored cover
-// immediately when present.
-function useTripCover(trip: HomeTrip): string | null {
-  const [lazy, setLazy] = useState<string | null>(null)
-  useEffect(() => {
-    const city = trip.city
-    if (trip.cover || !city) return
-    let cancelled = false
-    ;(async () => {
-      const cand = await resolvePlace(city, city, trip.country ?? undefined)
-      if (!cancelled) setLazy(placePhotoUrl(cand, 800))
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [trip.cover, trip.city, trip.country])
-  return trip.cover ?? lazy
-}
-
 function CardCover({ trip }: { trip: HomeTrip }) {
-  const cover = useTripCover(trip)
   return (
     <>
-      {trip.cover ? (
-        <OptimizedImg
-          src={trip.cover}
-          fill
-          sizes="(max-width: 1024px) 100vw, 420px"
-          className="object-cover"
-        />
-      ) : cover ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={cover}
-          alt=""
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : (
-        <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
-        />
-      )}
+      <TripCoverImg
+        cover={trip.cover}
+        sizes="(max-width: 1024px) 100vw, 420px"
+      />
       <div
         className="absolute inset-0"
         style={{ background: "linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.65))" }}

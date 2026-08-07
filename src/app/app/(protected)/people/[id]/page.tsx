@@ -1,4 +1,6 @@
 import Link from "next/link"
+import TripCoverImg from "@/components/app/TripCoverImg"
+import { tripCover } from "@/lib/drift/tripCover"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type { ProfileRow, TripRow } from "@/lib/db-types"
@@ -95,20 +97,23 @@ export default async function ProfilePage({ params }: { params: { id: string } }
                 href={`/app/trips/${t.id}`}
                 className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition-colors hover:bg-drift-card-active"
               >
-                {t.cover_url ? (
-                  <OptimizedImg
-                    src={t.cover_url}
-                    alt=""
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                {/* Was cover_url only — this surface had no photo fallback and
+                    no sourced fallback at all. */}
+                <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                  <TripCoverImg
+                    cover={tripCover({
+                      id: t.id,
+                      title: t.title,
+                      cover_url: t.cover_url,
+                      cover_fallback_url: t.cover_fallback_url,
+                      cover_fallback_attribution: t.cover_fallback_attribution,
+                      cover_fallback_link: t.cover_fallback_link,
+                      countries: t.countries,
+                    })}
+                    sizes="48px"
+                    showCredit={false}
                   />
-                ) : (
-                  <div
-                    className="h-12 w-12 shrink-0 rounded-xl"
-                    style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }}
-                  />
-                )}
+                </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{t.title || "Untitled trip"}</p>
                   <p className="truncate text-[12.5px] text-drift-muted">

@@ -3,6 +3,7 @@ import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
 import HomeShell, { type HomeData, type HomeTrip } from "@/components/app/home/HomeShell"
+import { tripCover } from "@/lib/drift/tripCover"
 
 // Logged-in home — server data loader for HomeShell (full-viewport globe +
 // desktop trip rail / mobile sheet). See HomeShell for the layout.
@@ -73,8 +74,18 @@ export default async function TripsHome() {
     }
   }
 
-  const coverFor = (t: TripRow): string | null =>
-    t.cover_url || mediaCovers.get(t.id) || null
+  // ONE chain for every surface — see lib/drift/tripCover.
+  const coverFor = (t: TripRow) =>
+    tripCover({
+      id: t.id,
+      title: t.title,
+      cover_url: t.cover_url,
+      firstPhotoUrl: mediaCovers.get(t.id) ?? null,
+      cover_fallback_url: t.cover_fallback_url,
+      cover_fallback_attribution: t.cover_fallback_attribution,
+      cover_fallback_link: t.cover_fallback_link,
+      countries: t.countries,
+    })
 
   const pins: GlobeTripPin[] = []
   for (const t of trips) {
@@ -85,7 +96,7 @@ export default async function TripsHome() {
       tripId: t.id,
       lat: first.latitude!,
       lng: first.longitude!,
-      imageURL: coverFor(t),
+      imageURL: coverFor(t).url,
       route: tripSteps.map((s) => [s.longitude!, s.latitude!] as [number, number]),
     })
   }
