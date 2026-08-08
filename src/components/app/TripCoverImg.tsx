@@ -39,7 +39,7 @@ export default function TripCoverImg({
         }}
         aria-hidden="true"
       >
-        <span className="text-[28px] opacity-85 drop-shadow">
+        <span className="font-drift-display text-[34px] font-semibold text-white/55">
           {cover.placeholder.glyph}
         </span>
       </div>

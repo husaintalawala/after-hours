@@ -1,5 +1,3 @@
-import { countryFlagEmoji } from "./flags"
-
 /**
  * THE trip cover chain. One pure function, no network, no imports beyond flags.
  *
@@ -80,9 +78,10 @@ function bucket(id: string, count: number): number {
 
 export function tripCover(t: TripCoverInput): TripCoverResult {
   const [from, to] = PAIRS[bucket(t.id, PAIRS.length)]
-  const glyph =
-    countryFlagEmoji(t.countries?.[0]) ||
-    (t.title?.trim() ? Array.from(t.title.trim())[0].toUpperCase() : "·")
+  // The trip's initial, NOT a flag. A flag is a poor stand-in for a place —
+  // it says which country, not what the place looks like — and at placeholder
+  // size it reads as the cover rather than as an absence of one.
+  const glyph = t.title?.trim() ? Array.from(t.title.trim())[0].toUpperCase() : "·"
   const placeholder = { from, to, glyph }
 
   if (t.cover_url) return { url: t.cover_url, credit: null, placeholder, rung: 1 }
