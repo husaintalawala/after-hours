@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { loadReviewList } from "@/lib/drift/loadReviewList"
 
 // Background-scan status chip for the trip Plan tab. Gmail / Google-Calendar
 // scans run ~90s server-side (they write an import_batches row up front as
@@ -56,6 +57,9 @@ export default function ScanStatus({
   const [batch, setBatch] = useState<Batch | null>(null)
   const [session, setSession] = useState<SessionRow | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  /** How many bookings the review screen will actually render for this batch.
+   *  null = not resolved yet, so the banner stays quiet rather than guessing. */
+  const [reviewable, setReviewable] = useState<number | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -91,6 +95,30 @@ export default function ScanStatus({
       if (timer.current) clearTimeout(timer.current)
     }
   }, [tripId, refreshNonce])
+
+  // The count the banner shows comes from the same filter the review screen
+  // uses, not from import_batches. Re-runs when the batch settles or after an
+  // apply changes what is still outstanding.
+  useEffect(() => {
+    const id = batch?.id
+    if (!id || batch?.status === "scanning") {
+      setReviewable(null)
+      return
+    }
+    let cancelled = false
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createClient() as any
+    loadReviewList(db, tripId, id)
+      .then((vms) => {
+        if (!cancelled) setReviewable(vms.length)
+      })
+      .catch(() => {
+        if (!cancelled) setReviewable(0)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tripId, batch?.id, batch?.status, batch?.segments_applied])
 
   // Live scan session — discover the running booking_import_sessions row
   // (source-agnostic, newest first, same as iOS) and poll it ~1s for phase
@@ -156,8 +184,13 @@ export default function ScanStatus({
   if (!batch || dismissed.has(batch.id)) return null
 
   const src = SOURCE_LABEL[batch.source] ?? "inbox"
-  const matched = batch.segments_matched ?? 0
-  const unapplied = matched - (batch.segments_applied ?? 0)
+  // reviewable === null while the real count is still loading. NEVER fall back
+  // to the batch counters here: segments_matched is written at scan time,
+  // before anything is judged against the trip, so it counts rows the review
+  // screen will drop (already added, dismissed, or failing anchorsToTrip).
+  // That mismatch is what made a past trip announce "Found 4 bookings" and
+  // then open an empty list.
+  const unapplied = reviewable ?? 0
   const ready = batch.status === "review_ready" || batch.status === "partial"
   const dismiss = () => setDismissed((s) => new Set(s).add(batch.id))
 
@@ -190,7 +223,9 @@ export default function ScanStatus({
     )
   }
 
-  if (ready && matched === 0) {
+  // unapplied > 0 was handled above, so reaching here with `ready` means the
+  // filter left nothing to show.
+  if (ready && reviewable !== null) {
     return <Dismissable text={`No new bookings found in your ${src}.`} onDismiss={dismiss} />
   }
 

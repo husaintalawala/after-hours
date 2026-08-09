@@ -12,34 +12,13 @@ import {
   CALENDAR_SCOPE,
 } from "@/lib/drift/google"
 import { openPlaidLink, PLAID_CANCELLED } from "@/lib/drift/plaid"
-import {
-  buildReviewList,
-  type ItineraryKeys,
-  type ReviewSegmentRow,
-  type TripScope,
-} from "@/lib/drift/reviewSegments"
+import { loadReviewList, type SegmentVM } from "@/lib/drift/loadReviewList"
 
 // Find my bookings — web port of the iOS booking-import surface. One card
 // language, one line-icon set (no emoji), consistent rows. Two groups:
 // "Add bookings" (Forward · Upload PDF · Paste · Import .ics — all through
 // parse-text) and "Connect accounts" (Gmail scan + Google Calendar via the GIS
 // token flow, and card linking via Plaid — all wired to their edge functions).
-
-interface SegmentVM {
-  id: string
-  /** Every segment id this card stands for (duplicates collapsed into it) —
-   *  dismissing the card has to dismiss all of them, or the twin comes back. */
-  ids: string[]
-  /** Batches every member of the cluster came from — a scan-scoped review
-   *  keeps the card if THIS scan found any copy of the booking. */
-  batchIds: string[]
-  /** The representative's batch, used as the apply-import-batch anchor. */
-  batchId: string | null
-  category: string
-  label: string
-  sub: string
-  needsReview: boolean
-}
 
 type Busy = null | "paste" | "pdf" | "ics" | "gmail" | "calendar" | "plaid"
 
@@ -189,115 +168,9 @@ function FindBookingsSheet({
     setLoadingSegments(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = createClient() as any
-    // Pull EVERY segment for the trip — applied and ignored included. They're
-    // never rendered, but buildReviewList needs them to recognise a duplicate
-    // of something already added, or a booking the user dismissed.
-    const [segRes, tripRes, stepRes, transportRes] = await Promise.all([
-      db
-        .from("reservation_segments")
-        .select(
-          "id, category, status, title, origin_name, origin_code, destination_name, destination_code, starts_at, ends_at, address, confirmation_number, dedupe_key, needs_review, parsed_reservation_id, applied_at, applied_object_id, created_at"
-        )
-        .eq("trip_id", tripId)
-        .order("created_at", { ascending: false })
-        .limit(300),
-      db.from("trips").select("start_date, end_date, cities, countries").eq("id", tripId).limit(1),
-      db
-        .from("steps")
-        .select("step_type, city, title, location_name, confirmation_number, dedupe_key")
-        .eq("trip_id", tripId)
-        .limit(400),
-      db
-        .from("transport_bookings")
-        .select("confirmation_number, dedupe_key")
-        .eq("trip_id", tripId)
-        .limit(200),
-    ])
-    const rows: ReviewSegmentRow[] = segRes?.data ?? []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const trip: any = tripRes?.data?.[0] ?? null
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const steps: any[] = stepRes?.data ?? []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const transport: any[] = transportRes?.data ?? []
-
-    // Trip scope: the window plus the places the trip actually covers. Only
-    // destination steps contribute place names — a spot in New York on the way
-    // out would otherwise anchor every New York booking to this trip.
-    const scope: TripScope = {
-      startDay: trip?.start_date ? String(trip.start_date).slice(0, 10) : null,
-      endDay: trip?.end_date ? String(trip.end_date).slice(0, 10) : null,
-      places: [
-        ...(trip?.cities ?? []),
-        ...(trip?.countries ?? []),
-        ...steps
-          .filter((s) => s.step_type === "destination")
-          .flatMap((s) => [s.city, s.title, s.location_name]),
-      ].filter((p): p is string => typeof p === "string" && p.length > 0),
-    }
-    // What's already on the itinerary — the strongest "already added" signal,
-    // because it survives the segment row being re-parsed under a new id.
-    const itinerary: ItineraryKeys = {
-      confirmationNumbers: [...steps, ...transport]
-        .map((r) => r.confirmation_number)
-        .filter((c): c is string => !!c),
-      dedupeKeys: [...steps, ...transport]
-        .map((r) => r.dedupe_key)
-        .filter((k): k is string => !!k),
-    }
-
-    const clusters = buildReviewList(rows, scope, itinerary)
-
-    // Batch lookup covers every cluster MEMBER, not just the representative:
-    // the fullest copy of a booking often came from an earlier scan, and a
-    // batch-scoped review must still show it if this scan found it too.
-    const parsedByRow = new Map(rows.map((r) => [r.id, r.parsed_reservation_id]))
-    const resIds = [
-      ...new Set(clusters.flatMap((c) => c.ids.map((id) => parsedByRow.get(id))).filter(Boolean)),
-    ]
-    const batchByRes = new Map<string, string | null>()
-    if (resIds.length > 0) {
-      const { data: res } = await db
-        .from("parsed_reservations")
-        .select("id, batch_id")
-        .in("id", resIds)
-      for (const r of res ?? []) batchByRes.set(r.id, r.batch_id)
-    }
-
-    const vms: SegmentVM[] = clusters.map(({ segment: r, ids }) => {
-      const route =
-        r.origin_name && r.destination_name
-          ? `${r.origin_name} → ${r.destination_name}`
-          : r.destination_name || r.origin_name || r.address || r.title || "Booking"
-      const when = r.starts_at
-        ? new Date(r.starts_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-        : null
-      const batchIds = [
-        ...new Set(
-          ids
-            .map((id) => parsedByRow.get(id))
-            .map((resId) => (resId ? batchByRes.get(resId) : null))
-            .filter((b): b is string => !!b)
-        ),
-      ]
-      return {
-        id: r.id,
-        ids,
-        batchIds,
-        batchId: batchByRes.get(r.parsed_reservation_id) ?? null,
-        category: r.category ?? "booking",
-        label: route,
-        sub: [cap(r.category), when, r.confirmation_number ? `#${r.confirmation_number}` : null]
-          .filter(Boolean)
-          .join(" · "),
-        needsReview: !!r.needs_review,
-      }
-    })
-    // When opened from a scan chip, show only that scan's segments so the
-    // "Found N" count matches the list (not every accumulated segment).
-    const shown = reviewBatchId
-      ? vms.filter((v) => v.batchIds.includes(reviewBatchId))
-      : vms
+    // Shared with ScanStatus's "Found N" count — see loadReviewList. Both must
+    // read the same filter or the banner can promise rows the screen can't show.
+    const shown = await loadReviewList(db, tripId, reviewBatchId)
     setSegments(shown)
     setSelected(new Set(shown.filter((v) => v.batchId).map((v) => v.id)))
     setLoadingSegments(false)
@@ -1114,11 +987,6 @@ function ConnectRow({
       />
     </div>
   )
-}
-
-function cap(s: string | null): string | null {
-  if (!s) return null
-  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 function msg(e: unknown): string {
