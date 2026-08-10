@@ -503,12 +503,16 @@ function FindBookingsSheet({
             )}
             <h2 className="font-drift-display text-[21px] font-bold leading-[1.15]">
               {mode === "review"
-                ? `Found ${segments.length} booking${segments.length === 1 ? "" : "s"}`
+                ? segments.length === 0
+                  ? "Nothing to review"
+                  : `Found ${segments.length} booking${segments.length === 1 ? "" : "s"}`
                 : "Find my bookings"}
             </h2>
             <p className="mt-1 text-[12.5px] text-drift-muted">
               {mode === "review"
-                ? `Adding to ${tripName ?? "your trip"}`
+                ? segments.length === 0
+                  ? "Scans only surface bookings that aren't already on your itinerary."
+                  : `Adding to ${tripName ?? "your trip"}`
                 : "Bring your plans into Drift in seconds."}
             </p>
           </div>
@@ -575,7 +579,7 @@ function FindBookingsSheet({
               <button
                 onClick={parsePaste}
                 disabled={busy === "paste" || !pasteText.trim()}
-                className="mt-2 rounded-full bg-drift-ink px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40"
+                className="mt-2 rounded-full bg-drift-coral px-4 py-2 text-[13px] font-bold text-white disabled:opacity-40"
               >
                 {busy === "paste" ? "Reading…" : "Read bookings"}
               </button>
@@ -650,7 +654,7 @@ function FindBookingsSheet({
               </p>
               <button
                 onClick={() => setMode("sources")}
-                className="rounded-full bg-drift-ink px-4 py-2 text-[13px] font-bold text-white"
+                className="rounded-full bg-drift-coral px-4 py-2 text-[13px] font-bold text-white"
               >
                 Add bookings
               </button>
