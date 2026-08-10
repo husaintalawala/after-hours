@@ -78,13 +78,29 @@ export async function applyCreateStep(
   return json.step
 }
 
+/**
+ * @param riskAcknowledged the server refuses to remove a CONFIRMED booking
+ *   (a flight, hotel, or reservation someone actually holds) unless this is
+ *   set. The guard exists to stop the assistant deleting a real booking on its
+ *   own initiative — it is not meant to stop a person. Pass true only when the
+ *   user has been told the step is a confirmed booking and asked to remove it
+ *   anyway; never pass it for an assistant-initiated removal.
+ */
 export async function applyRemoveStep(
   tripId: string,
-  stepId: string
+  stepId: string,
+  riskAcknowledged = false
 ): Promise<void> {
   await post({
     trip_id: tripId,
     op: { op: "remove_step", step_id: stepId } satisfies RemoveStepOp,
-    risk_acknowledged: false,
+    risk_acknowledged: riskAcknowledged,
   })
+}
+
+/** The server's refusal, which is a protocol string and must never be shown
+ *  to a user. Matches both wordings the validator has used. */
+export function isConfirmedBookingRefusal(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : String(e ?? "")
+  return /refused to (remove|touch|move) confirmed booking/i.test(m)
 }

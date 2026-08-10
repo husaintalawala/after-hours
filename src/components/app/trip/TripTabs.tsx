@@ -7,7 +7,7 @@ import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
-import { applyRemoveStep } from "@/lib/drift/quickOp"
+import { applyRemoveStep, isConfirmedBookingRefusal } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
 const TrackMap = dynamic(() => import("./TrackMap"), {
   ssr: false,
@@ -1284,16 +1284,29 @@ function Inspector({
   const lng = step?.lng ?? item.longitude
   const map = lat != null && lng != null ? staticMapUrl(lat, lng) : null
 
+  /** The server refuses to remove a CONFIRMED booking unless the caller
+   *  acknowledges the risk. That guard is aimed at the assistant acting on its
+   *  own initiative, not at a person: reaching here means the user already
+   *  pressed Remove and then confirmed against Keep, which is precisely the
+   *  acknowledgement the flag represents. Without passing it, a confirmed
+   *  booking cannot be removed on web at all — the button just returns
+   *  "remove_step: refused to touch confirmed booking" into the UI. */
   async function remove() {
     if (!step) return
     setRemoving(true)
     setError(null)
     try {
-      await applyRemoveStep(tripId, step.id)
+      await applyRemoveStep(tripId, step.id, true)
       onClose()
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't remove that.")
+      setError(
+        isConfirmedBookingRefusal(e)
+          ? "This booking is protected and couldn't be removed. Try again from the booking itself."
+          : e instanceof Error
+            ? e.message
+            : "Couldn't remove that."
+      )
       setRemoving(false)
     }
   }
