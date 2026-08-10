@@ -68,6 +68,16 @@ export interface ItineraryKeys {
    *  Undefined means "caller didn't supply it": fall back to trusting the
    *  status, which is the old behaviour. */
   liveObjectIds?: Set<string>
+  /** Identity keys derived from the itinerary OBJECTS themselves, in the same
+   *  namespace identityKeys() emits for a segment.
+   *
+   *  The stored dedupe_key leg can only ever match transport carrying a
+   *  confirmation number — the two sides compute dedupe_key in different
+   *  formats. And half the imported steps in production have no applied segment
+   *  pointing at them at all, so nothing carried forward at write time could
+   *  rescue them. Deriving from what the object already stores is the only
+   *  signal that reaches those. */
+  objectIdentityKeys?: string[]
 }
 
 export interface ReviewCluster {
@@ -119,6 +129,79 @@ function dayMs(d: string): number | null {
 /** Every key a row is known by. Two rows are the same booking if they share
  *  any one of them. Transport keys carry the route so a round-trip booked on
  *  one confirmation number stays two rows. */
+/** Names too generic to identify anything. auto-creators defaults a title-less
+ *  stay to "Hotel" and a plan step to "Spot"/"Activity"; without this one
+ *  conf-less stay would suppress every other stay that day. */
+const GENERIC_NAMES = new Set([
+  "hotel", "stay", "spot", "activity", "restaurant", "tour", "flight",
+  "train", "bus", "carrental", "rentalcar", "booking", "reservation",
+  "dinner", "lunch", "breakfast",
+])
+
+/** A live itinerary object reduced to what the already-added test needs. */
+export interface ItineraryObject {
+  /** steps.step_type, or transport_bookings.mode */
+  kind: string
+  title: string | null
+  locationName: string | null
+  /** steps.date / transport_bookings.departure_at */
+  day: string | null
+  /** steps.scheduled_at — a stay's `date` is the MATCHED day, not always
+   *  check-in, so both are tried. */
+  altDay: string | null
+  originCode: string | null
+  destinationCode: string | null
+  originName: string | null
+  destinationName: string | null
+}
+
+/** Segment categories that could have produced this object — the inverse of
+ *  auto-creators' applySegment routing. Unmapped kinds contribute nothing. */
+function categoriesForKind(kind: string): string[] {
+  switch (kind) {
+    case "stay": return ["stay"]
+    case "spot": return ["restaurant"]
+    case "activity": return ["activity", "tour"]
+    case "flight": return ["flight"]
+    case "train": return ["train"]
+    case "bus": return ["bus"]
+    case "rental_car":
+    case "car_rental": return ["car_rental"]
+    default: return []
+  }
+}
+
+/** Emits strings byte-identical to identityKeys()'s "{cat}:{day}:{name}" and
+ *  "{cat}:{day}:{from}>{to}" forms, so the two can be intersected. Never
+ *  produces the "dk:" or "{cat}:conf:" forms — its third component is always a
+ *  date — so there is no namespace collision.
+ *
+ *  MUST stay byte-identical to ReviewSegmentFilter.objectIdentityKeys in Swift. */
+export function objectIdentityKeys(o: ItineraryObject): string[] {
+  const cats = categoriesForKind(o.kind)
+  if (cats.length === 0) return []
+  const name = norm(o.title) || norm(o.locationName)
+  if (!name || GENERIC_NAMES.has(name)) return []
+  const days = [...new Set([o.day, o.altDay]
+    .filter((d): d is string => !!d)
+    .map((d) => d.slice(0, 10))
+    .filter((d) => d.length === 10))]
+  if (days.length === 0) return []
+
+  const keys: string[] = []
+  for (const cat of cats) {
+    for (const d of days) {
+      keys.push(`${cat}:${d}:${name}`)
+      if (TRANSPORT.has(cat)) {
+        const from = norm(o.originCode) || norm(o.originName)
+        const to = norm(o.destinationCode) || norm(o.destinationName)
+        if (from || to) keys.push(`${cat}:${d}:${from}>${to}`)
+      }
+    }
+  }
+  return keys
+}
+
 export function identityKeys(r: ReviewSegmentRow): string[] {
   const cat = r.category
   const d = day(r.starts_at) || day(r.ends_at)
@@ -278,6 +361,7 @@ export function buildReviewList(
 
   const itinConfs = new Set(itinerary.confirmationNumbers.map(norm).filter(Boolean))
   const itinKeys = new Set(itinerary.dedupeKeys.filter(Boolean))
+  const itinIdentity = new Set((itinerary.objectIdentityKeys ?? []).filter(Boolean))
   const live = itinerary.liveObjectIds
 
   /** Did this member put something on the itinerary that is STILL there?
@@ -301,7 +385,14 @@ export function buildReviewList(
       (m) =>
         stillOnItinerary(m) ||
         (!!norm(m.confirmation_number) && itinConfs.has(norm(m.confirmation_number))) ||
-        (!!m.dedupe_key && itinKeys.has(m.dedupe_key))
+        (!!m.dedupe_key && itinKeys.has(m.dedupe_key)) ||
+        // Conf-less only. A booking WITH a confirmation is either caught by
+        // itinConfs above, or is a real reservation the user should still see
+        // over a same-named planned step — "planned, then booked" stays
+        // reviewable.
+        (!norm(m.confirmation_number) &&
+          itinIdentity.size > 0 &&
+          identityKeys(m).some((k) => itinIdentity.has(k)))
     )
     if (alreadyAdded) continue
     if (members.some((m) => m.status === "ignored")) continue

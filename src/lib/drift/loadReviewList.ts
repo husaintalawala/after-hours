@@ -21,6 +21,7 @@
 
 import {
   buildReviewList,
+  objectIdentityKeys,
   type ItineraryKeys,
   type ReviewSegmentRow,
   type TripScope,
@@ -76,12 +77,12 @@ export async function loadReviewList(
     db.from("trips").select("start_date, end_date, cities, countries").eq("id", tripId).limit(1),
     db
       .from("steps")
-      .select("id, step_type, city, title, location_name, confirmation_number, dedupe_key")
+      .select("id, step_type, city, title, location_name, confirmation_number, dedupe_key, date, scheduled_at")
       .eq("trip_id", tripId)
       .limit(400),
     db
       .from("transport_bookings")
-      .select("id, confirmation_number, dedupe_key")
+      .select("id, confirmation_number, dedupe_key, mode, title, departure_at, departure_code, arrival_code, departure_location, arrival_location")
       .eq("trip_id", tripId)
       .limit(200),
   ])
@@ -126,6 +127,25 @@ export async function loadReviewList(
     liveObjectIds: new Set(
       [...steps, ...transport].map((r) => String(r.id)).filter(Boolean)
     ),
+    // Derived from what each object already stores. Covers bookings no applied
+    // segment points at — half the imported steps in production.
+    objectIdentityKeys: [
+      ...steps.flatMap((s) =>
+        objectIdentityKeys({
+          kind: s.step_type ?? "", title: s.title, locationName: s.location_name,
+          day: s.date ?? null, altDay: s.scheduled_at ?? null,
+          originCode: null, destinationCode: null, originName: null, destinationName: null,
+        })
+      ),
+      ...transport.flatMap((t) =>
+        objectIdentityKeys({
+          kind: t.mode ?? "", title: t.title, locationName: null,
+          day: t.departure_at ?? null, altDay: null,
+          originCode: t.departure_code ?? null, destinationCode: t.arrival_code ?? null,
+          originName: t.departure_location ?? null, destinationName: t.arrival_location ?? null,
+        })
+      ),
+    ],
   }
 
   const clusters = buildReviewList(rows, scope, itinerary)
