@@ -76,12 +76,12 @@ export async function loadReviewList(
     db.from("trips").select("start_date, end_date, cities, countries").eq("id", tripId).limit(1),
     db
       .from("steps")
-      .select("step_type, city, title, location_name, confirmation_number, dedupe_key")
+      .select("id, step_type, city, title, location_name, confirmation_number, dedupe_key")
       .eq("trip_id", tripId)
       .limit(400),
     db
       .from("transport_bookings")
-      .select("confirmation_number, dedupe_key")
+      .select("id, confirmation_number, dedupe_key")
       .eq("trip_id", tripId)
       .limit(200),
   ])
@@ -120,6 +120,12 @@ export async function loadReviewList(
     dedupeKeys: [...steps, ...transport]
       .map((r) => r.dedupe_key)
       .filter((k): k is string => !!k),
+    // What is actually on the trip right now. An applied segment pointing at
+    // something no longer in here was undone by the user, so it must stop
+    // suppressing a re-scan of the same booking.
+    liveObjectIds: new Set(
+      [...steps, ...transport].map((r) => String(r.id)).filter(Boolean)
+    ),
   }
 
   const clusters = buildReviewList(rows, scope, itinerary)

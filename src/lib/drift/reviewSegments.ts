@@ -61,6 +61,13 @@ export interface TripScope {
 export interface ItineraryKeys {
   confirmationNumbers: string[]
   dedupeKeys: string[]
+  /** Ids of the steps and transport_bookings that CURRENTLY exist on the trip.
+   *  An applied segment whose applied_object_id is not in here points at a
+   *  booking the user has since deleted, so it must stop counting as
+   *  "already added" — otherwise deleting a booking can never bring it back.
+   *  Undefined means "caller didn't supply it": fall back to trusting the
+   *  status, which is the old behaviour. */
+  liveObjectIds?: Set<string>
 }
 
 export interface ReviewCluster {
@@ -271,14 +278,28 @@ export function buildReviewList(
 
   const itinConfs = new Set(itinerary.confirmationNumbers.map(norm).filter(Boolean))
   const itinKeys = new Set(itinerary.dedupeKeys.filter(Boolean))
+  const live = itinerary.liveObjectIds
+
+  /** Did this member put something on the itinerary that is STILL there?
+   *
+   *  The scan side has always asked it this way — loadDuplicateSegmentIds and
+   *  priorImportHasLiveBookings both require status='applied' AND the applied
+   *  object to still exist. The read side only checked the status, so a
+   *  booking the user deleted stayed suppressed forever: the scan correctly
+   *  re-parsed it and this filter immediately hid it again. */
+  const stillOnItinerary = (m: ReviewSegmentRow): boolean => {
+    const applied = ADDED_STATUSES.has(m.status) || !!m.applied_at || !!m.applied_object_id
+    if (!applied) return false
+    if (!live) return true              // caller gave us no way to check
+    if (!m.applied_object_id) return true  // applied but untraceable — stay conservative
+    return live.has(m.applied_object_id)
+  }
 
   const out: ReviewCluster[] = []
   for (const members of clusters.values()) {
     const alreadyAdded = members.some(
       (m) =>
-        ADDED_STATUSES.has(m.status) ||
-        !!m.applied_at ||
-        !!m.applied_object_id ||
+        stillOnItinerary(m) ||
         (!!norm(m.confirmation_number) && itinConfs.has(norm(m.confirmation_number))) ||
         (!!m.dedupe_key && itinKeys.has(m.dedupe_key))
     )
