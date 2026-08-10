@@ -7,7 +7,7 @@ import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
-import { applyRemoveStep, isConfirmedBookingRefusal } from "@/lib/drift/quickOp"
+import { applyRemoveStep, applyRemoveTransport, isConfirmedBookingRefusal } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
 const TrackMap = dynamic(() => import("./TrackMap"), {
   ssr: false,
@@ -1292,11 +1292,15 @@ function Inspector({
    *  booking cannot be removed on web at all — the button just returns
    *  "remove_step: refused to touch confirmed booking" into the UI. */
   async function remove() {
-    if (!step) return
+    // A row is either step-backed (stays, spots, activities) or a transport
+    // booking (flights, trains, cars) — never both, and they live in different
+    // tables, so removal needs the matching op.
+    if (!step && !booking) return
     setRemoving(true)
     setError(null)
     try {
-      await applyRemoveStep(tripId, step.id, true)
+      if (step) await applyRemoveStep(tripId, step.id, true)
+      else await applyRemoveTransport(tripId, booking!.id, true)
       onClose()
       router.refresh()
     } catch (e) {
@@ -1458,7 +1462,7 @@ function Inspector({
         >
           ✦ Ask Drift about this
         </button>
-        {step &&
+        {(step || booking) &&
           (confirmingRemove ? (
             <div className="flex items-center gap-1.5">
               <button

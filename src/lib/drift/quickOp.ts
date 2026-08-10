@@ -98,6 +98,41 @@ export async function applyRemoveStep(
   })
 }
 
+export type RemoveTransportOp = {
+  op: "remove_transport"
+  transport_booking_id: string
+}
+
+/**
+ * Remove a single transport booking (flight, train, car) from a trip.
+ *
+ * Deliberately routed through apply-quick-op rather than deleting the row
+ * directly, even though RLS would allow the direct delete: the edge function
+ * is where the confirmed-booking guard lives, and a flight someone is holding
+ * is exactly what that guard is for.
+ *
+ * The reservation_segments row that created the booking is left in place — the
+ * review filter discounts an applied segment whose object no longer exists, so
+ * a later scan offers the booking again without the ledger being destroyed.
+ *
+ * @param riskAcknowledged see applyRemoveStep — pass true only after the user
+ *   has confirmed, never for an assistant-initiated removal.
+ */
+export async function applyRemoveTransport(
+  tripId: string,
+  transportBookingId: string,
+  riskAcknowledged = false
+): Promise<void> {
+  await post({
+    trip_id: tripId,
+    op: {
+      op: "remove_transport",
+      transport_booking_id: transportBookingId,
+    } satisfies RemoveTransportOp,
+    risk_acknowledged: riskAcknowledged,
+  })
+}
+
 /** The server's refusal, which is a protocol string and must never be shown
  *  to a user. Matches both wordings the validator has used. */
 export function isConfirmedBookingRefusal(e: unknown): boolean {
