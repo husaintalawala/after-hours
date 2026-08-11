@@ -207,5 +207,10 @@ export async function loadReviewList(
 
   // When opened from a scan chip, show only that scan's segments so the
   // "Found N" count matches the list (not every accumulated segment).
+  // Demo override also lifts the batch scoping. Without this the flag looks
+  // broken from the only path that matters: tapping "Scan Gmail" creates a NEW
+  // batch, the re-surfaced bookings belong to OLD ones, and batch scoping
+  // filters them out before includeDismissed is ever consulted.
+  if (includeDismissed) return vms
   return reviewBatchId ? vms.filter((v) => v.batchIds.includes(reviewBatchId)) : vms
 }
