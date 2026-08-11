@@ -24,6 +24,7 @@ type Status = "loading" | "connected" | "disconnected" | "error" | "never"
 export default function GoogleConnection() {
   const [status, setStatus] = useState<Status>("loading")
   const [lastScan, setLastScan] = useState<string | null>(null)
+  const [email, setEmail] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -47,13 +48,18 @@ export default function GoogleConnection() {
 
   useEffect(() => {
     void load()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createClient() as any
+    void db.auth.getUser().then(({ data }: { data: { user?: { email?: string } } }) => {
+      setEmail(data?.user?.email ?? null)
+    })
   }, [])
 
   async function disconnect() {
     setBusy(true)
     setMsg(null)
     try {
-      const revoked = await revokeGoogleAccess()
+      const revoked = await revokeGoogleAccess(email ?? "")
       if (!revoked) {
         setMsg("Couldn't reach Google. You can remove access at myaccount.google.com/permissions.")
         return

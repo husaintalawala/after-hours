@@ -199,30 +199,26 @@ function fmtDate(iso: string): string {
 /**
  * Disconnect Drift from the user's Google account.
  *
- * There is no stored token to clear — this file's token model is deliberately
- * short-lived and per-action, so "connected" is not local state we own. What
- * exists is the GRANT held by Google, and disconnecting means revoking that.
+ * Uses google.accounts.id.revoke, which takes an EMAIL HINT and revokes the
+ * grant without any UI.
  *
- * Revoking any live token for the app revokes the whole grant, so we take one
- * (silently, since the user has already consented) and revoke it. The next scan
- * then shows a real consent screen again.
+ * The first version asked for an access token first and revoked that. It could
+ * not work: initTokenClient always shows the account chooser, so pressing
+ * "Disconnect" opened a CONNECT screen — the opposite of the action. There is
+ * no silent way to obtain a token here, so the token-based revoke is the wrong
+ * primitive for this button entirely.
  *
- * Resolves true when the grant was revoked, false when there was nothing to
- * revoke or the user dismissed the token request.
+ * Resolves true when Google reports the grant revoked.
  */
-export async function revokeGoogleAccess(): Promise<boolean> {
+export async function revokeGoogleAccess(email: string): Promise<boolean> {
+  if (!email) return false
   await loadGsi()
-  let token: string
-  try {
-    token = await requestGoogleAccessToken(GMAIL_SCOPE)
-  } catch {
-    return false
-  }
-  if (!token) return false
   return new Promise<boolean>((resolve) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(window as any).google.accounts.oauth2.revoke(token, () => resolve(true))
+      ;(window as any).google.accounts.id.revoke(email, (resp: { successful?: boolean }) => {
+        resolve(resp?.successful !== false)
+      })
     } catch {
       resolve(false)
     }
