@@ -75,7 +75,7 @@ export default function GoogleConnection() {
 
   const pill =
     status === "connected"
-      ? { text: "Connected", cls: "bg-drift-teal/15 text-drift-teal" }
+      ? { text: "Connected", cls: "bg-aurora-teal/15 text-aurora-teal" }
       : status === "error"
         ? { text: "Last scan failed", cls: "bg-amber-500/15 text-amber-400" }
         : status === "loading"
