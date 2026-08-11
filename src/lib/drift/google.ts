@@ -195,3 +195,36 @@ function fmtDate(iso: string): string {
   return m[2] ? `${m[1]} ${m[2]}:${m[3]}` : m[1]
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Disconnect Drift from the user's Google account.
+ *
+ * There is no stored token to clear — this file's token model is deliberately
+ * short-lived and per-action, so "connected" is not local state we own. What
+ * exists is the GRANT held by Google, and disconnecting means revoking that.
+ *
+ * Revoking any live token for the app revokes the whole grant, so we take one
+ * (silently, since the user has already consented) and revoke it. The next scan
+ * then shows a real consent screen again.
+ *
+ * Resolves true when the grant was revoked, false when there was nothing to
+ * revoke or the user dismissed the token request.
+ */
+export async function revokeGoogleAccess(): Promise<boolean> {
+  await loadGsi()
+  let token: string
+  try {
+    token = await requestGoogleAccessToken(GMAIL_SCOPE)
+  } catch {
+    return false
+  }
+  if (!token) return false
+  return new Promise<boolean>((resolve) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(window as any).google.accounts.oauth2.revoke(token, () => resolve(true))
+    } catch {
+      resolve(false)
+    }
+  })
+}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import GoogleConnection from "@/components/app/settings/GoogleConnection"
 import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
 import BackLink from "@/components/app/BackLink"
 
@@ -176,6 +177,8 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* Account */}
       <SectionLabel>Account</SectionLabel>
+      <GoogleConnection />
+
       <section className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
         <button
           onClick={signOut}
