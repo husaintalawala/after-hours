@@ -148,7 +148,16 @@ export async function loadReviewList(
     ],
   }
 
-  const clusters = buildReviewList(rows, scope, itinerary)
+  // TEMPORARY, demo only: ?showDismissed=1 re-surfaces dismissed bookings.
+  //
+  // Read here rather than at the call sites so the banner count and the review
+  // list cannot disagree — they both come through this function, which is the
+  // whole reason it exists. Absent the parameter, behaviour is unchanged.
+  const includeDismissed =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("showDismissed") === "1"
+
+  const clusters = buildReviewList(rows, scope, itinerary, { includeDismissed })
 
   // Batch lookup covers every cluster MEMBER, not just the representative:
   // the fullest copy of a booking often came from an earlier scan, and a

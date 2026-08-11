@@ -334,10 +334,18 @@ function completeness(r: ReviewSegmentRow): number {
  *               ignored ones included. They are what makes duplicate and
  *               already-added detection work; they're never rendered.
  */
+export interface ReviewListOptions {
+  /** TEMPORARY, demo only. Surfaces previously dismissed bookings so a
+   *  demonstration can be recorded on a trip whose mailbox is already
+   *  exhausted. Defaults false — without it, dismissed stays dismissed. */
+  includeDismissed?: boolean
+}
+
 export function buildReviewList(
   rows: ReviewSegmentRow[],
   scope: TripScope,
-  itinerary: ItineraryKeys
+  itinerary: ItineraryKeys,
+  options: ReviewListOptions = {}
 ): ReviewCluster[] {
   const ds = new DisjointSet()
   for (const r of rows) {
@@ -395,7 +403,7 @@ export function buildReviewList(
           identityKeys(m).some((k) => itinIdentity.has(k)))
     )
     if (alreadyAdded) continue
-    if (members.some((m) => m.status === "ignored")) continue
+    if (!options.includeDismissed && members.some((m) => m.status === "ignored")) continue
     if (!members.some((m) => anchorsToTrip(m, scope))) continue
 
     const best = members.reduce((a, b) => {
