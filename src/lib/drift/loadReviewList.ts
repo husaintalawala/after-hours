@@ -56,6 +56,34 @@ function cap(s: string | null): string | null {
  *   cluster counts if any of its members came from that batch), so a
  *   scan-scoped banner and its review screen agree.
  */
+/** TEMPORARY, demo only — see buildReviewList's ReviewListOptions.
+ *
+ *  Sticky on purpose. Reading window.location.search alone did not work: the
+ *  parameter is present when the trip page loads, but opening "Find bookings"
+ *  is a client-side transition and the query string is gone by the time this
+ *  runs. Latching it into sessionStorage on first sight makes it survive for
+ *  the rest of the tab, which is what recording a video needs.
+ *
+ *  Clear it by closing the tab, or ?showDismissed=0. */
+function demoShowDismissed(): boolean {
+  if (typeof window === "undefined") return false
+  const KEY = "drift.demo.showDismissed"
+  const param = new URLSearchParams(window.location.search).get("showDismissed")
+  try {
+    if (param === "1") {
+      window.sessionStorage.setItem(KEY, "1")
+      return true
+    }
+    if (param === "0") {
+      window.sessionStorage.removeItem(KEY)
+      return false
+    }
+    return window.sessionStorage.getItem(KEY) === "1"
+  } catch {
+    return param === "1"
+  }
+}
+
 export async function loadReviewList(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
@@ -153,9 +181,7 @@ export async function loadReviewList(
   // Read here rather than at the call sites so the banner count and the review
   // list cannot disagree — they both come through this function, which is the
   // whole reason it exists. Absent the parameter, behaviour is unchanged.
-  const includeDismissed =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("showDismissed") === "1"
+  const includeDismissed = demoShowDismissed()
 
   const clusters = buildReviewList(rows, scope, itinerary, { includeDismissed })
 
