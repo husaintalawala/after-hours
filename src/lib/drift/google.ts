@@ -214,13 +214,29 @@ export async function revokeGoogleAccess(email: string): Promise<boolean> {
   if (!email) return false
   await loadGsi()
   return new Promise<boolean>((resolve) => {
+    let settled = false
+    const done = (v: boolean) => {
+      if (settled) return
+      settled = true
+      resolve(v)
+    }
+    // Never let the button hang. The callback is Google's to fire, so if it
+    // does not, the UI must still recover — "Disconnecting…" forever is worse
+    // than an honest failure with the manual link beside it.
+    const timer = setTimeout(() => done(false), 6000)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(window as any).google.accounts.id.revoke(email, (resp: { successful?: boolean }) => {
-        resolve(resp?.successful !== false)
+      const g = (window as any).google.accounts.id
+      // id.revoke is inert until the id client has been initialised — this is
+      // why the first attempt hung with no callback and no error.
+      g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: () => {} })
+      g.revoke(email, (resp: { successful?: boolean }) => {
+        clearTimeout(timer)
+        done(resp?.successful !== false)
       })
     } catch {
-      resolve(false)
+      clearTimeout(timer)
+      done(false)
     }
   })
 }
