@@ -334,25 +334,10 @@ function completeness(r: ReviewSegmentRow): number {
  *               ignored ones included. They are what makes duplicate and
  *               already-added detection work; they're never rendered.
  */
-export interface ReviewListOptions {
-  /** TEMPORARY, demo only. Shows every booking that anchors to the trip,
-   *  ignoring BOTH the dismissed filter and the already-added filter.
-   *
-   *  Relaxing only "dismissed" achieved nothing: the same bookings are also
-   *  caught by alreadyAdded — via an applied twin in the cluster, a matching
-   *  confirmation number, or the objectIdentityKeys backstop. Every gate has to
-   *  come off, or the flag looks broken.
-   *
-   *  anchorsToTrip deliberately still applies, so the list stays relevant to
-   *  the trip rather than becoming every segment ever parsed. */
-  includeDismissed?: boolean
-}
-
 export function buildReviewList(
   rows: ReviewSegmentRow[],
   scope: TripScope,
-  itinerary: ItineraryKeys,
-  options: ReviewListOptions = {}
+  itinerary: ItineraryKeys
 ): ReviewCluster[] {
   const ds = new DisjointSet()
   for (const r of rows) {
@@ -409,8 +394,8 @@ export function buildReviewList(
           itinIdentity.size > 0 &&
           identityKeys(m).some((k) => itinIdentity.has(k)))
     )
-    if (alreadyAdded && !options.includeDismissed) continue
-    if (!options.includeDismissed && members.some((m) => m.status === "ignored")) continue
+    if (alreadyAdded) continue
+    if (members.some((m) => m.status === "ignored")) continue
     if (!members.some((m) => anchorsToTrip(m, scope))) continue
 
     const best = members.reduce((a, b) => {
