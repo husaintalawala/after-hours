@@ -34,14 +34,33 @@ function loadGsi(): Promise<void> {
   return gsiLoad
 }
 
+// How the token request is allowed to interrupt the user.
+//   ""             — prompt only the first time (Google's docs); used by scans.
+//   "none"         — never show an account chooser or consent screen; Google
+//                    errors instead. The only safe mode for Disconnect, where
+//                    showing a CONNECT screen would be the opposite action.
+// login_hint skips account selection when it matches a signed-in account.
+export interface TokenRequestOptions {
+  prompt?: "" | "none" | "consent" | "select_account"
+  login_hint?: string
+}
+
 // Request a Google access token for `scope`. Resolves with the token, or
 // rejects with a friendly message (cancelled / blocked / unverified app).
-export async function requestGoogleAccessToken(scope: string): Promise<string> {
+export async function requestGoogleAccessToken(
+  scope: string,
+  opts: TokenRequestOptions = {}
+): Promise<string> {
   await loadGsi()
   return new Promise<string>((resolve, reject) => {
     const client = (window as any).google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope,
+      // Only send the keys the caller set — passing prompt: undefined is not
+      // the same as omitting it, and the default (select_account) is what the
+      // scan paths want.
+      ...(opts.prompt !== undefined ? { prompt: opts.prompt } : {}),
+      ...(opts.login_hint ? { login_hint: opts.login_hint } : {}),
       callback: (resp: any) => {
         if (resp?.access_token) resolve(resp.access_token)
         else
@@ -196,47 +215,110 @@ function fmtDate(iso: string): string {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+// ---------------------------------------------------------------------------
+// Disconnect
+// ---------------------------------------------------------------------------
+
+/**
+ * Google's OAuth revocation endpoint. Takes an access token and drops EVERY
+ * scope the user granted this client — one call kills gmail.readonly and
+ * calendar.readonly together, which is exactly the "Disconnect Google"
+ * semantic.
+ *
+ * It is CORS-enabled and must be called WITHOUT credentials: the response
+ * carries no Access-Control-Allow-Credentials, so `credentials: "include"`
+ * turns it into a hard CORS failure. fetch's default (same-origin) is correct
+ * — do not "fix" this by adding credentials. Google's own gsi/client does the
+ * same thing and logs "Making revoke request without credentials."
+ *
+ * A URLSearchParams body keeps this a CORS-simple request (no preflight).
+ */
+const REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke"
+
+export type RevokeOutcome =
+  | { ok: true }
+  /** No token could be minted silently — we will not escalate to a UI prompt. */
+  | { ok: false; reason: "needs_google_signin" }
+  /** A token was obtained but Google refused or was unreachable. */
+  | { ok: false; reason: "network" }
+
+/** A silent token attempt must not be able to hang the Disconnect button. */
+const SILENT_TOKEN_TIMEOUT_MS = 10_000
+
 /**
  * Disconnect Drift from the user's Google account.
  *
- * Uses google.accounts.id.revoke, which takes an EMAIL HINT and revokes the
- * grant without any UI.
+ * Revocation is TOKEN-BOUND: there is no Google API that drops a grant given
+ * only a client ID and an email. Since Drift stores no tokens, the only way to
+ * revoke is to mint one at Disconnect time and immediately spend it revoking
+ * itself — the same lifecycle as a scan, just with a different destination.
  *
- * The first version asked for an access token first and revoked that. It could
- * not work: initTokenClient always shows the account chooser, so pressing
- * "Disconnect" opened a CONNECT screen — the opposite of the action. There is
- * no silent way to obtain a token here, so the token-based revoke is the wrong
- * primitive for this button entirely.
+ * Every token request is `prompt: "none"`, so Google either returns a token
+ * silently or errors. It can never render an account chooser or a consent
+ * screen, which is the failure that made the first attempt at this button open
+ * a CONNECT flow. When no scope yields a token we return needs_google_signin
+ * and the UI links out to the user's Google account settings — we deliberately
+ * do NOT retry interactively.
  *
- * Resolves true when Google reports the grant revoked.
+ * Do not reach for google.accounts.id.revoke here: it revokes ID-token sharing
+ * only ("cannot be used to manage OAuth2.0 authorization scopes" — Google), and
+ * Drift issues no ID token, so it has nothing to act on. On Chromium it now
+ * routes to the FedCM IdentityCredential.disconnect() API, which needs a
+ * federated sign-in connection this app never establishes; that is why it hung
+ * and then timed out.
  */
-export async function revokeGoogleAccess(email: string): Promise<boolean> {
-  if (!email) return false
-  await loadGsi()
-  return new Promise<boolean>((resolve) => {
-    let settled = false
-    const done = (v: boolean) => {
-      if (settled) return
-      settled = true
-      resolve(v)
-    }
-    // Never let the button hang. The callback is Google's to fire, so if it
-    // does not, the UI must still recover — "Disconnecting…" forever is worse
-    // than an honest failure with the manual link beside it.
-    const timer = setTimeout(() => done(false), 6000)
+export async function revokeGoogleAccess(
+  email: string,
+  scopes: string[] = [GMAIL_SCOPE, CALENDAR_SCOPE]
+): Promise<RevokeOutcome> {
+  const token = await silentAccessToken(scopes, email)
+  if (!token) return { ok: false, reason: "needs_google_signin" }
+
+  try {
+    const res = await fetch(REVOKE_ENDPOINT, {
+      method: "POST",
+      body: new URLSearchParams({ token }),
+    })
+    if (res.ok) return { ok: true }
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    // invalid_token = the token was already expired or revoked. We minted it
+    // seconds ago, so this means the grant is gone either way — Google's own
+    // guidance is to regard the grant as revoked.
+    if (body?.error === "invalid_token") return { ok: true }
+    return { ok: false, reason: "network" }
+  } catch {
+    return { ok: false, reason: "network" }
+  }
+}
+
+/**
+ * First scope that still yields a token without any UI. We do not know which
+ * scopes the user actually granted (Gmail, Calendar, or both), and asking for
+ * an ungranted scope with prompt:"none" simply errors — so try each in turn.
+ * One success is enough: revoking any token drops all of them.
+ */
+async function silentAccessToken(scopes: string[], email: string): Promise<string | null> {
+  for (const scope of scopes) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const g = (window as any).google.accounts.id
-      // id.revoke is inert until the id client has been initialised — this is
-      // why the first attempt hung with no callback and no error.
-      g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: () => {} })
-      g.revoke(email, (resp: { successful?: boolean }) => {
-        clearTimeout(timer)
-        done(resp?.successful !== false)
-      })
+      return await withTimeout(
+        requestGoogleAccessToken(scope, {
+          prompt: "none",
+          ...(email ? { login_hint: email } : {}),
+        }),
+        SILENT_TOKEN_TIMEOUT_MS
+      )
     } catch {
-      clearTimeout(timer)
-      done(false)
+      // Scope not granted, no active Google session in this browser, or the
+      // popup was blocked. Try the next scope; if none work the caller links
+      // the user out to Google rather than prompting them to sign in.
     }
-  })
+  }
+  return null
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+  ])
 }

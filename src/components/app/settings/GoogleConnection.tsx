@@ -14,11 +14,22 @@ import { revokeGoogleAccess } from "@/lib/drift/google"
  * which is why it read "Nothing to disconnect" without ever saying whether
  * anything was connected in the first place.
  *
- * Disconnect does both halves, in the order that survives a failure midway:
- * revoke the grant at Google first, then flip the row. A flipped row with a
- * live grant would be a lie; a live row with a revoked grant self-corrects on
- * the next scan.
+ * Disconnect does two independent halves and REPORTS THEM SEPARATELY:
+ *   1. revoke the OAuth grant at Google (best effort — needs a silently
+ *      obtainable token, see revokeGoogleAccess),
+ *   2. flip the import_sources row, which is Drift's own "scan this source"
+ *      state.
+ *
+ * (2) happens whether or not (1) succeeds. An earlier version gated the flip on
+ * the revoke and left users stuck on a "Connected" pill with no way out when
+ * Google couldn't be reached. Drift stores no Google tokens, so a live grant
+ * with a disconnected row gives Drift nothing — it cannot read anything until
+ * the user personally starts another scan. What it must never do is CLAIM the
+ * grant is gone when it isn't, so the failure copy says so plainly and points
+ * at Google.
  */
+const GOOGLE_PROVIDERS = ["gmail", "calendar"]
+
 type Status = "loading" | "connected" | "disconnected" | "error" | "never"
 
 export default function GoogleConnection() {
@@ -34,7 +45,10 @@ export default function GoogleConnection() {
     const { data } = await db
       .from("import_sources")
       .select("provider,status,last_scan_at")
-      .in("provider", ["gmail", "google_calendar"])
+      // "calendar", not "google_calendar" — the latter is a batch source label
+      // and is rejected by the import_sources provider check constraint, so it
+      // could never match a row.
+      .in("provider", GOOGLE_PROVIDERS)
       .order("last_scan_at", { ascending: false, nullsFirst: false })
     const rows = (data ?? []) as { status: string; last_scan_at: string | null }[]
     if (!rows.length) {
@@ -59,21 +73,26 @@ export default function GoogleConnection() {
     setBusy(true)
     setMsg(null)
     try {
+      // Best effort, and never interactive — this can't pop a consent screen.
       const revoked = await revokeGoogleAccess(email ?? "")
-      if (!revoked) {
-        setMsg("Couldn't reach Google. You can remove access at myaccount.google.com/permissions.")
-        return
-      }
+
+      // Stop using Google regardless of what Google said. RLS scopes the
+      // update to the signed-in user.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createClient() as any
       await db
         .from("import_sources")
         .update({ status: "disconnected" })
-        .in("provider", ["gmail", "google_calendar"])
-      setMsg("Disconnected. Drift no longer has access to your Gmail or Calendar.")
+        .in("provider", GOOGLE_PROVIDERS)
       await load()
+
+      setMsg(
+        revoked.ok
+          ? "Disconnected. Drift's access to your Gmail and Calendar has been removed at Google."
+          : "Drift has stopped using Google and won't scan again. Google still lists Drift under third-party access — remove it there to fully revoke."
+      )
     } catch {
-      setMsg("Couldn't disconnect. You can remove access at myaccount.google.com/permissions.")
+      setMsg("Couldn't disconnect. You can remove Drift's access from your Google account below.")
     } finally {
       setBusy(false)
     }
@@ -127,14 +146,14 @@ export default function GoogleConnection() {
 
       {msg && <p className="mt-2 text-[12.5px] text-drift-muted">{msg}</p>}
       <p className="mt-2 text-[12px] text-drift-muted">
-        Review access anytime at{" "}
+        Review or remove Drift&rsquo;s access anytime in your{" "}
         <a
-          href="https://myaccount.google.com/permissions"
+          href="https://myaccount.google.com/connections"
           target="_blank"
           rel="noopener noreferrer"
           className="underline"
         >
-          myaccount.google.com/permissions
+          Google third-party access settings
         </a>
         .
       </p>
