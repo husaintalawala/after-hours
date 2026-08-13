@@ -78,16 +78,38 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
     setDeleting(true)
     setDeleteError(null)
 
-    let revokeNote = ""
+    // Only attempt the revoke if this account ever connected Google.
+    // revokeGoogleAccess -> silentAccessToken loads Google Identity Services and
+    // waits for a token that is never coming for an unconnected account, which
+    // parked the button on "Deleting…" for ~25s before the delete even started.
+    // Measured in a real click-through; the type-check and build both passed it.
+    let hasGoogle = false
     try {
-      const revoked = await revokeGoogleAccess(profile.email ?? "")
-      if (!revoked.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createClient() as any
+      const { data } = await db
+        .from("import_sources")
+        .select("provider")
+        .in("provider", ["gmail", "calendar"])
+        .limit(1)
+      hasGoogle = ((data ?? []) as unknown[]).length > 0
+    } catch {
+      // Can't tell → try the revoke rather than silently skipping it.
+      hasGoogle = true
+    }
+
+    let revokeNote = ""
+    if (hasGoogle) {
+      try {
+        const revoked = await revokeGoogleAccess(profile.email ?? "")
+        if (!revoked.ok) {
+          revokeNote =
+            " Google still lists Drift under third-party access — remove it there to fully revoke."
+        }
+      } catch {
         revokeNote =
           " Google still lists Drift under third-party access — remove it there to fully revoke."
       }
-    } catch {
-      revokeNote =
-        " Google still lists Drift under third-party access — remove it there to fully revoke."
     }
 
     let res: Response
