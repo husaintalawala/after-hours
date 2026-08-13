@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
+import { revokeGoogleAccess } from "@/lib/drift/google"
 import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
 import BackLink from "@/components/app/BackLink"
 
@@ -21,8 +22,9 @@ function isCityish(c: PlaceCandidate): boolean {
 
 // Web port of the iOS SettingsView: profile header, preferences (default
 // trip privacy — stored locally like iOS UserDefaults), account (sign out),
-// about, and the destructive delete-account flow (soft-delete profile +
-// purge user content, mirroring the iOS implementation).
+// about, and the destructive delete-account flow — which now revokes Google
+// in the browser and hands the actual deletion to the delete-account edge
+// function, the same path iOS uses.
 
 export interface SettingsProfile {
   displayName: string
@@ -39,6 +41,9 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
   const [privacy, setPrivacy] = useState<string>("public")
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Set when deletion fails. The account still exists at that point, so the
+  // user has to be told rather than silently signed out.
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
@@ -57,39 +62,59 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
     router.refresh()
   }
 
-  // Mirror of iOS deleteAccount(): soft-delete the profile, then best-effort
-  // purge of user content (each delete tolerated to fail, like iOS try?).
+  // Real deletion, matching iOS. This used to be a client-side soft delete —
+  // profiles.deleted_at plus the eight tables RLS let the browser see — which
+  // left the auth user, the profile row, every Gmail/Calendar-derived row and
+  // all S3 media in place while the copy promised they were gone. A browser
+  // cannot do this correctly at all: removing the auth user needs the service
+  // role, and ~24 user-scoped tables are invisible under RLS.
+  //
+  // Google is revoked FIRST, from the browser, because the grant lives in this
+  // session and the server has no way to reach it. Best-effort: a user who
+  // never connected Google, or whose token cannot be silently re-minted, must
+  // still be able to delete their account — so a failed revoke degrades to a
+  // note in the success message rather than blocking.
   async function deleteAccount() {
     setDeleting(true)
-    const supabase = createClient()
-    const db = supabase as any
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const uid = session?.user?.id
-    if (uid) {
-      await db
-        .from("profiles")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", uid)
-      for (const [table, col] of [
-        ["follows", "follower_id"],
-        ["follows", "following_id"],
-        ["likes", "user_id"],
-        ["comments", "user_id"],
-        ["notifications", "user_id"],
-        ["steps", "user_id"],
-        ["media", "user_id"],
-        ["trips", "user_id"],
-      ] as const) {
-        try {
-          await db.from(table).delete().eq(col, uid)
-        } catch {
-          /* best-effort, same as iOS */
-        }
+    setDeleteError(null)
+
+    let revokeNote = ""
+    try {
+      const revoked = await revokeGoogleAccess(profile.email ?? "")
+      if (!revoked.ok) {
+        revokeNote =
+          " Google still lists Drift under third-party access — remove it there to fully revoke."
       }
+    } catch {
+      revokeNote =
+        " Google still lists Drift under third-party access — remove it there to fully revoke."
     }
-    await supabase.auth.signOut()
+
+    let res: Response
+    try {
+      res = await fetch("/api/drift/delete-account", { method: "POST" })
+    } catch {
+      setDeleting(false)
+      setDeleteError("Couldn't reach the server. Your account has not been deleted — please try again.")
+      return
+    }
+
+    const body = (await res.json().catch(() => null)) as
+      | { ok?: boolean; error?: string }
+      | null
+
+    if (!res.ok || !body?.ok) {
+      // Nothing has been signed out, so the account still works and the user
+      // can retry. Never sign out on failure — that strands them outside an
+      // account that still exists.
+      setDeleting(false)
+      setDeleteError(
+        (body?.error ?? "Account deletion failed. Please try again.") + revokeNote
+      )
+      return
+    }
+
+    await createClient().auth.signOut()
     router.push("/app/login")
     router.refresh()
   }
@@ -219,9 +244,15 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
               Delete your account?
             </p>
             <p className="mt-1.5 text-[13px] text-drift-muted">
-              This action cannot be undone. All your trips, media, and data will be
-              permanently deleted.
+              This action cannot be undone. All your trips, media, photos, and data
+              will be permanently deleted, and any connected Google account will be
+              disconnected.
             </p>
+            {deleteError && (
+              <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-[13px] font-medium text-red-700">
+                {deleteError}
+              </p>
+            )}
             <div className="mt-4 flex gap-2.5">
               <button
                 onClick={deleteAccount}
