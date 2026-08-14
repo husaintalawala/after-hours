@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
 import { revokeGoogleAccess } from "@/lib/drift/google"
@@ -240,6 +241,13 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
       {/* About */}
       <SectionLabel>About</SectionLabel>
       <section className="divide-y divide-drift-divider overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
+        <Link
+          href="/app/contact"
+          className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/5"
+        >
+          <span className="text-[14.5px]">Send feedback</span>
+          <span className="text-[13px] text-drift-muted">›</span>
+        </Link>
         <Row label="Version" value="Drift for Web" />
         <Row label="Maps" value="© Mapbox © OpenStreetMap" />
         <Row label="Places & photos" value="Powered by Google" />

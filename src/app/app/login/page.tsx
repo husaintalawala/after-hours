@@ -328,6 +328,18 @@ export default function LoginPage() {
                 </span>
               </SocialButton>
             </div>
+
+            {/* The only way to reach us for someone who can't get in — the
+                rest of the app is behind this screen. Mirrors iOS AuthView. */}
+            <div className="mt-6 text-center">
+              <a
+                href="/app/contact"
+                className="text-[12px] underline decoration-dotted underline-offset-4 transition-colors hover:text-aurora-ink"
+                style={{ color: SUBTITLE }}
+              >
+                Can&apos;t get in? Tell us what happened
+              </a>
+            </div>
           </>
         )}
       </div>
