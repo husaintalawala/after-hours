@@ -257,7 +257,12 @@ export default function ContactForm({ accountEmail }: { accountEmail: string | n
         </div>
         <h2 className="font-drift-display text-3xl text-aurora-ink">Posted</h2>
         <p className="max-w-sm text-[15px] leading-relaxed text-aurora-ink2">
-          {`Thank you — if it needs an answer, it'll come to ${accountEmail ?? replyEmail}.`}
+          {/* Signed out, echo the address they just typed — useful confirmation
+              they typed it right. Signed in, they never typed it here, so
+              repeating it confirms nothing and puts a real address on screen. */}
+          {franked
+            ? "Thank you — if it needs an answer, it'll come to your account email."
+            : `Thank you — if it needs an answer, it'll come to ${replyEmail}.`}
         </p>
       </div>
     )
@@ -344,7 +349,7 @@ export default function ContactForm({ accountEmail }: { accountEmail: string | n
                     FRANKED
                   </p>
                   <p className="mt-1 text-[12px] leading-relaxed text-aurora-ink2">
-                    {attachContext ? postmarkLine : `Replies go to ${accountEmail}`}
+                    {attachContext ? postmarkLine : "Replies go to your account email"}
                   </p>
                 </div>
                 <button
