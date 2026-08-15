@@ -345,11 +345,21 @@ export default function ContactForm({ accountEmail }: { accountEmail: string | n
                   <circle cx="5" cy="15.5" r="2.2" /><circle cx="19" cy="15.5" r="2.2" />
                 </svg>
                 <div className="min-w-0 flex-1">
+                  {/* Heads the toggle, so it has to name what the toggle does.
+                      This said FRANKED, which is not toggleable at all — being
+                      franked just means you are signed in and we already have
+                      your return address. Reading "FRANKED [switch]" implied you
+                      could turn that off. The switch attaches the postmark, so
+                      the heading is the postmark. The toggle's aria-label
+                      already said "Attach browser and page details"; the visible
+                      label now agrees with it. */}
                   <p className="text-[10px] font-semibold tracking-[0.1em] text-aurora-ink3">
-                    FRANKED
+                    POSTMARK
                   </p>
                   <p className="mt-1 text-[12px] leading-relaxed text-aurora-ink2">
-                    {attachContext ? postmarkLine : "Replies go to your account email"}
+                    {attachContext
+                      ? postmarkLine
+                      : "Not attached. Replies go to your account email."}
                   </p>
                 </div>
                 <button
