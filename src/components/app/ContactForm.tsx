@@ -296,7 +296,11 @@ export default function ContactForm({ accountEmail }: { accountEmail: string | n
           </div>
 
           {/* Stamps */}
-          <div className="order-1 flex gap-2.5 border-b border-aurora-border p-3.5 lg:order-none lg:col-start-2 lg:row-start-1">
+          {/* items-start, not the default stretch: on wide screens the message
+              column makes this grid row far taller than a stamp, and stretched
+              buttons grew to 130px around an 86px graphic — a visible gap under
+              the stamps and 44px of invisible click target below each one. */}
+          <div className="order-1 flex items-start gap-2.5 border-b border-aurora-border p-3.5 lg:order-none lg:col-start-2 lg:row-start-1">
             {CATEGORIES.map((option) => (
               <Stamp
                 key={option.key}
