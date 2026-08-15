@@ -52,6 +52,13 @@
   .nav-r{display:flex;align-items:center;gap:14px}
   .nav-login{font-weight:700;font-size:14.5px;color:#fff;transition:color .35s}
   .nav.solid .nav-login{color:var(--ink)}
+  /* Same treatment as .nav-login but a step quieter — it sits beside the two
+     real actions and should read as a utility link, not compete with them. */
+  .nav-contact{font-weight:600;font-size:14.5px;color:rgba(255,255,255,.78);transition:color .35s}
+  .nav-contact:hover{color:#fff}
+  .nav.solid .nav-contact{color:var(--muted)}
+  .nav.solid .nav-contact:hover{color:var(--ink)}
+  @media(max-width:700px){.nav-contact{display:none}}
   .nav-cta{font-weight:700;font-size:14px;background:var(--coral);color:#fff;padding:9px 17px;border-radius:100px;display:inline-flex;align-items:center;gap:7px;transition:transform .2s}
   .nav-cta:hover{transform:translateY(-1px)}
   .nav-cta svg{width:14px;height:14px}
@@ -89,6 +96,12 @@
   /* the single understated secondary path — iOS beta, well below the primary button */
   .hero-alt{display:inline-block;margin-top:15px;color:rgba(255,255,255,.82);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(255,255,255,.32);text-shadow:0 1px 10px rgba(0,0,0,.4);transition:color .2s}
   .hero-alt:hover{color:#fff;text-decoration-color:rgba(255,255,255,.7)}
+  /* Contact line under the outro CTA. Quieter than .hero-alt on purpose — it
+     sits below the two real actions and must not compete with them — but still
+     on-photo legible via the same text-shadow. */
+  .outro-contact{margin-top:26px;font-size:14px;color:rgba(255,255,255,.66);text-shadow:0 1px 10px rgba(0,0,0,.45)}
+  .outro-contact a{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(255,255,255,.45);transition:text-decoration-color .2s}
+  .outro-contact a:hover{text-decoration-color:#fff}
 
   /* ============ PHONE (one crisp device, native-res screens) ============ */
   .phone{position:relative;width:var(--pw,274px);padding:7px;border-radius:44px;
@@ -684,6 +697,10 @@
 <header class="nav" id="nav"><div class="nav-in">
   <a class="brand" href="#top"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:46px;height:46px;object-fit:contain;display:block;margin:-6px 0">Drift</a>
   <div class="nav-r">
+    <!-- Hidden under 700px: the brand plus three actions will not fit a 375px
+         phone. Small screens still reach it from the outro line and the
+         footer, both of which are always present. -->
+    <a class="nav-contact" href="/app/contact">Contact</a>
     <a class="nav-login" href="/app/login">Log in</a>
     <a class="nav-cta" href="/app">Open Drift</a>
   </div>
@@ -881,6 +898,14 @@
     <p class="beta-open">Plan it right in your browser, or grab the iPhone beta — no invite needed.</p>
     <div class="cta"><a class="btn light" href="/app" data-r>Start planning — free</a></div>
     <a class="hero-alt" href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener">or get the iPhone beta</a>
+    <!-- Contact sits at the end of the last full-bleed section rather than in
+         the footer's link list: it is the one thing on this page a person
+         reaches for when something is wrong, and it should not need scrolling
+         past the fold to find. Goes to the real form, not a mailto. -->
+    <p class="outro-contact">
+      Something broken, or an idea for us?
+      <a href="/app/contact">Say hello</a>
+    </p>
   </div>
 </section>
 
@@ -898,7 +923,7 @@
     </div>
     <div class="fcol"><h4>Get started</h4><a href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener">Get the iPhone beta</a><a href="/app/login">Open on the web</a><a href="/app/login">Log in</a></div>
     <div class="fcol"><h4>Features</h4><a href="#story">Trip planner</a><a href="#story">Trip tracker</a><a href="#story">Split costs</a><a href="#story">Your globe</a></div>
-    <div class="fcol"><h4>Company</h4><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="mailto:hello@after-hours.app">Contact</a></div>
+    <div class="fcol"><h4>Company</h4><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="/app/contact">Contact</a></div>
   </div>
   <div class="fbot">
     <span>© 2026 Drift · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a></span>

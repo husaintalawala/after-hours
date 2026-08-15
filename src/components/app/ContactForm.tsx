@@ -29,6 +29,14 @@ type CategoryKey = (typeof CATEGORIES)[number]["key"]
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// Mirrors looksLikeEmail in the submit-feedback edge function, on purpose. A
+// looser client gate turns an ordinary typo — "sam@gmail" with the TLD dropped
+// — into a 400 that this form can only report as "check your connection", so
+// the sender retries the same address forever. type="email" does not help: the
+// send control is a button, not a form submit, so constraint validation never
+// runs (and HTML5 would accept "sam@gmail" anyway).
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 /** The scalloped edge of a postage stamp, as one SVG path.
  *
  *  Quadratic curves rather than arcs, and inset by the bulge so the outline
@@ -176,7 +184,7 @@ export default function ContactForm({ accountEmail }: { accountEmail: string | n
   const franked = Boolean(accountEmail)
   const active = CATEGORIES.find((c) => c.key === category)!
   const canSend =
-    message.trim().length > 0 && (franked || replyEmail.includes("@")) && !busy
+    message.trim().length > 0 && (franked || EMAIL_RE.test(replyEmail.trim())) && !busy
 
   // Set after mount, not during render: `navigator` does not exist on the
   // server, so computing this inline made the server emit an empty string and
