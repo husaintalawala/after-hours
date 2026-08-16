@@ -76,12 +76,17 @@
      radial-gradient(90% 70% at 30% 80%,rgba(23,193,175,.09),rgba(23,193,175,0) 60%),
      radial-gradient(120% 80% at 50% 32%,rgba(6,11,18,0) 26%,rgba(6,11,18,.30) 100%),
      linear-gradient(180deg,rgba(6,11,18,.74) 0%,rgba(6,11,18,.24) 26%,rgba(6,11,18,.28) 54%,rgba(6,11,18,.66) 100%)}
-  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(84px,11vh,138px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
+  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(64px,8.5vh,116px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
   .stage-hero>*{pointer-events:auto}
   .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);padding:7px 15px;border-radius:100px}
   .laurel i{width:7px;height:7px;border-radius:50%;background:#2fd0be;box-shadow:0 0 10px #2fd0be}
-  .stage-hero h1{font-size:clamp(50px,9.4vw,112px);margin:18px 0 0;line-height:.98;text-shadow:0 2px 50px rgba(0,0,0,.45)}
-  .stage-hero h1 em{font-style:italic}
+  @media(max-width:700px){.stage-hero{top:clamp(104px,14vh,128px)}}
+  .stage-hero .kicker{display:block;font-family:var(--sans);font-weight:800;font-size:clamp(11px,1.05vw,13.5px);letter-spacing:.34em;text-transform:uppercase;color:#7df3e5;text-shadow:0 1px 16px rgba(0,0,0,.55)}
+  .stage-hero h1{font-size:clamp(54px,12.5vw,158px);margin:14px 0 0;line-height:.93;letter-spacing:-.015em;text-shadow:0 2px 50px rgba(0,0,0,.45)}
+  .stage-hero h1 em{font-style:italic;display:inline-block;padding-right:.05em;text-shadow:none;
+     background:linear-gradient(96deg,#a7f7ec 0%,#37d6c4 36%,#22b7d4 62%,#8b7bff 100%);
+     -webkit-background-clip:text;background-clip:text;color:transparent;
+     filter:drop-shadow(0 3px 30px rgba(55,214,196,.38))}
   .stage-hero .sub{font-size:clamp(16px,1.7vw,20px);color:rgba(255,255,255,.94);margin:16px auto 0;max-width:30ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.45)}
   .stage-hero .cta{margin-top:24px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
   .stage-hero .rate{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.92);display:inline-flex;align-items:center;gap:8px}
@@ -102,7 +107,8 @@
     .stage-photo picture{opacity:0;transition:opacity .95s ease .05s}
     html.lit .stage-photo picture{opacity:1}
     html.lit .stage-photo img{animation:heroBreath 2.8s var(--e) both}
-    .stage-hero h1,.stage-hero .sub,.stage-hero .cta,.stage-hero .hero-alt{opacity:0;transform:translateY(14px)}
+    .stage-hero .kicker,.stage-hero h1,.stage-hero .sub,.stage-hero .cta,.stage-hero .hero-alt{opacity:0;transform:translateY(14px)}
+    html.lit .stage-hero .kicker{animation:heroSet .7s var(--e) .08s forwards}
     html.lit .stage-hero h1{animation:heroSet .8s var(--e) .18s forwards}
     html.lit .stage-hero .sub{animation:heroSet .8s var(--e) .34s forwards}
     html.lit .stage-hero .cta{animation:heroSet .8s var(--e) .5s forwards}
@@ -732,6 +738,7 @@
     <div class="stage-scrim" id="escrim"></div>
     <!-- hero copy — fades away as the phone rises into frame -->
     <div class="stage-hero" id="ehero">
+      <span class="kicker">The group-trip app</span>
       <h1 data-ghost>Every trip,<br><em>together.</em></h1>
       <p class="sub">Plan it with your people, track the journey and split every cost — then watch it map itself.</p>
       <div class="cta">
