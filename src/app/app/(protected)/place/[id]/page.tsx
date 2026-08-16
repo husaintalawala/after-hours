@@ -20,7 +20,7 @@ export default async function PlacePage({
   // getSession() is a local JWT decode (no network), so awaiting it first to
   // learn the user id costs nothing; then both network calls race in Promise.all
   // instead of the Google call blocking the trips query (or vice-versa).
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

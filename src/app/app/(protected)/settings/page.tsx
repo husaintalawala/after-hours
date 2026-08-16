@@ -3,7 +3,7 @@ import type { ProfileRow } from "@/lib/db-types"
 import SettingsShell from "@/components/app/settings/SettingsShell"
 
 export default async function SettingsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

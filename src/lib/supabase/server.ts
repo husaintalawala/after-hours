@@ -8,8 +8,11 @@ import { AUTH_COOKIE_OPTIONS } from "./cookie-options"
 // cookie store is read-only, so setAll is wrapped in try/catch — the
 // middleware (see src/middleware.ts) is what actually refreshes the session
 // cookie on each request.
-export function createClient() {
-  const cookieStore = cookies()
+// Next 15 made cookies() async, so this is async too and every caller awaits
+// it. The cookie store is resolved once here rather than inside getAll/setAll,
+// which are synchronous callbacks that cannot await.
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

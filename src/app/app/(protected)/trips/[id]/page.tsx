@@ -45,7 +45,7 @@ export default async function TripDetailPage({
   params: { id: string }
   searchParams?: { ask?: string }
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: tripRaw } = await supabase
     .from("trips")

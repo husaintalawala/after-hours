@@ -9,7 +9,7 @@ import { tripCover } from "@/lib/drift/tripCover"
 // desktop trip rail / mobile sheet). See HomeShell for the layout.
 
 export default async function TripsHome() {
-  const supabase = createClient()
+  const supabase = await createClient()
   // Middleware already verified this request's user; cookie read is enough here.
   const {
     data: { session },

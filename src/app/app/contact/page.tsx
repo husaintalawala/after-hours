@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ContactPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

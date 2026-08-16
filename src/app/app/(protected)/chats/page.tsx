@@ -23,7 +23,7 @@ interface SessionRow {
 }
 
 export default async function ChatsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

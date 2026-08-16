@@ -14,7 +14,7 @@ export interface DriftUpstream {
  * reaches the browser.
  */
 export async function getDriftUpstream(): Promise<DriftUpstream | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

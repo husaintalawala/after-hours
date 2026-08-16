@@ -14,7 +14,7 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 // viewer (RLS returns only public — or buddy-shared — trips of others).
 
 export default async function ProfilePage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

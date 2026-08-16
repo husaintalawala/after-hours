@@ -18,7 +18,7 @@ export default async function PeoplePage({
   searchParams: { tab?: string }
 }) {
   const tab = searchParams.tab === "following" ? "following" : "followers"
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

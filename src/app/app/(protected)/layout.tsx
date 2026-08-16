@@ -17,7 +17,7 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   // Fast gate: middleware already verified this request's user against
   // Supabase (updateSession → getUser network call). Re-verifying here on
   // every navigation added a second auth round-trip per click — read the

@@ -7,7 +7,7 @@ import DiscoverShell, { type DiscoverPlace } from "@/components/app/discover/Dis
 // exists (iOS trip-anchored mode); otherwise opens in search-first mode.
 
 export default async function DiscoverPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   // Middleware already verified this request's user; cookie read is enough here.
   const {
     data: { session },

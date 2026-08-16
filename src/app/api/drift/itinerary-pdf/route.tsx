@@ -46,7 +46,7 @@ export async function GET(request: Request) {
   const tripId = new URL(request.url).searchParams.get("trip")
   if (!tripId) return json({ ok: false, error: "missing trip" }, 400)
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

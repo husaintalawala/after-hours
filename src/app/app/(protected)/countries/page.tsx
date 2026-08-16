@@ -14,7 +14,7 @@ import CountriesMapClient from "@/components/app/countries/CountriesMapClient"
 const WORLD_COUNTRIES = 195
 
 export default async function CountriesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

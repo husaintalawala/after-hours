@@ -19,7 +19,10 @@ export interface TripDetail {
 }
 
 // Match the exact (fully-parameterized) type the server client returns.
-type DB = ReturnType<typeof import("@/lib/supabase/server").createClient>
+// Awaited<> because createClient became async in the Next 15 migration
+// (cookies() is async now) — without it this resolves to a Promise and every
+// .from() on it fails to type-check.
+type DB = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>
 
 /**
  * Fetch a trip + its steps (RLS-scoped) and assemble the per-destination day

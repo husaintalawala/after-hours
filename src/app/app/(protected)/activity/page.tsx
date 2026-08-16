@@ -14,7 +14,7 @@ interface NotifRow {
 }
 
 export default async function ActivityPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   // Middleware already verified this request's user; cookie read is enough here.
   const {
     data: { session },
