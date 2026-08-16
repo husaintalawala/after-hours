@@ -72,21 +72,23 @@
   .stage-photo{position:absolute;inset:0;z-index:0;will-change:opacity}
   .stage-photo img{width:100%;height:100%;object-fit:cover;object-position:center 46%;transform:scale(1.05);filter:saturate(1.1) contrast(1.05) brightness(.97)}
   .stage-scrim{position:absolute;inset:0;z-index:1;will-change:opacity;background:
+     radial-gradient(46% 36% at 50% 30%,rgba(5,10,16,.52),rgba(5,10,16,0) 72%),
      radial-gradient(80% 60% at 76% 6%,rgba(109,95,232,.10),rgba(109,95,232,0) 55%),
      radial-gradient(90% 70% at 30% 80%,rgba(23,193,175,.09),rgba(23,193,175,0) 60%),
      radial-gradient(120% 80% at 50% 32%,rgba(6,11,18,0) 26%,rgba(6,11,18,.30) 100%),
      linear-gradient(180deg,rgba(6,11,18,.74) 0%,rgba(6,11,18,.24) 26%,rgba(6,11,18,.28) 54%,rgba(6,11,18,.66) 100%)}
-  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(64px,8.5vh,116px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
+  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(74px,9.6vh,126px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
   .stage-hero>*{pointer-events:auto}
   .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);padding:7px 15px;border-radius:100px}
   .laurel i{width:7px;height:7px;border-radius:50%;background:#2fd0be;box-shadow:0 0 10px #2fd0be}
   @media(max-width:700px){.stage-hero{top:clamp(104px,14vh,128px)}}
-  .stage-hero .kicker{display:block;font-family:var(--sans);font-weight:800;font-size:clamp(11px,1.05vw,13.5px);letter-spacing:.34em;text-transform:uppercase;color:#7df3e5;text-shadow:0 1px 16px rgba(0,0,0,.55)}
+  .stage-hero .kicker{display:block;font-family:var(--sans);font-weight:800;font-size:clamp(11px,1.05vw,13.5px);letter-spacing:.22em;text-indent:.22em;text-transform:uppercase;color:#7df3e5;text-shadow:0 1px 16px rgba(0,0,0,.55)}
   .stage-hero h1{font-size:clamp(54px,12.5vw,158px);margin:14px 0 0;line-height:.93;letter-spacing:-.015em;text-shadow:0 2px 50px rgba(0,0,0,.45)}
-  .stage-hero h1 em{font-style:italic;display:inline-block;padding-right:.05em;text-shadow:none;
-     background:linear-gradient(96deg,#a7f7ec 0%,#37d6c4 36%,#22b7d4 62%,#8b7bff 100%);
+  .stage-hero h1 em{font-style:normal;display:inline-block;padding-right:.05em;text-shadow:none;
+     background:linear-gradient(94deg,#37d6c4 0%,#2cc9ce 52%,#22b7d4 100%);
      -webkit-background-clip:text;background-clip:text;color:transparent;
-     filter:drop-shadow(0 3px 30px rgba(55,214,196,.38))}
+     filter:drop-shadow(0 2px 14px rgba(34,183,212,.30))}
+  .stage-hero h1 em .tdot{background:linear-gradient(120deg,#22b7d4 0%,#8b7bff 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
   .stage-hero .sub{font-size:clamp(16px,1.7vw,20px);color:rgba(255,255,255,.94);margin:16px auto 0;max-width:30ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.45)}
   .stage-hero .cta{margin-top:24px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
   .stage-hero .rate{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.92);display:inline-flex;align-items:center;gap:8px}
@@ -561,7 +563,7 @@
   .btn:hover{background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 46%),linear-gradient(132deg,#14b8a6 0%,#0e8c7e 42%,#5646c9 100%);transform:translateY(-2px)}
   .btn.light{background:#fff}   /* hero button on photo stays crisp white */
   .btn.light:hover{background:#fff}
-  .nav-cta{background:linear-gradient(132deg,#37d6c4,#22b7d4 46%,#6b5cff);box-shadow:0 10px 22px -10px rgba(34,183,212,.6)}
+  .nav-cta{color:#04231f;background:linear-gradient(132deg,#37d6c4,#22b7d4);box-shadow:0 10px 22px -10px rgba(34,183,212,.6)}
 
   /* gradient headline accents + eyebrows */
   .eyebrow{background:linear-gradient(100deg,#0e8c7e,#6d5fe8);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -739,7 +741,7 @@
     <!-- hero copy — fades away as the phone rises into frame -->
     <div class="stage-hero" id="ehero">
       <span class="kicker">The group-trip app</span>
-      <h1 data-ghost>Every trip,<br><em>together.</em></h1>
+      <h1 data-ghost>Every trip,<br><em>together<span class="tdot">.</span></em></h1>
       <p class="sub">Plan it with your people, track the journey and split every cost — then watch it map itself.</p>
       <div class="cta">
         <a class="btn light" href="/app" data-ph-cta>Start planning — free</a>
@@ -1017,7 +1019,7 @@
   function measure(){VH=innerHeight;ST=story.offsetTop;TOTAL=story.offsetHeight-innerHeight;}
   function phoneTransform(i,rise){
     var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
-    var riseF=(innerWidth<900?52:66)/100;                 // fraction of viewport, in px (stable vs vh units)
+    var riseF=(innerWidth<900?52:73)/100;                 // fraction of viewport, in px (stable vs vh units)
     var ty=(rise*riseF*VH).toFixed(1);
     stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)';
   }
