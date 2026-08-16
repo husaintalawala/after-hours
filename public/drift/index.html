@@ -1033,7 +1033,7 @@
     }
   }
   // cache viewport + story metrics so the mobile URL-bar hide/show doesn't jolt the scroll math
-  var VH=innerHeight, ST=story.offsetTop, TOTAL=story.offsetHeight-innerHeight, PHONE_REST=0;
+  var VH=innerHeight, ST=story.offsetTop, TOTAL=story.offsetHeight-innerHeight, PHONE_REST=0, PHONE_SCALE=1;
   function measure(){
     VH=innerHeight;ST=story.offsetTop;TOTAL=story.offsetHeight-innerHeight;
     // The phone's at-rest offset was a blind fraction of VH, so every copy or
@@ -1046,13 +1046,34 @@
       var copyBottom=ehero.offsetTop+ehero.offsetHeight;
       PHONE_REST=Math.max(PHONE_REST,copyBottom-stagePhone.offsetTop+30);
     }
+    // Mobile: the phone frame SIZES ITSELF to the space between the tallest
+    // chapter block and the tabs. Fixed vh offsets raced fixed px heights and
+    // lost on short Safari viewports (tabs rendered ON the phone); deriving
+    // the budget means the tabs sit below the bezel on every device.
+    PHONE_SCALE=1;
+    if(innerWidth<900&&stagePhone){
+      var phoneEl=stagePhone.querySelector('.phone');
+      var tabsEl=document.getElementById('tabs');
+      if(phoneEl&&tabsEl){
+        var cb=0;
+        document.querySelectorAll('#chapters .chap').forEach(function(c){
+          cb=Math.max(cb,c.offsetTop+c.offsetHeight);
+        });
+        var top=cb+10, limit=tabsEl.offsetTop-10;
+        // scale, don't narrow: transform keeps the card layout identical (no
+        // text reflow, no fresh overflows), the visual bottom rises to fit
+        PHONE_SCALE=Math.max(.55,Math.min(1,(limit-top)/phoneEl.offsetHeight));
+        stagePhone.style.marginTop=top+'px';
+        stagePhone.style.transformOrigin='50% 0';
+      }
+    }
   }
   measure();
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){measure();onStory();});}
   function phoneTransform(i,rise){
     var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
     var ty=(rise*PHONE_REST).toFixed(1);                  // rest offset derived in measure()
-    stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)';
+    stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)'+(PHONE_SCALE<1?' scale('+PHONE_SCALE.toFixed(3)+')':'');
   }
   function onStory(){
     var r=story.getBoundingClientRect();
