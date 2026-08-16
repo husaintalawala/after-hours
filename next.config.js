@@ -24,6 +24,35 @@ const nextConfig = {
       "/api/drift/itinerary-pdf/route": ["./src/lib/pdf/fonts/**"],
     },
   },
+  // Security response headers. There were none at all — confirmed by curling
+  // production — so every one of these was absent in the live response.
+  //
+  // Deliberately NOT adding a blocking Content-Security-Policy here: this app
+  // loads Mapbox, Google Maps, PostHog and a third-party affiliate script, and
+  // a CSP written without measuring which origins those actually pull would
+  // break the site. That one is tracked separately and wants Report-Only data
+  // first, not a guess shipped days before a review.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // Vercel terminates TLS; this stops a downgrade on a subsequent visit.
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          // Stops MIME sniffing turning an upload into executable script.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Clickjacking. Nothing in this app is meant to be framed.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          // Don't leak trip ids / place ids in the Referer to third parties.
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Only the capabilities the web app actually uses. geolocation is
+          // left enabled for self — the discover flow uses it.
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)" },
+        ],
+      },
+    ]
+  },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   env: {

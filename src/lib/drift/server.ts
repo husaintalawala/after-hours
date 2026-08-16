@@ -15,6 +15,20 @@ export interface DriftUpstream {
  */
 export async function getDriftUpstream(): Promise<DriftUpstream | null> {
   const supabase = await createClient()
+
+  // getUser() before getSession(), deliberately. getSession() only decodes the
+  // cookie — it does not ask the Auth server whether that JWT is still valid,
+  // so on its own it trusts client-supplied input. The middleware DOES call
+  // getUser(), but its matcher excludes `api/`, so these route handlers get no
+  // revalidation from it. The edge functions downstream validate too, so this
+  // was defence-in-depth rather than an open door — but an unvalidated session
+  // must not be the gate on our side of the call.
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser()
+  if (userErr || !user) return null
+
   const {
     data: { session },
   } = await supabase.auth.getSession()

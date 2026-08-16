@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   // URL smuggled in via the email link (open-redirect guard).
   const rawNext = searchParams.get("next")
   const next =
-    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/app"
+    isSafeNext(rawNext) ? rawNext! : "/app"
 
   // Supabase signals provider/flow errors as query params on the redirect.
   const upstreamError =
@@ -87,4 +87,18 @@ export async function GET(request: NextRequest) {
     )
   }
   return response
+}
+
+/// Only same-origin, absolute paths. `startsWith("/") && !startsWith("//")`
+/// was not enough: browsers normalise a backslash to a forward slash in the
+/// authority position, so `/\evil.com` becomes `//evil.com` — a
+/// protocol-relative URL that redirects off-site. Reject any second character
+/// that is a slash or a backslash, and reject control characters outright.
+function isSafeNext(v: string | null): boolean {
+  if (!v || v.length < 1) return false
+  if (v[0] !== "/") return false
+  if (v[1] === "/" || v[1] === "\\") return false
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1f\x7f]/.test(v)) return false
+  return true
 }
