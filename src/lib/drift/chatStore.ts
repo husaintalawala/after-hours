@@ -14,6 +14,46 @@ const db = (): any => createClient()
 export interface StoredMessage {
   role: string
   text: string
+  /** Author of a user turn on a SHARED trip thread. Absent on personal chats. */
+  userId?: string | null
+}
+
+/** Signed-in user id, for deciding which turns are the viewer's own. */
+export async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const {
+      data: { user },
+    } = await db().auth.getUser()
+    return user?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Display names for a shared thread's authors, in ONE query.
+ *
+ * Not a PostgREST embed: trip_chat_messages.user_id references auth.users, not
+ * public.profiles, so `select("...,profiles(username)")` returns PGRST200 and
+ * the whole load fails closed to a blank thread. profiles' only SELECT policy
+ * is `auth.uid() IS NOT NULL`, so any signed-in member can resolve any author.
+ */
+export async function loadAuthorNames(ids: string[]): Promise<Record<string, string>> {
+  const unique = Array.from(new Set(ids.filter(Boolean)))
+  if (!unique.length) return {}
+  try {
+    const { data } = await db()
+      .from("profiles")
+      .select("id,username,display_name")
+      .in("id", unique)
+    const out: Record<string, string> = {}
+    for (const r of data ?? []) {
+      out[r.id] = (r.display_name || "").trim() || (r.username || "").trim() || "Traveler"
+    }
+    return out
+  } catch {
+    return {}
+  }
 }
 
 export async function ensureTripSession(tripId: string): Promise<string | null> {
@@ -57,14 +97,20 @@ export async function loadSessionMessages(sessionId: string): Promise<StoredMess
     const supabase = db()
     const { data } = await supabase
       .from("trip_chat_messages")
-      .select("role,text,created_at")
+      .select("role,text,created_at,user_id")
+      // Newest-first then reversed. Ordering ascending WITH a limit returns the
+      // OLDEST 100, which silently pins a long thread to its beginning.
+      .order("created_at", { ascending: false })
       .eq("session_id", sessionId)
-      .order("created_at", { ascending: true })
       .limit(100)
-    return (data ?? []).map((m: { role: string; text: string }) => ({
-      role: m.role,
-      text: m.text,
-    }))
+    return (data ?? [])
+      .slice()
+      .reverse()
+      .map((m: { role: string; text: string; user_id?: string | null }) => ({
+        role: m.role,
+        text: m.text,
+        userId: m.user_id ?? null,
+      }))
   } catch {
     return []
   }
@@ -83,14 +129,21 @@ export async function loadTripMessages(tripId: string): Promise<StoredMessage[]>
     const supabase = db()
     const { data } = await supabase
       .from("trip_chat_messages")
-      .select("role,text,created_at")
+      .select("role,text,created_at,user_id")
       .eq("trip_id", tripId)
-      .order("created_at", { ascending: true })
+      // Newest-first then reversed — see loadSessionMessages. This matters more
+      // here: a shared group thread is several members' turns combined, so the
+      // oldest-100 bug shows the start of the trip instead of the current state.
+      .order("created_at", { ascending: false })
       .limit(100)
-    return (data ?? []).map((m: { role: string; text: string }) => ({
-      role: m.role,
-      text: m.text,
-    }))
+    return (data ?? [])
+      .slice()
+      .reverse()
+      .map((m: { role: string; text: string; user_id?: string | null }) => ({
+        role: m.role,
+        text: m.text,
+        userId: m.user_id ?? null,
+      }))
   } catch {
     return []
   }

@@ -14,7 +14,8 @@ import {
 import { applyCreateStep, applyRemoveStep, type CreateStepOp } from "@/lib/drift/quickOp"
 import { renderRich } from "@/lib/drift/richText"
 import { addDays, dateOnly } from "@/lib/drift/dates"
-import { ensureTripSession, loadTripMessages, saveMessage } from "@/lib/drift/chatStore"
+import { ensureTripSession, loadTripMessages, saveMessage, getCurrentUserId, loadAuthorNames }
+from "@/lib/drift/chatStore"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 
 // Trip-scoped Ask Drift: streaming answers, photo place-card carousel
@@ -37,6 +38,9 @@ interface Msg {
   id: string
   role: "user" | "assistant"
   text: string
+  /** Author of a user turn on a shared trip thread; absent = written by me. */
+  authorId?: string | null
+  authorName?: string | null
   image?: string
   cards?: HydratedCard[]
   followups?: string[]
@@ -76,6 +80,7 @@ export default function TripChat({
   // count messages instead of chat starts.
   const startedRef = useRef(false)
   const [messages, setMessages] = useState<Msg[]>([])
+  const [myId, setMyId] = useState<string | null>(null)
   const [streaming, setStreaming] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [input, setInput] = useState("")
@@ -144,17 +149,30 @@ export default function TripChat({
       // when older turns live under a different/merged session id.
       const sid = await ensureTripSession(tripId)
       if (alive && sid) sessionRef.current = sid
-      const history = await loadTripMessages(tripId)
-      if (!alive || !history.length) return
-      setMessages((m) =>
-        m.length
-          ? m
-          : history.map((h) => ({
-              id: nextId(),
-              role: h.role === "assistant" ? "assistant" : "user",
-              text: h.text,
-            }))
+      const [history, me] = await Promise.all([
+        loadTripMessages(tripId),
+        getCurrentUserId(),
+      ])
+      if (!alive) return
+      if (alive && me) setMyId(me)
+      if (!history.length) return
+      const names = await loadAuthorNames(
+        history.map((h) => h.userId ?? "").filter((id) => id && id !== me),
       )
+      if (!alive) return
+      const hydrated: Msg[] = history.map((h) => ({
+        id: nextId(),
+        role: h.role === "assistant" ? "assistant" : "user",
+        text: h.text,
+        authorId: h.userId ?? null,
+        authorName: h.userId ? names[h.userId] ?? null : null,
+      }))
+      // Merge history UNDER whatever is already on screen rather than bailing
+      // when the list is non-empty. On the mobile dock path TripDockComposer
+      // mounts this with a non-null initialSend, which pushes a message
+      // synchronously before these awaits resolve — so `m.length` was already 1
+      // and the ENTIRE fetched transcript was thrown away.
+      setMessages((m) => [...hydrated, ...m])
     })()
     return () => {
       alive = false
@@ -380,7 +398,7 @@ export default function TripChat({
 
         {messages.map((m) => (
           <div key={m.id}>
-            {m.role === "user" ? (
+            {m.role === "user" && (!m.authorId || m.authorId === myId) ? (
               <div className="text-right">
                 {m.image && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -395,6 +413,20 @@ export default function TripChat({
                     className="inline-block max-w-[85%] rounded-[18px] rounded-br-[4px] px-4 py-3 text-left text-[14.5px] leading-relaxed text-white shadow-[0_8px_20px_-10px_rgba(224,86,59,0.5)]"
                     style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
                   >
+                    {m.text}
+                  </div>
+                )}
+              </div>
+            ) : m.role === "user" ? (
+              /* Someone else's turn on a shared trip thread. Left-aligned and
+                 neutral: the gradient pill above means "you said this", so
+                 painting a buddy's question in it is misattribution. */
+              <div className="text-left">
+                <p className="mb-1 text-[11px] font-semibold text-drift-ink/55">
+                  {m.authorName || "Traveler"}
+                </p>
+                {m.text && (
+                  <div className="inline-block max-w-[85%] rounded-[18px] rounded-bl-[4px] border border-drift-ink/10 bg-drift-ink/[0.04] px-4 py-3 text-left text-[14.5px] leading-relaxed text-drift-ink">
                     {m.text}
                   </div>
                 )}
