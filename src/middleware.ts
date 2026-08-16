@@ -17,7 +17,11 @@ export async function middleware(req: NextRequest) {
   // auth-session cookie is refreshed on every app request.
   const isAppPath = (p: string, base: string) =>
     p === base || p.startsWith(base + "/");
-  if (isAppPath(pathname, "/app") || isAppPath(pathname, "/auth")) {
+  // /trip/[id] is the PUBLIC share page (anon-key fetch, no auth gate) — the
+  // marketing outro's "wander through a live trip" links there, and share
+  // links use it too. Without this carve-out the marketing rewrite turns it
+  // into /drift/trip/<id>.html, which does not exist → 404.
+  if (isAppPath(pathname, "/app") || isAppPath(pathname, "/auth") || isAppPath(pathname, "/trip")) {
     return await updateSession(req);
   }
 
