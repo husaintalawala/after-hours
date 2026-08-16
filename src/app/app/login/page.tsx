@@ -47,10 +47,10 @@ export default function LoginPage() {
 
   const supabase = createClient()
 
-  // Cloudflare Turnstile — the site key is public. Rendering the widget now means
-  // enabling Captcha in Supabase (Auth → Attack Protection) needs no client
-  // redeploy: legit users already carry a token; bots that don't run the widget
-  // are rejected server-side. Harmless while Captcha is off (token is ignored).
+  // Cloudflare Turnstile — the site key is public. Captcha is now ENFORCED in
+  // Supabase (Auth → Attack Protection), so a submit without a token is a hard
+  // 400 (`captcha_failed`) rather than a no-op: the submit and resend buttons
+  // below stay disabled until the widget hands back a token.
   const TURNSTILE_SITE_KEY =
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAD-cdaIM6leMfipc"
 
@@ -85,6 +85,19 @@ export default function LoginPage() {
     if (w && widgetIdRef.current) { w.reset(widgetIdRef.current); setCaptchaToken(null) }
   }
 
+  /// Guards every captcha-gated auth call. Deliberately NOT a `disabled` on the
+  /// buttons: the widget 403s on any origin outside its allow-list (localhost,
+  /// for one) and can be blocked by an extension or a corporate proxy, and a
+  /// permanently greyed-out button with no explanation is a worse dead end than
+  /// a message you can act on. Sending anyway is not an option — Supabase now
+  /// rejects a tokenless request outright with a message about captcha
+  /// protection that means nothing to the person reading it.
+  function missingCaptcha() {
+    if (captchaToken) return false
+    setError("Still verifying you're human — give it a second and try again.")
+    return true
+  }
+
   // Surface auth-callback failures (?error=...) — a silent bounce back to
   // this page is exactly what reads as "login got stuck".
   useEffect(() => {
@@ -114,6 +127,7 @@ export default function LoginPage() {
       }
       return signInWithPassword()
     }
+    if (missingCaptcha()) return
     setBusy(true)
     setError(null)
     capture(AnalyticsEvent.LoginAttempt, { method: "magic_link" })
@@ -132,6 +146,7 @@ export default function LoginPage() {
   // protected layout picks up the freshly-set session cookie.
   async function signInWithPassword() {
     if (!password || busy) return
+    if (missingCaptcha()) return
     setBusy(true)
     setError(null)
     capture(AnalyticsEvent.LoginAttempt, { method: "password" })
@@ -150,6 +165,7 @@ export default function LoginPage() {
   }
 
   async function resend() {
+    if (missingCaptcha()) return
     setResending(true)
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -197,6 +213,7 @@ export default function LoginPage() {
           <SentState
             email={email}
             resending={resending}
+            error={error}
             onBack={() => setSent(false)}
             onResend={resend}
           />
@@ -280,8 +297,6 @@ export default function LoginPage() {
                 </p>
               )}
 
-              <div ref={turnstileRef} className="mt-4 flex justify-center empty:mt-0" />
-
               <button
                 type="submit"
                 disabled={busy}
@@ -342,6 +357,13 @@ export default function LoginPage() {
             </div>
           </>
         )}
+
+        {/* Outside the sent/unsent ternary on purpose. This lived inside the
+            form, so switching to "check your inbox" unmounted the widget —
+            and Resend then had no widget and no token, which Supabase now
+            rejects outright. Keeping it mounted in both states means the
+            reset after a send always produces a fresh token to resend with. */}
+        <div ref={turnstileRef} className="mt-4 flex justify-center empty:mt-0" />
       </div>
     </main>
   )
@@ -350,11 +372,13 @@ export default function LoginPage() {
 function SentState({
   email,
   resending,
+  error,
   onBack,
   onResend,
 }: {
   email: string
   resending: boolean
+  error: string | null
   onBack: () => void
   onResend: () => void
 }) {
@@ -398,6 +422,14 @@ function SentState({
         >
           {resending ? "Sending…" : "Resend link"}
         </button>
+
+        {/* Resend can fail (captcha not ready, rate limit) and this screen had
+            nowhere to say so — the click just did nothing. */}
+        {error && (
+          <p className="mt-3 text-[12px]" style={{ color: "rgba(255,99,88,0.9)" }}>
+            {error}
+          </p>
+        )}
 
         <p className="mt-4 text-[12px]" style={{ color: SUBTITLE }}>
           Check your spam folder if you don&apos;t see it.
