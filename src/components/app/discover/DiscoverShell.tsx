@@ -257,6 +257,10 @@ export default function DiscoverShell({
             <p className="pt-6 text-center text-[14px] text-drift-text-tertiary">Nothing found here yet.</p>
           )}
           <div className="grid grid-cols-2 gap-4">
+            {fetchAnchor &&
+              loading &&
+              results.length === 0 &&
+              Array.from({ length: 4 }).map((_, i) => <ResultCardSkeleton key={i} />)}
             {results.map((r) => (
               <ResultCard
                 key={`${r.source}-${r.id}`}
@@ -301,6 +305,14 @@ export default function DiscoverShell({
           </p>
         )}
         <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {fetchAnchor &&
+            loading &&
+            results.length === 0 &&
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="w-[300px] shrink-0 snap-center">
+                <CarouselCardSkeleton />
+              </div>
+            ))}
           {results.map((r) => (
             <div key={`${r.source}-${r.id}`} className="w-[300px] shrink-0 snap-center">
               <CarouselCard
@@ -425,6 +437,33 @@ function CarouselCard({
             </svg>
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Loading placeholders in the exact grids the results land in, so the swap
+// from skeleton → cards doesn't reflow. Desktop 2-col card / mobile carousel.
+function ResultCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
+      <div className="h-[132px] w-full animate-pulse bg-aurora-glass2 motion-reduce:animate-none" />
+      <div className="space-y-2 p-3">
+        <div className="h-4 w-4/5 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+      </div>
+    </div>
+  )
+}
+
+function CarouselCardSkeleton() {
+  return (
+    <div className="flex gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-2.5 shadow-[0_14px_34px_-18px_rgba(0,0,0,0.6)]">
+      <div className="h-[86px] w-[86px] shrink-0 animate-pulse rounded-xl bg-aurora-glass2 motion-reduce:animate-none" />
+      <div className="min-w-0 flex-1 space-y-2 py-1">
+        <div className="h-4 w-3/4 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
       </div>
     </div>
   )

@@ -438,7 +438,18 @@ function HistoryThread({ session }: { session: ChatSessionVM }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="mx-auto w-full max-w-[780px] min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6">
-        {msgs === null && <p className="text-[14px] text-drift-text-tertiary">Loading…</p>}
+        {msgs === null && (
+          <>
+            <div className="flex justify-end">
+              <div className="h-11 w-2/5 animate-pulse rounded-[18px] rounded-br-[4px] bg-aurora-glass2 motion-reduce:animate-none" />
+            </div>
+            <div className="h-4 w-3/4 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+            <div className="flex justify-end">
+              <div className="h-11 w-1/3 animate-pulse rounded-[18px] rounded-br-[4px] bg-aurora-glass2 motion-reduce:animate-none" />
+            </div>
+          </>
+        )}
         {msgs?.length === 0 && (
           <p className="text-[14px] text-drift-text-tertiary">No messages in this chat yet.</p>
         )}
