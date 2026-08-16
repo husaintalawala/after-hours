@@ -1033,12 +1033,25 @@
     }
   }
   // cache viewport + story metrics so the mobile URL-bar hide/show doesn't jolt the scroll math
-  var VH=innerHeight, ST=story.offsetTop, TOTAL=story.offsetHeight-innerHeight;
-  function measure(){VH=innerHeight;ST=story.offsetTop;TOTAL=story.offsetHeight-innerHeight;}
+  var VH=innerHeight, ST=story.offsetTop, TOTAL=story.offsetHeight-innerHeight, PHONE_REST=0;
+  function measure(){
+    VH=innerHeight;ST=story.offsetTop;TOTAL=story.offsetHeight-innerHeight;
+    // The phone's at-rest offset was a blind fraction of VH, so every copy or
+    // viewport change re-ran the same race between the beta link and the
+    // bezel. Now it is derived: at least the old fraction, but never less
+    // than "just below the hero copy's real bottom edge".
+    var riseF=(innerWidth<900?52:73)/100;
+    PHONE_REST=riseF*VH;
+    if(ehero&&stagePhone){
+      var copyBottom=ehero.offsetTop+ehero.offsetHeight;
+      PHONE_REST=Math.max(PHONE_REST,copyBottom-stagePhone.offsetTop+30);
+    }
+  }
+  measure();
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){measure();onStory();});}
   function phoneTransform(i,rise){
     var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
-    var riseF=(innerWidth<900?52:73)/100;                 // fraction of viewport, in px (stable vs vh units)
-    var ty=(rise*riseF*VH).toFixed(1);
+    var ty=(rise*PHONE_REST).toFixed(1);                  // rest offset derived in measure()
     stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)';
   }
   function onStory(){
