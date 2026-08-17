@@ -197,9 +197,11 @@ Deploying is now a push: Vercel builds `main` as production, other branches get
 preview URLs. Nothing in this repo pins that — it is Vercel dashboard
 configuration, so there is no file here to read it out of.
 
-Leftovers from the old path that are dead but still present: the `gh-pages`
-branch, `public/CNAME`, `out/` in `.gitignore`, and `gh-pages@^6.3.0` in
-`devDependencies` with no script invoking it.
+The old path left debris behind, all of it cleared on 2026-08-16: the
+`gh-pages` branch (last commit `592a4f5`, if it ever needs recovering),
+`public/CNAME`, `out/` in `.gitignore`, `gh-pages@^6.3.0` in `devDependencies`
+with no script invoking it, and a `public/public/` duplicate carrying 1.4 MB of
+unreferenced textures. Phases 5 and 6 above still describe how they got there.
 
 ### The Drift web app
 

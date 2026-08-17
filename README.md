@@ -72,9 +72,9 @@ Vercel builds `main` as production — push and it ships. Other branches get pre
 git push origin main
 ```
 
-`package.json` has `"deploy": "vercel --prod"`, but the Vercel CLI is not a dependency here — that script only runs if you have installed it globally yourself.
+There is no manual deploy script. One existed (`"deploy": "vercel --prod"`) but the Vercel CLI was never a dependency here, so it only ever ran for someone who had installed it globally — it has been removed rather than left as a trap.
 
-gh-pages is retired. Leftovers that mean nothing now: the `gh-pages` branch, `public/CNAME`, the `gh-pages` devDependency (no script invokes it), and `out/` in `.gitignore`. The deploy section of DEVLOG.md describes that old static-export setup — this app has middleware, route handlers, and response headers, so it can no longer be statically exported.
+gh-pages is retired, and as of 2026-08-16 its leftovers are gone too — the `gh-pages` branch, `public/CNAME`, the `gh-pages` devDependency, `out/` in `.gitignore`, and a stray `public/public/` duplicate. The deploy section of DEVLOG.md describes that old static-export setup — this app has middleware, route handlers, and response headers, so it can no longer be statically exported.
 
 ---
 

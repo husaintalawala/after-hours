@@ -100,13 +100,11 @@ Scripts in `package.json`:
 "scripts": {
   "dev": "next dev",
   "build": "next build",
-  "start": "next start",
-  "deploy": "vercel --prod",
-  "lint": "next lint"
+  "start": "next start"
 }
 ```
 
-Two of those are dead on this tree. `next lint` was removed in Next 16 (this repo runs 16.3.1 — `npx next lint --help` lists no `lint` command), so `npm run lint` errors out. And `deploy` needs a Vercel CLI that is not installed here — see Step 8.
+There were two more, `"deploy": "vercel --prod"` and `"lint": "next lint"`, and both were dead: `next lint` was removed in Next 16 (this repo runs 16.3.1), and no ESLint or config is installed here anyway, while `deploy` needed a Vercel CLI that was never a dependency. Removed on 2026-08-16 — deploying is Step 8, a git push.
 
 ## Step 3: Create the Journey Data File
 
@@ -445,7 +443,7 @@ The site is a Vercel project. **Pushing to `main` is the deploy.**
 git push origin main    # Vercel builds and promotes to production
 ```
 
-Any other branch gets a preview deployment at its own URL. There is no working manual escape hatch: `package.json` carries `"deploy": "vercel --prod"`, but the Vercel CLI is not installed on this machine and the repo has no `.vercel/` link directory, so `npm run deploy` fails before it ships anything. Git push is the deploy path.
+Any other branch gets a preview deployment at its own URL. There is no manual escape hatch: a `"deploy": "vercel --prod"` script used to sit in `package.json`, but the CLI was never a dependency and the repo has no `.vercel/` link directory, so it could not ship anything. It was removed rather than left looking usable. Git push is the deploy path.
 
 Before pushing, since `next.config.js` silences type and lint errors during the build:
 
@@ -456,7 +454,7 @@ npm run build           # catches everything else locally
 
 There is no `vercel.json` and no GitHub Actions workflow in this repo — build settings, environment variables, and the production branch all live in the Vercel dashboard.
 
-> **gh-pages is retired.** The site used to be a static export force-pushed to a `gh-pages` branch. Leftovers from that era are still lying around and mean nothing now: the `gh-pages` devDependency in `package.json`, `public/CNAME`, `out/` in `.gitignore`, and the `origin/gh-pages` branch itself. The deploy section of `DEVLOG.md` still describes that setup — read it as history, not instructions. `TECHNICAL.md` documents the current Vercel flow and carries its own note on the retirement.
+> **gh-pages is retired.** The site used to be a static export force-pushed to a `gh-pages` branch. Everything it left behind was cleared on 2026-08-16 — the `gh-pages` devDependency, `public/CNAME`, a stray `public/public/` duplicate, `out/` in `.gitignore`, and the `origin/gh-pages` branch itself (last commit `592a4f5`, if it ever needs recovering). The deploy section of `DEVLOG.md` still describes that setup — read it as history, not instructions. `TECHNICAL.md` documents the current Vercel flow.
 
 ## Step 9: Custom Domain
 
@@ -464,7 +462,7 @@ There is no `vercel.json` and no GitHub Actions workflow in this repo — build 
 2. In Cloudflare DNS, create the records Vercel gives you for the apex and `www`.
 3. Vercel provisions the TLS certificate once the records resolve.
 
-`public/CNAME` is not part of this — it was GitHub Pages' mechanism and is inert on Vercel.
+No `CNAME` file is involved — that was GitHub Pages' mechanism, and it has been deleted. The domain binding lives in Vercel and Cloudflare, not in this repo.
 
 ---
 
@@ -536,8 +534,7 @@ after-hours/
 │       └── globals.css           # Global styles, .globe-canvas, glass cards
 ├── public/
 │   ├── textures/                 # NASA globe textures (same-origin)
-│   ├── drift/                    # Drift's static landing page
-│   └── CNAME                     # Leftover from GitHub Pages — inert
+│   └── drift/                    # Drift's static landing page
 ├── next.config.js
 ├── tailwind.config.ts
 └── package.json

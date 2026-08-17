@@ -107,18 +107,29 @@ git push origin main
 
 There is no `vercel.json`, no `.vercelignore`, and no `.github/` workflow in the repo — build settings, environment variables, and the production branch all live in the Vercel dashboard.
 
-`package.json` has `"deploy": "vercel --prod"`, but the Vercel CLI is not installed on this machine and the repo is not linked (`.vercel/` does not exist). Git push is the deploy path.
+Git push is the only deploy path. There is no `deploy` script — one existed
+(`vercel --prod`) but the CLI was never a dependency and the repo has no
+`.vercel/` link, so it could not work; it was removed on 2026-08-16 rather than
+left looking usable.
 
 ### gh-pages is retired
 
-The site used to be a static export force-pushed to the `gh-pages` branch. **That is no longer how anything ships.** Leftovers you may trip over:
+The site used to be a static export force-pushed to the `gh-pages` branch.
+**That is no longer how anything ships.** Its leftovers were cleared on
+2026-08-16, so there is nothing left to trip over here — recorded because the
+history below still refers to them:
 
-- `gh-pages@^6.3.0` still in `devDependencies` — no script invokes it.
-- `public/CNAME` (`after-hours.app`) and a duplicated `public/public/` tree — GitHub Pages mechanisms, inert on Vercel.
-- `out/` still listed in `.gitignore`.
-- The `origin/gh-pages` branch still exists, last commit `592a4f5`, holding a stale export.
+- `gh-pages@^6.3.0` removed from `devDependencies` (no script ever invoked it).
+- `public/CNAME` deleted — a GitHub Pages mechanism, inert on Vercel.
+- `public/public/`, a 1.4 MB tracked duplicate holding a second CNAME, a
+  favicon and four earth textures, none of them referenced. The globe loads
+  `/textures/*` from `public/textures/`.
+- `out/` dropped from `.gitignore`.
+- The `origin/gh-pages` branch deleted. It held a stale export; its last commit
+  was `592a4f5` (2026-03-19) if it ever needs recovering.
 
-`DEVLOG.md` still documents the gh-pages flow (its "Installed `gh-pages`" / `public/CNAME` steps) — read that section as history, not instructions.
+`DEVLOG.md` still documents the gh-pages flow (its "Installed `gh-pages`" /
+`public/CNAME` steps) — read that section as history, not instructions.
 
 ### Worktrees
 
@@ -260,7 +271,7 @@ The old GitHub Pages A records (`185.199.108–111.153`) are gone. Don't re-add 
 1. Check the records above on Cloudflare, particularly that the apex A and the `drift` CNAME still point at Vercel.
 2. Check the Vercel project → Settings → Domains still lists both `after-hours.app` and `drift.after-hours.app` as verified.
 3. Check the latest production deployment actually succeeded (Vercel → Deployments).
-4. `public/CNAME` is inert now — it is not the cause of a domain problem either way.
+4. Ignore anything about `CNAME` files — that was GitHub Pages' mechanism and the file is gone. The domain is bound in the Vercel dashboard and in Cloudflare DNS, nowhere in this repo.
 
 ---
 
@@ -340,7 +351,6 @@ Current versions (`package.json`):
 | @react-pdf/renderer | ^4.5.1 | Itinerary export |
 | tailwindcss | ^3.4.0 | |
 | typescript | ^5.3.0 | |
-| gh-pages | ^6.3.0 | Dead — no script uses it |
 
 The Next 14 → 16 and React 18 → 19 upgrade landed in `34ec68c`, taking `@react-three/fiber` to 9.x and `drei` to 10.x with it.
 
