@@ -2,6 +2,11 @@
 
 How this project went from zero to live at [after-hours.app](https://after-hours.app).
 
+> **This is a historical record, not a how-to.** Phases 1–6 describe March 2026
+> and are kept as written. Several of them — the GitHub Pages deploy above all —
+> no longer describe how anything works. Phase 7 covers what replaced them; for
+> the current setup read [TECHNICAL.md](./TECHNICAL.md).
+
 ---
 
 ## Phase 1: Initial Setup
@@ -122,6 +127,9 @@ git push
 
 ## Phase 5: Deployment
 
+> **Superseded.** Everything in this phase was replaced by Vercel two weeks
+> later — see Phase 7. Do not run these commands.
+
 ### Static Export via GitHub Pages
 1. Installed `gh-pages`: `npm install gh-pages --save-dev --legacy-peer-deps`
 2. Added deploy script to `package.json`:
@@ -174,6 +182,40 @@ const nextConfig = {
 
 ---
 
+## Phase 7: Vercel, and a second product
+
+Two changes since Phase 6 make most of what is above history rather than
+instruction.
+
+### Static export → Vercel
+
+`2c7bf1c` (Mar 23) moved the site off static export onto Vercel, because
+dynamic routes cannot be pre-rendered into an `out/` directory. The GitHub
+Pages workflow was deleted in `fa5394b` (Jul 17).
+
+Deploying is now a push: Vercel builds `main` as production, other branches get
+preview URLs. Nothing in this repo pins that — it is Vercel dashboard
+configuration, so there is no file here to read it out of.
+
+Leftovers from the old path that are dead but still present: the `gh-pages`
+branch, `public/CNAME`, `out/` in `.gitignore`, and `gh-pages@^6.3.0` in
+`devDependencies` with no script invoking it.
+
+### The Drift web app
+
+`3642d2e` (Jul 20) added a second, entirely separate product to this repo: the
+logged-in Drift web app under `/app`, `/auth` and `/trip`, backed by Supabase.
+The 3D globe this log describes is now the *marketing* half of the repo. The
+two share a Next.js project and a middleware carve-out, and little else.
+
+### Stack drift since Phase 1
+
+Next 14 → **16.3.1** and React 18 → **19.2.8**. The React 18/Three.js peer
+conflicts documented in Phase 3, and the `--legacy-peer-deps` habit they
+created, no longer apply.
+
+---
+
 ## Timeline
 
 | Date       | Milestone                              |
@@ -183,3 +225,7 @@ const nextConfig = {
 | Mar 8, 2026 | Resolved React version conflicts       |
 | Mar 8, 2026 | Pushed to GitHub, deployed to Pages    |
 | Mar 8, 2026 | Custom domain live at after-hours.app  |
+| Mar 23, 2026 | Static export → Vercel SSR (`2c7bf1c`) |
+| Jul 17, 2026 | GitHub Pages workflow removed (`fa5394b`) |
+| Jul 20, 2026 | Logged-in Drift web app added at `/app` (`3642d2e`) |
+| Aug 16, 2026 | Next 14 → 16, React 18 → 19 (`34ec68c`) |
