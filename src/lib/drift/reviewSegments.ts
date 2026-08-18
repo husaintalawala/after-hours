@@ -113,7 +113,14 @@ export function norm(s: string | null | undefined): string {
     .toLowerCase()
     .normalize("NFKD")
     .replace(COMBINING_MARKS, "")
-    .replace(/[^a-z0-9]+/g, "")
+    // \p{L}\p{N} (Unicode letters/numbers), NOT [a-z0-9]. The Swift twin uses
+    // CharacterSet.alphanumerics, which is Unicode-aware, so the two were only
+    // ever equivalent for ASCII names. On [a-z0-9] every non-Latin name collapsed
+    // to "" — "東京ホテル" and "大阪ホテル" both became the empty string and
+    // therefore compared EQUAL, so two different hotels deduped into one, while
+    // iOS kept them apart. Keep this in step with
+    // Drift/Core/ReviewSegmentFilter.swift normalize(_:).
+    .replace(/[^\p{L}\p{N}]+/gu, "")
 }
 
 function day(iso: string | null | undefined): string {
