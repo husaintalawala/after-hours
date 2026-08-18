@@ -230,11 +230,16 @@ export default function TripTabs({
     )
     if (toResolve.length === 0) return
     ;(async () => {
-      for (const d of toResolve) {
-        const cand = await resolvePlace(d.label, d.label, d.country ?? undefined)
-        if (cancelled) return
-        setLazyHeroes((prev) => ({ ...prev, [d.id]: placePhotoUrl(cand, 1200) }))
-      }
+      // Resolved together, not one after another. These are independent lookups
+      // against the same API — serialising them made a trip with five
+      // destinations wait five round trips before the last hero appeared.
+      const resolved = await Promise.all(
+        toResolve.map(async (d) => [d.id, placePhotoUrl(
+          await resolvePlace(d.label, d.label, d.country ?? undefined), 1200,
+        )] as const),
+      )
+      if (cancelled) return
+      setLazyHeroes((prev) => ({ ...prev, ...Object.fromEntries(resolved) }))
     })()
     return () => {
       cancelled = true
@@ -248,8 +253,18 @@ export default function TripTabs({
   // the critical path we resolve the trip's lead city here after mount and let
   // the photo fill in over the amber gradient.
   const [lazyCover, setLazyCover] = useState<string | null>(null)
+  // Keyed on the lead destination's IDENTITY, not on the destinations array.
+  //
+  // That array gets a new reference on every render, and this effect had no
+  // already-resolved guard — only `if (tripMeta.cover) return` — so every
+  // router.refresh() re-ran the lookup. Ticking one packing item re-issued a
+  // Google place request for the trip cover.
+  const coverDest = destinations.find((x) => x.id !== "unassigned")
+  const coverKey = coverDest
+    ? `${coverDest.id}|${coverDest.label}|${coverDest.country ?? ""}`
+    : ""
   useEffect(() => {
-    if (tripMeta.cover) return
+    if (tripMeta.cover || !coverKey || lazyCover) return
     const d = destinations.find((x) => x.id !== "unassigned")
     if (!d) return
     let cancelled = false
@@ -261,7 +276,7 @@ export default function TripTabs({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripMeta.cover, destinations])
+  }, [tripMeta.cover, coverKey, lazyCover])
 
   // Lead destination with coords → the trip-cover weather pill (iOS parity).
   const weatherDest = destinations.find(
