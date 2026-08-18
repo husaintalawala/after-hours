@@ -168,7 +168,15 @@ function useTripUpdate(tripId: string) {
     setSaving(true)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from("trips").update(patch).eq("id", tripId)
+    try {
+      // throwOnError: postgrest-js resolves with { error }, so an unchecked write
+      // meant a rejected trip edit still called done() and closed the editor.
+      await (supabase as any).from("trips").update(patch).eq("id", tripId).throwOnError()
+    } catch (e) {
+      setSaving(false)
+      alert(e instanceof Error ? `Couldn't save: ${e.message}` : "Couldn't save.")
+      return
+    }
     setSaving(false)
     done()
     router.refresh()
@@ -393,13 +401,32 @@ function WhereSheet({
   }, [query])
 
   async function remove(d: WhereDest) {
-    if (!confirm(`Remove ${d.label}? This deletes its days, spots, and bookings.`)) return
+    // Says "days, spots" and not "bookings": transport_bookings rows referencing
+    // this destination are NOT deleted here, and the trip page rehomes them into a
+    // synthetic "More stops" bucket. Promising to delete them was the copy lying
+    // about what the code does.
+    if (!confirm(`Remove ${d.label}? This deletes its days and spots.`)) return
     setBusy(d.id)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = supabase as any
-    await sb.from("steps").delete().eq("parent_step_id", d.id)
-    await sb.from("steps").delete().eq("id", d.id)
+    try {
+      // Two statements, no transaction, and both errors were discarded — the
+      // children could be gone while the destination survived, or nothing could
+      // happen at all, and either way the UI refreshed as though it worked.
+      // throwOnError is required because postgrest-js resolves with { error }.
+      await sb.from("steps").delete().eq("parent_step_id", d.id).throwOnError()
+      await sb.from("steps").delete().eq("id", d.id).throwOnError()
+    } catch (e) {
+      setBusy(null)
+      alert(
+        e instanceof Error
+          ? `Couldn't remove ${d.label}: ${e.message}`
+          : `Couldn't remove ${d.label}.`
+      )
+      router.refresh()
+      return
+    }
     setBusy(null)
     router.refresh()
   }
@@ -412,17 +439,25 @@ function WhereSheet({
     const country = countryFromAddress(c)
     const hasCoord = c.latitude != null && c.longitude != null && !(c.latitude === 0 && c.longitude === 0)
     // Seed after the last destination's date (fallback: today).
-    await sb.from("steps").insert({
-      trip_id: tripId,
-      date: new Date().toISOString().slice(0, 10),
-      location_name: c.name,
-      step_type: "destination",
-      latitude: hasCoord ? c.latitude : null,
-      longitude: hasCoord ? c.longitude : null,
-      country,
-      city: c.name,
-      nights: 1,
-    })
+    try {
+      await sb.from("steps").insert({
+        trip_id: tripId,
+        date: new Date().toISOString().slice(0, 10),
+        location_name: c.name,
+        step_type: "destination",
+        latitude: hasCoord ? c.latitude : null,
+        longitude: hasCoord ? c.longitude : null,
+        country,
+        city: c.name,
+        nights: 1,
+      }).throwOnError()
+    } catch (e) {
+      // Previously this closed the sheet and cleared the query on failure, so the
+      // user's search was discarded and no destination existed. Keep the sheet open.
+      setBusy(null)
+      alert(e instanceof Error ? `Couldn't add ${c.name}: ${e.message}` : `Couldn't add ${c.name}.`)
+      return
+    }
     setBusy(null)
     setAdding(false)
     setQuery("")

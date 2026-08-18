@@ -1263,6 +1263,10 @@ function Inspector({
     try {
       const supabase = createClient()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // throwOnError, or the catch below is dead code: postgrest-js resolves with
+      // { error } rather than rejecting, so an RLS denial or a bad value took the
+      // success path — the sheet closed, the edit was reported as saved, and the
+      // next refresh quietly restored the old values.
       await (supabase as any)
         .from("steps")
         .update({
@@ -1271,6 +1275,7 @@ function Inspector({
           notes: eNotes.trim() || null,
         })
         .eq("id", step.id)
+        .throwOnError()
       setEditing(false)
       onClose()
       router.refresh()
@@ -1537,15 +1542,28 @@ function KitTab({
   const [building, setBuilding] = useState(false)
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
+  // Each of these updates local state optimistically, writes, then refreshes.
+  // The writes were unchecked, and postgrest-js resolves with { error } rather
+  // than rejecting — so a rejected write let the optimistic state stand until
+  // router.refresh() silently undid it. The user saw their change appear and then
+  // revert a moment later with no explanation. throwOnError + a reason.
   const toggle = async (i: KitItemVM) => {
     const target = kitToggleTarget(i)
     setLocal((prev) => prev.map((x) => (x.id === i.id ? { ...x, state: target } : x)))
-    await (supabase as any).from("kit_items").update({ state: target }).eq("id", i.id)
+    try {
+      await (supabase as any).from("kit_items").update({ state: target }).eq("id", i.id).throwOnError()
+    } catch (e) {
+      alert(e instanceof Error ? `Couldn't update that item: ${e.message}` : "Couldn't update that item.")
+    }
     router.refresh()
   }
   const remove = async (id: string) => {
     setLocal((prev) => prev.filter((x) => x.id !== id))
-    await (supabase as any).from("kit_items").delete().eq("id", id)
+    try {
+      await (supabase as any).from("kit_items").delete().eq("id", id).throwOnError()
+    } catch (e) {
+      alert(e instanceof Error ? `Couldn't remove that item: ${e.message}` : "Couldn't remove that item.")
+    }
     router.refresh()
   }
   const add = async (category: string, title: string) => {
@@ -1555,15 +1573,19 @@ function KitTab({
       ...prev,
       { id: `tmp-${Date.now()}`, title: t, category, phase: "pack", state: "in_kit", quantity: 1 },
     ])
-    await (supabase as any).from("kit_items").insert({
-      trip_id: tripId,
-      title: t,
-      category,
-      quantity: 1,
-      phase: "pack",
-      state: "in_kit",
-      source: "manual",
-    })
+    try {
+      await (supabase as any).from("kit_items").insert({
+        trip_id: tripId,
+        title: t,
+        category,
+        quantity: 1,
+        phase: "pack",
+        state: "in_kit",
+        source: "manual",
+      }).throwOnError()
+    } catch (e) {
+      alert(e instanceof Error ? `Couldn't add "${t}": ${e.message}` : `Couldn't add "${t}".`)
+    }
     router.refresh()
   }
   const build = async () => {

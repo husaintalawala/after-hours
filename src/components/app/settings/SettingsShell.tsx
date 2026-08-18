@@ -349,10 +349,19 @@ function HomeCity({ initial }: { initial: string | null }) {
     } = await createClient().auth.getSession()
     const uid = session?.user?.id
     if (uid) {
-      await db
-        .from("profiles")
-        .update({ home_city: r.name, home_country: r.country, home_lat: r.lat, home_lng: r.lng })
-        .eq("id", uid)
+      try {
+        await db
+          .from("profiles")
+          .update({ home_city: r.name, home_country: r.country, home_lat: r.lat, home_lng: r.lng })
+          .eq("id", uid)
+          .throwOnError()
+      } catch (e) {
+        // setCurrent(r.name) below used to run regardless, so the UI showed the new
+        // home city while the profile row still held the old one.
+        setSaving(false)
+        alert(e instanceof Error ? `Couldn't save your home city: ${e.message}` : "Couldn't save your home city.")
+        return
+      }
     }
     setCurrent(r.name)
     setResults([])

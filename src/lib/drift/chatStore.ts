@@ -86,8 +86,12 @@ export async function ensureTripSession(tripId: string): Promise<string | null> 
       })
       .select("id")
       .single()
+      .throwOnError()
     return created?.id ?? null
-  } catch {
+  } catch (e) {
+    // null here means "no session" to every caller, so a failed insert looked
+    // identical to a signed-out user and the chat silently stopped persisting.
+    console.error("[chatStore] could not open a chat session", e)
     return null
   }
 }
@@ -167,7 +171,7 @@ export async function saveMessage(
       user_id: user.id,
       role,
       text,
-    })
+    }).throwOnError()
     const patch: { last_message_at: string; title?: string } = {
       last_message_at: new Date().toISOString(),
     }
@@ -181,8 +185,11 @@ export async function saveMessage(
         .maybeSingle()
       if (s && !s.title) patch.title = text.slice(0, 60)
     }
-    await supabase.from("chat_sessions").update(patch).eq("id", sessionId)
-  } catch {
-    /* fail-open */
+    await supabase.from("chat_sessions").update(patch).eq("id", sessionId).throwOnError()
+  } catch (e) {
+    // Still fail-open — a persistence failure must not break the live chat UI. But
+    // it was previously invisible, so a message the user sent simply was not there
+    // next session and nothing recorded why.
+    console.error("[chatStore] saveMessage failed; message not persisted", e)
   }
 }

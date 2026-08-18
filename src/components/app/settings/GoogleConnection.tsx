@@ -80,10 +80,16 @@ export default function GoogleConnection() {
       // update to the signed-in user.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createClient() as any
+      // throwOnError, because postgrest-js RESOLVES with { error } instead of
+      // rejecting. Without it the catch below is unreachable, and an RLS denial or
+      // a dropped connection took the success path — telling the user "Drift has
+      // stopped using Google" while the row still said connected, so the next scan
+      // would run. A false privacy claim is worse than an error message.
       await db
         .from("import_sources")
         .update({ status: "disconnected" })
         .in("provider", GOOGLE_PROVIDERS)
+        .throwOnError()
       await load()
 
       setMsg(

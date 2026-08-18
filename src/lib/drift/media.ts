@@ -85,10 +85,13 @@ export async function uploadTripFile(
   return data as TripFile
 }
 
+/** Throws if the row was not deleted. postgrest-js resolves with { error } rather
+ *  than rejecting, so this used to return normally on an RLS denial and the caller
+ *  had no way to know the file still existed. */
 export async function deleteTripFile(id: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createClient() as any
-  await db.from("trip_files").delete().eq("id", id)
+  await db.from("trip_files").delete().eq("id", id).throwOnError()
 }
 
 export function formatBytes(n: number | null): string {

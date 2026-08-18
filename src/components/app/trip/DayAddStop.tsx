@@ -76,7 +76,8 @@ export default function DayAddStop({
     const sb = supabase as any
     const hasCoord =
       picked.latitude != null && picked.longitude != null && !(picked.latitude === 0 && picked.longitude === 0)
-    await sb.from("steps").insert({
+    try {
+      await sb.from("steps").insert({
       trip_id: tripId,
       parent_step_id: destId,
       date: dayDate,
@@ -87,8 +88,15 @@ export default function DayAddStop({
       country: countryFromAddress(picked),
       city: picked.name,
       scheduled_at: time ? `${dayDate}T${time}:00` : null,
-      place_category: picked.primaryType ?? null,
-    })
+        place_category: picked.primaryType ?? null,
+      }).throwOnError()
+    } catch (e) {
+      // Used to clear the form and refresh regardless, so a rejected insert looked
+      // exactly like a successful one — the stop simply was not there.
+      setSaving(false)
+      alert(e instanceof Error ? `Couldn't add ${picked.name}: ${e.message}` : `Couldn't add ${picked.name}.`)
+      return
+    }
     setSaving(false)
     reset()
     router.refresh()

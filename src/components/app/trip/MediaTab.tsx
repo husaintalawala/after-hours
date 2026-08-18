@@ -60,8 +60,16 @@ export default function MediaTab({ tripId }: { tripId: string }) {
 
   async function remove(id: string) {
     setMenuId(null)
+    const previous = files
     setFiles((prev) => (prev ?? []).filter((f) => f.id !== id))
-    await deleteTripFile(id)
+    try {
+      await deleteTripFile(id)
+    } catch (e) {
+      // The optimistic removal has to be undone, or the file is gone from the list
+      // while it still exists on the server — it silently returns on the next load.
+      setFiles(previous)
+      alert(e instanceof Error ? `Couldn't delete that file: ${e.message}` : "Couldn't delete that file.")
+    }
   }
 
   const count = files?.length ?? 0
