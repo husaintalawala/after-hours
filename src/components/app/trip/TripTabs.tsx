@@ -984,8 +984,7 @@ function DaySection({
       const supabase = createClient()
       await Promise.all(
         stepIds.map((id, idx) =>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).from("steps").update({ display_order: idx * 10 }).eq("id", id)
+          supabase.from("steps").update({ display_order: idx * 10 }).eq("id", id)
         )
       )
     } catch {
@@ -1277,12 +1276,11 @@ function Inspector({
     setError(null)
     try {
       const supabase = createClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // throwOnError, or the catch below is dead code: postgrest-js resolves with
       // { error } rather than rejecting, so an RLS denial or a bad value took the
       // success path — the sheet closed, the edit was reported as saved, and the
       // next refresh quietly restored the old values.
-      await (supabase as any)
+      await supabase
         .from("steps")
         .update({
           scheduled_at: eTime && step.rawDate ? `${step.rawDate}T${eTime}:00` : null,
@@ -1556,7 +1554,6 @@ function KitTab({
   useEffect(() => setLocal(items), [items])
   const [building, setBuilding] = useState(false)
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   // Each of these updates local state optimistically, writes, then refreshes.
   // The writes were unchecked, and postgrest-js resolves with { error } rather
   // than rejecting — so a rejected write let the optimistic state stand until
@@ -1566,7 +1563,7 @@ function KitTab({
     const target = kitToggleTarget(i)
     setLocal((prev) => prev.map((x) => (x.id === i.id ? { ...x, state: target } : x)))
     try {
-      await (supabase as any).from("kit_items").update({ state: target }).eq("id", i.id).throwOnError()
+      await supabase.from("kit_items").update({ state: target }).eq("id", i.id).throwOnError()
     } catch (e) {
       alert(e instanceof Error ? `Couldn't update that item: ${e.message}` : "Couldn't update that item.")
     }
@@ -1575,7 +1572,7 @@ function KitTab({
   const remove = async (id: string) => {
     setLocal((prev) => prev.filter((x) => x.id !== id))
     try {
-      await (supabase as any).from("kit_items").delete().eq("id", id).throwOnError()
+      await supabase.from("kit_items").delete().eq("id", id).throwOnError()
     } catch (e) {
       alert(e instanceof Error ? `Couldn't remove that item: ${e.message}` : "Couldn't remove that item.")
     }
@@ -1589,7 +1586,7 @@ function KitTab({
       { id: `tmp-${Date.now()}`, title: t, category, phase: "pack", state: "in_kit", quantity: 1 },
     ])
     try {
-      await (supabase as any).from("kit_items").insert({
+      await supabase.from("kit_items").insert({
         trip_id: tripId,
         title: t,
         category,
@@ -1606,14 +1603,13 @@ function KitTab({
   const build = async () => {
     setBuilding(true)
     try {
-      await (supabase as any).functions.invoke("derive-kit", { body: { trip_id: tripId } })
+      await supabase.functions.invoke("derive-kit", { body: { trip_id: tripId } })
     } catch {
       /* derive-kit is idempotent; the refresh shows whatever landed */
     }
     router.refresh()
     setBuilding(false)
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   if (!local.length) {
     return (
@@ -2341,7 +2337,6 @@ function ExpenseForm({
   const amt = Number(amount)
   const valid = label.trim().length > 0 && Number.isFinite(amt) && amt > 0
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   const save = async () => {
     if (!valid || busy) return
     setBusy(true)
@@ -2354,7 +2349,7 @@ function ExpenseForm({
       expense_date: `${date}T12:00:00.000Z`,
       payer_user_id: payer,
     }
-    const sb = supabase as any
+    const sb = supabase
     const res = expense
       ? await sb.from("expenses").update(payload).eq("id", expense.id).select("id")
       : await sb
@@ -2373,7 +2368,7 @@ function ExpenseForm({
     if (!expense || busy) return
     setBusy(true)
     setErr(null)
-    const res = await (supabase as any).from("expenses").delete().eq("id", expense.id).select("id")
+    const res = await supabase.from("expenses").delete().eq("id", expense.id).select("id")
     if (res.error || !res.data?.length) {
       setErr("Couldn't delete — only who paid or the trip owner can remove an expense.")
       setBusy(false)
@@ -2382,7 +2377,6 @@ function ExpenseForm({
     router.refresh()
     onClose()
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   return (
     <div
@@ -2613,7 +2607,7 @@ function TrackTab({
       const userId = userRes?.user?.id
       if (!userId) throw new Error("no session")
 
-      const { data: step, error: stepErr } = await (supabase as any)
+      const { data: step, error: stepErr } = await supabase
         .from("steps")
         .insert({
           trip_id: tripId,
@@ -2668,7 +2662,7 @@ function TrackTab({
         // .upsert: media has no UPDATE policy, so ON CONFLICT DO UPDATE is a
         // 42501, and the id is server-generated so there is nothing to conflict
         // on. Omitted columns take their defaults (id, type='photo', now()).
-        const { error: mediaErr } = await (supabase as any).from("media").insert({
+        const { error: mediaErr } = await supabase.from("media").insert({
           trip_id: tripId,
           step_id: step.id,
           user_id: userId,

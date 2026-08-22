@@ -349,8 +349,7 @@ export default function TripMapView({
       try {
         const supabase = createClient()
         await Promise.all(stepIds.map((id, idx) =>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).from("steps").update({ display_order: idx * 10 }).eq("id", id)))
+          supabase.from("steps").update({ display_order: idx * 10 }).eq("id", id)))
       } catch { /* router.refresh restores server order */ } finally { router.refresh() }
     })()
   }

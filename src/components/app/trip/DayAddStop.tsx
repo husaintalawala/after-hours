@@ -72,8 +72,7 @@ export default function DayAddStop({
     if (!picked || saving) return
     setSaving(true)
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
+    const sb = supabase
     const hasCoord =
       picked.latitude != null && picked.longitude != null && !(picked.latitude === 0 && picked.longitude === 0)
     try {

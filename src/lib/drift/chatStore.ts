@@ -5,11 +5,10 @@
 
 import { createClient } from "@/lib/supabase/client"
 
-// The generated generics degrade to `never` on chained filters for these
-// tables; an untyped handle keeps the calls working (shapes are asserted at
-// the call sites, and every path is fail-open anyway).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = (): any => createClient()
+// A plain typed client. This used to be `(): any` because the generated
+// generics collapsed every write to `never` under @supabase/ssr 0.5 — fixed by
+// the ssr bump, so the tables here are checked like everywhere else.
+const db = () => createClient()
 
 export interface StoredMessage {
   role: string

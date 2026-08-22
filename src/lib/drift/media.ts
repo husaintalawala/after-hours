@@ -17,8 +17,7 @@ export interface TripFile {
 const COLS = "id,filename,mime_type,size_bytes,url,source,created_at"
 
 export async function listTripFiles(tripId: string): Promise<TripFile[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = createClient() as any
+  const db = createClient()
   const { data } = await db
     .from("trip_files")
     .select(COLS)
@@ -62,8 +61,7 @@ export async function uploadTripFile(
   })
   if (!put.ok) return null
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = createClient() as any
+  const db = createClient()
   const { data: userRes } = await db.auth.getUser()
   const userId = userRes?.user?.id
   if (!userId) return null
@@ -89,8 +87,7 @@ export async function uploadTripFile(
  *  than rejecting, so this used to return normally on an RLS denial and the caller
  *  had no way to know the file still existed. */
 export async function deleteTripFile(id: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = createClient() as any
+  const db = createClient()
   await db.from("trip_files").delete().eq("id", id).throwOnError()
 }
 

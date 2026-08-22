@@ -40,8 +40,7 @@ export default function GoogleConnection() {
   const [msg, setMsg] = useState<string | null>(null)
 
   async function load() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     const { data } = await db
       .from("import_sources")
       .select("provider,status,last_scan_at")
@@ -62,10 +61,12 @@ export default function GoogleConnection() {
 
   useEffect(() => {
     void load()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
-    void db.auth.getUser().then(({ data }: { data: { user?: { email?: string } } }) => {
-      setEmail(data?.user?.email ?? null)
+    const db = createClient()
+    // No hand-written annotation on the destructure: getUser() resolves with
+    // { data: { user: null }, error } when the session is gone, and asserting a
+    // shape that excludes null is how a lie gets past the type checker.
+    void db.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null)
     })
   }, [])
 
@@ -78,8 +79,7 @@ export default function GoogleConnection() {
 
       // Stop using Google regardless of what Google said. RLS scopes the
       // update to the signed-in user.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = createClient() as any
+      const db = createClient()
       // throwOnError, because postgrest-js RESOLVES with { error } instead of
       // rejecting. Without it the catch below is unreachable, and an RLS denial or
       // a dropped connection took the success path — telling the user "Drift has

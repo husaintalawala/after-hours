@@ -86,8 +86,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
     // Measured in a real click-through; the type-check and build both passed it.
     let hasGoogle = false
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const db = createClient() as any
+      const db = createClient()
       const { data } = await db
         .from("import_sources")
         .select("provider")
@@ -342,8 +341,7 @@ function HomeCity({ initial }: { initial: string | null }) {
 
   async function pick(r: { name: string; country: string | null; lat: number; lng: number }) {
     setSaving(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     const {
       data: { session },
     } = await createClient().auth.getSession()

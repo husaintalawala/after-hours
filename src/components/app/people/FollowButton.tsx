@@ -25,7 +25,7 @@ export default function FollowButton({
     setBusy(true)
     const next = !following
     setFollowing(next)
-    const db = createClient() as any
+    const db = createClient()
     const { error } = next
       ? await db.from("follows").insert({ follower_id: meId, following_id: targetId })
       : await db

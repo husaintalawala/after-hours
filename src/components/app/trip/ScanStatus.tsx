@@ -65,8 +65,7 @@ export default function ScanStatus({
   useEffect(() => {
     let cancelled = false
     let tries = 0
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     const load = async () => {
       const { data } = await db
         .from("import_batches")
@@ -106,8 +105,7 @@ export default function ScanStatus({
       return
     }
     let cancelled = false
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     loadReviewList(db, tripId, id)
       .then((vms) => {
         if (!cancelled) setReviewable(vms.length)
@@ -128,8 +126,7 @@ export default function ScanStatus({
     let cancelled = false
     let t: ReturnType<typeof setTimeout> | null = null
     let tries = 0
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     const poll = async () => {
       const { data } = await db
         .from("booking_import_sessions")

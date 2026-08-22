@@ -19,6 +19,8 @@
 // the rows must both come from here. A count that can disagree with its list
 // eventually will.
 
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/lib/database.types"
 import {
   buildReviewList,
   objectIdentityKeys,
@@ -57,8 +59,7 @@ function cap(s: string | null): string | null {
  *   scan-scoped banner and its review screen agree.
  */
 export async function loadReviewList(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any,
+  db: SupabaseClient<Database>,
   tripId: string,
   reviewBatchId?: string | null
 ): Promise<SegmentVM[]> {
@@ -90,12 +91,9 @@ export async function loadReviewList(
   const rows: ReviewSegmentRow[] = segRes?.data ?? []
   if (rows.length === 0) return []
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const trip: any = tripRes?.data?.[0] ?? null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const steps: any[] = stepRes?.data ?? []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const transport: any[] = transportRes?.data ?? []
+  const trip = tripRes?.data?.[0] ?? null
+  const steps = stepRes?.data ?? []
+  const transport = transportRes?.data ?? []
 
   // Trip scope: the window plus the places the trip actually covers. Only
   // destination steps contribute place names — a spot in New York on the way
@@ -155,8 +153,15 @@ export async function loadReviewList(
   // the fullest copy of a booking often came from an earlier scan, and a
   // batch-scoped review must still show it if this scan found it too.
   const parsedByRow = new Map(rows.map((r) => [r.id, r.parsed_reservation_id]))
+  // A type predicate, not .filter(Boolean) — the latter drops the falsy values
+  // at runtime but leaves `string | null | undefined` in the type, which is
+  // what the `any` on this function used to hide.
   const resIds = [
-    ...new Set(clusters.flatMap((c) => c.ids.map((id) => parsedByRow.get(id))).filter(Boolean)),
+    ...new Set(
+      clusters
+        .flatMap((c) => c.ids.map((id) => parsedByRow.get(id)))
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    ),
   ]
   const batchByRes = new Map<string, string | null>()
   if (resIds.length > 0) {

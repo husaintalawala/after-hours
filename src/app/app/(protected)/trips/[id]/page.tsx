@@ -336,8 +336,7 @@ export default async function TripDetailPage({
   } = await supabase.auth.getSession()
   const meId = session?.user?.id ?? ""
   const expenseIds = expenseRows.map((e) => e.id)
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const sb: any = supabase
+  const sb = supabase
   const [splitsRes, householdsRes, settlementsRes] = await Promise.all([
     expenseIds.length
       ? sb.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
@@ -364,7 +363,6 @@ export default async function TripDetailPage({
       memberNames.set(p.id, (p.display_name || p.username || "Traveler").split(" ")[0])
     }
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const payerLabel = (uid: string | null): string | null =>
     !uid ? null : uid === meId ? "You" : memberNames.get(uid) ?? null

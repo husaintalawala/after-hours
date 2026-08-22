@@ -27,10 +27,15 @@ function todayStr(): string {
   return `${d.getFullYear()}-${m}-${day}`
 }
 
-function nightsBetween(start: string, end: string | null): number | null {
-  if (!end) return null
+// steps.nights is NOT NULL, and this used to return null for an open-ended
+// "current" trip — Postgres rejected the insert with 23502 and the destination
+// anchor was never created, silently, because the caller only console.warns.
+// iOS destinationNights(from:to:) is the reference: 1 when there is no end
+// date, and never less than 1 for a same-day trip.
+function nightsBetween(start: string, end: string | null): number {
+  if (!end) return 1
   const ms = new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()
-  return Math.max(0, Math.round(ms / 86400000))
+  return Math.max(1, Math.round(ms / 86400000))
 }
 
 export default function NewTripFlow() {
@@ -100,7 +105,7 @@ export default function NewTripFlow() {
       const end = tripType === "current" ? null : endDate || null
 
       // Same shape as iOS CreateTripWithSeeds (TripDetailFormView).
-      const db = supabase as any
+      const db = supabase
       const { data: trip, error: tripErr } = await db
         .from("trips")
         .insert({

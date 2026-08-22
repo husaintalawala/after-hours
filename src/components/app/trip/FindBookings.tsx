@@ -140,8 +140,7 @@ function FindBookingsSheet({
 
   // The trip's forwarding address (trigger-created on trip insert).
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     db.from("email_aliases")
       .select("email_address")
       .eq("trip_id", tripId)
@@ -166,8 +165,7 @@ function FindBookingsSheet({
    *  belongs to empties out. */
   async function loadSegments(opts: { keepMode?: boolean } = {}) {
     setLoadingSegments(true)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     // Shared with ScanStatus's "Found N" count — see loadReviewList. Both must
     // read the same filter or the banner can promise rows the screen can't show.
     const shown = await loadReviewList(db, tripId, reviewBatchId)
@@ -193,8 +191,7 @@ function FindBookingsSheet({
   function commitIgnore(ids: string[]) {
     pendingIgnoreId.current = null
     if (ids.length === 0) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = createClient() as any
+    const db = createClient()
     void db
       .from("reservation_segments")
       .update({ status: "ignored" })

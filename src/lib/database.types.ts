@@ -14,297 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _bak_garbage_destinations_20260617: {
-        Row: {
-          address: string | null
-          booking_url: string | null
-          city: string | null
-          confirmation_number: string | null
-          country: string | null
-          created_at: string | null
-          date: string | null
-          dedupe_key: string | null
-          display_order: number | null
-          duration_minutes: number | null
-          guest_count: number | null
-          id: string | null
-          import_source_provider: string | null
-          is_bookable: boolean | null
-          latitude: number | null
-          location_name: string | null
-          longitude: number | null
-          nights: number | null
-          notes: string | null
-          parent_step_id: string | null
-          place_category: string | null
-          place_id: string | null
-          scheduled_at: string | null
-          source: string | null
-          spots: string | null
-          step_number: number | null
-          step_type: string | null
-          title: string | null
-          transport_mode: string | null
-          trip_id: string | null
-          website_url: string | null
-        }
-        Insert: {
-          address?: string | null
-          booking_url?: string | null
-          city?: string | null
-          confirmation_number?: string | null
-          country?: string | null
-          created_at?: string | null
-          date?: string | null
-          dedupe_key?: string | null
-          display_order?: number | null
-          duration_minutes?: number | null
-          guest_count?: number | null
-          id?: string | null
-          import_source_provider?: string | null
-          is_bookable?: boolean | null
-          latitude?: number | null
-          location_name?: string | null
-          longitude?: number | null
-          nights?: number | null
-          notes?: string | null
-          parent_step_id?: string | null
-          place_category?: string | null
-          place_id?: string | null
-          scheduled_at?: string | null
-          source?: string | null
-          spots?: string | null
-          step_number?: number | null
-          step_type?: string | null
-          title?: string | null
-          transport_mode?: string | null
-          trip_id?: string | null
-          website_url?: string | null
-        }
-        Update: {
-          address?: string | null
-          booking_url?: string | null
-          city?: string | null
-          confirmation_number?: string | null
-          country?: string | null
-          created_at?: string | null
-          date?: string | null
-          dedupe_key?: string | null
-          display_order?: number | null
-          duration_minutes?: number | null
-          guest_count?: number | null
-          id?: string | null
-          import_source_provider?: string | null
-          is_bookable?: boolean | null
-          latitude?: number | null
-          location_name?: string | null
-          longitude?: number | null
-          nights?: number | null
-          notes?: string | null
-          parent_step_id?: string | null
-          place_category?: string | null
-          place_id?: string | null
-          scheduled_at?: string | null
-          source?: string | null
-          spots?: string | null
-          step_number?: number | null
-          step_type?: string | null
-          title?: string | null
-          transport_mode?: string | null
-          trip_id?: string | null
-          website_url?: string | null
-        }
-        Relationships: []
-      }
-      _expense_categories_snapshot_20260509: {
-        Row: {
-          category: string | null
-          n: number | null
-        }
-        Insert: {
-          category?: string | null
-          n?: number | null
-        }
-        Update: {
-          category?: string | null
-          n?: number | null
-        }
-        Relationships: []
-      }
-      _expense_categories_snapshot_after_20260509: {
-        Row: {
-          category: string | null
-          n: number | null
-        }
-        Insert: {
-          category?: string | null
-          n?: number | null
-        }
-        Update: {
-          category?: string | null
-          n?: number | null
-        }
-        Relationships: []
-      }
-      _expenses_cat_snapshot_20260610: {
-        Row: {
-          category: string | null
-          n: number | null
-        }
-        Insert: {
-          category?: string | null
-          n?: number | null
-        }
-        Update: {
-          category?: string | null
-          n?: number | null
-        }
-        Relationships: []
-      }
-      _expenses_cat_snapshot_after_20260610: {
-        Row: {
-          category: string | null
-          n: number | null
-        }
-        Insert: {
-          category?: string | null
-          n?: number | null
-        }
-        Update: {
-          category?: string | null
-          n?: number | null
-        }
-        Relationships: []
-      }
-      _expenses_r31_snapshot_20260611: {
-        Row: {
-          amount: number | null
-          category: string | null
-          category_overridden: boolean | null
-          created_at: string | null
-          currency: string | null
-          destination_step_id: string | null
-          expense_date: string | null
-          id: string | null
-          label: string | null
-          source: string | null
-          source_id: string | null
-          subtitle: string | null
-          trip_id: string | null
-          user_id: string | null
-          version: number | null
-        }
-        Insert: {
-          amount?: number | null
-          category?: string | null
-          category_overridden?: boolean | null
-          created_at?: string | null
-          currency?: string | null
-          destination_step_id?: string | null
-          expense_date?: string | null
-          id?: string | null
-          label?: string | null
-          source?: string | null
-          source_id?: string | null
-          subtitle?: string | null
-          trip_id?: string | null
-          user_id?: string | null
-          version?: number | null
-        }
-        Update: {
-          amount?: number | null
-          category?: string | null
-          category_overridden?: boolean | null
-          created_at?: string | null
-          currency?: string | null
-          destination_step_id?: string | null
-          expense_date?: string | null
-          id?: string | null
-          label?: string | null
-          source?: string | null
-          source_id?: string | null
-          subtitle?: string | null
-          trip_id?: string | null
-          user_id?: string | null
-          version?: number | null
-        }
-        Relationships: []
-      }
-      _expenses_version_snapshot_20260611: {
-        Row: {
-          amount: number | null
-          category: string | null
-          category_overridden: boolean | null
-          created_at: string | null
-          currency: string | null
-          destination_step_id: string | null
-          expense_date: string | null
-          id: string | null
-          label: string | null
-          source: string | null
-          source_id: string | null
-          subtitle: string | null
-          trip_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount?: number | null
-          category?: string | null
-          category_overridden?: boolean | null
-          created_at?: string | null
-          currency?: string | null
-          destination_step_id?: string | null
-          expense_date?: string | null
-          id?: string | null
-          label?: string | null
-          source?: string | null
-          source_id?: string | null
-          subtitle?: string | null
-          trip_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number | null
-          category?: string | null
-          category_overridden?: boolean | null
-          created_at?: string | null
-          currency?: string | null
-          destination_step_id?: string | null
-          expense_date?: string | null
-          id?: string | null
-          label?: string | null
-          source?: string | null
-          source_id?: string | null
-          subtitle?: string | null
-          trip_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      _households_snapshot_20260611: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          member_user_ids: string[] | null
-          name: string | null
-          trip_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          member_user_ids?: string[] | null
-          name?: string | null
-          trip_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          member_user_ids?: string[] | null
-          name?: string | null
-          trip_id?: string | null
-        }
-        Relationships: []
-      }
       ai_feedback: {
         Row: {
           created_at: string
@@ -947,6 +656,45 @@ export type Database = {
           content?: Json
           country?: string
           created_at?: string | null
+        }
+        Relationships: []
+      }
+      feedback: {
+        Row: {
+          category: string
+          context: Json | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          notified_at: string | null
+          source: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          context?: Json | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          notified_at?: string | null
+          source: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          context?: Json | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          notified_at?: string | null
+          source?: string
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1601,81 +1349,6 @@ export type Database = {
           },
         ]
       }
-      kit_items_snapshot_20260611_b1: {
-        Row: {
-          assignee_user_id: string | null
-          bag: string | null
-          category: string | null
-          claimed_as_household: boolean | null
-          claimed_by: string | null
-          created_at: string | null
-          id: string | null
-          phase: string | null
-          quantity: number | null
-          quantity_basis: string | null
-          reason: string | null
-          source: string | null
-          source_step_id: string | null
-          state: string | null
-          title: string | null
-          trip_id: string | null
-          updated_at: string | null
-          used: boolean | null
-          verified_at: string | null
-          verify_due: string | null
-          version: number | null
-          wakes_at: string | null
-        }
-        Insert: {
-          assignee_user_id?: string | null
-          bag?: string | null
-          category?: string | null
-          claimed_as_household?: boolean | null
-          claimed_by?: string | null
-          created_at?: string | null
-          id?: string | null
-          phase?: string | null
-          quantity?: number | null
-          quantity_basis?: string | null
-          reason?: string | null
-          source?: string | null
-          source_step_id?: string | null
-          state?: string | null
-          title?: string | null
-          trip_id?: string | null
-          updated_at?: string | null
-          used?: boolean | null
-          verified_at?: string | null
-          verify_due?: string | null
-          version?: number | null
-          wakes_at?: string | null
-        }
-        Update: {
-          assignee_user_id?: string | null
-          bag?: string | null
-          category?: string | null
-          claimed_as_household?: boolean | null
-          claimed_by?: string | null
-          created_at?: string | null
-          id?: string | null
-          phase?: string | null
-          quantity?: number | null
-          quantity_basis?: string | null
-          reason?: string | null
-          source?: string | null
-          source_step_id?: string | null
-          state?: string | null
-          title?: string | null
-          trip_id?: string | null
-          updated_at?: string | null
-          used?: boolean | null
-          verified_at?: string | null
-          verify_due?: string | null
-          version?: number | null
-          wakes_at?: string | null
-        }
-        Relationships: []
-      }
       kit_lists: {
         Row: {
           category: string
@@ -1719,39 +1392,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      kit_lists_snapshot_20260611_b1: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          id: string | null
-          sort_order: number | null
-          symbol: string | null
-          title: string | null
-          trip_id: string | null
-          type: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          id?: string | null
-          sort_order?: number | null
-          symbol?: string | null
-          title?: string | null
-          trip_id?: string | null
-          type?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          id?: string | null
-          sort_order?: number | null
-          symbol?: string | null
-          title?: string | null
-          trip_id?: string | null
-          type?: string | null
-        }
-        Relationships: []
       }
       likes: {
         Row: {
@@ -2004,6 +1644,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      place_blurbs: {
+        Row: {
+          blurb: string
+          created_at: string
+          id: string
+          model: string | null
+          name: string
+        }
+        Insert: {
+          blurb: string
+          created_at?: string
+          id: string
+          model?: string | null
+          name: string
+        }
+        Update: {
+          blurb?: string
+          created_at?: string
+          id?: string
+          model?: string | null
+          name?: string
+        }
+        Relationships: []
       }
       place_query_cache: {
         Row: {
@@ -2836,6 +2500,30 @@ export type Database = {
           },
         ]
       }
+      steps_scheduled_at_backfill_20260731: {
+        Row: {
+          captured_at: string
+          date: string | null
+          id: string
+          scheduled_at: string | null
+          trip_id: string | null
+        }
+        Insert: {
+          captured_at?: string
+          date?: string | null
+          id: string
+          scheduled_at?: string | null
+          trip_id?: string | null
+        }
+        Update: {
+          captured_at?: string
+          date?: string | null
+          id?: string
+          scheduled_at?: string | null
+          trip_id?: string | null
+        }
+        Relationships: []
+      }
       transport_bookings: {
         Row: {
           arrival_at: string | null
@@ -3048,6 +2736,50 @@ export type Database = {
           },
         ]
       }
+      trip_files: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          source: string
+          trip_id: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          source?: string
+          trip_id: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          source?: string
+          trip_id?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_files_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_recommendations: {
         Row: {
           created_at: string | null
@@ -3110,11 +2842,11 @@ export type Database = {
           budget_mode: string | null
           cities: string[] | null
           countries: string[] | null
-          cover_url: string | null
-          cover_fallback_url: string | null
+          cover_fallback_attempted_at: string | null
           cover_fallback_attribution: string | null
           cover_fallback_link: string | null
-          cover_fallback_attempted_at: string | null
+          cover_fallback_url: string | null
+          cover_url: string | null
           created_at: string | null
           distance_km: number | null
           end_date: string | null
@@ -3140,11 +2872,11 @@ export type Database = {
           budget_mode?: string | null
           cities?: string[] | null
           countries?: string[] | null
-          cover_url?: string | null
-          cover_fallback_url?: string | null
+          cover_fallback_attempted_at?: string | null
           cover_fallback_attribution?: string | null
           cover_fallback_link?: string | null
-          cover_fallback_attempted_at?: string | null
+          cover_fallback_url?: string | null
+          cover_url?: string | null
           created_at?: string | null
           distance_km?: number | null
           end_date?: string | null
@@ -3170,11 +2902,11 @@ export type Database = {
           budget_mode?: string | null
           cities?: string[] | null
           countries?: string[] | null
-          cover_url?: string | null
-          cover_fallback_url?: string | null
+          cover_fallback_attempted_at?: string | null
           cover_fallback_attribution?: string | null
           cover_fallback_link?: string | null
-          cover_fallback_attempted_at?: string | null
+          cover_fallback_url?: string | null
+          cover_url?: string | null
           created_at?: string | null
           distance_km?: number | null
           end_date?: string | null
@@ -3453,6 +3185,7 @@ export type Database = {
         Args: { _trip_id: string; _user_id: string }
         Returns: boolean
       }
+      is_demo_public_trip: { Args: { p_trip_id: string }; Returns: boolean }
       is_trip_member: { Args: { p_trip_id: string }; Returns: boolean }
       is_trip_member_of: {
         Args: { p_trip_id: string; p_user_id: string }
@@ -3542,6 +3275,7 @@ export type Database = {
           tx_id: string
         }[]
       }
+      purge_google_derived_email_content: { Args: never; Returns: number }
       purge_stale_places: { Args: never; Returns: undefined }
       slugify: { Args: { input: string }; Returns: string }
     }

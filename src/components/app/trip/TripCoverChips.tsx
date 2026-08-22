@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import type { Database } from "@/lib/database.types"
 import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
+
+type TripUpdate = Database["public"]["Tables"]["trips"]["Update"]
 
 // Trip-cover chips (web port of iOS coverChipsRow + TripCoverChipSheets +
 // TripWhereSheet). Sits over the trip hero: Place → the "Where" destinations
@@ -164,14 +167,16 @@ function Modal({
 function useTripUpdate(tripId: string) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
-  const save = async (patch: Record<string, unknown>, done: () => void) => {
+  // TripUpdate, not Record<string, unknown> — the patch is a trips-row patch and
+  // typing it as one is what makes a renamed or misspelled column a compile
+  // error here rather than a discarded 400 at runtime.
+  const save = async (patch: TripUpdate, done: () => void) => {
     setSaving(true)
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     try {
       // throwOnError: postgrest-js resolves with { error }, so an unchecked write
       // meant a rejected trip edit still called done() and closed the editor.
-      await (supabase as any).from("trips").update(patch).eq("id", tripId).throwOnError()
+      await supabase.from("trips").update(patch).eq("id", tripId).throwOnError()
     } catch (e) {
       setSaving(false)
       alert(e instanceof Error ? `Couldn't save: ${e.message}` : "Couldn't save.")
@@ -408,8 +413,7 @@ function WhereSheet({
     if (!confirm(`Remove ${d.label}? This deletes its days and spots.`)) return
     setBusy(d.id)
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
+    const sb = supabase
     try {
       // Two statements, no transaction, and both errors were discarded — the
       // children could be gone while the destination survived, or nothing could
@@ -434,8 +438,7 @@ function WhereSheet({
   async function add(c: PlaceCandidate) {
     setBusy("add")
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
+    const sb = supabase
     const country = countryFromAddress(c)
     const hasCoord = c.latitude != null && c.longitude != null && !(c.latitude === 0 && c.longitude === 0)
     // Seed after the last destination's date (fallback: today).

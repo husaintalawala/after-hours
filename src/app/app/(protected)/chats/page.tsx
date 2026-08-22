@@ -32,10 +32,8 @@ export default async function ChatsPage() {
 
   const [{ data: sessionsRaw }, { data: profile }, { data: tripsRaw }, { data: buddyRows }] =
     await Promise.all([
-      // Exclude merged-away duplicate threads (see chat_session_merge_backup);
-      // merged_into is post-baseline so the generated types don't know it yet.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase.from("chat_sessions") as any)
+      // Exclude merged-away duplicate threads (see chat_session_merge_backup).
+      supabase.from("chat_sessions")
         .select("id,anchor_type,anchor_id,anchor_label,title,last_message_at")
         .eq("user_id", user.id)
         .is("merged_into", null)
