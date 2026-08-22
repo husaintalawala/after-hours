@@ -14,8 +14,9 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 export default async function PlacePage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id: placeId } = await params
   // The Google Place Details call and the user's trips lookup are independent.
   // getSession() is a local JWT decode (no network), so awaiting it first to
   // learn the user id costs nothing; then both network calls race in Promise.all
@@ -25,7 +26,7 @@ export default async function PlacePage({
     data: { session },
   } = await supabase.auth.getSession()
   const [place, tripsRes] = await Promise.all([
-    fetchPlaceDetails(decodeURIComponent(params.id)),
+    fetchPlaceDetails(decodeURIComponent(placeId)),
     session?.user
       ? supabase
           .from("trips")

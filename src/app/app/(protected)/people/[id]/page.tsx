@@ -13,7 +13,8 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 // Shows their identity, follower/following counts, and the trips visible to the
 // viewer (RLS returns only public — or buddy-shared — trips of others).
 
-export default async function ProfilePage({ params }: { params: { id: string } }) {
+export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: profileId } = await params
   const supabase = await createClient()
   const {
     data: { session },
@@ -25,19 +26,19 @@ export default async function ProfilePage({ params }: { params: { id: string } }
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", profileId)
     .maybeSingle<ProfileRow>()
   if (!profile) notFound()
 
   const [{ count: followers }, { count: following }, { data: iFollowRow }, { data: tripsRaw }] =
     await Promise.all([
-      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", params.id),
-      supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", params.id),
-      supabase.from("follows").select("follower_id").eq("follower_id", me.id).eq("following_id", params.id).maybeSingle(),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profileId),
+      supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profileId),
+      supabase.from("follows").select("follower_id").eq("follower_id", me.id).eq("following_id", profileId).maybeSingle(),
       supabase
         .from("trips")
         .select("*")
-        .eq("user_id", params.id)
+        .eq("user_id", profileId)
         .order("start_date", { ascending: false })
         .returns<TripRow[]>(),
     ])
@@ -73,8 +74,8 @@ export default async function ProfilePage({ params }: { params: { id: string } }
             <p className="truncate text-[13px] text-drift-muted">@{profile.username}</p>
           )}
         </div>
-        {params.id !== me.id && (
-          <FollowButton meId={me.id} targetId={params.id} initiallyFollowing={!!iFollowRow} />
+        {profileId !== me.id && (
+          <FollowButton meId={me.id} targetId={profileId} initiallyFollowing={!!iFollowRow} />
         )}
       </div>
 

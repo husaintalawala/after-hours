@@ -42,16 +42,29 @@ export default async function TripDetailPage({
   params,
   searchParams,
 }: {
-  params: { id: string }
-  searchParams?: { ask?: string }
+  // Promises since Next 15. Declaring them as plain objects compiled fine and
+  // then read `undefined` at runtime — see the destructure below.
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ ask?: string }>
 }) {
+  const { id: tripId } = await params
+  const { ask } = (await searchParams) ?? {}
   const supabase = await createClient()
 
-  const { data: tripRaw } = await supabase
+  // `error` is destructured deliberately. It used to be dropped, so an invalid
+  // id, an RLS denial and a genuinely missing trip all produced the same bare
+  // 404 — which is exactly how the unawaited `params` above stayed invisible:
+  // Postgres was returning `22P02 invalid input syntax for type uuid:
+  // "undefined"` on every request and nothing ever surfaced it.
+  const { data: tripRaw, error: tripError } = await supabase
     .from("trips")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", tripId)
     .maybeSingle()
+  if (tripError) {
+    console.error("[trips/[id]] trip lookup failed", tripId, tripError)
+    throw new Error(`Couldn't load this trip: ${tripError.message}`)
+  }
   const trip = tripRaw as TripRow | null
   if (!trip) notFound()
 
@@ -564,7 +577,7 @@ export default async function TripDetailPage({
           tripStart={trip.start_date ?? null}
           country={trip.countries?.[0] ?? null}
           fill
-          prefill={searchParams?.ask ?? null}
+          prefill={ask ?? null}
           destinations={chatDestinations}
         />
       </TripTabs>
