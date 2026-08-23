@@ -46,7 +46,13 @@ const TITLE = "#F4F8F9"
 const SUBTITLE = "rgba(198,208,217,0.9)"
 
 const ORIGIN = "https://drift.after-hours.app"
-const FALLBACK_OG = `${ORIGIN}/drift/assets/photo/og-image.jpg`
+/// NOT /drift/assets/… — that is the path inside public/, and on this host the
+/// marketing middleware already rewrites /x → /drift/x, so the internal path
+/// double-prefixes to /drift/drift/… and 404s. A 404 og:image is not a
+/// degraded card, it is a BLANK one, and nothing in a typecheck or a page
+/// render catches it: the tag is present and well-formed, the bytes just
+/// aren't there. Verified 200 image/jpeg at this URL.
+const FALLBACK_OG = `${ORIGIN}/assets/photo/og-image.jpg`
 
 /// One preview lookup per request, shared by generateMetadata and the page.
 /// React.cache dedupes it — Next only dedupes `fetch`, and this is an RPC, so
