@@ -83,6 +83,41 @@ export async function uploadTripFile(
   return data as TripFile
 }
 
+/** Upload an image and return its CDN URL, WITHOUT creating a trip_files row.
+ *
+ *  Trip Settings' cover photo is not an attachment — it is a column on the trip
+ *  (`trips.cover_url`), so it must not appear in the Files tab. This shares the
+ *  exact presign → PUT path as uploadTripFile above, so it works precisely when
+ *  file upload does; if the S3 bucket's CORS is not configured for the browser
+ *  origin, both fail together and this is not the place that broke.
+ *  Returns null on any failure; the caller shows the message. */
+export async function uploadImageToCDN(file: File): Promise<string | null> {
+  const contentType = file.type || "application/octet-stream"
+  const uid =
+    typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
+  const key = `${uid}-${safeName(file.name)}`
+
+  const res = await fetch("/api/drift/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: key, contentType }),
+  })
+  if (!res.ok) return null
+  const { presignedUrl, cdnUrl } = (await res.json()) as {
+    presignedUrl?: string
+    cdnUrl?: string
+  }
+  if (!presignedUrl || !cdnUrl) return null
+
+  const put = await fetch(presignedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: file,
+  })
+  if (!put.ok) return null
+  return cdnUrl
+}
+
 /** Throws if the row was not deleted. postgrest-js resolves with { error } rather
  *  than rejecting, so this used to return normally on an RLS denial and the caller
  *  had no way to know the file still existed. */
