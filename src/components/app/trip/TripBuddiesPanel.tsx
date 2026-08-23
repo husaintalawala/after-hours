@@ -128,12 +128,29 @@ export default function TripBuddiesPanel({
   }
 
   return (
+    // z-[60], NOT z-50: the app's bottom dock (AppNav) is also z-50 and renders
+    // later in the DOM, so at equal z it wins and paints over the panel. On an
+    // iPhone that clipped the "Create invite link" button in half with no way to
+    // reach it — the panel scrolled, but its last control sat permanently
+    // underneath the dock.
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={onClose}
     >
       <div
-        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-[24px] border border-aurora-border bg-aurora-glass p-5 sm:rounded-[24px]"
+        // dvh, not vh. On iOS Safari `vh` is the tallest viewport — measured as
+        // if the collapsing toolbars were hidden — so 85vh is taller than what
+        // is actually on screen while the toolbar is showing, and the bottom of
+        // the sheet lands under it. dvh tracks the live viewport.
+        //
+        // The extra bottom padding is for the home indicator: without it the
+        // final button ends flush against the very edge and is awkward to hit
+        // even once it is reachable.
+        //
+        // overscroll-contain stops the scroll chaining to the trip page behind,
+        // which on iOS reads as the sheet refusing to scroll at all once the
+        // page underneath starts moving instead.
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[24px] border border-aurora-border bg-aurora-glass p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-[24px] sm:pb-5"
         style={{ background: "rgba(16,34,47,0.98)" }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
