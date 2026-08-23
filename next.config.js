@@ -53,6 +53,24 @@ const nextConfig = {
       },
     ]
   },
+  // Apple requires the association file at this exact extensionless path. Next
+  // will not route a dot-prefixed directory, and a static public/ file cannot
+  // carry a content type past the blanket nosniff header above — so the path is
+  // rewritten onto a route handler that sets it explicitly. See
+  // src/app/api/aasa/route.ts. `beforeFiles` so nothing in public/ or the
+  // marketing tree can shadow it.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/.well-known/apple-app-site-association",
+          destination: "/api/aasa",
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    }
+  },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   env: {

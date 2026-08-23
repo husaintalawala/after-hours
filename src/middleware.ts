@@ -21,7 +21,28 @@ export async function middleware(req: NextRequest) {
   // marketing outro's "wander through a live trip" links there, and share
   // links use it too. Without this carve-out the marketing rewrite turns it
   // into /drift/trip/<id>.html, which does not exist → 404.
-  if (isAppPath(pathname, "/app") || isAppPath(pathname, "/auth") || isAppPath(pathname, "/trip")) {
+  // Apple's association file must be served verbatim from this exact path, with
+  // no redirect. The matcher below DOES match it (only _next/, api/ and _vercel/
+  // are excluded), and because the path has no trailing extension the marketing
+  // rewrite would ask for /drift/.well-known/apple-app-site-association.html —
+  // a 404. Apple then negative-caches that for ~24h, so getting this wrong is a
+  // day-long mistake rather than a quick fix. Bail out before any of that; the
+  // rewrite onto the route handler lives in next.config.js. No session work:
+  // Apple fetches it unauthenticated and must always be able to.
+  if (pathname === "/.well-known/apple-app-site-association") {
+    return NextResponse.next();
+  }
+
+  // /join/<token> is the invite landing page. Public — the whole point is that a
+  // signed-out stranger can see the trip before deciding to sign up — but it
+  // runs through updateSession because the page branches on whether there is
+  // already a session, and its route handlers read and write auth cookies.
+  if (
+    isAppPath(pathname, "/app") ||
+    isAppPath(pathname, "/auth") ||
+    isAppPath(pathname, "/trip") ||
+    isAppPath(pathname, "/join")
+  ) {
     return await updateSession(req);
   }
 

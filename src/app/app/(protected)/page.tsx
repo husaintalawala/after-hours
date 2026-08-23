@@ -1,4 +1,7 @@
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { INVITE_COOKIE, isValidInviteToken } from "@/lib/drift/invite"
 import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
@@ -9,6 +12,19 @@ import { tripCover } from "@/lib/drift/tripCover"
 // desktop trip rail / mobile sheet). See HomeShell for the layout.
 
 export default async function TripsHome() {
+  // Invite pickup. Someone who opened an invite link before they had an account
+  // gets sent through login, and login always lands here — the magic-link email
+  // template hardcodes next=/app, and /app/login builds redirectTo with NO query
+  // params on purpose (Supabase matches redirect URLs against an allow-list and
+  // a ?next= variant can silently fall back to the Site URL). So the token
+  // cannot ride the redirect; it waits in a cookie and is claimed here, which
+  // works identically for magic link and OAuth.
+  //
+  // Reading a cookie in a Server Component is fine; only WRITING throws. The
+  // clearing therefore happens in the /join route handlers, not here.
+  const pendingInvite = (await cookies()).get(INVITE_COOKIE)?.value
+  if (isValidInviteToken(pendingInvite)) redirect(`/join/${pendingInvite}`)
+
   const supabase = await createClient()
   // Middleware already verified this request's user; cookie read is enough here.
   const {
