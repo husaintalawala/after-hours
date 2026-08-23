@@ -1,3 +1,5 @@
+import { cache } from "react"
+import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import { isValidInviteToken } from "@/lib/drift/invite"
 
@@ -43,6 +45,84 @@ const TEAL_END = "#22B7D4"
 const TITLE = "#F4F8F9"
 const SUBTITLE = "rgba(198,208,217,0.9)"
 
+const ORIGIN = "https://drift.after-hours.app"
+const FALLBACK_OG = `${ORIGIN}/drift/assets/photo/og-image.jpg`
+
+/// One preview lookup per request, shared by generateMetadata and the page.
+/// React.cache dedupes it — Next only dedupes `fetch`, and this is an RPC, so
+/// without this the invite is looked up twice on every render.
+const loadPreview = cache(async (token: string): Promise<PreviewRow | null> => {
+  if (!isValidInviteToken(token)) return null
+  const supabase = await createClient()
+  const res = await supabase.rpc("preview_trip_invite" as never, { p_token: token } as never)
+  return ((res as { data: PreviewRow[] | null })?.data ?? [])[0] ?? null
+})
+
+function dateRange(start: string | null, end: string | null): string {
+  if (!start) return ""
+  const f = (s: string) =>
+    new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+  return end ? `${f(start)} – ${f(end)}` : f(start)
+}
+
+/// What the link looks like when someone pastes it into iMessage, WhatsApp,
+/// Slack or anywhere else that unfurls a URL.
+///
+/// This page had NO metadata, so it inherited the ROOT layout's — and the root
+/// of this domain is the Side Quest marketing site. Every invite ever sent
+/// unfurled as "Side Quest | 89 Days Around the World", someone else's travel
+/// blog, with no mention of the trip. The recipient's first impression of Drift
+/// was a link that looked like it had been sent to the wrong person.
+///
+/// noindex is deliberate: an invite URL is a capability — anyone holding it can
+/// join the trip — so it must never end up in a search result.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>
+}): Promise<Metadata> {
+  const { token } = await params
+  const p = await loadPreview(token)
+  const robots = { index: false, follow: false }
+
+  if (!p || !p.valid) {
+    return { title: "Drift invite", description: "This invite link is no longer valid.", robots }
+  }
+
+  const inviter = p.inviter_display_name || p.inviter_username
+  const trip = p.trip_title ?? "a trip"
+  const title = inviter ? `${inviter} invited you to ${trip}` : `You're invited to ${trip}`
+
+  const bits = [
+    (p.trip_cities ?? []).filter(Boolean).slice(0, 3).join(" · "),
+    dateRange(p.trip_start_date, p.trip_end_date),
+  ].filter(Boolean)
+  const going = p.member_count ?? 0
+  if (going > 1) bits.push(`${going} people are going`)
+  const description = bits.length
+    ? `${bits.join(" · ")}. See the plan and join on Drift.`
+    : "See the plan and join on Drift."
+
+  // The trip's own cover when it has one — that is the "beautiful cover photo"
+  // the preview should be showing. Falls back to Drift's card so a coverless
+  // trip still unfurls as Drift rather than as nothing.
+  const image = p.trip_cover_url || FALLBACK_OG
+
+  return {
+    title,
+    description,
+    robots,
+    openGraph: {
+      type: "website",
+      siteName: "Drift",
+      title,
+      description,
+      images: [{ url: image, width: 1200, height: 630, alt: trip }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  }
+}
+
 export default async function JoinPage({
   params,
 }: {
@@ -58,12 +138,13 @@ export default async function JoinPage({
   }
 
   const supabase = await createClient()
-  const [{ data: auth }, previewRes] = await Promise.all([
+  // loadPreview is React.cache'd, so generateMetadata's lookup above and this
+  // one are a single round trip.
+  const [{ data: auth }, preview] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.rpc("preview_trip_invite" as never, { p_token: token } as never),
+    loadPreview(token),
   ])
   const signedIn = !!auth?.user
-  const preview = ((previewRes as { data: PreviewRow[] | null })?.data ?? [])[0]
 
   if (!preview || !preview.valid) {
     return <Shell><DeadCard reason={preview?.reason ?? "not_found"} title={preview?.trip_title} /></Shell>
@@ -108,7 +189,7 @@ export default async function JoinPage({
 
       {(cities.length > 0 || preview.trip_start_date) && (
         <p className="mt-3 text-center text-[14px]" style={{ color: SUBTITLE }}>
-          {[cities.join(" · "), formatRange(preview.trip_start_date, preview.trip_end_date)]
+          {[cities.join(" · "), dateRange(preview.trip_start_date, preview.trip_end_date)]
             .filter(Boolean)
             .join("  ·  ")}
         </p>
@@ -229,19 +310,4 @@ function DeadCard({ reason, title }: { reason: string; title?: string | null }) 
       </a>
     </div>
   )
-}
-
-/// Dates arrive as raw timestamptz — the RPC deliberately does not cast them
-/// server-side, because that would resolve through the database session's
-/// timezone and could shift a trip's start day. Formatted in UTC here for the
-/// same reason: these are wall-clock dates, not instants.
-function formatRange(start: string | null, end: string | null): string {
-  if (!start) return ""
-  const f = (s: string) =>
-    new Date(s).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    })
-  return end ? `${f(start)} – ${f(end)}` : f(start)
 }
