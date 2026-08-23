@@ -75,6 +75,7 @@ export default async function TripDetailPage({
     { data: mediaRaw },
     { data: householdsRaw },
     { data: settlementsRaw },
+    { data: buddyRaw },
     {
       data: { session },
     },
@@ -98,6 +99,13 @@ export default async function TripDetailPage({
       .select("from_household,to_household,amount_minor,status")
       .eq("trip_id", tripId)
       .eq("status", "recorded"),
+    // Travel buddies roster. Rides along in this batch rather than a follow-up
+    // await — it keys on tripId alone, like everything else here.
+    supabase
+      .from("trip_buddies")
+      .select("user_id")
+      .eq("trip_id", tripId)
+      .eq("status", "accepted"),
     supabase.auth.getSession(),
   ])
   if (tripError) {
@@ -357,20 +365,33 @@ export default async function TripDetailPage({
   // go together, not one after the other.
   const expenseIds = expenseRows.map((e) => e.id)
   const memberIds = [...new Set(householdRows.flatMap((h) => h.member_user_ids ?? []))]
+  // Buddy + owner ids go through the SAME profiles query as the expense
+  // members — a separate lookup would be a second round trip on the heaviest
+  // page in the app for names we can fetch in the one already being made.
+  const buddyIds = ((buddyRaw ?? []) as Array<{ user_id: string }>).map((b) => b.user_id)
+  const rosterIds = [...new Set([trip.user_id, ...buddyIds].filter(Boolean))]
+  const profileIds = [...new Set([...memberIds, ...rosterIds])]
   const [splitsRes, profilesRes] = await Promise.all([
     expenseIds.length
       ? supabase.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
       : Promise.resolve({ data: [] }),
-    memberIds.length
-      ? supabase.from("profiles").select("id,display_name,username").in("id", memberIds)
+    profileIds.length
+      ? supabase
+          .from("profiles")
+          .select("id,display_name,username,avatar_url")
+          .in("id", profileIds)
       : Promise.resolve({ data: [] }),
   ])
   const splitRows: Array<{ expense_id: string; household_id: string; share_minor: number }> =
     splitsRes.data ?? []
 
   // Member display names for household labels + payer attribution.
-  const profileRows: Array<{ id: string; display_name: string | null; username: string | null }> =
-    profilesRes.data ?? []
+  const profileRows: Array<{
+    id: string
+    display_name: string | null
+    username: string | null
+    avatar_url: string | null
+  }> = profilesRes.data ?? []
   const memberNames = new Map<string, string>()
   for (const p of profileRows) {
     memberNames.set(p.id, (p.display_name || p.username || "Traveler").split(" ")[0])
@@ -384,6 +405,23 @@ export default async function TripDetailPage({
     id,
     name: id === meId ? "You" : memberNames.get(id) ?? "Traveler",
   }))
+
+  // The travel-buddy roster, which is NOT the same list as `members` above:
+  // that one is the expense households (who splits the bills), this one is
+  // trip_buddies (who is on the trip). They usually overlap and are not
+  // interchangeable — a buddy who has not joined a household has no expense
+  // membership, and would silently vanish from the roster if we reused it.
+  const profileById = new Map(profileRows.map((p) => [p.id, p]))
+  const tripBuddies = rosterIds.map((id) => {
+    const p = profileById.get(id)
+    return {
+      id,
+      name: p?.display_name || p?.username || "Traveler",
+      avatarUrl: p?.avatar_url ?? null,
+      isOwner: id === trip.user_id,
+      isMe: id === meId,
+    }
+  })
 
   const expenseVMs: ExpenseVM[] = expenseRows.map((e) => ({
     id: e.id,
@@ -547,6 +585,7 @@ export default async function TripDetailPage({
         tripId={trip.id}
         meId={meId}
         members={members}
+        tripBuddies={tripBuddies}
         isOwner={meId === trip.user_id}
         tripMeta={{
           // `cities[0]` before "Untitled trip": FindBookings used to run its own

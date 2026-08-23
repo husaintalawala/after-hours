@@ -38,6 +38,7 @@ import MomentViewer from "./MomentViewer"
 import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 import Link from "next/link"
+import TripBuddiesPanel, { type TripBuddy } from "./TripBuddiesPanel"
 
 // Mapbox GL is ~heavy; keep it OUT of the trip page's first-load bundle. Lazy-
 // load the map (client-only) so it downloads only when a map actually renders —
@@ -72,6 +73,7 @@ export default function TripTabs({
   tripId,
   meId,
   members,
+  tripBuddies = [],
   isOwner,
   tripMeta,
   destinations,
@@ -90,6 +92,7 @@ export default function TripTabs({
   tripId: string
   meId: string
   members: { id: string; name: string }[]
+  tripBuddies?: TripBuddy[]
   isOwner: boolean
   tripMeta: TripMetaVM
   chipData?: {
@@ -114,6 +117,7 @@ export default function TripTabs({
   budget?: { amountUsd: number | null; startDate: string | null; endDate: string | null } | null
   children?: React.ReactNode
 }) {
+  const [showBuddies, setShowBuddies] = useState(false)
   const [tab, setTab] = useState<Tab>("plan")
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
@@ -486,6 +490,36 @@ export default function TripTabs({
               {tripMeta.statusLine && (
                 <p className="mt-0.5 text-[13.5px] text-white/75">{tripMeta.statusLine}</p>
               )}
+
+              {/* Travel buddies + Invite, ON THE COVER — where iOS puts them.
+                  The invite link spent one commit buried in Trip Settings,
+                  which is not where anyone looks for it and is not what the
+                  phone does. Shown to every member: an accepted buddy may mint
+                  an invite (create_trip_invite permits owner OR buddy), and the
+                  panel itself hides the owner-only controls. */}
+              <button
+                onClick={() => setShowBuddies(true)}
+                aria-label="Travel buddies and invite link"
+                className="mt-3 flex items-center gap-2 rounded-full bg-black/35 py-1.5 pl-1.5 pr-3.5 backdrop-blur transition-colors hover:bg-black/50"
+              >
+                {tripBuddies.slice(0, 4).map((b, i) => (
+                  <span
+                    key={b.id}
+                    className="-ml-2 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-[#08131D] bg-aurora-teal/25 text-[11px] font-bold text-white first:ml-0"
+                    style={{ zIndex: 10 - i }}
+                  >
+                    {b.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={b.avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      b.name.slice(0, 1).toUpperCase()
+                    )}
+                  </span>
+                ))}
+                <span className="text-[13px] font-semibold text-white">
+                  {tripBuddies.length > 1 ? `${tripBuddies.length} · Invite` : "Invite"}
+                </span>
+              </button>
               {chipData && (
                 <TripCoverChips
                   tripId={tripId}
@@ -646,6 +680,15 @@ export default function TripTabs({
         <TrackTab steps={trackSteps} readiness={trackReadiness} tripId={tripId} />
       )}
       </div>
+
+      {showBuddies && (
+        <TripBuddiesPanel
+          tripId={tripId}
+          buddies={tripBuddies}
+          viewerIsOwner={isOwner}
+          onClose={() => setShowBuddies(false)}
+        />
+      )}
     </div>
   )
 }
