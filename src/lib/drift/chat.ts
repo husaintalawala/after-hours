@@ -78,17 +78,46 @@ export async function askDrift(
 ): Promise<void> {
   try {
     await streamAsk(body, handlers)
-  } catch (err) {
+  } catch {
     // Watchdog abort (code -5 analog) or transport error → blocking retry.
     try {
       const answer = await blockingAsk(body)
       handlers.onPayload?.(answer)
+      return
     } catch (e) {
+      // A model outage is not something to report to the user. ask-drift-chat
+      // now answers 503 model_unavailable instead of the canned prose it used
+      // to invent, so this is reachable where it never used to be — retry once,
+      // then hand back a clarifying question as a normal turn.
+      if (e instanceof AskError && e.code === "model_unavailable") {
+        try {
+          const answer = await blockingAsk(body)
+          handlers.onPayload?.(answer)
+          return
+        } catch {
+          handlers.onPayload?.(clarifyingAnswer(clarifyingReply(body.message)))
+          return
+        }
+      }
       handlers.onError?.(
         e instanceof Error ? e.message : "Couldn't reach Drift. Try again."
       )
     }
   }
+}
+
+/** A clarifying question shaped as a normal chat answer, so it renders as one. */
+function clarifyingAnswer(text: string): ChatAnswer {
+  return {
+    assistant_text: text,
+    title: "",
+    subtitle: "",
+    mode: "clarification",
+    is_clarification: true,
+    cards: [],
+    followups: [],
+    reply_chips: [],
+  } as unknown as ChatAnswer
 }
 
 async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<void> {
@@ -273,6 +302,16 @@ export function placePhotoUrl(c: PlaceCandidate | null, width = 640): string | n
   return null
 }
 
+class AskError extends Error {
+  /** The edge function's machine code, when it sent one. "model_unavailable"
+   *  means every provider failed — recoverable by asking, not by reporting. */
+  readonly code: string | null
+  constructor(message: string, code: string | null) {
+    super(message)
+    this.code = code
+  }
+}
+
 async function blockingAsk(body: AskRequestBody): Promise<ChatAnswer> {
   const res = await fetch(ASK_URL, {
     method: "POST",
@@ -280,8 +319,40 @@ async function blockingAsk(body: AskRequestBody): Promise<ChatAnswer> {
     body: JSON.stringify({ ...body, stream: false }),
   })
   if (!res.ok) {
+    // The proxy forwards ask-drift-chat's body verbatim, and that body is JSON.
+    // Throwing the raw text put `{"error":"Chat model unavailable.","code":...}`
+    // straight into the chat's error banner. Read the shape we send.
     const text = await res.text().catch(() => "")
-    throw new Error(text.slice(0, 300) || `ask failed: ${res.status}`)
+    let message = text.slice(0, 300)
+    let code: string | null = null
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      if (parsed.error) message = parsed.error
+      if (parsed.code) code = parsed.code
+    } catch {
+      /* not JSON — keep the truncated text */
+    }
+    throw new AskError(message || `ask failed: ${res.status}`, code)
   }
   return (await res.json()) as ChatAnswer
+}
+
+/**
+ * What chat says when every provider failed and there is no answer to give.
+ *
+ * Never a bare error. A chat that reports its own plumbing fails the user twice
+ * — once at the model, once at the screen, where they are left holding an error
+ * message and no next move. Retry, then ask: a clarifying question keeps the
+ * turn alive and is usually what the message needed anyway. Mirrors
+ * driftChatClarifyingReply in the iOS client.
+ */
+export function clarifyingReply(question: string): string {
+  const q = question.toLowerCase()
+  if (q.includes("day ") || q.includes("itinerary") || q.includes("plan"))
+    return "Which day should I start with? Tell me the day and roughly how you want to spend it, and I'll lay it out."
+  if (q.includes("stay") || q.includes("hotel"))
+    return "Which nights are you looking to book, and are you after something central or somewhere quieter?"
+  if (q.includes("eat") || q.includes("food") || q.includes("restaurant") || q.includes("dinner"))
+    return "What are you in the mood for, and roughly when — lunch, or dinner on a particular night?"
+  return "Say a bit more and I'll pick it up from there — which day or place should I focus on?"
 }

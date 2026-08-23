@@ -5,6 +5,17 @@ import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { resolvePlace, placePhotoUrl } from "@/lib/drift/chat"
 import type { DestinationDay, TimelineItem } from "@/lib/drift/timeline"
+import type {
+  BookingDetailVM,
+  DestinationVM,
+  ExpenseVM,
+  KitItemVM,
+  LedgerVM,
+  StepDetailVM,
+  TrackReadinessVM,
+  TrackStepVM,
+  TripMetaVM,
+} from "@/lib/drift/tripViewModels"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
 import { applyRemoveStep, applyRemoveTransport, isConfirmedBookingRefusal } from "@/lib/drift/quickOp"
@@ -44,104 +55,9 @@ const DestinationGuide = dynamic(() => import("./DestinationGuide"))
 //  Track              = recorded (flat) steps, read-only
 // Ask Drift stays docked right on desktop; the inspector borrows its pane.
 
-export interface DestinationVM {
-  id: string
-  label: string
-  country: string | null
-  nights: number
-  heroUrl: string | null
-  dateRange: string
-  plansCount: number
-  bookedChip: string | null
-  lat: number | null
-  lng: number | null
-  days: DestinationDay[]
-}
-
-export interface TripMetaVM {
-  title: string
-  flag: string | null
-  dateRange: string
-  statusLine: string
-  cover: string | null
-  /** Non-null only when `cover` came from a sourced stock photo. Rendering the
-   *  photo without this credit is an Unsplash ToS violation. */
-  coverCredit?: { text: string; href: string | null } | null
-}
-
-/** Pre-trip readiness, computed server-side from raw step + booking rows. */
-export interface TrackReadinessVM {
-  categories: { key: string; label: string; done: boolean }[]
-  pct: number
-  nightsUntilStart: number | null
-}
-
-export interface TrackStepVM {
-  id: string
-  title: string
-  subtitle: string | null
-  dateLabel: string
-  /** yyyy-MM-dd — groups moments into days and drives the scrubber. */
-  dayKey: string
-  /** HH:mm from scheduled_at, when the moment carries a time. */
-  timeLabel: string | null
-  lat: number | null
-  lng: number | null
-  /** Photos attached to this moment (media.url), oldest first. Capped at 12.
-   *  Always an array — the no-photo case is [], so nothing branches on null. */
-  photoUrls: string[]
-}
-
-export interface StepDetailVM {
-  id: string
-  title: string
-  badge: string
-  dateLabel: string | null
-  timeLabel: string | null
-  durationMinutes: number | null
-  notes: string | null
-  /** Raw yyyy-MM-dd (the step's day) + HH:mm (from scheduled_at) for inline editing. */
-  rawDate: string | null
-  rawTime: string | null
-  address: string | null
-  lat: number | null
-  lng: number | null
-  bookingUrl: string | null
-  websiteUrl: string | null
-  importProvider: string | null
-  confirmationNumber: string | null
-  guestCount: number | null
-}
-
-export interface BookingDetailVM {
-  id: string
-  title: string
-  modeLabel: string
-  route: string | null
-  departLabel: string | null
-  arriveLabel: string | null
-  confirmation: string | null
-  seat: string | null
-  provider: string | null
-  bookingUrl: string | null
-}
-
-export interface ExpenseVM {
-  id: string
-  label: string
-  subtitle: string | null
-  amount: number
-  currency: string
-  category: string
-  expense_date: string
-  payer?: string | null
-  payerUserId?: string | null
-}
-
-export interface LedgerVM {
-  rows: Array<{ label: string; mine: boolean; netMinor: number }>
-  transfers: Array<{ from: string; to: string; amountMinor: number }>
-}
+// TripMapView still imports these two from here; re-exported so moving the
+// contract out of this client file stays invisible to it.
+export type { DestinationVM, StepDetailVM }
 
 type Tab = "plan" | "kit" | "expenses" | "track"
 const TABS: [Tab, string][] = [
@@ -150,15 +66,6 @@ const TABS: [Tab, string][] = [
   ["expenses", "Expenses"],
   ["track", "Track"],
 ]
-
-export interface KitItemVM {
-  id: string
-  title: string
-  category: string
-  phase: string
-  state: string
-  quantity: number
-}
 
 export default function TripTabs({
   tripId,
@@ -226,7 +133,7 @@ export default function TripTabs({
   useEffect(() => {
     let cancelled = false
     const toResolve = destinations.filter(
-      (d) => !d.heroUrl && d.id !== "unassigned" && lazyHeroes[d.id] === undefined
+      (d) => d.id !== "unassigned" && lazyHeroes[d.id] === undefined
     )
     if (toResolve.length === 0) return
     ;(async () => {
@@ -246,7 +153,7 @@ export default function TripTabs({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destinations])
-  const heroFor = (d: DestinationVM): string | null => d.heroUrl ?? lazyHeroes[d.id] ?? null
+  const heroFor = (d: DestinationVM): string | null => lazyHeroes[d.id] ?? null
 
   // Lazy trip-level cover. Same rationale as the destination heroes above:
   // trips usually have no cover_url/media, so rather than an SSR photo lookup on
@@ -613,6 +520,7 @@ export default function TripTabs({
                   <span className="ml-auto">
                     <FindBookings
                       tripId={tripId}
+                      tripTitle={tripMeta.title}
                       tripStart={chipData?.startDate ?? null}
                       tripEnd={chipData?.endDate ?? null}
                       openSignal={reviewSignal}
@@ -982,13 +890,29 @@ function DaySection({
     if (stepIds.length === 0) return
     try {
       const supabase = createClient()
+      // throwOnError, for the same reason the Kit and Inspector writes carry it:
+      // postgrest-js resolves with { error } rather than rejecting, so a refused
+      // reorder took the success path with nothing said. And nothing corrected it
+      // afterwards either: the reconcile effect above is keyed on `orderSig`,
+      // which is built from the SERVER order — a refused update leaves that
+      // string identical, the effect never re-runs, and the user's unsaved order
+      // sat there looking saved until the next full remount.
       await Promise.all(
         stepIds.map((id, idx) =>
-          supabase.from("steps").update({ display_order: idx * 10 }).eq("id", id)
+          supabase.from("steps").update({ display_order: idx * 10 }).eq("id", id).throwOnError()
         )
       )
-    } catch {
-      // Swallow — router.refresh below restores the authoritative server order.
+    } catch (e) {
+      // Put the server's order back on screen. Promise.all rejects on the first
+      // failure but does not cancel the rest, so some rows may have been
+      // rewritten — router.refresh() below fetches whatever actually landed, and
+      // this makes the local copy stop asserting the version that did not.
+      setItems(day.items)
+      alert(
+        e instanceof Error
+          ? `Couldn't save the new order: ${e.message}`
+          : "Couldn't save the new order."
+      )
     } finally {
       router.refresh()
     }
@@ -1581,9 +1505,15 @@ function KitTab({
   const add = async (category: string, title: string) => {
     const t = title.trim()
     if (!t) return
+    // The optimistic row carries a tmp id that no server row has, and everything
+    // downstream (the progress bar, the category counts) counts it. If the insert
+    // is refused we retract it here rather than leaving it on screen for the
+    // refresh to sweep up — a refused insert changes nothing server-side, so the
+    // refresh can re-render the identical list and strand the phantom.
+    const tmpId = `tmp-${Date.now()}`
     setLocal((prev) => [
       ...prev,
-      { id: `tmp-${Date.now()}`, title: t, category, phase: "pack", state: "in_kit", quantity: 1 },
+      { id: tmpId, title: t, category, phase: "pack", state: "in_kit", quantity: 1 },
     ])
     try {
       await supabase.from("kit_items").insert({
@@ -1596,6 +1526,7 @@ function KitTab({
         source: "manual",
       }).throwOnError()
     } catch (e) {
+      setLocal((prev) => prev.filter((x) => x.id !== tmpId))
       alert(e instanceof Error ? `Couldn't add "${t}": ${e.message}` : `Couldn't add "${t}".`)
     }
     router.refresh()
@@ -2120,7 +2051,7 @@ function ExpenseRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-semibold">{e.label}</p>
         <p className="truncate text-[12.5px] text-drift-muted">
-          {[e.payer ? `${e.payer} paid` : null, e.subtitle, shortExpenseDate(e.expense_date)]
+          {[e.payer ? `${e.payer} paid` : null, e.subtitle, shortDay(e.expense_date.slice(0, 10))]
             .filter(Boolean)
             .join(" · ")}
         </p>
@@ -2164,7 +2095,7 @@ function renderByDate(
       {groups.map((g) => (
         <div key={g.day}>
           <div className="flex items-baseline justify-between px-1 pb-1.5">
-            <span className="text-[11.5px] font-semibold text-drift-muted">{longDay(g.day)}</span>
+            <span className="text-[11.5px] font-semibold text-drift-muted">{formatDayLabel(g.day)}</span>
             <span className="text-[11.5px] tabular-nums text-drift-text-tertiary">
               {subtotalLabel(g.items)}
             </span>
@@ -2255,28 +2186,6 @@ function tripPacePct(start: string | null | undefined, end: string | null | unde
 
 function humanCat(cat: string): string {
   return cat.charAt(0).toUpperCase() + cat.slice(1)
-}
-
-function longDay(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number)
-  if (!y) return iso
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  })
-}
-
-function shortExpenseDate(iso: string): string {
-  const d = iso.slice(0, 10)
-  const [y, mo, day] = d.split("-").map(Number)
-  if (!y || !mo || !day) return d
-  return new Date(Date.UTC(y, mo - 1, day)).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  })
 }
 
 function usd(minor: number): string {

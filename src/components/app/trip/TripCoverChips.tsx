@@ -406,27 +406,53 @@ function WhereSheet({
   }, [query])
 
   async function remove(d: WhereDest) {
-    // Says "days, spots" and not "bookings": transport_bookings rows referencing
-    // this destination are NOT deleted here, and the trip page rehomes them into a
-    // synthetic "More stops" bucket. Promising to delete them was the copy lying
-    // about what the code does.
-    if (!confirm(`Remove ${d.label}? This deletes its days and spots.`)) return
+    // There is no remove_destination op, so this is a client-side cascade with no
+    // transaction and no confirmed-booking guard: a stay someone is holding goes
+    // with the rest. The copy has to carry what the code cannot.
+    if (
+      !confirm(
+        `Remove ${d.label}? Its days, spots, and stays are deleted, including ones you have already booked, ` +
+          `along with any flight or train to or from it.`
+      )
+    )
+      return
     setBusy(d.id)
     const supabase = createClient()
     const sb = supabase
     try {
-      // Two statements, no transaction, and both errors were discarded — the
-      // children could be gone while the destination survived, or nothing could
-      // happen at all, and either way the UI refreshed as though it worked.
-      // throwOnError is required because postgrest-js resolves with { error }.
+      // Order is the only safety there is: children first, destination next,
+      // orphaned travel legs last. If a later statement fails, everything still
+      // standing is retryable from this sheet.
       await sb.from("steps").delete().eq("parent_step_id", d.id).throwOnError()
       await sb.from("steps").delete().eq("id", d.id).throwOnError()
+
+      // Legs that touched this stop, and the reservation segments that created
+      // them. This mirrors iOS deleteDestination, which web was missing:
+      // transport_bookings.to_/from_destination_id is `on delete set null`, so a
+      // flight into a removed city was neither deleted nor rehomed. It pointed
+      // nowhere, page.tsx's orphan-transport repair only catches an id that still
+      // resolves, and it silently stopped appearing on any timeline — while the
+      // booking scanner went on claiming it was "already in your trip", so a
+      // re-scan would not offer it back either.
+      const { data: legs, error: legErr } = await sb
+        .from("transport_bookings")
+        .select("id")
+        .or(`from_destination_id.eq.${d.id},to_destination_id.eq.${d.id}`)
+      if (legErr) throw legErr
+      const legIds = (legs ?? []).map((l) => l.id)
+      if (legIds.length > 0) {
+        await sb.from("reservation_segments").delete().in("applied_object_id", legIds).throwOnError()
+        await sb.from("transport_bookings").delete().in("id", legIds).throwOnError()
+      }
     } catch (e) {
       setBusy(null)
+      // "Couldn't finish", not "couldn't remove": part of the cascade may already
+      // have gone through, and telling the user nothing happened would be the
+      // same lie in the other direction.
       alert(
         e instanceof Error
-          ? `Couldn't remove ${d.label}: ${e.message}`
-          : `Couldn't remove ${d.label}.`
+          ? `Couldn't finish removing ${d.label}: ${e.message}\n\nSome of its days, spots, stays or travel legs may already be gone.`
+          : `Couldn't finish removing ${d.label}. Some of its days, spots, stays or travel legs may already be gone.`
       )
       router.refresh()
       return

@@ -14,16 +14,17 @@ import {
   groupTimelineByDay,
   type TransportBookingLike,
 } from "@/lib/drift/timeline"
-import { compareDate, dateOnly } from "@/lib/drift/dates"
+import { addDays, compareDate, dateOnly } from "@/lib/drift/dates"
 import { countryFlagEmoji } from "@/lib/drift/flags"
-import TripTabs, {
-  type DestinationVM,
-  type ExpenseVM,
-  type KitItemVM,
-  type StepDetailVM,
-  type BookingDetailVM,
-  type LedgerVM,
-} from "@/components/app/trip/TripTabs"
+import type {
+  DestinationVM,
+  ExpenseVM,
+  KitItemVM,
+  StepDetailVM,
+  BookingDetailVM,
+  LedgerVM,
+} from "@/lib/drift/tripViewModels"
+import TripTabs from "@/components/app/trip/TripTabs"
 import { balances, minimalTransfers } from "@/lib/drift/balances"
 import type { StayGap } from "@/components/app/trip/CompleteYourTrip"
 import TripChat from "@/components/app/chat/TripChat"
@@ -51,43 +52,60 @@ export default async function TripDetailPage({
   const { ask } = (await searchParams) ?? {}
   const supabase = await createClient()
 
-  // `error` is destructured deliberately. It used to be dropped, so an invalid
-  // id, an RLS denial and a genuinely missing trip all produced the same bare
-  // 404 — which is exactly how the unawaited `params` above stayed invisible:
-  // Postgres was returning `22P02 invalid input syntax for type uuid:
-  // "undefined"` on every request and nothing ever surfaced it.
-  const { data: tripRaw, error: tripError } = await supabase
-    .from("trips")
-    .select("*")
-    .eq("id", tripId)
-    .maybeSingle()
+  // ONE round trip for everything that keys on the trip id alone. This used to
+  // be a four-stage cascade — trips, then the trip-scoped selects, then the
+  // ledger pair — but nothing in stages two and three read the trip row: they
+  // all filter on `trip.id`, which is `tripId`, the value we already have. That
+  // was three serial waits on the heaviest page in the app, paid again on every
+  // one of the ~28 router.refresh() call sites. The trade is that a missing or
+  // RLS-denied trip runs the other queries too; they come back empty and we
+  // still 404 below.
+  //
+  // `error` on the trip lookup is destructured deliberately. It used to be
+  // dropped, so an invalid id, an RLS denial and a genuinely missing trip all
+  // produced the same bare 404 — which is exactly how the unawaited `params`
+  // above stayed invisible: Postgres was returning `22P02 invalid input syntax
+  // for type uuid: "undefined"` on every request and nothing ever surfaced it.
+  const [
+    { data: tripRaw, error: tripError },
+    { data: stepsRaw },
+    { data: transportRaw },
+    { data: expensesRaw },
+    { data: kitRaw },
+    { data: mediaRaw },
+    { data: householdsRaw },
+    { data: settlementsRaw },
+    {
+      data: { session },
+    },
+  ] = await Promise.all([
+    supabase.from("trips").select("*").eq("id", tripId).maybeSingle(),
+    supabase.from("steps").select("*").eq("trip_id", tripId),
+    supabase.from("transport_bookings").select("*").eq("trip_id", tripId),
+    supabase.from("expenses").select("*").eq("trip_id", tripId),
+    supabase.from("kit_items").select("*").eq("trip_id", tripId),
+    supabase
+      .from("media")
+      .select("step_id,url,type,created_at")
+      .eq("trip_id", tripId)
+      .eq("type", "photo")
+      .order("created_at", { ascending: true })
+      .limit(400)
+      .returns<Array<{ step_id: string | null; url: string }>>(),
+    supabase.from("households").select("id,name,member_user_ids").eq("trip_id", tripId),
+    supabase
+      .from("settlements")
+      .select("from_household,to_household,amount_minor,status")
+      .eq("trip_id", tripId)
+      .eq("status", "recorded"),
+    supabase.auth.getSession(),
+  ])
   if (tripError) {
     console.error("[trips/[id]] trip lookup failed", tripId, tripError)
     throw new Error(`Couldn't load this trip: ${tripError.message}`)
   }
   const trip = tripRaw as TripRow | null
   if (!trip) notFound()
-
-  const [
-    { data: stepsRaw },
-    { data: transportRaw },
-    { data: expensesRaw },
-    { data: kitRaw },
-    { data: mediaRaw },
-  ] = await Promise.all([
-    supabase.from("steps").select("*").eq("trip_id", trip.id),
-    supabase.from("transport_bookings").select("*").eq("trip_id", trip.id),
-    supabase.from("expenses").select("*").eq("trip_id", trip.id),
-    supabase.from("kit_items").select("*").eq("trip_id", trip.id),
-    supabase
-      .from("media")
-      .select("step_id,url,type,created_at")
-      .eq("trip_id", trip.id)
-      .eq("type", "photo")
-      .order("created_at", { ascending: true })
-      .limit(400)
-      .returns<Array<{ step_id: string | null; url: string }>>(),
-  ])
 
   const steps = (stepsRaw ?? []) as StepRow[]
   const transportRows = (transportRaw ?? []) as TransportBookingRow[]
@@ -149,7 +167,7 @@ export default async function TripDetailPage({
         lat: d.latitude as number,
         lng: d.longitude as number,
         checkIn,
-        checkOut: addDaysStr(checkIn, nights),
+        checkOut: addDays(checkIn, nights),
         nights,
       }
     })
@@ -175,9 +193,8 @@ export default async function TripDetailPage({
   // Destination view-models: day timeline. Hero photo is intentionally NOT
   // resolved here — a per-destination resolve-place→Google lookup (cache:
   // no-store) on the SSR path blocked opening a trip for 1-3s on a cold
-  // lambda (same cause as the slow Chats list). heroUrl starts null and is
-  // hydrated lazily on the client (TripTabs), falling back to the amber
-  // gradient until it loads.
+  // lambda (same cause as the slow Chats list). TripTabs hydrates the heroes
+  // lazily on the client, falling back to the amber gradient until they load.
   const fmtShort = (iso: string) => {
     const [y, m, d] = iso.split("-").map(Number)
     return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
@@ -197,8 +214,7 @@ export default async function TripDetailPage({
       label,
       country: destination.country,
       nights,
-      heroUrl: null,
-      dateRange: `${fmtShort(start)} – ${fmtShort(addDaysStr(start, nights))}`,
+      dateRange: `${fmtShort(start)} – ${fmtShort(addDays(start, nights))}`,
       plansCount: children.length,
       bookedChip: arriving ? `${(MODE_LABEL[arriving.mode] ?? arriving.mode).toLowerCase()} booked` : null,
       lat: destination.latitude,
@@ -320,7 +336,6 @@ export default async function TripDetailPage({
       label: synthDest.title as string,
       country: synthDest.country,
       nights: spanNights,
-      heroUrl: null,
       dateRange: `${fmtShort(startD)} – ${fmtShort(endD)}`,
       plansCount: unassigned.length,
       bookedChip: null,
@@ -331,37 +346,34 @@ export default async function TripDetailPage({
   }
 
   // ---- Shared-ledger balances (ExpenseBalances port) ----
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
   const meId = session?.user?.id ?? ""
+  const householdRows: Array<{ id: string; name: string | null; member_user_ids: string[] }> =
+    householdsRaw ?? []
+  const settlementRows: Array<{ from_household: string; to_household: string; amount_minor: number }> =
+    settlementsRaw ?? []
+
+  // The only two queries that genuinely need the first round trip's rows —
+  // splits key on the expense ids, profiles on the household members — so they
+  // go together, not one after the other.
   const expenseIds = expenseRows.map((e) => e.id)
-  const sb = supabase
-  const [splitsRes, householdsRes, settlementsRes] = await Promise.all([
+  const memberIds = [...new Set(householdRows.flatMap((h) => h.member_user_ids ?? []))]
+  const [splitsRes, profilesRes] = await Promise.all([
     expenseIds.length
-      ? sb.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
+      ? supabase.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
       : Promise.resolve({ data: [] }),
-    sb.from("households").select("id,name,member_user_ids").eq("trip_id", trip.id),
-    sb.from("settlements").select("from_household,to_household,amount_minor,status").eq("trip_id", trip.id).eq("status", "recorded"),
+    memberIds.length
+      ? supabase.from("profiles").select("id,display_name,username").in("id", memberIds)
+      : Promise.resolve({ data: [] }),
   ])
   const splitRows: Array<{ expense_id: string; household_id: string; share_minor: number }> =
     splitsRes.data ?? []
-  const householdRows: Array<{ id: string; name: string | null; member_user_ids: string[] }> =
-    householdsRes.data ?? []
-  const settlementRows: Array<{ from_household: string; to_household: string; amount_minor: number }> =
-    settlementsRes.data ?? []
 
   // Member display names for household labels + payer attribution.
-  const memberIds = [...new Set(householdRows.flatMap((h) => h.member_user_ids ?? []))]
+  const profileRows: Array<{ id: string; display_name: string | null; username: string | null }> =
+    profilesRes.data ?? []
   const memberNames = new Map<string, string>()
-  if (memberIds.length) {
-    const { data: profs } = await sb
-      .from("profiles")
-      .select("id,display_name,username")
-      .in("id", memberIds)
-    for (const p of profs ?? []) {
-      memberNames.set(p.id, (p.display_name || p.username || "Traveler").split(" ")[0])
-    }
+  for (const p of profileRows) {
+    memberNames.set(p.id, (p.display_name || p.username || "Traveler").split(" ")[0])
   }
 
   const payerLabel = (uid: string | null): string | null =>
@@ -537,7 +549,11 @@ export default async function TripDetailPage({
         members={members}
         isOwner={meId === trip.user_id}
         tripMeta={{
-          title: trip.title || "Untitled trip",
+          // `cities[0]` before "Untitled trip": FindBookings used to run its own
+          // `title || cities[0]` lookup for its "Adding to {trip}" line, so an
+          // untitled Paris trip read "Paris" there and "Untitled trip" in the
+          // heading behind it. One string now, and it is the better one.
+          title: trip.title || trip.cities?.[0] || "Untitled trip",
           flag,
           dateRange: tripSubtitle(trip),
           statusLine: tripStatusLine(trip.start_date, trip.end_date),
@@ -590,13 +606,6 @@ export default async function TripDetailPage({
       />
     </main>
   )
-}
-
-function addDaysStr(date: string, n: number): string {
-  const [y, m, d] = date.split("-").map(Number)
-  const t = Date.UTC(y, m - 1, d) + n * 86_400_000
-  const dt = new Date(t)
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`
 }
 
 function tripStatusLine(start: string | null, end: string | null): string {

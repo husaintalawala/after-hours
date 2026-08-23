@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { resolvePlaceCandidates, placePhotoUrl, askDrift, type PlaceCandidate } from "@/lib/drift/chat"
+import { resolvePlaceCandidates, placePhotoUrl, askDrift, clarifyingReply, type PlaceCandidate } from "@/lib/drift/chat"
 import { fetchDestinationFacts, type DestinationFacts } from "@/lib/drift/facts"
 import { renderRich } from "@/lib/drift/richText"
 
@@ -561,19 +561,19 @@ function CuriousSection({ tripId, label }: { tripId: string; label: string }) {
     setQuestion(q)
     setAnswer("")
     setBusy(true)
-    try {
-      await askDrift(
-        { tripId, message: q, conversation: [] },
-        {
-          onDelta: (d) => setAnswer((prev) => prev + d),
-          onPayload: (a) => {
-            if (a.assistant_text) setAnswer(a.assistant_text)
-          },
-        }
-      )
-    } catch {
-      setAnswer("Couldn't reach Drift just now — try again.")
-    }
+    // onError is not optional here in practice: askDrift never rethrows — it
+    // reports through the handlers — so the catch below could only ever fire on
+    // a synchronous throw, and a failed question left this panel silently blank.
+    await askDrift(
+      { tripId, message: q, conversation: [] },
+      {
+        onDelta: (d) => setAnswer((prev) => prev + d),
+        onPayload: (a) => {
+          if (a.assistant_text) setAnswer(a.assistant_text)
+        },
+        onError: () => setAnswer(clarifyingReply(q)),
+      }
+    )
     setBusy(false)
   }
 

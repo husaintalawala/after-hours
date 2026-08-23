@@ -36,6 +36,7 @@ const CATEGORY_ICON: Record<string, string> = {
 
 export default function FindBookings({
   tripId,
+  tripTitle = null,
   tripStart = null,
   tripEnd = null,
   openSignal = 0,
@@ -43,6 +44,12 @@ export default function FindBookings({
   onScanStarted,
 }: {
   tripId: string
+  // The title the server already rendered for this trip. Handed down rather
+  // than re-read from the browser so the review screen's "Adding to {trip}"
+  // is the same string as the heading behind the sheet — a second copy fetched
+  // later can disagree with it if a rename lands in between. Null when a caller
+  // has nothing to hand down; then, and only then, we go and look it up.
+  tripTitle?: string | null
   // The trip's date window. Scopes the Google Calendar pull so a scan imports
   // the trip's events, not the next 50 things on the user's calendar.
   tripStart?: string | null
@@ -83,6 +90,7 @@ export default function FindBookings({
       {open && (
         <FindBookingsSheet
           tripId={tripId}
+          tripTitle={tripTitle}
           tripStart={tripStart}
           tripEnd={tripEnd}
           reviewBatchId={scopeBatchId}
@@ -99,6 +107,7 @@ export default function FindBookings({
 
 function FindBookingsSheet({
   tripId,
+  tripTitle = null,
   tripStart = null,
   tripEnd = null,
   onClose,
@@ -106,6 +115,7 @@ function FindBookingsSheet({
   reviewBatchId = null,
 }: {
   tripId: string
+  tripTitle?: string | null
   tripStart?: string | null
   tripEnd?: string | null
   onClose: (didApply: boolean) => void
@@ -128,7 +138,7 @@ function FindBookingsSheet({
   // to review a specific scan, or any load that turns up results, lands on
   // review so the found list is never buried under the add-sources list.
   const [mode, setMode] = useState<"sources" | "review">(reviewBatchId ? "review" : "sources")
-  const [tripName, setTripName] = useState<string | null>(null)
+  const [tripName, setTripName] = useState<string | null>(tripTitle)
   // Undo for inline dismiss: keep the removed row + defer the ignore write so an
   // Undo within the window costs no round-trip (commit-on-timeout).
   const [undo, setUndo] = useState<{ seg: SegmentVM; index: number; wasSelected: boolean } | null>(null)
@@ -149,16 +159,22 @@ function FindBookingsSheet({
       .then(({ data }: { data: { email_address: string }[] | null }) => {
         setAlias(data?.[0]?.email_address ?? null)
       })
-    // Trip name for the review screen's "Adding to {trip}" context line.
-    db.from("trips")
-      .select("title, cities")
-      .eq("id", tripId)
-      .limit(1)
-      .then(({ data }: { data: { title: string | null; cities: string[] | null }[] | null }) => {
-        const t = data?.[0]
-        setTripName(t?.title || t?.cities?.[0] || null)
-      })
-  }, [tripId])
+    // Trip name for the review screen's "Adding to {trip}" context line. The
+    // page that renders this sheet already has the title, so this is only the
+    // fallback for a caller that didn't hand one down.
+    // Falsy, not `== null`: an empty title would otherwise skip the lookup AND
+    // survive the `?? "your trip"` render guard, painting a dangling "Adding to".
+    if (!tripTitle) {
+      db.from("trips")
+        .select("title, cities")
+        .eq("id", tripId)
+        .limit(1)
+        .then(({ data }: { data: { title: string | null; cities: string[] | null }[] | null }) => {
+          const t = data?.[0]
+          setTripName(t?.title || t?.cities?.[0] || null)
+        })
+    }
+  }, [tripId, tripTitle])
 
   /** `keepMode` holds the review screen open after an apply, so the
    *  "Added N bookings ✓" confirmation isn't yanked away when the list it
