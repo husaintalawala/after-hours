@@ -19,13 +19,27 @@ import { usePathname } from "next/navigation"
 // there is not a single affiliate link on it. Loading an ad network there costs
 // conversion and buys nothing.
 //
-// Deliberately scoped narrowly rather than "everywhere except the marketing
-// site": the tag is also a Travelpayouts site-verification mechanism, and the
-// project is still under their review, so silently removing it from broad
-// swathes of the app risks the affiliate approval. /app carries the same cost
-// and is the obvious next candidate — but that is a separate call to make with
-// eyes open, not a side effect of a performance fix.
-const EXCLUDED_PREFIXES = ["/join"]
+// /app and /auth are excluded for the same reason, measured on /app/login:
+// 29 ad-stack requests totalling 4998ms of network time on a page with 51
+// resources. DOMContentLoaded is fine there (173ms) because the cascade loads
+// after it — but 29 third-party requests still compete with the app's own for
+// connections and main thread, which is what "the site feels slow" is made of.
+//
+// Nothing behind the login has an affiliate link on it, and no crawler sees it
+// (the /app tree is robots: noindex by its own layout), so the tag was pure
+// cost there.
+//
+// WHAT IS DELIBERATELY LEFT: /trip/<id>, the public share page. That one is
+// crawlable and is a plausible place for booking intent, so it keeps the tag.
+//
+// ⚠️ SEPARATE ISSUE, NOT FIXED HERE: the static marketing site — the actual
+// homepage at drift.after-hours.app/, which middleware rewrites to
+// public/drift/index.html — has NEVER carried this tag. Grep it: zero
+// occurrences. So Travelpayouts' verification crawler, which would look at the
+// homepage, has been finding nothing all along, while the tag burned two
+// seconds a page inside the logged-in app. Fixing that is an affiliate
+// decision, not a performance one.
+const EXCLUDED_PREFIXES = ["/join", "/app", "/auth"]
 
 export default function MarketingTags() {
   const pathname = usePathname()
