@@ -14,19 +14,25 @@ type TripUpdate = Database["public"]["Tables"]["trips"]["Update"]
 // Trip Settings — web port of the iOS EditTripView.
 //
 // PORTED: cover photo, trip name, dates, who can see the trip, location
-// tracking + visibility, and the destructive action (delete or leave).
+// tracking + visibility, the invite link, and the destructive action.
 //
 // NOT PORTED, deliberately:
 //   • The location-permission explainer ("open your phone settings, choose
 //     Always") — it instructs the user through iOS Settings and means nothing
 //     in a browser. The tracking VALUE is a server column, so it is editable
 //     here; the permission is the phone's business.
-//   • Travel Buddies management — adding and removing members is owner-only at
-//     the RLS level (`Trip owner manages buddies` requires trips.user_id =
-//     auth.uid()), and the invite link is minted by an RPC. Shipping a
-//     half-working roster here would reproduce the exact defect iOS has, where
-//     a buddy is shown an Add button that 42501s and a Remove that fails
+//   • The buddy ROSTER — adding and removing members is owner-only at the RLS
+//     level (`Trip owner manages buddies` requires trips.user_id = auth.uid()).
+//     Shipping a half-working roster would reproduce the exact defect iOS has,
+//     where a buddy is shown an Add button that 42501s and a Remove that fails
 //     SILENTLY. Better to have nothing than a control that lies.
+//
+//     The invite LINK is not part of that omission and is included below.
+//     `create_trip_invite` permits the owner OR any accepted buddy — verified
+//     against production — so this is a capability web can offer in full. It
+//     was left out of the first cut of this screen by mistake, which left the
+//     web app able to RECEIVE an invite (/join/<token>) while offering no way
+//     to send one.
 //   • Email forwarding address — server-generated per trip, worth surfacing,
 //     but it belongs with the import flow rather than bolted on here.
 //
@@ -103,6 +109,10 @@ export default function TripSettingsShell({
   const [confirmDestructive, setConfirmDestructive] = useState(false)
   const [destructing, setDestructing] = useState(false)
 
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null)
+  const [minting, setMinting] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   const datesInvalid = !!start && !!end && end < start
 
   /// Every write goes through here. `.throwOnError()` is not optional:
@@ -157,6 +167,50 @@ export default function TripSettingsShell({
     const ok = await patch({ cover_url: url })
     if (ok) setCoverUrl(url)
     setUploading(false)
+  }
+
+  /// Mint a fresh invite link. Owner or accepted buddy — the RPC decides, and
+  /// a refusal surfaces here rather than being reported as a network problem
+  /// (which is what the iOS version does, sending people into retry loops).
+  async function createInvite() {
+    if (minting) return
+    setMinting(true)
+    setError(null)
+    setCopied(false)
+    try {
+      // `as never`: database.types.ts predates migration 20260823210813, so the
+      // generated Functions union has no create_trip_invite and the typed
+      // client rejects the name. Same cast the /join routes use. Regenerating
+      // the types is the real fix and belongs in its own change.
+      const { data, error: e } = await db.rpc(
+        "create_trip_invite" as never,
+        { p_trip_id: tripId } as never
+      )
+      if (e) throw e
+      // The function is `returns table(...)`, so PostgREST hands back an ARRAY.
+      // Reading .token off the response directly yields undefined and produces
+      // a /join/undefined link that the landing page then rejects.
+      const token = ((data as { token?: string }[] | null) ?? [])[0]?.token
+      if (!token) throw new Error("No invite token came back. Try again.")
+      setInviteUrl(`https://drift.after-hours.app/join/${token}`)
+    } catch (err) {
+      setError(
+        (err as { message?: string })?.message ??
+          "Couldn't create an invite link. Try again in a moment."
+      )
+    }
+    setMinting(false)
+  }
+
+  async function copyInvite() {
+    if (!inviteUrl) return
+    try {
+      await navigator.clipboard.writeText(inviteUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError("Couldn't copy — select the link and copy it manually.")
+    }
   }
 
   async function runDestructive() {
@@ -394,6 +448,53 @@ export default function TripSettingsShell({
         )}
       </section>
 
+      {/* ---- Invite ---- */}
+      <SectionLabel>Travel buddies</SectionLabel>
+      <section className="rounded-2xl border border-aurora-border bg-aurora-glass p-5">
+        <p className="text-[14.5px] font-semibold">Invite with a link</p>
+        <p className="mt-1 text-[12.5px] text-drift-muted">
+          Anyone who opens it can join this trip. Works on any phone or computer —
+          they don&apos;t need the app. The link expires in 14 days.
+        </p>
+
+        {inviteUrl ? (
+          <>
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                readOnly
+                value={inviteUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                aria-label="Invite link"
+                className="min-w-0 flex-1 rounded-xl border border-aurora-border bg-drift-alt-bg px-3 py-2.5 text-[13px] outline-none"
+              />
+              <button
+                onClick={copyInvite}
+                className="shrink-0 rounded-full px-4 py-2.5 text-[13.5px] font-semibold text-aurora-teal-ink"
+                style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <button
+              onClick={createInvite}
+              disabled={minting}
+              className="mt-3 text-[13px] font-semibold text-drift-muted hover:text-drift-ink disabled:opacity-60"
+            >
+              {minting ? "Creating…" : "Create a different link"}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={createInvite}
+            disabled={minting}
+            className="mt-4 rounded-full px-5 py-2.5 text-[14.5px] font-semibold text-aurora-teal-ink disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
+          >
+            {minting ? "Creating…" : "Create invite link"}
+          </button>
+        )}
+      </section>
+
       {/* ---- Destructive ---- */}
       <SectionLabel>{isOwner ? "Danger zone" : "Leave"}</SectionLabel>
       <section className="rounded-2xl border p-5" style={{ borderColor: "rgba(255,99,88,0.28)" }}>
@@ -442,7 +543,7 @@ export default function TripSettingsShell({
       </section>
 
       <p className="mt-8 px-1 text-[12px] text-drift-muted">
-        Travel buddies are managed in the Drift iOS app.
+        Removing a travel buddy is done in the Drift iOS app.
       </p>
     </main>
   )
