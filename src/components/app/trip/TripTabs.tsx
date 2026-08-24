@@ -147,7 +147,7 @@ export default function TripTabs({
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
   const [selected, setSelected] = useState<TimelineItem | null>(null)
   // Full-screen Map: the day number it opened on, or null when closed.
-  const [mapOpenDay, setMapOpenDay] = useState<number | null>(null)
+  const [mapOpenDay, setMapOpenDay] = useState<number | "all" | null>(null)
   // Background-scan wiring: bumping scanNonce wakes the ScanStatus chip after a
   // scan is kicked off; bumping reviewSignal opens the bookings sheet to review.
   const [scanNonce, setScanNonce] = useState(0)
@@ -649,11 +649,16 @@ export default function TripTabs({
                     .map((d) => ({ lat: d.lat!, lng: d.lng! }))}
                   stopCount={destinations.filter((d) => d.id !== "unassigned").length}
                   notesCount={notesTotal}
-                  onMap={() =>
+                  onMap={() => {
+                    // Both halves, as iOS does: requestTripMap() selects the
+                    // first stop AND opens the map. Selecting alone just
+                    // navigated into Reykjavík and never opened anything.
+                    // "all" because the tile promises the whole trip.
                     setSelectedDestId(
                       destinations.find((d) => d.id !== "unassigned")?.id ?? null
                     )
-                  }
+                    setMapOpenDay("all")
+                  }}
                   onNotes={() => setShowNotes(true)}
                 >
                   <MediaSection tripId={tripId} variant="tile" />
@@ -669,30 +674,6 @@ export default function TripTabs({
                   />
                   <ExportItinerary tripId={tripId} variant="tile" />
                 </TripToolsDeck>
-                {/* Every note in the trip, compiled. Matches the MediaSection
-                    row anatomy exactly so the Plan tab reads as one list. */}
-                <button
-                  onClick={() => setShowNotes(true)}
-                  className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 text-left transition-colors hover:border-aurora-teal/40"
-                >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-teal/10 text-aurora-teal">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 4h13l3 3v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-                      <path d="M7 9h9M7 13h9M7 17h5" />
-                    </svg>
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-drift-ink">Notes</span>
-                    <span className="block truncate text-[12.5px] text-drift-text-tertiary">
-                      {notesTotal === 0
-                        ? "Notes from every stop, together"
-                        : `${notesTotal} ${notesTotal === 1 ? "note" : "notes"} across this trip`}
-                    </span>
-                  </span>
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-drift-text-tertiary" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 6l6 6-6 6" />
-                  </svg>
-                </button>
                 {destinations.length === 0 && (
                   <p className="mt-3 text-drift-muted">
                     No itinerary yet. Ask Drift to start planning.

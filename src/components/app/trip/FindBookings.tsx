@@ -13,7 +13,7 @@ import {
 } from "@/lib/drift/google"
 import { openPlaidLink, PLAID_CANCELLED } from "@/lib/drift/plaid"
 import { loadReviewList, type SegmentVM } from "@/lib/drift/loadReviewList"
-import { TripToolTile } from "./TripToolsDeck"
+import { TripToolTile, SourceFan } from "./TripToolsDeck"
 
 // Find my bookings — web port of the iOS booking-import surface. One card
 // language, one line-icon set (no emoji), consistent rows. Two groups:
@@ -88,6 +88,7 @@ export default function FindBookings({
           tint="teal"
           title="Find bookings"
           caption="Scan your inbox"
+          preview={<SourceFan />}
           onClick={() => {
             setScopeBatchId(null)
             setOpen(true)

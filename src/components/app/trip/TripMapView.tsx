@@ -96,7 +96,9 @@ export default function TripMapView({
   tripId: string
   dest: DestinationVM
   stepDetails: Record<string, StepDetailVM>
-  initialDay: number
+  /** "all" opens showing every stop — what the trip-level map tile means when
+   *  it says "N stops on the map". */
+  initialDay: number | "all"
 }) {
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
