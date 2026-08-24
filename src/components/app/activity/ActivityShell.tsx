@@ -265,13 +265,21 @@ function FromYourCrew({ items }: { items: ActivityPulse[] }) {
       <BandHeader title="From your crew" kicker="LAST 30 DAYS" />
       <ul className="mt-3 space-y-1">
         {items.map((p) => (
-          <li key={p.id} className="flex items-baseline gap-2 py-2">
-            <span className="min-w-0 flex-1 text-[14px] text-aurora-ink">
-              <span className="font-semibold">{p.who ?? p.text}</span>
-              {p.who && <span className="text-drift-muted"> {p.text}</span>}
-              <span className="text-drift-muted"> · {p.tripTitle}</span>
-            </span>
-            <time className="shrink-0 text-[11.5px] text-drift-muted">{p.agoText}</time>
+          <li key={p.id}>
+            {/* A row that NAMES a trip has to open it. These were pure display
+                — the same defect iOS had, where PulseItem carried the title but
+                not the id. */}
+            <Link
+              href={`/app/trips/${p.tripId}`}
+              className="flex items-baseline gap-2 rounded-lg py-2 transition-colors hover:bg-aurora-glass"
+            >
+              <span className="min-w-0 flex-1 text-[14px] text-aurora-ink">
+                <span className="font-semibold">{p.who ?? p.text}</span>
+                {p.who && <span className="text-drift-muted"> {p.text}</span>}
+                <span className="text-drift-muted"> · {p.tripTitle}</span>
+              </span>
+              <time className="shrink-0 text-[11.5px] text-drift-muted">{p.agoText}</time>
+            </Link>
           </li>
         ))}
       </ul>
@@ -285,13 +293,22 @@ function Signals({ items }: { items: ActivitySignal[] }) {
       <BandHeader title="Signals" />
       <ul className="mt-3 space-y-1">
         {items.map((s) => (
-          <li key={s.id} className="flex items-center gap-3 py-2">
-            <Avatar url={s.avatar} name={s.actor} size={32} />
-            <span className="min-w-0 flex-1 text-[14px] text-aurora-ink">
-              <span className="font-semibold">{s.actor}</span>{" "}
-              <span className="text-drift-muted">{s.text}</span>
-            </span>
-            <time className="shrink-0 text-[11.5px] text-drift-muted">{s.agoText}</time>
+          <li key={s.id}>
+            {/* Follows, likes and comments are all ABOUT a person, so the row
+                opens that person. iOS points its equivalent at the follower
+                list for the same reason: a row that answers nothing reads as a
+                broken screen. */}
+            <Link
+              href="/app/people"
+              className="flex items-center gap-3 rounded-lg py-2 transition-colors hover:bg-aurora-glass"
+            >
+              <Avatar url={s.avatar} name={s.actor} size={32} />
+              <span className="min-w-0 flex-1 text-[14px] text-aurora-ink">
+                <span className="font-semibold">{s.actor}</span>{" "}
+                <span className="text-drift-muted">{s.text}</span>
+              </span>
+              <time className="shrink-0 text-[11.5px] text-drift-muted">{s.agoText}</time>
+            </Link>
           </li>
         ))}
       </ul>
