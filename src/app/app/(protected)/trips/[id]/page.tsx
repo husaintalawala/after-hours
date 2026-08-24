@@ -419,7 +419,13 @@ export default async function TripDetailPage({
   // so this costs a pass over arrays, not a query.
   const tripNotes = buildTripNotes(
     steps as unknown as Parameters<typeof buildTripNotes>[0],
-    destVMs.map((d) => ({ id: d.id, label: d.label, dateRange: d.dateRange })),
+    destVMs.map((d) => ({
+      id: d.id,
+      label: d.label,
+      dateRange: d.dateRange,
+      // The stop's first day — what a note composed here is pinned to.
+      startDate: dateOnly(destinations.find((x) => x.id === d.id)?.date ?? null),
+    })),
     transportRows as unknown as Parameters<typeof buildTripNotes>[2],
     profileById,
   )

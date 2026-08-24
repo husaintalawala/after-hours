@@ -124,6 +124,10 @@ export default function TripTabs({
   const [showBuddies, setShowBuddies] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const notesTotal = countTripNotes(tripNotes)
+  // Web has no viewerMode/canEdit concept — the only role-shaped props here are
+  // isOwner and tripBuddies. A member is the owner or an accepted buddy, which
+  // is exactly who RLS lets insert a step on this trip.
+  const canWriteNotes = isOwner || tripBuddies.some((b) => b.isMe)
   const [tab, setTab] = useState<Tab>("plan")
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
@@ -713,8 +717,10 @@ export default function TripTabs({
 
       {showNotes && (
         <TripNotesPanel
+          tripId={tripId}
           groups={tripNotes}
           total={notesTotal}
+          canWrite={canWriteNotes}
           onClose={() => setShowNotes(false)}
         />
       )}

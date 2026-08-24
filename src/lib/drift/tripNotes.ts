@@ -21,13 +21,16 @@
 // filters them out rather than building a collapsed drawer for them; a drawer is
 // scaffolding for a problem that is 24 rows big.
 //
-// READ-ONLY BY DESIGN. This compiles notes for reading; editing stays where it
-// already works (the step inspector on web, ItemDetailSheet / the day-notes card
-// on iOS). That is not a shortcut — an editable rollup has to answer author_id
-// on inserts, a write affordance on the synthetic "unassigned" bucket whose id
-// is not a uuid, and a viewer-role gate that does not exist on web yet. Adding
-// a second write path for those before the reading surface has proven useful is
-// how you get two editors that disagree.
+// WRITING. The rollup can ADD a day note (a new step_type='note' row) per stop.
+// It does not EDIT existing ones: insertNoteStep mirrors an 80-char preview into
+// `location_name` while updateStepNotes writes only `notes`, so an in-place edit
+// would permanently desync the preview iOS falls back to. Adding is safe because
+// it goes through the same insert shape as iOS — including author_id, without
+// which a web-authored note shows as authorless on the phone and its own author
+// cannot delete it there.
+//
+// The synthetic "unassigned" bucket gets no composer: its id is the string
+// "unassigned", not a uuid, so an insert against it is Postgres 22P02.
 
 export interface TripNote {
   id: string
@@ -49,6 +52,8 @@ export interface TripNoteGroup {
   destId: string | null
   destLabel: string
   dateRange: string | null
+  /** yyyy-MM-dd of the stop's first day — what a new note here is pinned to. */
+  startDate: string | null
   notes: TripNote[]
 }
 
@@ -78,6 +83,7 @@ interface DestLike {
   id: string
   label: string
   dateRange: string | null
+  startDate: string | null
 }
 
 interface ProfileLike {
@@ -90,6 +96,35 @@ const has = (v: string | null | undefined): v is string => !!v && v.trim().lengt
 
 /** Drift's own boilerplate, not the traveller's writing. */
 const isMachineWritten = (s: StepLike) => s.source === "recommendation"
+
+/// Booking notes have no `source` column to discriminate on, and the agent
+/// writes route summaries straight into the same field —
+/// "~221 km · 3h 4m · Hringvegur · ✨ Drift planned · The Ring Road and regional
+/// routes are the way to get around Iceland." That is trip DATA, not something
+/// anyone wrote down, and it dominated the rollup on a multi-stop trip. The
+/// marker is emitted by TripAgentRuntime.swift:783 as a literal prefix, so
+/// matching it is exact rather than heuristic.
+const isMachineBookingNote = (body: string) => body.includes("✨ Drift planned")
+
+/// Split a note into its text and its first URL, matching the iOS parser
+/// (DestinationDaysView.parseNote) so a note renders the same on both.
+/// Notes are frequently JUST a pasted Google Maps link, which as raw text is
+/// an unreadable wall and not tappable.
+export function splitNoteURL(body: string): { text: string; url: string | null } {
+  const m = body.match(/https?:\/\/[^\s]+/)
+  if (!m) return { text: body, url: null }
+  return { text: body.replace(m[0], "").trim(), url: m[0] }
+}
+
+export function isMapsURL(url: string): boolean {
+  const s = url.toLowerCase()
+  return (
+    s.includes("maps.app.goo.gl") ||
+    s.includes("google.com/maps") ||
+    s.includes("maps.google") ||
+    s.includes("goo.gl/maps")
+  )
+}
 
 function humanize(s: StepLike): string {
   const name = s.title || s.location_name
@@ -183,6 +218,7 @@ export function buildTripNotes(
     // most likely to carry "seat 14A / check in 24h before".
     for (const b of bookings) {
       if (!has(b.notes)) continue
+      if (isMachineBookingNote(b.notes)) continue
       const owner = b.from_destination_id ?? b.to_destination_id
       if (owner !== dest.id) continue
       notes.push({
@@ -200,7 +236,13 @@ export function buildTripNotes(
 
     notes.sort(sortNotes)
     if (notes.length) {
-      groups.push({ destId: dest.id, destLabel: dest.label, dateRange: dest.dateRange, notes })
+      groups.push({
+        destId: dest.id,
+        destLabel: dest.label,
+        dateRange: dest.dateRange,
+        startDate: dest.startDate,
+        notes,
+      })
     }
   }
 
@@ -226,7 +268,13 @@ export function buildTripNotes(
   }
   if (orphans.length) {
     orphans.sort(sortNotes)
-    groups.push({ destId: null, destLabel: "Other notes", dateRange: null, notes: orphans })
+    groups.push({
+      destId: null,
+      destLabel: "Other notes",
+      dateRange: null,
+      startDate: null,
+      notes: orphans,
+    })
   }
 
   return groups

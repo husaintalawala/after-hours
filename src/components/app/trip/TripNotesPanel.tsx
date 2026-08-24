@@ -1,13 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import type { TripNote, TripNoteGroup } from "@/lib/drift/tripNotes"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { splitNoteURL, isMapsURL, type TripNote, type TripNoteGroup } from "@/lib/drift/tripNotes"
 
 // Every note in the trip, in one place, grouped by stop in itinerary order.
 //
-// Read-only on purpose — see the header of src/lib/drift/tripNotes.ts. Editing
-// stays in the step inspector, which already works; this is the surface that
-// answers "what did we all write down about this trip".
+// Reads every note and can ADD one per stop. It does not EDIT existing notes —
+// see the header of src/lib/drift/tripNotes.ts for why an in-place edit would
+// desync the preview iOS falls back to.
 //
 // Note that two of the three note kinds shown here have NEVER been visible on
 // web before: authored day notes (step_type='note') are dropped by the day
@@ -22,14 +24,19 @@ const KIND_ICON: Record<TripNote["kind"], string> = {
 }
 
 export default function TripNotesPanel({
+  tripId,
   groups,
   total,
+  canWrite,
   onClose,
 }: {
+  tripId: string
   groups: TripNoteGroup[]
   total: number
+  canWrite: boolean
   onClose: () => void
 }) {
+  const [error, setError] = useState<string | null>(null)
   return (
     // z-[60] to clear the app dock (AppNav is z-50 and renders later in the
     // DOM, so at equal z it paints over this). dvh because iOS Safari's `vh`
@@ -59,6 +66,15 @@ export default function TripNotesPanel({
           {total === 1 ? "1 note across this trip" : `${total} notes across this trip`}
         </p>
 
+        {error && (
+          <p
+            className="mt-3 rounded-xl border px-3 py-2 text-[13px]"
+            style={{ borderColor: "rgba(255,99,88,0.35)", color: "rgba(255,140,130,0.95)" }}
+          >
+            {error}
+          </p>
+        )}
+
         {groups.length === 0 ? (
           <div className="mt-8 rounded-2xl bg-drift-alt-bg p-6 text-center">
             <p className="text-[15px] font-semibold">No notes yet</p>
@@ -82,6 +98,11 @@ export default function TripNotesPanel({
                   <NoteRow key={n.id} note={n} />
                 ))}
               </ul>
+              {/* No composer on the synthetic bucket — its id is the string
+                  "unassigned", not a uuid, so an insert there is a 22P02. */}
+              {canWrite && g.destId && (
+                <AddNote tripId={tripId} destId={g.destId} date={g.startDate} onError={setError} />
+              )}
             </section>
           ))
         )}
@@ -92,9 +113,11 @@ export default function TripNotesPanel({
 
 function NoteRow({ note }: { note: TripNote }) {
   const [expanded, setExpanded] = useState(false)
+  const { text, url } = splitNoteURL(note.body)
   // Notes have no length cap anywhere in the product, so a long one has to be
-  // clamped or a 30-note trip becomes a wall of text.
-  const long = note.body.length > 220
+  // clamped or a 30-note trip becomes a wall of text. Measured on the TEXT, not
+  // the raw body — a short remark with a long URL is not a long note.
+  const long = text.length > 220
 
   return (
     <li className="rounded-xl bg-drift-alt-bg px-3.5 py-3">
@@ -110,14 +133,33 @@ function NoteRow({ note }: { note: TripNote }) {
         )}
       </div>
 
-      <p
-        className={`mt-1.5 whitespace-pre-wrap text-[14px] leading-snug ${
-          long && !expanded ? "line-clamp-4" : ""
-        }`}
-      >
-        {note.body}
-      </p>
-      {long && (
+      {/* A note is very often JUST a pasted Google Maps link. Rendered raw it
+          is an unreadable string and not even tappable — which is exactly what
+          the trip screenshot showed. Split the first URL out and render it as a
+          chip, matching the iOS parser (DestinationDaysView.parseNote) so the
+          same note looks the same on both platforms. */}
+      {text && (
+        <p
+          className={`mt-1.5 whitespace-pre-wrap text-[14px] leading-snug ${
+            long && !expanded ? "line-clamp-4" : ""
+          }`}
+        >
+          {text}
+        </p>
+      )}
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold"
+          style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
+        >
+          <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
+          {isMapsURL(url) ? "View on Google Maps" : "Open link"}
+        </a>
+      )}
+      {long && text && (
         <button
           onClick={() => setExpanded((v) => !v)}
           className="mt-1 text-[12.5px] font-semibold text-aurora-teal"
@@ -157,4 +199,108 @@ function shortDay(iso: string): string {
     day: "numeric",
     timeZone: "UTC",
   })
+}
+
+/// Compose a new day note for one stop.
+///
+/// Mirrors iOS `insertNoteStep` exactly, including the two fields it is easy to
+/// miss: `location_name` gets an 80-character preview of the body (iOS's
+/// `noteRow` falls back to it when `notes` is absent), and `author_id` is
+/// stamped — without it a web-authored note shows as authorless on the phone
+/// and its own author cannot delete it there.
+function AddNote({
+  tripId,
+  destId,
+  date,
+  onError,
+}: {
+  tripId: string
+  destId: string
+  date: string | null
+  onError: (m: string | null) => void
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [text, setText] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    const body = text.trim()
+    if (!body || saving) return
+    setSaving(true)
+    onError(null)
+    try {
+      const db = createClient()
+      const { data: userRes } = await db.auth.getUser()
+      const uid = userRes?.user?.id
+      if (!uid) throw new Error("You need to be signed in to add a note.")
+      await db
+        .from("steps")
+        .insert({
+          trip_id: tripId,
+          parent_step_id: destId,
+          step_type: "note",
+          // The stop's first day. iOS pins a note to the selected day tab; the
+          // rollup has no day selection, so the stop's start is the honest
+          // equivalent rather than today's date, which could fall outside the trip.
+          date: date ?? new Date().toISOString().slice(0, 10),
+          notes: body,
+          location_name: body.slice(0, 80),
+          author_id: uid,
+        })
+        .throwOnError()
+      setText("")
+      setOpen(false)
+      router.refresh()
+    } catch (e) {
+      onError(
+        (e as { message?: string })?.message ?? "Couldn't save that note. Try again in a moment."
+      )
+    }
+    setSaving(false)
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-2 w-full rounded-xl border border-dashed border-aurora-border py-2.5 text-[13px] font-semibold text-drift-muted transition-colors hover:border-aurora-teal/50 hover:text-drift-ink"
+      >
+        + Add a note
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-2 rounded-xl bg-drift-alt-bg p-3">
+      <textarea
+        autoFocus
+        rows={3}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Reminders, ideas, a link…"
+        className="w-full resize-none rounded-lg border border-aurora-border bg-black/25 px-3 py-2 text-[14px] outline-none focus:border-aurora-teal/60"
+      />
+      <div className="mt-2 flex items-center justify-end gap-2">
+        <button
+          onClick={() => {
+            setOpen(false)
+            setText("")
+          }}
+          disabled={saving}
+          className="px-2 text-[13px] font-semibold text-drift-muted"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={save}
+          disabled={saving || !text.trim()}
+          className="rounded-full px-4 py-2 text-[13px] font-semibold text-aurora-teal-ink disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
+        >
+          {saving ? "Saving…" : "Save note"}
+        </button>
+      </div>
+    </div>
+  )
 }
