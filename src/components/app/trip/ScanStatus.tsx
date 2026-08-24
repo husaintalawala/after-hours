@@ -29,6 +29,46 @@ interface Batch {
   segments_matched: number | null
   segments_applied: number | null
   created_at: string
+  updated_at: string
+}
+
+// News about a scan that has already finished stops being news. The newest
+// batch is fetched however old it is and a finished batch never changes again,
+// so without a window a scan that found nothing in June was still greeting the
+// trip with "No new bookings found in your Gmail" in August, on every visit.
+// Results waiting to be reviewed are deliberately exempt: those are something
+// to act on, not something to be told.
+const NOTICE_WINDOW_MS = 6 * 60 * 60 * 1000
+
+function isRecent(iso: string | null): boolean {
+  if (!iso) return false
+  const t = Date.parse(iso)
+  return Number.isFinite(t) && Date.now() - t < NOTICE_WINDOW_MS
+}
+
+// Dismissals outlive the component. `useState` alone meant the ✕ held only
+// until the next render of the Plan tab — switching tabs or reloading brought
+// the banner straight back, which is what "it won't go away" actually was.
+const DISMISS_KEY = "drift.scanDismissed"
+
+function readDismissed(): Set<string> {
+  if (typeof window === "undefined") return new Set()
+  try {
+    const raw = window.localStorage.getItem(DISMISS_KEY)
+    return new Set(raw ? (JSON.parse(raw) as string[]) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function persistDismissed(ids: Set<string>) {
+  try {
+    // Bounded: batch ids accumulate forever otherwise, and only recent ones
+    // can still be on screen.
+    window.localStorage.setItem(DISMISS_KEY, JSON.stringify([...ids].slice(-50)))
+  } catch {
+    /* private mode / quota — the in-memory set still covers this session */
+  }
 }
 
 // The live scan session (booking_import_sessions) — the rich, phase-by-phase
@@ -56,7 +96,9 @@ export default function ScanStatus({
 }) {
   const [batch, setBatch] = useState<Batch | null>(null)
   const [session, setSession] = useState<SessionRow | null>(null)
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  // Lazy initialiser, not an effect: reading it after first paint would flash
+  // the banner the user already dismissed.
+  const [dismissed, setDismissed] = useState<Set<string>>(readDismissed)
   /** How many bookings the review screen will actually render for this batch.
    *  null = not resolved yet, so the banner stays quiet rather than guessing. */
   const [reviewable, setReviewable] = useState<number | null>(null)
@@ -69,7 +111,9 @@ export default function ScanStatus({
     const load = async () => {
       const { data } = await db
         .from("import_batches")
-        .select("id,source,status,segments_total,segments_matched,segments_applied,created_at")
+        .select(
+          "id,source,status,segments_total,segments_matched,segments_applied,created_at,updated_at"
+        )
         .eq("trip_id", tripId)
         .in("source", BG_SOURCES)
         .order("created_at", { ascending: false })
@@ -189,7 +233,13 @@ export default function ScanStatus({
   // then open an empty list.
   const unapplied = reviewable ?? 0
   const ready = batch.status === "review_ready" || batch.status === "partial"
-  const dismiss = () => setDismissed((s) => new Set(s).add(batch.id))
+  const dismiss = () =>
+    setDismissed((s) => {
+      const next = new Set(s).add(batch.id)
+      persistDismissed(next)
+      return next
+    })
+  const fresh = isRecent(batch.updated_at ?? batch.created_at)
 
   if (batch.status === "scanning") {
     return (
@@ -221,12 +271,18 @@ export default function ScanStatus({
   }
 
   // unapplied > 0 was handled above, so reaching here with `ready` means the
-  // filter left nothing to show.
+  // filter left nothing to show. Two very different reasons land here: the
+  // scan genuinely found nothing, or the user already reviewed it and added
+  // everything. Telling someone "No new bookings found" right after they added
+  // four denies the work they just did — a consumed batch says nothing at all.
   if (ready && reviewable !== null) {
+    if ((batch.segments_applied ?? 0) > 0) return null
+    if (!fresh) return null
     return <Dismissable text={`No new bookings found in your ${src}.`} onDismiss={dismiss} />
   }
 
   if (batch.status === "failed") {
+    if (!fresh) return null
     return (
       <Dismissable
         text={`Couldn't finish scanning your ${src}. Try again, or forward/paste a confirmation.`}
