@@ -18,6 +18,7 @@ import type {
 } from "@/lib/drift/tripViewModels"
 import { formatDayLabel } from "@/lib/drift/dates"
 import { staticMapUrl } from "@/lib/drift/staticMap"
+import CoverCredit from "@/components/app/CoverCredit"
 import { applyRemoveStep, applyRemoveTransport, isConfirmedBookingRefusal } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
 const TrackMap = dynamic(() => import("./TrackMap"), {
@@ -444,11 +445,8 @@ export default function TripTabs({
                 sizes="(max-width: 1024px) 100vw, 700px"
                 className="object-cover"
               />
-              {tripMeta.coverCredit && (
-                <span className="pointer-events-none absolute bottom-1.5 right-2 z-10 max-w-[70%] truncate rounded bg-black/45 px-1.5 py-0.5 text-[9.5px] text-white/85">
-                  {tripMeta.coverCredit.text}
-                </span>
-              )}
+              {/* The credit is rendered in flow under the chips below, not
+                  floated here, so it cannot land on them. */}
             </>
           ) : lazyCover ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -553,6 +551,13 @@ export default function TripTabs({
                   destinations={destinations
                     .filter((d) => d.id !== "unassigned")
                     .map((d) => ({ id: d.id, label: d.label, country: d.country, lat: d.lat, lng: d.lng }))}
+                />
+              )}
+              {tripMeta.coverCredit && (
+                <CoverCredit
+                  text={tripMeta.coverCredit.text}
+                  href={tripMeta.coverCredit.href}
+                  placement="inline"
                 />
               )}
             </div>
