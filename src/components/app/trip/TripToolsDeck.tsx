@@ -127,6 +127,7 @@ export function TripToolTile({
   icon,
   onClick,
   busy = false,
+  preview,
 }: {
   tint?: keyof typeof TINTS
   title: string
@@ -137,6 +138,9 @@ export function TripToolTile({
   icon: React.ReactNode
   onClick: () => void
   busy?: boolean
+  /** Optional glance at the contents, rendered opposite the icon. A tile that
+   *  shows what is inside is worth more than a tile that names it. */
+  preview?: React.ReactNode
 }) {
   const t = TINTS[tint]
   return (
@@ -150,8 +154,9 @@ export function TripToolTile({
         className="pointer-events-none absolute inset-0"
         style={{ background: `linear-gradient(135deg, ${t.wash}, transparent 55%)` }}
       />
+      <span className="relative flex w-full items-start gap-2">
       <span
-        className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${t.bg} ${t.fg}`}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${t.bg} ${t.fg}`}
       >
         {busy ? (
           <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -169,6 +174,8 @@ export function TripToolTile({
           </svg>
         )}
       </span>
+      {preview && <span className="ml-auto shrink-0">{preview}</span>}
+      </span>
       <span className="relative mt-auto pt-2.5 text-[12.5px] font-semibold text-drift-muted">
         {title}
       </span>
@@ -181,5 +188,51 @@ export function TripToolTile({
         <span className="truncate text-[11.5px] text-drift-text-tertiary">{caption}</span>
       </span>
     </button>
+  )
+}
+
+
+/** Up to three of the newest images, fanned. Deliberately small and tilted —
+ *  the point is "there are things in here", not a gallery. */
+export function MediaFan({ urls }: { urls: string[] }) {
+  if (!urls.length) return null
+  return (
+    <span className="relative flex h-9 items-center">
+      {urls.slice(0, 3).map((u, i) => (
+        <span
+          key={u}
+          className="absolute h-8 w-8 overflow-hidden rounded-lg border-2 border-aurora-glass"
+          style={{ right: i * 11, transform: `rotate(${i * 6 - 6}deg)`, zIndex: 3 - i }}
+        >
+          <OptimizedImg src={u} alt="" fill className="object-cover" />
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** Where bookings come from. Brand-tinted marks, overlapped so they read as a
+ *  set — the tile says WHERE it looks rather than only asking to be tapped. */
+export function SourceFan() {
+  const marks: [string, string, React.ReactNode][] = [
+    ["gmail", "#EA4335", <><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="m3 8 9 6 9-6" /></>],
+    ["cal", "#336ED9", <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></>],
+    ["doc", "#7D8C98", <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></>],
+  ]
+  return (
+    <span className="relative flex h-9 items-center">
+      {marks.map(([k, colour, path], i) => (
+        <span
+          key={k}
+          className="absolute flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 border-aurora-glass bg-aurora-midnight2"
+          style={{ right: i * 15, zIndex: 3 - i }}
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke={colour}
+               strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            {path}
+          </svg>
+        </span>
+      ))}
+    </span>
   )
 }

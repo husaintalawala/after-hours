@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { listTripFiles } from "@/lib/drift/media"
 import MediaTab from "./MediaTab"
-import { TripToolTile } from "./TripToolsDeck"
+import { TripToolTile, MediaFan } from "./TripToolsDeck"
 
 // The Media (Files) entry in the Plan tab — a section-card below Find bookings
 // that opens the full Files library. Files/attachments only; Track owns photos.
@@ -17,10 +17,16 @@ export default function MediaSection({
   variant?: "row" | "tile"
 }) {
   const [count, setCount] = useState<number | null>(null)
+  const [thumbs, setThumbs] = useState<string[]>([])
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    listTripFiles(tripId).then((f) => setCount(f.length))
+    listTripFiles(tripId).then((f) => {
+      setCount(f.length)
+      // Images only — a PDF has no thumbnail to fan, and a broken frame is
+      // worse than the icon it replaced.
+      setThumbs(f.filter((x) => x.mime_type?.startsWith("image/")).slice(0, 3).map((x) => x.url))
+    })
   }, [tripId])
 
   const sub =
@@ -39,6 +45,7 @@ export default function MediaSection({
           value={count && count > 0 ? String(count) : null}
           caption={count === null || count === 0 ? "Files & tickets" : count === 1 ? "file" : "files"}
           onClick={() => setOpen(true)}
+          preview={<MediaFan urls={thumbs} />}
           icon={<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />}
         />
       ) : (
