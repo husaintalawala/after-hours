@@ -57,6 +57,10 @@ export interface ActivityPulse {
   kind: "stops" | "chat"
   who: string | null
   text: string
+  /** The row NAMES a trip, so it has to be able to open it. Carrying the title
+   *  without the id was the iOS defect too — both build sites had the id in
+   *  hand and simply were not passing it. */
+  tripId: string
   tripTitle: string
   at: string
   /** Rendered server-side. Computing "3m" from Date.now() inside the client
@@ -333,6 +337,7 @@ export default async function ActivityPage() {
       kind: "stops",
       who: g.who,
       text: g.who ? `added ${what}` : "added",
+      tripId: g.trip,
       tripTitle: titleOf.get(g.trip) ?? "a trip",
       at: g.at,
       agoText: ago(g.at),
@@ -351,6 +356,7 @@ export default async function ActivityPage() {
       kind: "chat",
       who: null,
       text: `${g.n} new message${g.n === 1 ? "" : "s"}`,
+      tripId: tid,
       tripTitle: titleOf.get(tid) ?? "a trip",
       at: g.at,
       agoText: ago(g.at),
