@@ -3,13 +3,20 @@ import { getDriftUpstream } from "@/lib/drift/server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 120
+export const maxDuration = 30
 
 // Proxy to the gmail-scan edge function. Body: {trip_id, access_token} where
 // access_token is a Google OAuth token (gmail.readonly) obtained client-side
 // via GIS. gmail-scan reads the inbox, parses confirmations, and writes an
-// import_batch + reservation_segments the review shelf reads. Claude parsing
-// can take a while → maxDuration.
+// import_batch + reservation_segments the review shelf reads.
+//
+// `?async=1` hands the ~90s sweep to the edge function's own background
+// runtime and answers immediately. The caller already fires this without
+// reading the response — so holding the connection open bought nothing and
+// cost plenty: a serverless invocation idling for a minute and a half, and a
+// scan that could be cancelled with it the moment the user closed the tab.
+// Progress and results reach the UI through booking_import_sessions and
+// import_batches, which ScanStatus polls regardless.
 export async function POST(request: Request) {
   const up = await getDriftUpstream()
   if (!up) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
@@ -22,7 +29,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const upstream = await fetch(`${up.functionsBase}/gmail-scan`, {
+  const upstream = await fetch(`${up.functionsBase}/gmail-scan?async=1`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
