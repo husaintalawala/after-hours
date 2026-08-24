@@ -24,7 +24,9 @@ export default function PlaceSheet({
   poi: DiscoverResult
   distanceLabel: string | null
   onClose: () => void
-  onAdd: () => void
+  /** Omitted where there is no day to add to — the destination guide opens this
+   *  sheet to READ a place, and an Add button with nowhere to put it is a lie. */
+  onAdd?: () => void
 }) {
   const [vh] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 800))
   const [vw] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 390))
@@ -159,9 +161,11 @@ export default function PlaceSheet({
       <ActionBtn label={saved ? "Saved" : "Save"} onClick={() => setSaved((v) => !v)} active={saved}>
         <path d="M12 21s-7-4.6-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z" />
       </ActionBtn>
-      <ActionBtn label="Add" onClick={onAdd}>
-        <path d="M12 5v14M5 12h14" />
-      </ActionBtn>
+      {onAdd && (
+        <ActionBtn label="Add" onClick={onAdd}>
+          <path d="M12 5v14M5 12h14" />
+        </ActionBtn>
+      )}
       <ActionBtn label="Ask Drift" href={askUrl}>
         <path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z" />
       </ActionBtn>

@@ -304,120 +304,129 @@ function NoteRow({
   }
 
   return (
-    <li className="rounded-xl bg-drift-alt-bg px-3.5 py-3">
-      {/* One row does the work of two: byline, date and the actions that used to
-          sit on their own line under the note. */}
-      <div className="flex items-center gap-2">
-        {/* Kept for annotations and bookings, where it separates two kinds that
-            do look alike. Dropped for plain notes, where it labelled a note as
-            a note. */}
-        {note.kind !== "note" && (
-          <span aria-hidden="true" className="shrink-0 text-[13px]">
-            {KIND_ICON[note.kind]}
-          </span>
-        )}
-        <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-drift-muted">
-          {title}
-        </span>
-        {note.date && (
-          <span className="shrink-0 text-[11.5px] text-drift-text-tertiary">{shortDay(note.date)}</span>
-        )}
-        {!editing && (
-          <div className="flex shrink-0 items-center gap-0.5">
-            <IconButton label={copied ? "Copied" : "Copy note"} onClick={copy}>
-              {copied ? <IconCheck /> : <IconCopy />}
-            </IconButton>
-            {canEdit && (
-              <IconButton label="Edit note" onClick={() => setEditing(true)}>
-                <IconPencil />
-              </IconButton>
-            )}
-            {canDelete && (
-              <IconButton
-                label={armed ? "Tap again to delete" : "Delete note"}
-                danger={armed}
-                disabled={busy}
-                onClick={() => {
-                  if (armed) {
-                    void remove()
-                    return
-                  }
-                  setArmed(true)
-                  window.setTimeout(() => setArmed(false), 3000)
-                }}
-              >
-                <IconTrash />
-              </IconButton>
-            )}
-          </div>
-        )}
-      </div>
-
-      {editing ? (
-        <div className="mt-2">
-          <textarea
-            autoFocus
-            rows={3}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="w-full resize-none rounded-lg border border-aurora-border bg-black/25 px-3 py-2 text-[14px] outline-none focus:border-aurora-teal/60"
-          />
-          <div className="mt-1.5 flex justify-end gap-2">
-            <button
-              onClick={() => {
-                setEditing(false)
-                setDraft(note.body)
-              }}
-              className="px-2 text-[12.5px] font-semibold text-drift-muted"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={save}
-              disabled={busy || !draft.trim()}
-              className="rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-aurora-teal-ink disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
-            >
-              {busy ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* select-text so a note can actually be copied by hand too — a note
-              you cannot copy is a screenshot. */}
-          {text && (
-            <p
-              className={`mt-1.5 select-text whitespace-pre-wrap text-[14px] leading-snug ${
-                long && !expanded ? "line-clamp-4" : ""
-              }`}
-            >
-              {text}
+    <li className="rounded-xl bg-drift-alt-bg px-3 py-2.5">
+      {/* Content and meta share ONE row rather than stacking. Dropping the "Note"
+          tag left the byline row empty on an unattributed note, so a card whose
+          entire content is a single link chip still cost four stacked bands:
+          blank byline, gap, chip, gap. Now the chip and the date sit on the same
+          line and that card is one row tall. */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          {/* Rendered only when there is something to say. The kind icon stays
+              for annotations and bookings, which do look alike; a plain note
+              inside a panel called Notes needs neither icon nor label. */}
+          {title && (
+            <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-drift-muted">
+              {note.kind !== "note" && (
+                <span aria-hidden="true" className="shrink-0 text-[13px]">
+                  {KIND_ICON[note.kind]}
+                </span>
+              )}
+              <span className="truncate">{title}</span>
             </p>
           )}
-          {url && (
-            <a
-              href={url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold"
-              style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
-            >
-              <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
-              {isMapsURL(url) ? "View on Google Maps" : "Open link"}
-            </a>
-          )}
-          {long && text && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="mt-1 block text-[12.5px] font-semibold text-aurora-teal"
-            >
-              {expanded ? "Show less" : "Show more"}
-            </button>
-          )}
 
-        </>
-      )}
+          {editing ? (
+            <div>
+              <textarea
+                autoFocus
+                rows={3}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                className="w-full resize-none rounded-lg border border-aurora-border bg-black/25 px-3 py-2 text-[14px] outline-none focus:border-aurora-teal/60"
+              />
+              <div className="mt-1.5 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setEditing(false)
+                    setDraft(note.body)
+                  }}
+                  className="px-2 text-[12.5px] font-semibold text-drift-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={save}
+                  disabled={busy || !draft.trim()}
+                  className="rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-aurora-teal-ink disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
+                >
+                  {busy ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* select-text so a note can be copied by hand too — a note you
+                  cannot copy is a screenshot. */}
+              {text && (
+                <p
+                  className={`select-text whitespace-pre-wrap text-[14px] leading-snug ${
+                    long && !expanded ? "line-clamp-4" : ""
+                  }`}
+                >
+                  {text}
+                </p>
+              )}
+              {url && (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-semibold"
+                  style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
+                >
+                  <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
+                  {isMapsURL(url) ? "View on Google Maps" : "Open link"}
+                </a>
+              )}
+              {long && text && (
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="block text-[12.5px] font-semibold text-aurora-teal"
+                >
+                  {expanded ? "Show less" : "Show more"}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          {note.date && (
+            <span className="mr-0.5 text-[11.5px] text-drift-text-tertiary">{shortDay(note.date)}</span>
+          )}
+          {!editing && (
+            <>
+              <IconButton label={copied ? "Copied" : "Copy note"} onClick={copy}>
+                {copied ? <IconCheck /> : <IconCopy />}
+              </IconButton>
+              {canEdit && (
+                <IconButton label="Edit note" onClick={() => setEditing(true)}>
+                  <IconPencil />
+                </IconButton>
+              )}
+              {canDelete && (
+                <IconButton
+                  label={armed ? "Tap again to delete" : "Delete note"}
+                  danger={armed}
+                  disabled={busy}
+                  onClick={() => {
+                    if (armed) {
+                      void remove()
+                      return
+                    }
+                    setArmed(true)
+                    window.setTimeout(() => setArmed(false), 3000)
+                  }}
+                >
+                  <IconTrash />
+                </IconButton>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </li>
   )
 }

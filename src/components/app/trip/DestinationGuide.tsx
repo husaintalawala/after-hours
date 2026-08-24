@@ -5,6 +5,29 @@ import Link from "next/link"
 import { resolvePlaceCandidates, placePhotoUrl, askDrift, clarifyingReply, type PlaceCandidate } from "@/lib/drift/chat"
 import { fetchDestinationFacts, type DestinationFacts } from "@/lib/drift/facts"
 import { renderRich } from "@/lib/drift/richText"
+import PlaceSheet from "@/components/app/discover/PlaceSheet"
+import type { DiscoverResult } from "@/lib/drift/discover"
+
+/** A resolved guide POI in the shape the Discover detail sheet reads. The two
+ *  types carry the same facts under different names; nothing is invented here,
+ *  and a field the guide never resolves stays null rather than being faked. */
+function toDiscoverResult(c: PlaceCandidate): DiscoverResult {
+  return {
+    id: c.id,
+    name: c.name,
+    photo: placePhotoUrl(c, 1200) ?? null,
+    rating: c.rating ?? null,
+    reviewCount: c.reviewCount ?? null,
+    priceLabel: null,
+    subtitle: c.primaryType ?? null,
+    address: c.address ?? null,
+    description: c.editorialSummary ?? null,
+    lat: c.latitude ?? null,
+    lng: c.longitude ?? null,
+    bookingUrl: null,
+    source: "google",
+  }
+}
 
 // The Overview's sub-tabs, mirroring the iOS destination guide.
 type Sub = "vibe" | "things" | "stay" | "curious"
@@ -49,6 +72,10 @@ export default function DestinationGuide({
   const [things, setThings] = useState<PlaceCandidate[] | null>(null)
   const [tours, setTours] = useState<Tour[] | null>(null)
   const [active, setActive] = useState<Sub>("vibe")
+  // A "Top things to do" polaroid was a plain <div>: the rail looked like a
+  // set of cards and answered nothing you tapped. These are already resolved
+  // POIs, so the detail sheet Discover uses opens straight from one.
+  const [openPlace, setOpenPlace] = useState<DiscoverResult | null>(null)
   const vibeRef = useRef<HTMLDivElement>(null)
   const thingsRef = useRef<HTMLDivElement>(null)
   const stayRef = useRef<HTMLDivElement>(null)
@@ -143,9 +170,12 @@ export default function DestinationGuide({
         ) : (
           <div className="mt-3 flex gap-3.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {things.map((c) => (
-              <div
+              <button
                 key={c.id}
-                className="relative h-[210px] w-[150px] shrink-0 overflow-hidden rounded-2xl shadow-[0_10px_26px_-14px_rgba(31,31,36,0.4)]"
+                type="button"
+                onClick={() => setOpenPlace(toDiscoverResult(c))}
+                aria-label={c.name}
+                className="relative h-[210px] w-[150px] shrink-0 overflow-hidden rounded-2xl text-left shadow-[0_10px_26px_-14px_rgba(31,31,36,0.4)] transition-transform active:scale-[0.98]"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -154,10 +184,12 @@ export default function DestinationGuide({
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"
                 />
-                <span className="absolute left-2 top-2 max-w-[85%] rounded-lg bg-aurora-warn px-2 py-1 text-[10.5px] font-bold uppercase leading-tight tracking-wide text-white shadow">
+                {/* Teal, not aurora-warn. The amber here was a leftover from the
+                    coral palette; iOS moved these tags to the one accent. */}
+                <span className="absolute left-2 top-2 max-w-[85%] rounded-lg bg-aurora-teal px-2 py-1 text-[10.5px] font-bold uppercase leading-tight tracking-wide text-aurora-teal-ink shadow">
                   {c.name}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -229,6 +261,15 @@ export default function DestinationGuide({
         <h3 className="mb-3 font-drift-display text-[22px] font-semibold">Curious about {label}?</h3>
         <CuriousSection tripId={tripId} label={label} />
       </div>
+
+      {/* No onAdd: the guide reads a place, it has no day to schedule it on. */}
+      {openPlace && (
+        <PlaceSheet
+          poi={openPlace}
+          distanceLabel={null}
+          onClose={() => setOpenPlace(null)}
+        />
+      )}
     </div>
   )
 }
