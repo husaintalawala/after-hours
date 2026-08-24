@@ -382,7 +382,8 @@ function NoteRow({
           tag left the byline row empty on an unattributed note, so a card whose
           entire content is a single link chip still cost four stacked bands:
           blank byline, gap, chip, gap. Now the chip and the date sit on the same
-          line and that card is one row tall — measured 97px -> 52px. */}
+          line and that card is one row tall — measured 97px -> 52px at 402pt,
+          46% shorter, and there are seven of them on the reported trip. */}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1 space-y-1.5">
           {/* Rendered only when there is something to say. The kind icon stays
@@ -465,7 +466,8 @@ function NoteRow({
           )}
         </div>
 
-        {/* Date and actions ride the top-right of the same row as the content. */}
+        {/* Date and actions ride the top-right of the same row as the content,
+            which is what buys the row back. */}
         <div className="flex shrink-0 items-center gap-0.5">
           {note.date && (
             <span className="mr-0.5 text-[11.5px] text-drift-text-tertiary">{shortDay(note.date)}</span>
