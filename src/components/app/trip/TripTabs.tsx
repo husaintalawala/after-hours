@@ -732,6 +732,8 @@ export default function TripTabs({
           groups={tripNotes}
           total={notesTotal}
           canWrite={canWriteNotes}
+          meId={meId}
+          isOwner={isOwner}
           onClose={() => setShowNotes(false)}
         />
       )}

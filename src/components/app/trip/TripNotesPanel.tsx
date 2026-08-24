@@ -28,14 +28,19 @@ export default function TripNotesPanel({
   groups,
   total,
   canWrite,
+  meId,
+  isOwner,
   onClose,
 }: {
   tripId: string
   groups: TripNoteGroup[]
   total: number
   canWrite: boolean
+  meId: string
+  isOwner: boolean
   onClose: () => void
 }) {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   return (
     // z-[60] to clear the app dock (AppNav is z-50 and renders later in the
@@ -95,7 +100,14 @@ export default function TripNotesPanel({
               </div>
               <ul className="space-y-2">
                 {g.notes.map((n) => (
-                  <NoteRow key={n.id} note={n} />
+                  <NoteRow
+                    key={n.id}
+                    note={n}
+                    meId={meId}
+                    isOwner={isOwner}
+                    onChanged={() => router.refresh()}
+                    onError={setError}
+                  />
                 ))}
               </ul>
               {/* No composer on the synthetic bucket — its id is the string
@@ -111,13 +123,105 @@ export default function TripNotesPanel({
   )
 }
 
-function NoteRow({ note }: { note: TripNote }) {
+/// One note.
+///
+/// FIRST PRINCIPLES: a note in a shared trip is "someone said something, about
+/// somewhere, at some point". The row previously led with the string "Day note"
+/// — a TYPE label, which is the least interesting fact about a note and is
+/// identical on every row. Six of them stacked up looking the same in the
+/// reported screenshot, and the four whose body was only a pasted URL had no
+/// visible content at all, because the parser lifts the URL into a chip.
+///
+/// So the AUTHOR is the headline. It is the fact that tells a reader whether to
+/// trust it, reply to it, or ignore it, and it gives a URL-only note an identity
+/// for free. author_id is NULL on many older rows, so it degrades to a neutral
+/// "Note" rather than inventing an author.
+function NoteRow({
+  note,
+  meId,
+  isOwner,
+  onChanged,
+  onError,
+}: {
+  note: TripNote
+  meId: string
+  isOwner: boolean
+  onChanged: () => void
+  onError: (m: string | null) => void
+}) {
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(note.body)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   const { text, url } = splitNoteURL(note.body)
-  // Notes have no length cap anywhere in the product, so a long one has to be
-  // clamped or a 30-note trip becomes a wall of text. Measured on the TEXT, not
-  // the raw body — a short remark with a long URL is not a long note.
   const long = text.length > 220
+
+  // Mine to change, or the organizer's to remove. RLS is looser than this —
+  // "Owner or accepted buddy can delete steps" would let ANY member delete
+  // anyone's note — so this is a deliberate product narrowing, matching iOS's
+  // canDeleteNote. Deleting a travel buddy's note is not a thing the UI should
+  // invite just because the database tolerates it.
+  const mine = note.kind === "note" && !!note.authorId && note.authorId === meId
+  const canEdit = mine
+  const canDelete = mine || (note.kind === "note" && isOwner)
+
+  const title =
+    note.kind === "note" ? (note.authorName ?? (mine ? "You" : "Note")) : note.context
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(note.body)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      onError("Couldn't copy — select the text and copy it manually.")
+    }
+  }
+
+  async function save() {
+    const body = draft.trim()
+    if (!body || busy) return
+    setBusy(true)
+    onError(null)
+    try {
+      // BOTH columns. insertNoteStep mirrors an 80-char preview into
+      // location_name and iOS's noteRow falls back to it, so writing `notes`
+      // alone would leave the phone showing the OLD text forever.
+      await createClient()
+        .from("steps")
+        .update({ notes: body, location_name: body.slice(0, 80) })
+        .eq("id", note.sourceId)
+        .throwOnError()
+      setEditing(false)
+      onChanged()
+    } catch (e) {
+      onError((e as { message?: string })?.message ?? "Couldn't save that edit.")
+    }
+    setBusy(false)
+  }
+
+  async function remove() {
+    if (busy) return
+    setBusy(true)
+    onError(null)
+    try {
+      const { data, error } = await createClient()
+        .from("steps")
+        .delete()
+        .eq("id", note.sourceId)
+        .select()
+      if (error) throw error
+      // Zero rows deleted is a refusal wearing a success costume — postgrest
+      // resolves rather than rejecting when RLS filters everything out.
+      if (!data || data.length === 0) throw new Error("You can't delete this note.")
+      onChanged()
+    } catch (e) {
+      onError((e as { message?: string })?.message ?? "Couldn't delete that note.")
+      setBusy(false)
+    }
+  }
 
   return (
     <li className="rounded-xl bg-drift-alt-bg px-3.5 py-3">
@@ -126,63 +230,99 @@ function NoteRow({ note }: { note: TripNote }) {
           {KIND_ICON[note.kind]}
         </span>
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-drift-muted">
-          {note.context}
+          {title}
         </span>
         {note.date && (
           <span className="shrink-0 text-[11.5px] text-drift-text-tertiary">{shortDay(note.date)}</span>
         )}
       </div>
 
-      {/* A note is very often JUST a pasted Google Maps link. Rendered raw it
-          is an unreadable string and not even tappable — which is exactly what
-          the trip screenshot showed. Split the first URL out and render it as a
-          chip, matching the iOS parser (DestinationDaysView.parseNote) so the
-          same note looks the same on both platforms. */}
-      {text && (
-        <p
-          className={`mt-1.5 whitespace-pre-wrap text-[14px] leading-snug ${
-            long && !expanded ? "line-clamp-4" : ""
-          }`}
-        >
-          {text}
-        </p>
-      )}
-      {url && (
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold"
-          style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
-        >
-          <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
-          {isMapsURL(url) ? "View on Google Maps" : "Open link"}
-        </a>
-      )}
-      {long && text && (
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-1 text-[12.5px] font-semibold text-aurora-teal"
-        >
-          {expanded ? "Show less" : "Show more"}
-        </button>
-      )}
-
-      {/* Attribution renders only for authored day notes. Annotations carry no
-          author_id at all, so the absence of an avatar is what distinguishes
-          the two kinds at a glance — for free, without a badge. */}
-      {note.authorName && (
-        <div className="mt-2 flex items-center gap-1.5">
-          {note.authorAvatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={note.authorAvatar} alt="" className="h-5 w-5 rounded-full object-cover" />
-          ) : (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-aurora-teal/20 text-[9px] font-bold text-aurora-teal">
-              {note.authorName.slice(0, 1).toUpperCase()}
-            </span>
-          )}
-          <span className="text-[11.5px] text-drift-text-tertiary">{note.authorName}</span>
+      {editing ? (
+        <div className="mt-2">
+          <textarea
+            autoFocus
+            rows={3}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="w-full resize-none rounded-lg border border-aurora-border bg-black/25 px-3 py-2 text-[14px] outline-none focus:border-aurora-teal/60"
+          />
+          <div className="mt-1.5 flex justify-end gap-2">
+            <button
+              onClick={() => {
+                setEditing(false)
+                setDraft(note.body)
+              }}
+              className="px-2 text-[12.5px] font-semibold text-drift-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={save}
+              disabled={busy || !draft.trim()}
+              className="rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-aurora-teal-ink disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
+            >
+              {busy ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          {/* select-text so a note can actually be copied by hand too — a note
+              you cannot copy is a screenshot. */}
+          {text && (
+            <p
+              className={`mt-1.5 select-text whitespace-pre-wrap text-[14px] leading-snug ${
+                long && !expanded ? "line-clamp-4" : ""
+              }`}
+            >
+              {text}
+            </p>
+          )}
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold"
+              style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
+            >
+              <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
+              {isMapsURL(url) ? "View on Google Maps" : "Open link"}
+            </a>
+          )}
+          {long && text && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 block text-[12.5px] font-semibold text-aurora-teal"
+            >
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          )}
+
+          <div className="mt-2 flex items-center gap-3">
+            <button onClick={copy} className="text-[11.5px] font-semibold text-drift-text-tertiary hover:text-drift-ink">
+              {copied ? "Copied" : "Copy"}
+            </button>
+            {canEdit && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-[11.5px] font-semibold text-drift-text-tertiary hover:text-drift-ink"
+              >
+                Edit
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={remove}
+                disabled={busy}
+                className="text-[11.5px] font-semibold text-drift-text-tertiary hover:text-[rgba(255,140,130,0.95)] disabled:opacity-50"
+              >
+                {busy ? "…" : "Delete"}
+              </button>
+            )}
+          </div>
+        </>
       )}
     </li>
   )

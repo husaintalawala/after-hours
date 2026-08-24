@@ -43,6 +43,10 @@ export interface TripNote {
   date: string | null
   authorName: string | null
   authorAvatar: string | null
+  /** Who wrote it. Needed to gate edit/delete to the author; NULL on the many
+   *  pre-attribution rows, which is why attribution must degrade rather than
+   *  claim an author it does not know. */
+  authorId: string | null
   createdAt: string | null
   /** The step/booking this came from, for a "go to it" affordance. */
   sourceId: string
@@ -176,6 +180,7 @@ export function buildTripNotes(
         context: "About this stop",
         date: destRow.date ?? null,
         ...author(null),
+          authorId: null,
         createdAt: destRow.created_at,
         sourceId: destRow.id,
       })
@@ -194,6 +199,7 @@ export function buildTripNotes(
           context: "Day note",
           date: s.date ?? null,
           ...author(s.author_id),
+          authorId: s.author_id,
           createdAt: s.created_at,
           sourceId: s.id,
         })
@@ -205,6 +211,7 @@ export function buildTripNotes(
           context: humanize(s),
           date: s.date ?? null,
           ...author(null),
+          authorId: null,
           createdAt: s.created_at,
           sourceId: s.id,
         })
@@ -229,6 +236,7 @@ export function buildTripNotes(
         date: null,
         authorName: null,
         authorAvatar: null,
+        authorId: null,
         createdAt: null,
         sourceId: b.id,
       })
@@ -262,6 +270,7 @@ export function buildTripNotes(
       context: s.step_type === "note" ? "Day note" : humanize(s),
       date: s.date ?? null,
       ...author(s.step_type === "note" ? s.author_id : null),
+      authorId: s.step_type === "note" ? s.author_id : null,
       createdAt: s.created_at,
       sourceId: s.id,
     })
