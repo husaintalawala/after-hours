@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { TripToolTile } from "./TripToolsDeck"
 
 // "Export itinerary" — the Plan-tab row directly under Find bookings, the same
 // place it sits on iOS. Renders the trip to a designed multi-page PDF and hands
@@ -12,7 +13,15 @@ import { useState } from "react"
 
 type Phase = "idle" | "working" | "error"
 
-export default function ExportItinerary({ tripId }: { tripId: string }) {
+export default function ExportItinerary({
+  tripId,
+  variant = "row",
+}: {
+  tripId: string
+  /** "tile" is the trip tool deck's square. Same render, same share/download —
+   *  only the face changes, so the PDF path keeps one home. */
+  variant?: "row" | "tile"
+}) {
   const [phase, setPhase] = useState<Phase>("idle")
 
   async function run() {
@@ -63,6 +72,25 @@ export default function ExportItinerary({ tripId }: { tripId: string }) {
       : phase === "error"
         ? "Couldn't build the PDF — try again"
         : "Share a beautiful PDF"
+
+  if (variant === "tile") {
+    return (
+      <TripToolTile
+        tint="teal"
+        title="Export"
+        caption={phase === "error" ? "Try again" : phase === "working" ? "Building…" : "Itinerary PDF"}
+        busy={phase === "working"}
+        onClick={run}
+        icon={
+          <>
+            <path d="M12 15V3" />
+            <path d="M8 7l4-4 4 4" />
+            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </>
+        }
+      />
+    )
+  }
 
   return (
     <button
