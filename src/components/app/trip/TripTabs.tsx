@@ -40,7 +40,7 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 import Link from "next/link"
 import TripBuddiesPanel, { type TripBuddy } from "./TripBuddiesPanel"
 import TripNotesPanel from "./TripNotesPanel"
-import { countTripNotes, type TripNoteGroup } from "@/lib/drift/tripNotes"
+import { countTripNotes, splitNoteURL, isMapsURL, type TripNote, type TripNoteGroup } from "@/lib/drift/tripNotes"
 
 // Mapbox GL is ~heavy; keep it OUT of the trip page's first-load bundle. Lazy-
 // load the map (client-only) so it downloads only when a map actually renders —
@@ -128,6 +128,15 @@ export default function TripTabs({
   // isOwner and tripBuddies. A member is the owner or an accepted buddy, which
   // is exactly who RLS lets insert a step on this trip.
   const canWriteNotes = isOwner || tripBuddies.some((b) => b.isMe)
+  /// Day notes for one stop+day, taken from the rollup groups already computed
+  /// server-side — so the day view and the Notes screen cannot disagree about
+  /// what exists, and no extra query is made.
+  const notesForDay = (destId: string, date: string): TripNote[] => {
+    const g = tripNotes.find((x) => x.destId === destId)
+    if (!g) return []
+    const key = date.slice(0, 10)
+    return g.notes.filter((n) => n.kind === "note" && n.date?.slice(0, 10) === key)
+  }
   const [tab, setTab] = useState<Tab>("plan")
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
@@ -671,6 +680,8 @@ export default function TripTabs({
                     selectedId={selected?.id ?? null}
                     bookingDetails={bookingDetails}
                     stepDetails={stepDetails}
+                    dayNotes={notesForDay(dest.id, day.date)}
+                    canWriteNotes={canWriteNotes}
                     onSelect={setSelected}
                     onExpandMap={() => setMapOpenDay(day.dayNumber)}
                   />
@@ -941,6 +952,8 @@ function DaySection({
   selectedId,
   stepDetails,
   bookingDetails,
+  dayNotes,
+  canWriteNotes,
   onSelect,
   onExpandMap,
 }: {
@@ -950,6 +963,10 @@ function DaySection({
   selectedId: string | null
   stepDetails: Record<string, StepDetailVM>
   bookingDetails: Record<string, BookingDetailVM>
+  /** Notes pinned to THIS day. Note steps never reach `day.items` — the day
+   *  timeline's mapStepType drops step_type='note' — so they arrive separately. */
+  dayNotes: TripNote[]
+  canWriteNotes: boolean
   onSelect: (item: TimelineItem) => void
   onExpandMap?: () => void
 }) {
@@ -1056,6 +1073,19 @@ function DaySection({
           <TripMap points={mapPoints} onExpand={onExpandMap} />
         </div>
       )}
+
+      {/* Day notes. These are step_type='note' rows, which the day timeline
+          drops (mapStepType returns null for them) — so before this they were
+          invisible on the day screen on both platforms, and the only way to
+          write one was a menu nobody opens. Rendered above the stops because a
+          note is usually context for the whole day. */}
+      <DayNotes
+        notes={dayNotes}
+        tripId={tripId}
+        destId={destId}
+        date={day.date}
+        canWrite={canWriteNotes}
+      />
 
       {items.length === 0 ? (
         <p className="text-[14px] text-drift-text-tertiary">
@@ -3041,5 +3071,143 @@ function ScrubPill({
         />
       </span>
     </button>
+  )
+}
+
+/// The day's notes, plus the affordance to add one — on the day screen, where
+/// someone is actually looking at that day.
+///
+/// Renders the same link chip as the rollup and as iOS: a note is frequently
+/// just a pasted Maps URL, and raw it is neither readable nor tappable.
+function DayNotes({
+  notes,
+  tripId,
+  destId,
+  date,
+  canWrite,
+}: {
+  notes: TripNote[]
+  tripId: string
+  destId: string
+  date: string
+  canWrite: boolean
+}) {
+  const router = useRouter()
+  const [composing, setComposing] = useState(false)
+  const [text, setText] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function save() {
+    const body = text.trim()
+    if (!body || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const db = createClient()
+      const { data: userRes } = await db.auth.getUser()
+      const uid = userRes?.user?.id
+      if (!uid) throw new Error("You need to be signed in to add a note.")
+      await db
+        .from("steps")
+        .insert({
+          trip_id: tripId,
+          parent_step_id: destId,
+          step_type: "note",
+          date: date.slice(0, 10),
+          notes: body,
+          // The 80-char mirror iOS's noteRow falls back to, and the author
+          // stamp without which the note is authorless on the phone.
+          location_name: body.slice(0, 80),
+          author_id: uid,
+        })
+        .throwOnError()
+      setText("")
+      setComposing(false)
+      router.refresh()
+    } catch (e) {
+      setError((e as { message?: string })?.message ?? "Couldn't save that note.")
+    }
+    setSaving(false)
+  }
+
+  if (notes.length === 0 && !canWrite) return null
+
+  return (
+    <div className="mb-3">
+      {notes.length > 0 && (
+        <ul className="mb-2 space-y-1.5">
+          {notes.map((n) => {
+            const { text: body, url } = splitNoteURL(n.body)
+            return (
+              <li key={n.id} className="rounded-xl bg-drift-alt-bg px-3 py-2.5">
+                {body && <p className="whitespace-pre-wrap text-[13.5px] leading-snug">{body}</p>}
+                {url && (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${body ? "mt-1.5" : ""}`}
+                    style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
+                  >
+                    <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
+                    {isMapsURL(url) ? "View on Google Maps" : "Open link"}
+                  </a>
+                )}
+                {n.authorName && (
+                  <p className="mt-1.5 text-[11px] text-drift-text-tertiary">{n.authorName}</p>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {error && (
+        <p className="mb-1.5 text-[12px]" style={{ color: "rgba(255,140,130,0.95)" }}>
+          {error}
+        </p>
+      )}
+
+      {canWrite &&
+        (composing ? (
+          <div className="rounded-xl bg-drift-alt-bg p-2.5">
+            <textarea
+              autoFocus
+              rows={2}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Reminders, ideas, a link…"
+              className="w-full resize-none rounded-lg border border-aurora-border bg-black/25 px-2.5 py-1.5 text-[13.5px] outline-none focus:border-aurora-teal/60"
+            />
+            <div className="mt-1.5 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setComposing(false)
+                  setText("")
+                }}
+                className="px-2 text-[12.5px] font-semibold text-drift-muted"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={save}
+                disabled={saving || !text.trim()}
+                className="rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-aurora-teal-ink disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #37D6C4, #22B7D4)" }}
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setComposing(true)}
+            className="flex w-full items-center gap-2 rounded-xl border border-dashed border-aurora-border px-3 py-2 text-[12.5px] font-semibold text-drift-muted transition-colors hover:border-aurora-teal/50 hover:text-drift-ink"
+          >
+            <span aria-hidden="true">🗒️</span> Add a note for this day
+          </button>
+        ))}
+    </div>
   )
 }
