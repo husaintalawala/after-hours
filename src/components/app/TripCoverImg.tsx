@@ -1,4 +1,5 @@
 import OptimizedImg from "./OptimizedImg"
+import CoverCredit from "./CoverCredit"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
 
 /**
@@ -57,9 +58,7 @@ export default function TripCoverImg({
         className={className}
       />
       {showCredit && cover.credit && (
-        <span className="pointer-events-none absolute bottom-1 right-1.5 z-10 max-w-[85%] truncate rounded bg-black/45 px-1.5 py-0.5 text-[9px] leading-tight text-white/85">
-          {cover.credit.text}
-        </span>
+        <CoverCredit text={cover.credit.text} href={cover.credit.href} />
       )}
     </>
   )
