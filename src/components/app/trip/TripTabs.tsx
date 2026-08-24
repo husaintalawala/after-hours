@@ -78,6 +78,7 @@ export default function TripTabs({
   members,
   tripBuddies = [],
   tripNotes = [],
+  noteStops = [],
   isOwner,
   tripMeta,
   destinations,
@@ -98,6 +99,8 @@ export default function TripTabs({
   members: { id: string; name: string }[]
   tripBuddies?: TripBuddy[]
   tripNotes?: TripNoteGroup[]
+  /** Every stop, so a note can be written on a trip with none yet. */
+  noteStops?: { id: string; label: string; startDate: string | null }[]
   isOwner: boolean
   tripMeta: TripMetaVM
   chipData?: {
@@ -735,6 +738,7 @@ export default function TripTabs({
         <TripNotesPanel
           tripId={tripId}
           groups={tripNotes}
+          stops={noteStops}
           total={notesTotal}
           canWrite={canWriteNotes}
           meId={meId}

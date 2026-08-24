@@ -417,15 +417,20 @@ export default async function TripDetailPage({
   // Trip-level notes rollup. Everything it needs is already in memory — steps
   // came back from select("*"), bookings and profiles are in the same batches —
   // so this costs a pass over arrays, not a query.
+  // Every stop, whether or not it has notes yet. buildTripNotes only emits a
+  // group for a stop that HAS them, which is right for reading and wrong for
+  // writing: with nothing written down there were no groups, so the notes panel
+  // had nowhere to attach a new note and offered no way to write the first one.
+  const noteStops = destVMs.map((d) => ({
+    id: d.id,
+    label: d.label,
+    dateRange: d.dateRange,
+    // The stop's first day — what a note composed here is pinned to.
+    startDate: dateOnly(destinations.find((x) => x.id === d.id)?.date ?? null),
+  }))
   const tripNotes = buildTripNotes(
     steps as unknown as Parameters<typeof buildTripNotes>[0],
-    destVMs.map((d) => ({
-      id: d.id,
-      label: d.label,
-      dateRange: d.dateRange,
-      // The stop's first day — what a note composed here is pinned to.
-      startDate: dateOnly(destinations.find((x) => x.id === d.id)?.date ?? null),
-    })),
+    noteStops,
     transportRows as unknown as Parameters<typeof buildTripNotes>[2],
     profileById,
   )
@@ -604,6 +609,7 @@ export default async function TripDetailPage({
         members={members}
         tripBuddies={tripBuddies}
         tripNotes={tripNotes}
+        noteStops={noteStops.map((d) => ({ id: d.id, label: d.label, startDate: d.startDate }))}
         isOwner={meId === trip.user_id}
         tripMeta={{
           // `cities[0]` before "Untitled trip": FindBookings used to run its own

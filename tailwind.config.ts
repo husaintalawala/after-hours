@@ -36,6 +36,11 @@ const config: Config = {
           "teal-ink": "#04231F", // text/glyph ON a filled-teal surface
           indigo: "#6B5CFF", // routes / timeline / AI
           warn: "#E7A24B", // "needs attention" (kept distinct from accent)
+          // Destructive. Was absent, so every delete affordance on web was a
+          // hand-typed rgba literal that could not be restyled centrally —
+          // iOS has had Aurora.danger/dangerSoft for exactly this.
+          danger: "#FF6358",
+          "danger-soft": "rgba(255,99,88,0.16)",
           ink: "#FFFFFF", // primary text
           ink2: "#C6D0D9", // secondary text
           ink3: "#7D8C98", // tertiary / muted captions

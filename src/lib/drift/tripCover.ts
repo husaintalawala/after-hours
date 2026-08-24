@@ -71,6 +71,16 @@ const PAIRS: [string, string][] = [
  * Never hash the id: Swift's Hasher is seeded per process, so the iOS side
  * returned a different bucket on every cold launch until this was fixed.
  */
+export function stableBucket(id: string, count: number): number {
+  return bucket(id, count)
+}
+
+/** The identity pair for any id — a trip, or a STOP. Exported so the notes
+ *  rollup can colour each stop the same way on both platforms. */
+export function identityPair(id: string): [string, string] {
+  return PAIRS[bucket(id, PAIRS.length)]
+}
+
 function bucket(id: string, count: number): number {
   const n = parseInt(id.slice(0, 2), 16)
   return Number.isNaN(n) ? 0 : n % count

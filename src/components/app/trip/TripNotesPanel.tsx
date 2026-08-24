@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { identityPair } from "@/lib/drift/tripCover"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { splitNoteURL, isMapsURL, type TripNote, type TripNoteGroup } from "@/lib/drift/tripNotes"
@@ -94,9 +95,16 @@ function IconButton({
   )
 }
 
+export interface NoteStop {
+  id: string
+  label: string
+  startDate: string | null
+}
+
 export default function TripNotesPanel({
   tripId,
   groups,
+  stops = [],
   total,
   canWrite,
   meId,
@@ -105,6 +113,8 @@ export default function TripNotesPanel({
 }: {
   tripId: string
   groups: TripNoteGroup[]
+  /** Every stop on the trip, so a note can be written on one with none yet. */
+  stops?: NoteStop[]
   total: number
   canWrite: boolean
   meId: string
@@ -113,6 +123,25 @@ export default function TripNotesPanel({
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
+  // Notes deleted here, still in `groups` until the server component refetches.
+  // Without this a delete leaves the row on screen for the whole round trip,
+  // which reads as "that didn't take" and invites a second tap.
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
+
+  const visible = groups
+    .map((g) => ({ ...g, notes: g.notes.filter((n) => !deletedIds.has(n.id)) }))
+    .filter((g) => g.notes.length > 0)
+  const shown = visible.reduce((n, g) => n + g.notes.length, 0)
+
+  // The composer's targets come from the STOPS, not the note groups: a group
+  // only exists once a stop has notes, so on a trip with none there was nothing
+  // to attach to and no way to write the first one.
+  const targets: NoteStop[] =
+    stops.length > 0
+      ? stops
+      : groups.filter((g) => g.destId).map((g) => ({ id: g.destId!, label: g.destLabel, startDate: g.startDate }))
+  const [targetId, setTargetId] = useState<string | null>(null)
+  const target = targets.find((t) => t.id === targetId) ?? targets[0] ?? null
   return (
     // z-[60] to clear the app dock (AppNav is z-50 and renders later in the
     // DOM, so at equal z it paints over this). dvh because iOS Safari's `vh`
@@ -139,7 +168,7 @@ export default function TripNotesPanel({
           </button>
         </div>
         <p className="mt-1 text-[12.5px] text-drift-muted">
-          {total === 1 ? "1 note across this trip" : `${total} notes across this trip`}
+          {shown === 1 ? "1 note across this trip" : `${shown} notes across this trip`}
         </p>
 
         {error && (
@@ -151,15 +180,16 @@ export default function TripNotesPanel({
           </p>
         )}
 
-        {groups.length === 0 ? (
-          <div className="mt-8 rounded-2xl bg-drift-alt-bg p-6 text-center">
-            <p className="text-[15px] font-semibold">No notes yet</p>
-            <p className="mt-1.5 text-[13px] text-drift-muted">
-              Notes you add to a day or a place show up here, all together.
+        {visible.length === 0 ? (
+          <div className="mt-8">
+            <p className="font-drift-display text-[22px] font-bold">Nothing written down yet</p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-drift-muted">
+              The address someone sends you. The place you were told not to miss.
+              Anything you add to a day or a place collects here.
             </p>
           </div>
         ) : (
-          groups.map((g) => (
+          visible.map((g) => (
             <section key={g.destId ?? "orphans"} className="mt-6">
               <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
                 <h3 className="truncate text-[13px] font-bold uppercase tracking-wider text-drift-muted">
@@ -174,20 +204,52 @@ export default function TripNotesPanel({
                   <NoteRow
                     key={n.id}
                     note={n}
+                    accent={g.destId ? identityPair(g.destId)[0] : undefined}
                     meId={meId}
                     isOwner={isOwner}
                     onChanged={() => router.refresh()}
+                    // A delete has to leave the list on the tap, not after a
+                    // server round trip — the row sitting there reads as "that
+                    // didn't take", and the user taps again.
+                    onRemoved={() => setDeletedIds((prev) => new Set(prev).add(n.id))}
                     onError={setError}
                   />
                 ))}
               </ul>
-              {/* No composer on the synthetic bucket — its id is the string
-                  "unassigned", not a uuid, so an insert there is a 22P02. */}
-              {canWrite && g.destId && (
-                <AddNote tripId={tripId} destId={g.destId} date={g.startDate} onError={setError} />
-              )}
             </section>
           ))
+        )}
+
+        {/* The composer is pinned, not repeated under every stop. Adding a note
+            used to mean finding the right stop's "+ Add a note" — and with no
+            notes yet there were no stops rendered at all, so the empty panel
+            offered no way to write the first one. Targets come from the trip's
+            STOPS, which exist whether or not anything is written. */}
+        {canWrite && target && (
+          <div className="sticky bottom-0 -mx-5 mt-6 border-t border-aurora-border bg-[rgba(16,34,47,0.98)] px-5 pb-1 pt-3">
+            <div className="flex items-center gap-2">
+              <AddNote
+                tripId={tripId}
+                destId={target.id}
+                date={target.startDate}
+                onError={setError}
+              />
+              {targets.length > 1 && (
+                <select
+                  value={target.id}
+                  onChange={(e) => setTargetId(e.target.value)}
+                  aria-label="Which stop this note belongs to"
+                  className="shrink-0 rounded-full bg-aurora-teal px-3 py-2 text-[12.5px] font-semibold text-aurora-teal-ink"
+                >
+                  {targets.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -209,15 +271,21 @@ export default function TripNotesPanel({
 /// "Note" rather than inventing an author.
 function NoteRow({
   note,
+  accent,
   meId,
   isOwner,
   onChanged,
+  onRemoved,
   onError,
 }: {
   note: TripNote
+  /** The stop's identity colour, so a note still belongs to its section once
+   *  the heading has scrolled away. Same pair iOS paints for the same stop. */
+  accent?: string
   meId: string
   isOwner: boolean
   onChanged: () => void
+  onRemoved: () => void
   onError: (m: string | null) => void
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -296,6 +364,8 @@ function NoteRow({
       // Zero rows deleted is a refusal wearing a success costume — postgrest
       // resolves rather than rejecting when RLS filters everything out.
       if (!data || data.length === 0) throw new Error("You can't delete this note.")
+      // Off the list now, not after the refresh lands.
+      onRemoved()
       onChanged()
     } catch (e) {
       onError((e as { message?: string })?.message ?? "Couldn't delete that note.")
@@ -304,7 +374,10 @@ function NoteRow({
   }
 
   return (
-    <li className="rounded-xl bg-drift-alt-bg px-3 py-2.5">
+    <li
+      className="overflow-hidden rounded-xl bg-drift-alt-bg px-3 py-2.5"
+      style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
+    >
       {/* Content and meta share ONE row rather than stacking. Dropping the "Note"
           tag left the byline row empty on an unattributed note, so a card whose
           entire content is a single link chip still cost four stacked bands:
