@@ -858,18 +858,28 @@ function OverviewStopCard({
           ) : (
             <div className="h-[72px] w-[72px] shrink-0 rounded-2xl" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
           )}
+          {/* The chip used to be a shrink-0 sibling of this column, so it took
+              ~120px off the title before the title got to measure itself. On a
+              phone that left about 100px: "Reykjavík" became "Reykj…" while the
+              LONGER "Egilsstaðir" fit fine one row down, because that row has no
+              chip. It rides with the plans count now, so the title always gets
+              the full width and the row reads the same in a narrow ≥lg pane. */}
           <div className="min-w-0 flex-1">
             <p className="truncate font-drift-display text-[19px] font-semibold tracking-tight">{dest.label}</p>
-            <p className="mt-0.5 text-[13.5px] text-drift-muted">{dest.dateRange}</p>
-            <p className="mt-1 text-[12.5px] text-drift-text-tertiary">
-              {dest.plansCount} plan{dest.plansCount === 1 ? "" : "s"}
-            </p>
+            {/* truncate, not wrap: this is a range, and breaking it put the "3"
+                of "Jul 2 – Jul 3" alone on a second line. */}
+            <p className="mt-0.5 truncate text-[13.5px] text-drift-muted">{dest.dateRange}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-[12.5px] text-drift-text-tertiary">
+                {dest.plansCount} plan{dest.plansCount === 1 ? "" : "s"}
+              </span>
+              {dest.bookedChip && (
+                <span className="rounded-full bg-aurora-indigo/20 px-2.5 py-1 text-[11.5px] font-semibold text-aurora-indigo">
+                  ● {dest.bookedChip}
+                </span>
+              )}
+            </div>
           </div>
-          {dest.bookedChip && (
-            <span className="shrink-0 rounded-full bg-aurora-indigo/20 px-3 py-1.5 text-[12px] font-semibold text-aurora-indigo">
-              ● {dest.bookedChip}
-            </span>
-          )}
         </button>
         {/* Separate chevron just previews the stops inline. */}
         {items.length > 0 && (

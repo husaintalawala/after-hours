@@ -23,6 +23,77 @@ const KIND_ICON: Record<TripNote["kind"], string> = {
   booking: "🎫",
 }
 
+// Stroke glyphs in the house style (24-box, 1.9 stroke, round caps) so the note
+// actions cost a 32px target each instead of a labelled row of their own.
+const GLYPH = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.9,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  className: "h-4 w-4",
+  "aria-hidden": true,
+} as const
+
+const IconCopy = () => (
+  <svg {...GLYPH}>
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path d="M5 15V6a2 2 0 0 1 2-2h8" />
+  </svg>
+)
+const IconCheck = () => (
+  <svg {...GLYPH}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+)
+const IconPencil = () => (
+  <svg {...GLYPH}>
+    <path d="M4 20h4L19 9a2.12 2.12 0 0 0-3-3L5 17v3Z" />
+    <path d="m14.5 6.5 3 3" />
+  </svg>
+)
+const IconTrash = () => (
+  <svg {...GLYPH}>
+    <path d="M4 7h16" />
+    <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    <path d="m6 7 1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+  </svg>
+)
+
+/** A labelled 32px target wrapping a 16px glyph. The label is the only thing
+ *  carrying the meaning now that the words are gone, so it is required. */
+function IconButton({
+  label,
+  onClick,
+  disabled,
+  danger,
+  children,
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  danger?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`grid h-8 w-8 place-items-center rounded-full transition-colors disabled:opacity-40 ${
+        danger
+          ? "bg-[rgba(255,140,130,0.14)] text-[rgba(255,140,130,0.95)]"
+          : "text-drift-text-tertiary hover:bg-aurora-glass2 hover:text-drift-ink"
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 export default function TripNotesPanel({
   tripId,
   groups,
@@ -154,6 +225,10 @@ function NoteRow({
   const [draft, setDraft] = useState(note.body)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  // Delete used to be a labelled text button; as a 32px glyph it is far easier
+  // to hit by accident, so it arms first. iOS asks with an alert — this is the
+  // same protection without spending a row on a dialog.
+  const [armed, setArmed] = useState(false)
 
   const { text, url } = splitNoteURL(note.body)
   const long = text.length > 220
@@ -167,8 +242,13 @@ function NoteRow({
   const canEdit = mine
   const canDelete = mine || (note.kind === "note" && isOwner)
 
+  // WHO wrote it, not WHAT KIND it is — the rule iOS's noteRow already follows.
+  // Inside a panel titled "Notes", a row labelled "Note" says nothing, and it
+  // was on nearly every card: 6 of 7 note steps on the reported trip carry no
+  // author_id at all, so the neutral fallback WAS the header. Now an unattributed
+  // note simply has no byline and the date carries the row.
   const title =
-    note.kind === "note" ? (note.authorName ?? (mine ? "You" : "Note")) : note.context
+    note.kind === "note" ? (note.authorName ?? (mine ? "You" : null)) : note.context
 
   async function copy() {
     try {
@@ -225,15 +305,51 @@ function NoteRow({
 
   return (
     <li className="rounded-xl bg-drift-alt-bg px-3.5 py-3">
+      {/* One row does the work of two: byline, date and the actions that used to
+          sit on their own line under the note. */}
       <div className="flex items-center gap-2">
-        <span aria-hidden="true" className="text-[13px]">
-          {KIND_ICON[note.kind]}
-        </span>
+        {/* Kept for annotations and bookings, where it separates two kinds that
+            do look alike. Dropped for plain notes, where it labelled a note as
+            a note. */}
+        {note.kind !== "note" && (
+          <span aria-hidden="true" className="shrink-0 text-[13px]">
+            {KIND_ICON[note.kind]}
+          </span>
+        )}
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-drift-muted">
           {title}
         </span>
         {note.date && (
           <span className="shrink-0 text-[11.5px] text-drift-text-tertiary">{shortDay(note.date)}</span>
+        )}
+        {!editing && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <IconButton label={copied ? "Copied" : "Copy note"} onClick={copy}>
+              {copied ? <IconCheck /> : <IconCopy />}
+            </IconButton>
+            {canEdit && (
+              <IconButton label="Edit note" onClick={() => setEditing(true)}>
+                <IconPencil />
+              </IconButton>
+            )}
+            {canDelete && (
+              <IconButton
+                label={armed ? "Tap again to delete" : "Delete note"}
+                danger={armed}
+                disabled={busy}
+                onClick={() => {
+                  if (armed) {
+                    void remove()
+                    return
+                  }
+                  setArmed(true)
+                  window.setTimeout(() => setArmed(false), 3000)
+                }}
+              >
+                <IconTrash />
+              </IconButton>
+            )}
+          </div>
         )}
       </div>
 
@@ -300,28 +416,6 @@ function NoteRow({
             </button>
           )}
 
-          <div className="mt-2 flex items-center gap-3">
-            <button onClick={copy} className="text-[11.5px] font-semibold text-drift-text-tertiary hover:text-drift-ink">
-              {copied ? "Copied" : "Copy"}
-            </button>
-            {canEdit && (
-              <button
-                onClick={() => setEditing(true)}
-                className="text-[11.5px] font-semibold text-drift-text-tertiary hover:text-drift-ink"
-              >
-                Edit
-              </button>
-            )}
-            {canDelete && (
-              <button
-                onClick={remove}
-                disabled={busy}
-                className="text-[11.5px] font-semibold text-drift-text-tertiary hover:text-[rgba(255,140,130,0.95)] disabled:opacity-50"
-              >
-                {busy ? "…" : "Delete"}
-              </button>
-            )}
-          </div>
         </>
       )}
     </li>
