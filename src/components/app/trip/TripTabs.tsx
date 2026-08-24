@@ -153,6 +153,36 @@ export default function TripTabs({
   const [reviewSignal, setReviewSignal] = useState(0)
   const [reviewBatchId, setReviewBatchId] = useState<string | null>(null)
 
+  // ---- Live group-trip sync (iOS parity) --------------------------------
+  // steps / expenses / kit_items are in the supabase_realtime publication.
+  // ONE channel per open trip; any change on this trip debounces ~1.5s and
+  // re-runs the existing refresh path. Reload-not-patch, same rationale as
+  // iOS: router.refresh() re-renders the server page, so ONE code path
+  // rebuilds every derived shape (timelines, ledger, readiness) rather than a
+  // second patch-based one that could disagree with it.
+  const router = useRouter()
+  useEffect(() => {
+    const supabase = createClient()
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const bump = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => router.refresh(), 1500)
+    }
+    const channel = supabase.channel(`trip-live-${tripId}`)
+    for (const table of ["steps", "expenses", "kit_items"]) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table, filter: `trip_id=eq.${tripId}` },
+        bump
+      )
+    }
+    channel.subscribe()
+    return () => {
+      if (timer) clearTimeout(timer)
+      void supabase.removeChannel(channel)
+    }
+  }, [tripId, router])
+
   // Lazy destination hero photos. The SSR page no longer blocks on a
   // resolve-place→Google lookup per destination (that made opening a trip
   // slow); we hydrate the heroes here after mount instead, so the page paints
@@ -684,6 +714,7 @@ export default function TripTabs({
                     key={day.dayNumber}
                     day={day}
                     tripId={tripId}
+                    meId={meId}
                     destId={dest.id}
                     selectedId={selected?.id ?? null}
                     bookingDetails={bookingDetails}
@@ -969,6 +1000,7 @@ function InlineDayItem({
 function DaySection({
   day,
   tripId,
+  meId,
   destId,
   selectedId,
   stepDetails,
@@ -980,6 +1012,7 @@ function DaySection({
 }: {
   day: DestinationDay
   tripId: string
+  meId: string
   destId: string
   selectedId: string | null
   stepDetails: Record<string, StepDetailVM>
@@ -1121,6 +1154,7 @@ function DaySection({
               isLast={i === items.length - 1}
               isSelected={selectedId === item.id}
               chip={chipFor(item, stepDetails, bookingDetails)}
+              addedBy={addedByFor(item, stepDetails, meId)}
               onClick={() => onSelect(item)}
               reorderable={!!item.linkedStepId}
               dragging={dragId === item.id}
@@ -1169,6 +1203,21 @@ function chipFor(
   return null
 }
 
+// Trip Table attribution: name the member who added a plan row — but never the
+// viewer ("added by You" on every row of a solo trip is pure noise). An author
+// whose profile row is gone still gets a generic stamp rather than letting the
+// row silently read as the viewer's own.
+function addedByFor(
+  item: TimelineItem,
+  steps: Record<string, StepDetailVM>,
+  meId: string
+): string | null {
+  if (!item.linkedStepId) return null
+  const s = steps[item.linkedStepId]
+  if (!s?.authorId || s.authorId === meId) return null
+  return s.authorName ?? "a trip member"
+}
+
 const DOT_BG: Record<TimelineItem["type"], string> = {
   stay: "#EEF0FE",
   spot: "#FEEDE8",
@@ -1207,6 +1256,7 @@ function TimelineRow({
   isLast,
   isSelected,
   chip,
+  addedBy,
   onClick,
   reorderable = false,
   dragging = false,
@@ -1221,6 +1271,8 @@ function TimelineRow({
   isLast: boolean
   isSelected: boolean
   chip: string | null
+  /** "added by <name>" attribution, already resolved — null renders nothing. */
+  addedBy: string | null
   onClick: () => void
   reorderable?: boolean
   dragging?: boolean
@@ -1297,6 +1349,9 @@ function TimelineRow({
           </p>
           {showSubtitle && (
             <p className="mt-0.5 truncate text-[14px] text-drift-muted">{item.subtitle}</p>
+          )}
+          {addedBy && (
+            <p className="mt-0.5 truncate text-[11px] text-aurora-ink3">added by {addedBy}</p>
           )}
         </div>
         {chip && (

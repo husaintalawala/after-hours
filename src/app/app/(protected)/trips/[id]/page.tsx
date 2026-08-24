@@ -371,7 +371,11 @@ export default async function TripDetailPage({
   // page in the app for names we can fetch in the one already being made.
   const buddyIds = ((buddyRaw ?? []) as Array<{ user_id: string }>).map((b) => b.user_id)
   const rosterIds = [...new Set([trip.user_id, ...buddyIds].filter(Boolean))]
-  const profileIds = [...new Set([...memberIds, ...rosterIds])]
+  // Step authors ride in the same batch too (Trip Table attribution: "added by
+  // <name>" on plan rows). Usually a subset of the roster, but a member who
+  // left the trip after adding stops isn't — the union keeps their name.
+  const stepAuthorIds = steps.map((s) => s.author_id).filter((a): a is string => !!a)
+  const profileIds = [...new Set([...memberIds, ...rosterIds, ...stepAuthorIds])]
   const [splitsRes, profilesRes] = await Promise.all([
     expenseIds.length
       ? supabase.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
@@ -547,6 +551,11 @@ export default async function TripDetailPage({
       importProvider: s.import_source_provider,
       confirmationNumber: s.confirmation_number,
       guestCount: s.guest_count,
+      // Attribution. memberNames already holds every step author — their ids
+      // joined the profiles batch above — so a miss here means the profile row
+      // itself is gone, and the client falls back to "a trip member".
+      authorId: s.author_id,
+      authorName: s.author_id ? memberNames.get(s.author_id) ?? null : null,
       rawDate: dateOnly(s.date),
       rawTime: (s.scheduled_at ? /T(\d{2}):(\d{2})/.exec(s.scheduled_at) : null)
         ? `${/T(\d{2}):(\d{2})/.exec(s.scheduled_at!)![1]}:${/T(\d{2}):(\d{2})/.exec(s.scheduled_at!)![2]}`

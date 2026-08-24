@@ -74,6 +74,11 @@ export interface StepDetailVM {
   importProvider: string | null
   confirmationNumber: string | null
   guestCount: number | null
+  /** Trip Table attribution: steps.author_id, and its resolved first name.
+   *  authorName is null when the author's profile row is gone (deleted
+   *  account) — the row then falls back to "a trip member". */
+  authorId: string | null
+  authorName: string | null
 }
 
 export interface BookingDetailVM {
