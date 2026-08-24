@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { tripCover as resolveTripCover } from "@/lib/drift/tripCover"
+import { buildTripNotes } from "@/lib/drift/tripNotes"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type {
@@ -412,6 +413,16 @@ export default async function TripDetailPage({
   // interchangeable — a buddy who has not joined a household has no expense
   // membership, and would silently vanish from the roster if we reused it.
   const profileById = new Map(profileRows.map((p) => [p.id, p]))
+
+  // Trip-level notes rollup. Everything it needs is already in memory — steps
+  // came back from select("*"), bookings and profiles are in the same batches —
+  // so this costs a pass over arrays, not a query.
+  const tripNotes = buildTripNotes(
+    steps as unknown as Parameters<typeof buildTripNotes>[0],
+    destVMs.map((d) => ({ id: d.id, label: d.label, dateRange: d.dateRange })),
+    transportRows as unknown as Parameters<typeof buildTripNotes>[2],
+    profileById,
+  )
   const tripBuddies = rosterIds.map((id) => {
     const p = profileById.get(id)
     return {
@@ -586,6 +597,7 @@ export default async function TripDetailPage({
         meId={meId}
         members={members}
         tripBuddies={tripBuddies}
+        tripNotes={tripNotes}
         isOwner={meId === trip.user_id}
         tripMeta={{
           // `cities[0]` before "Untitled trip": FindBookings used to run its own

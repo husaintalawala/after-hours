@@ -39,6 +39,8 @@ import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 import Link from "next/link"
 import TripBuddiesPanel, { type TripBuddy } from "./TripBuddiesPanel"
+import TripNotesPanel from "./TripNotesPanel"
+import { countTripNotes, type TripNoteGroup } from "@/lib/drift/tripNotes"
 
 // Mapbox GL is ~heavy; keep it OUT of the trip page's first-load bundle. Lazy-
 // load the map (client-only) so it downloads only when a map actually renders —
@@ -74,6 +76,7 @@ export default function TripTabs({
   meId,
   members,
   tripBuddies = [],
+  tripNotes = [],
   isOwner,
   tripMeta,
   destinations,
@@ -93,6 +96,7 @@ export default function TripTabs({
   meId: string
   members: { id: string; name: string }[]
   tripBuddies?: TripBuddy[]
+  tripNotes?: TripNoteGroup[]
   isOwner: boolean
   tripMeta: TripMetaVM
   chipData?: {
@@ -118,6 +122,8 @@ export default function TripTabs({
   children?: React.ReactNode
 }) {
   const [showBuddies, setShowBuddies] = useState(false)
+  const [showNotes, setShowNotes] = useState(false)
+  const notesTotal = countTripNotes(tripNotes)
   const [tab, setTab] = useState<Tab>("plan")
   const [selectedDestId, setSelectedDestId] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<number | "overview">("overview")
@@ -594,6 +600,30 @@ export default function TripTabs({
                     to a designed PDF + share/download. */}
                 <ExportItinerary tripId={tripId} />
                 <MediaSection tripId={tripId} />
+                {/* Every note in the trip, compiled. Matches the MediaSection
+                    row anatomy exactly so the Plan tab reads as one list. */}
+                <button
+                  onClick={() => setShowNotes(true)}
+                  className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 text-left transition-colors hover:border-aurora-teal/40"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-aurora-teal/10 text-aurora-teal">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h13l3 3v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                      <path d="M7 9h9M7 13h9M7 17h5" />
+                    </svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold text-drift-ink">Notes</span>
+                    <span className="block truncate text-[12.5px] text-drift-text-tertiary">
+                      {notesTotal === 0
+                        ? "Notes from every stop, together"
+                        : `${notesTotal} ${notesTotal === 1 ? "note" : "notes"} across this trip`}
+                    </span>
+                  </span>
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-drift-text-tertiary" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
                 {destinations.length === 0 && (
                   <p className="mt-3 text-drift-muted">
                     No itinerary yet. Ask Drift to start planning.
@@ -680,6 +710,14 @@ export default function TripTabs({
         <TrackTab steps={trackSteps} readiness={trackReadiness} tripId={tripId} />
       )}
       </div>
+
+      {showNotes && (
+        <TripNotesPanel
+          groups={tripNotes}
+          total={notesTotal}
+          onClose={() => setShowNotes(false)}
+        />
+      )}
 
       {showBuddies && (
         <TripBuddiesPanel
