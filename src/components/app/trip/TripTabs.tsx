@@ -42,6 +42,7 @@ import Link from "next/link"
 import TripBuddiesPanel, { type TripBuddy } from "./TripBuddiesPanel"
 import TripNotesPanel from "./TripNotesPanel"
 import { countTripNotes, splitNoteURL, isMapsURL, type TripNote, type TripNoteGroup } from "@/lib/drift/tripNotes"
+import { TripToolsDeck } from "./TripToolsDeck"
 
 // Mapbox GL is ~heavy; keep it OUT of the trip page's first-load bundle. Lazy-
 // load the map (client-only) so it downloads only when a map actually renders —
@@ -627,17 +628,6 @@ export default function TripTabs({
                   <span className="text-[17px] font-semibold text-drift-text-tertiary">
                     {destinations.length}
                   </span>
-                  <span className="ml-auto">
-                    <FindBookings
-                      tripId={tripId}
-                      tripTitle={tripMeta.title}
-                      tripStart={chipData?.startDate ?? null}
-                      tripEnd={chipData?.endDate ?? null}
-                      openSignal={reviewSignal}
-                      reviewBatchId={reviewBatchId}
-                      onScanStarted={() => setScanNonce((n) => n + 1)}
-                    />
-                  </span>
                 </div>
                 <ScanStatus
                   tripId={tripId}
@@ -647,10 +637,38 @@ export default function TripTabs({
                     setReviewSignal((s) => s + 1)
                   }}
                 />
-                {/* Directly under Find bookings, as on iOS: renders the plan
-                    to a designed PDF + share/download. */}
-                <ExportItinerary tripId={tripId} />
-                <MediaSection tripId={tripId} />
+                {/* The trip's tools as ONE deck, not a column of full-width
+                    rows — same arrangement as iOS TripToolsDeck, and the same
+                    reason: five rows cannot be taken in at a glance, because
+                    you cannot see five of them at once. The map leads because
+                    it is the only tool that says something without being
+                    opened; web had no trip-level map entry at all before. */}
+                <TripToolsDeck
+                  coords={destinations
+                    .filter((d) => d.id !== "unassigned" && d.lat != null && d.lng != null)
+                    .map((d) => ({ lat: d.lat!, lng: d.lng! }))}
+                  stopCount={destinations.filter((d) => d.id !== "unassigned").length}
+                  notesCount={notesTotal}
+                  onMap={() =>
+                    setSelectedDestId(
+                      destinations.find((d) => d.id !== "unassigned")?.id ?? null
+                    )
+                  }
+                  onNotes={() => setShowNotes(true)}
+                >
+                  <MediaSection tripId={tripId} variant="tile" />
+                  <FindBookings
+                    tripId={tripId}
+                    variant="tile"
+                    tripTitle={tripMeta.title}
+                    tripStart={chipData?.startDate ?? null}
+                    tripEnd={chipData?.endDate ?? null}
+                    openSignal={reviewSignal}
+                    reviewBatchId={reviewBatchId}
+                    onScanStarted={() => setScanNonce((n) => n + 1)}
+                  />
+                  <ExportItinerary tripId={tripId} variant="tile" />
+                </TripToolsDeck>
                 {/* Every note in the trip, compiled. Matches the MediaSection
                     row anatomy exactly so the Plan tab reads as one list. */}
                 <button

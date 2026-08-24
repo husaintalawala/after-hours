@@ -13,6 +13,7 @@ import {
 } from "@/lib/drift/google"
 import { openPlaidLink, PLAID_CANCELLED } from "@/lib/drift/plaid"
 import { loadReviewList, type SegmentVM } from "@/lib/drift/loadReviewList"
+import { TripToolTile } from "./TripToolsDeck"
 
 // Find my bookings — web port of the iOS booking-import surface. One card
 // language, one line-icon set (no emoji), consistent rows. Two groups:
@@ -42,8 +43,12 @@ export default function FindBookings({
   openSignal = 0,
   reviewBatchId = null,
   onScanStarted,
+  variant = "pill",
 }: {
   tripId: string
+  /** "tile" is the trip tool deck's square, matching iOS where Find bookings is
+   *  one of the four verbs. Same sheet, same scan — only the trigger changes. */
+  variant?: "pill" | "tile"
   // The title the server already rendered for this trip. Handed down rather
   // than re-read from the browser so the review screen's "Adding to {trip}"
   // is the same string as the heading behind the sheet — a second copy fetched
@@ -78,15 +83,33 @@ export default function FindBookings({
 
   return (
     <>
-      <button
-        onClick={() => {
-          setScopeBatchId(null)
-          setOpen(true)
-        }}
-        className="inline-flex items-center gap-1.5 rounded-full border border-drift-coral/40 bg-aurora-glass px-3.5 py-1.5 text-[13px] font-semibold text-drift-coral transition-colors hover:bg-drift-coral-50"
-      >
-        <Icon name="send" className="h-3.5 w-3.5" /> Find bookings
-      </button>
+      {variant === "tile" ? (
+        <TripToolTile
+          tint="teal"
+          title="Find bookings"
+          caption="Scan your inbox"
+          onClick={() => {
+            setScopeBatchId(null)
+            setOpen(true)
+          }}
+          icon={
+            <>
+              <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <path d="m3 8 9 6 9-6" />
+            </>
+          }
+        />
+      ) : (
+        <button
+          onClick={() => {
+            setScopeBatchId(null)
+            setOpen(true)
+          }}
+          className="inline-flex items-center gap-1.5 rounded-full border border-drift-coral/40 bg-aurora-glass px-3.5 py-1.5 text-[13px] font-semibold text-drift-coral transition-colors hover:bg-drift-coral-50"
+        >
+          <Icon name="send" className="h-3.5 w-3.5" /> Find bookings
+        </button>
+      )}
       {open && (
         <FindBookingsSheet
           tripId={tripId}

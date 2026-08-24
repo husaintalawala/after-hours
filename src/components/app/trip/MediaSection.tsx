@@ -3,10 +3,19 @@
 import { useEffect, useState } from "react"
 import { listTripFiles } from "@/lib/drift/media"
 import MediaTab from "./MediaTab"
+import { TripToolTile } from "./TripToolsDeck"
 
 // The Media (Files) entry in the Plan tab — a section-card below Find bookings
 // that opens the full Files library. Files/attachments only; Track owns photos.
-export default function MediaSection({ tripId }: { tripId: string }) {
+export default function MediaSection({
+  tripId,
+  variant = "row",
+}: {
+  tripId: string
+  /** "tile" is the trip tool deck's square. Same state, same sheet — only the
+   *  face changes, so the file list keeps one home. */
+  variant?: "row" | "tile"
+}) {
   const [count, setCount] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
 
@@ -23,6 +32,16 @@ export default function MediaSection({ tripId }: { tripId: string }) {
 
   return (
     <>
+      {variant === "tile" ? (
+        <TripToolTile
+          tint="indigo"
+          title="Media"
+          value={count && count > 0 ? String(count) : null}
+          caption={count === null || count === 0 ? "Files & tickets" : count === 1 ? "file" : "files"}
+          onClick={() => setOpen(true)}
+          icon={<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />}
+        />
+      ) : (
       <button
         onClick={() => setOpen(true)}
         className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 text-left transition-colors hover:border-aurora-teal/40"
@@ -40,6 +59,7 @@ export default function MediaSection({ tripId }: { tripId: string }) {
           <path d="M9 6l6 6-6 6" />
         </svg>
       </button>
+      )}
 
       {open && (
         <div
