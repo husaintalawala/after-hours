@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import PatternView from "@/components/app/inspire/PatternView"
 import {
   hasUsableSnapshot,
+  isGuideSlug,
   monthsYouCouldGo,
   parseSnapshot,
   type InspirePattern,
@@ -22,6 +23,22 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/** The row, asserted here. `slug` is newer than src/lib/database.types.ts and
+ *  regenerating that file would drop a large unrelated diff into this feature —
+ *  the same call /i/[slug] made. `snapshot` is read as `unknown` regardless:
+ *  parseSnapshot is what establishes its shape. */
+interface PatternRow {
+  trip_id: string
+  slug: string | null
+  tags: string[] | null
+  best_months: number[] | null
+  blurb: string | null
+  hero_url: string | null
+  author_handle: string | null
+  author_avatar_url: string | null
+  snapshot: unknown
+}
+
 export default async function InspirePatternPage({
   params,
 }: {
@@ -39,11 +56,12 @@ export default async function InspirePatternPage({
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id, tags, best_months, blurb, hero_url, author_handle, author_avatar_url, snapshot",
+      "trip_id, slug, tags, best_months, blurb, hero_url, author_handle, author_avatar_url, snapshot",
     )
     .eq("trip_id", tripId)
     .eq("is_active", true)
     .maybeSingle()
+    .returns<PatternRow | null>()
 
   if (error) {
     console.error("[inspire/[tripId]] lookup failed", tripId, error)
@@ -58,6 +76,10 @@ export default async function InspirePatternPage({
 
   const pattern: InspirePattern = {
     tripId: data.trip_id,
+    // The public handle. Without it this screen has no shareable URL at all —
+    // its own is behind the auth gate — so the Share control hides rather than
+    // hand somebody a login wall.
+    slug: isGuideSlug(data.slug) ? data.slug : null,
     tags: (data.tags ?? []).filter(Boolean),
     bestMonths: (data.best_months ?? []).filter((m): m is number => typeof m === "number"),
     blurb: data.blurb,

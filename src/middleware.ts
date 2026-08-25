@@ -33,6 +33,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // /i/<slug> is the PUBLIC guide — a curated trip, whole, for somebody with no
+  // account. It is a root path with no file extension, so the marketing rewrite
+  // at the bottom would ask for /drift/i/<slug>.html and 404 every share link
+  // ever sent, on the one host they are sent from. Carved out ABOVE it.
+  //
+  // NextResponse.next(), not updateSession: this page reads no cookies and
+  // renders identically signed in or out, so there is no session to refresh —
+  // and share links are hit by crawlers and link unfurlers, none of which
+  // should be spending an auth round trip.
+  if (pathname === "/i" || pathname.startsWith("/i/")) {
+    return NextResponse.next();
+  }
+
   // /join/<token> is the invite landing page. Public — the whole point is that a
   // signed-out stranger can see the trip before deciding to sign up — but it
   // runs through updateSession because the page branches on whether there is

@@ -138,9 +138,33 @@ export default function TailorPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measurementKey, pattern.tripId])
 
+  // ---- THE LENGTH THAT WILL ACTUALLY BE WRITTEN --------------------------
+  //
+  // Which is the PLAN's, not the dial's. The two diverge more often than you
+  // would guess: the tailoring call can fail, the model can be unreachable, the
+  // reply can be unparseable. In every one of those cases tailor-trip honestly
+  // returns the pattern at its ORIGINAL length. If the footer read off the
+  // dial, someone would set 6, be shown a convincing six-day shape, click the
+  // button and land on a nine-day trip — the feature quietly not working while
+  // looking like it worked.
+  //
+  // A plan with no day_count at all is as untrustworthy as no plan: it is the
+  // field copy-trip makes the trip's length.
+  //
+  // WHILE A REQUEST IS IN FLIGHT there is no plan yet and no failure yet, and
+  // the shape drawn below is the local arithmetic fit at the DIAL's length — so
+  // that is what this reads until an answer lands. Everything that makes a
+  // promise off it (the return date, the button) is gated on `isTailoring`
+  // anyway. Once an answer has landed — or failed to — it is the plan's length,
+  // and the shape and the header follow it rather than the dial.
+  const effectiveDays = result?.plan.day_count ?? (isTailoring ? days : s.day_count)
+  const planMatchesDial = result !== null && effectiveDays === days
+
   // ---- What the dial has produced ----------------------------------------
   // Before the server answers — and if it never does — this is the
-  // deterministic local fit, so the trip under the dial is never blank.
+  // deterministic local fit at `effectiveDays`. Fitting it to the DIAL instead
+  // put a six-day-shaped list under a header saying six days, above a footer
+  // warning the trip would be written at its original nine.
   const rows: ShapeRow[] = useMemo(() => {
     const plan = result?.plan
     if (plan && plan.destinations.length) {
@@ -166,23 +190,8 @@ export default function TailorPanel({
         }))
       return [...kept, ...gone]
     }
-    return localFit(s.destinations, days)
-  }, [result, s.destinations, days])
-
-  // ---- THE LENGTH THAT WILL ACTUALLY BE WRITTEN --------------------------
-  //
-  // Which is the PLAN's, not the dial's. The two diverge more often than you
-  // would guess: the tailoring call can fail, the model can be unreachable, the
-  // reply can be unparseable. In every one of those cases tailor-trip honestly
-  // returns the pattern at its ORIGINAL length. If the footer read off the
-  // dial, someone would set 6, be shown a convincing six-day shape, click the
-  // button and land on a nine-day trip — the feature quietly not working while
-  // looking like it worked.
-  //
-  // A plan with no day_count at all is as untrustworthy as no plan: it is the
-  // field copy-trip makes the trip's length.
-  const effectiveDays = result?.plan.day_count ?? s.day_count
-  const planMatchesDial = result !== null && effectiveDays === days
+    return localFit(s.destinations, effectiveDays)
+  }, [result, s.destinations, effectiveDays])
 
   const endDay = addDays(startDay, Math.max(0, effectiveDays - 1))
   const dateFmt: Intl.DateTimeFormatOptions = {
@@ -350,7 +359,9 @@ export default function TailorPanel({
       <section className="mt-8">
         <div className="flex items-center gap-2">
           <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-aurora-ink3">
-            Your {placeWord}, at {days} days
+            {/* The length of the shape BELOW, which after a failed tailoring is
+                the pattern's original — not the dial's. */}
+            Your {placeWord}, at {effectiveDays} days
           </p>
           {isTailoring && (
             <span

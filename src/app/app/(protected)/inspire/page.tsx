@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { tripCover, type TripCoverResult } from "@/lib/drift/tripCover"
+import { photoAt } from "@/lib/drift/inspire"
 import InspireShell from "@/components/app/inspire/InspireShell"
 
 // Inspire — BROWSE.
@@ -76,15 +77,25 @@ export interface InspireCategory {
   slug: string
   label: string
   count: number
+  /** The cover of the STRONGEST trip carrying this tag — the shelf's own rank
+   *  order picks it. A tile is a door, and a door with a photo on it tells you
+   *  where it goes; a gradient tells you nothing. Resized by the photo's own
+   *  host to tile width, never re-hosted. */
+  cover: TripCoverResult
 }
 
 export interface InspireMonth {
-  /** "2027-10" — the exact shape /api/drift/tailor takes as `month`. */
+  /** "2027-10" — the exact shape /api/drift/tailor takes as `month`. It is
+   *  always the NEXT occurrence of this month, so January picked in August
+   *  means next January, not the one that has gone. */
   key: string
   month: number
   label: string
   /** "'27" on months that fall in a later year, otherwise "". */
   yearLabel: string
+  /** The month it is right now — drawn dashed and muted, because you cannot
+   *  leave today: picking it means the same month a year out. */
+  isCurrent: boolean
 }
 
 // ── Tolerant decoding. This corpus is hand-edited, so a malformed row must drop
@@ -229,24 +240,63 @@ function decode(raw: unknown): InspireCard | null {
   }
 }
 
-/** Next month first, six out. You cannot leave today, so "this month" is not an
- *  answer to "when could you go" — it is an answer to "when could you have
- *  gone". Computed on the server so both renders agree on what month it is. */
-function nextSixMonths(): InspireMonth[] {
+/**
+ * All twelve, in calendar order, each pointing at its NEXT occurrence.
+ *
+ * The rail used to offer six. A chart of the year cannot: the shape of the
+ * shelf — full shoulders, an empty July and August — is only visible when all
+ * twelve are drawn to scale next to each other, and half a year is half a
+ * shape. The ORDER is Jan → Dec because that is what a year looks like; the
+ * "you cannot leave today" truth is carried by the key instead, which rolls
+ * every month at or before this one into next year.
+ *
+ * Computed on the server so both renders agree on what month it is — a
+ * client-computed "today" is a hydration mismatch on the one control that
+ * decides when the trip happens.
+ */
+function twelveMonths(): InspireMonth[] {
   const now = new Date()
-  const out: InspireMonth[] = []
-  for (let i = 1; i <= 6; i++) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1))
-    const y = d.getUTCFullYear()
-    const m = d.getUTCMonth() + 1
-    out.push({
+  const thisYear = now.getUTCFullYear()
+  const thisMonth = now.getUTCMonth() + 1
+  return Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1
+    const y = m > thisMonth ? thisYear : thisYear + 1
+    return {
       key: `${y}-${String(m).padStart(2, "0")}`,
       month: m,
       label: MONTHS[m - 1],
-      yearLabel: y === now.getUTCFullYear() ? "" : `'${String(y).slice(2)}`,
-    })
-  }
-  return out
+      yearLabel: y === thisYear ? "" : `'${String(y).slice(2)}`,
+      isCurrent: m === thisMonth,
+    }
+  })
+}
+
+/** The shelf could not be read. Not "nothing here yet" — that sentence blames
+ *  the corpus for a fault on our side and sends the user hunting through rails
+ *  that were never drawn. This route is force-dynamic, so the link is a real
+ *  retry: it re-runs the query. */
+function ShelfUnavailable() {
+  return (
+    <main className="mx-auto w-full max-w-2xl px-5 pb-28 pt-6">
+      <h1 className="font-drift-display text-3xl font-medium tracking-tight text-aurora-ink">
+        Inspire
+      </h1>
+      <div className="mt-8 rounded-card border border-aurora-border bg-aurora-glass px-5 py-8 text-center">
+        <p className="font-drift-display text-[19px] font-semibold text-aurora-ink">
+          Drift couldn&apos;t load the shelf
+        </p>
+        <p className="mx-auto mt-2 max-w-sm text-[13.5px] leading-relaxed text-drift-muted">
+          The trips are still there — this is on our side. Try again in a moment.
+        </p>
+        <a
+          href="/app/inspire"
+          className="mt-5 inline-flex h-[46px] items-center justify-center rounded-2xl bg-aurora-teal px-6 text-[14.5px] font-bold text-aurora-teal-ink"
+        >
+          Try again
+        </a>
+      </div>
+    </main>
+  )
 }
 
 export default async function InspirePage() {
@@ -278,6 +328,13 @@ export default async function InspirePage() {
   }
 
   const rows = data ?? []
+  // …and saying otherwise means saying it ON THE SCREEN, not only in the log.
+  // Falling through to `data ?? []` drew twelve zero-height month columns, a
+  // "0 TRIPS" header and an empty state telling the user to try a category rail
+  // that was not rendered — an outage dressed as a curated shelf with nothing on
+  // it. A failure gets a failure's copy and a way to retry.
+  if (error && rows.length === 0) return <ShelfUnavailable />
+
   const cards = rows.map(decode).filter((c): c is InspireCard => c !== null)
 
   // A curation mistake that blanks the shelf is otherwise undetectable: the
@@ -292,13 +349,47 @@ export default async function InspirePage() {
     })
   }
 
-  // A category is never a dead end: it carries its count, and one with nothing
-  // behind it is not drawn at all.
-  const categories: InspireCategory[] = TAG_ORDER.map((slug) => ({
-    slug,
-    label: INSPIRE_TAGS[slug],
-    count: cards.filter((c) => c.tags.includes(slug)).length,
-  })).filter((c) => c.count > 0)
+  // A category is never a dead end: it carries its count and the face of the
+  // best trip behind it, and one with nothing behind it is not drawn at all.
+  //
+  // `cards` arrives in rank order, so "strongest" is simply the first one that
+  // has a photo to show — falling back to the first of the tag, whose cover is
+  // then the deterministic placeholder rather than a hole.
+  const categories: InspireCategory[] = TAG_ORDER.map((slug) => {
+    const inTag = cards.filter((c) => c.tags.includes(slug))
+    const face = inTag.find((c) => c.cover.url) ?? inTag[0]
+    return {
+      slug,
+      label: INSPIRE_TAGS[slug],
+      count: inTag.length,
+      // Re-cut at tile width by the photo's OWN host. The 1200px hero behind a
+      // 180px tile is 40× the bytes it draws.
+      cover: face
+        ? tripCover({
+            id: face.tripId,
+            title: face.title,
+            cover_fallback_url: photoAt(face.cover.url, 480),
+          })
+        : tripCover({ id: slug, title: INSPIRE_TAGS[slug] }),
+    }
+  }).filter((c) => c.count > 0)
 
-  return <InspireShell cards={cards} categories={categories} months={nextSixMonths()} />
+  const everything = cards.find((c) => c.cover.url) ?? cards[0]
+
+  return (
+    <InspireShell
+      cards={cards}
+      categories={categories}
+      months={twelveMonths()}
+      everythingCover={
+        everything
+          ? tripCover({
+              id: everything.tripId,
+              title: "Everything",
+              cover_fallback_url: photoAt(everything.cover.url, 480),
+            })
+          : tripCover({ id: "00000000", title: "Everything" })
+      }
+    />
+  )
 }

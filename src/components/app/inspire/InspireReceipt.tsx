@@ -200,44 +200,52 @@ export default function InspireReceipt({
         </Link>
       </div>
 
-      {/* ---- Your stops ---- */}
-      <section className="mt-7 px-5">
-        <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.13em] text-aurora-ink3">
-          Your stops · {copied.stops.length}
-        </p>
-        <ul>
-          {copied.stops.map((stop, i) => (
-            <li
-              key={stop.id}
-              className={`flex items-start gap-3 py-3 ${
-                i === copied.stops.length - 1 ? "" : "border-b border-aurora-border"
-              }`}
-            >
-              <span className="h-12 w-12 shrink-0 rounded-[13px] bg-aurora-midnight2" />
-              <div className="min-w-0 flex-1">
-                <p className="font-drift-display text-[16px] font-semibold text-aurora-ink">
-                  {stop.name}
-                </p>
-                <p className="mt-0.5 text-[12.5px] text-aurora-ink3">
-                  {[
-                    stop.date ? formatDay(stop.date, short) : null,
-                    nightsWord(stop.nights),
-                    stop.itemCount > 0
-                      ? `${stop.itemCount} ${stop.itemCount === 1 ? "place" : "places"} saved`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                {/* Never look booked. */}
-                <span className="mt-1.5 inline-block rounded-full bg-aurora-warn/15 px-2 py-[3px] text-[10.5px] font-bold text-aurora-warn">
-                  NEEDS A STAY
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* ---- Your stops ----
+          Gated on there BEING stops. A partial write answers with none, and the
+          heading then drew "YOUR STOPS · 0" over blank space — directly under
+          the warning that the stops had not finished writing. */}
+      {copied.stops.length > 0 && (
+        <section className="mt-7 px-5">
+          <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.13em] text-aurora-ink3">
+            Your stops · {copied.stops.length}
+          </p>
+          <ul>
+            {copied.stops.map((stop, i) => (
+              <li
+                key={stop.id}
+                className={`flex items-start gap-3 py-3 ${
+                  i === copied.stops.length - 1 ? "" : "border-b border-aurora-border"
+                }`}
+              >
+                <span className="h-12 w-12 shrink-0 rounded-[13px] bg-aurora-midnight2" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-drift-display text-[16px] font-semibold text-aurora-ink">
+                    {stop.name}
+                  </p>
+                  <p className="mt-0.5 text-[12.5px] text-aurora-ink3">
+                    {[
+                      stop.date ? formatDay(stop.date, short) : null,
+                      // A pass-through stop carries no nights. "0 nights" is a
+                      // number where a fact should be — the public guide prints
+                      // nothing, and so does this.
+                      stop.nights > 0 ? nightsWord(stop.nights) : null,
+                      stop.itemCount > 0
+                        ? `${stop.itemCount} ${stop.itemCount === 1 ? "place" : "places"} saved`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {/* Never look booked. */}
+                  <span className="mt-1.5 inline-block rounded-full bg-aurora-warn/15 px-2 py-[3px] text-[10.5px] font-bold text-aurora-warn">
+                    NEEDS A STAY
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   )
 }
