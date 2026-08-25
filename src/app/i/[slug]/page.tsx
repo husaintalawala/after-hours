@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import OptimizedImg from "@/components/app/OptimizedImg"
+import CoverCredit from "@/components/app/CoverCredit"
 import {
   bestWindowLabel,
   categoryName,
@@ -46,6 +47,8 @@ interface GuideRow {
   best_months: number[] | null
   blurb: string | null
   hero_url: string | null
+  hero_attribution: string | null
+  hero_link: string | null
   author_handle: string | null
   author_avatar_url: string | null
   snapshot: unknown
@@ -65,7 +68,7 @@ const loadGuide = cache(async (slug: string): Promise<Guide | null> => {
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id,slug,tags,best_months,blurb,hero_url,author_handle,author_avatar_url,snapshot"
+      "trip_id,slug,tags,best_months,blurb,hero_url,hero_attribution,hero_link,author_handle,author_avatar_url,snapshot"
     )
     .eq("slug" as never, slug as never)
     .eq("is_active", true)
@@ -350,6 +353,15 @@ export default async function PublicGuidePage({
                 "linear-gradient(180deg, rgba(8,19,29,0.35) 0%, rgba(8,19,29,0.55) 45%, rgba(8,19,29,0.92) 82%, #08131D 100%)",
             }}
           />
+          {/* The credit belongs wherever the photo is, and this is the most
+              exposed photo we have: a public page that unfurls into messages.
+              Unsplash's API Terms bind attribution to the DISPLAY, and Commons
+              needs its author and licence — so it renders here, not on some
+              other screen the reader will never open. Pinned above the gradient
+              so it never lands on the title below it. */}
+          {row.hero_attribution && (
+            <CoverCredit text={row.hero_attribution} href={row.hero_link} />
+          )}
         </div>
 
         <div className="relative -mt-32 md:-mt-40 mx-auto max-w-3xl px-6">

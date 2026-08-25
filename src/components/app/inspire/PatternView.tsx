@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
 import OptimizedImg from "@/components/app/OptimizedImg"
+import CoverCredit from "@/components/app/CoverCredit"
 import BackLink from "@/components/app/BackLink"
 import TailorPanel from "@/components/app/inspire/TailorPanel"
 import {
@@ -256,6 +257,11 @@ export default function PatternView({
           />
         ) : (
           <div className="absolute inset-0 bg-aurora-midnight2" />
+        )}
+        {/* The credit rides with the photo. Both licences bind attribution to
+            the display, so it cannot live on some other screen. */}
+        {pattern.heroAttribution && (
+          <CoverCredit text={pattern.heroAttribution} href={pattern.heroLink} />
         )}
         <div
           className="absolute inset-0"

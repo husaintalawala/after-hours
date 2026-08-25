@@ -69,6 +69,10 @@ export interface InspireCard {
   seasonText: string
   cover: TripCoverResult
   source: InspireSource | null
+  /** The real credit for the cover, when it could be recovered. Preferred over
+   *  `source`, which only names the service. */
+  heroAttribution: string | null
+  heroLink: string | null
   authorHandle: string | null
   authorAvatar: string | null
 }
@@ -217,6 +221,8 @@ function decode(raw: unknown): InspireCard | null {
     .filter((m): m is number => m !== null && m >= 1 && m <= 12)
 
   const heroUrl = asString(row.hero_url)
+  const heroAttribution = asString(row.hero_attribution)
+  const heroLink = asString(row.hero_link)
 
   return {
     tripId,
@@ -234,7 +240,13 @@ function decode(raw: unknown): InspireCard | null {
     // Stock, so it goes in at rung 3 and inherits the deterministic gradient
     // placeholder for the day a hero URL rots.
     cover: tripCover({ id: tripId, title, cover_fallback_url: heroUrl }),
+    // The real credit now exists on the row, so the shelf stops printing a bare
+    // service chip and names the author. `source` stays as the fallback for any
+    // row whose credit could not be recovered — a photo we did not take still
+    // never renders bare.
     source: sourceFor(heroUrl),
+    heroAttribution,
+    heroLink,
     authorHandle: asString(row.author_handle),
     authorAvatar: asString(row.author_avatar_url),
   }
@@ -308,7 +320,7 @@ export default async function InspirePage() {
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id,rank,tags,best_months,blurb,hero_url,author_handle,author_avatar_url,snapshot"
+      "trip_id,rank,tags,best_months,blurb,hero_url,hero_attribution,hero_link,author_handle,author_avatar_url,snapshot"
     )
     .eq("is_active", true)
     .order("rank", { ascending: false })

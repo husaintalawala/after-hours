@@ -34,6 +34,8 @@ interface PatternRow {
   best_months: number[] | null
   blurb: string | null
   hero_url: string | null
+  hero_attribution: string | null
+  hero_link: string | null
   author_handle: string | null
   author_avatar_url: string | null
   snapshot: unknown
@@ -56,7 +58,7 @@ export default async function InspirePatternPage({
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id, slug, tags, best_months, blurb, hero_url, author_handle, author_avatar_url, snapshot",
+      "trip_id, slug, tags, best_months, blurb, hero_url, hero_attribution, hero_link, author_handle, author_avatar_url, snapshot",
     )
     .eq("trip_id", tripId)
     .eq("is_active", true)
@@ -84,6 +86,8 @@ export default async function InspirePatternPage({
     bestMonths: (data.best_months ?? []).filter((m): m is number => typeof m === "number"),
     blurb: data.blurb,
     heroUrl: data.hero_url,
+    heroAttribution: data.hero_attribution,
+    heroLink: data.hero_link,
     authorHandle: data.author_handle,
     authorAvatarUrl: data.author_avatar_url,
     snapshot,
