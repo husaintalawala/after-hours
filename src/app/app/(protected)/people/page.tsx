@@ -15,9 +15,17 @@ interface FollowRow {
 export default async function PeoplePage({
   searchParams,
 }: {
-  searchParams: { tab?: string }
+  // A PROMISE since Next 15, and this page was the last one still reading it
+  // synchronously. `promise.tab` is undefined, so `tab` pinned to "followers"
+  // forever: clicking "Following" changed the URL, re-rendered the followers
+  // list and left the Followers pill lit — a tab that looked simply dead.
+  // Nothing catches this. tsc passes (the annotation was just wrong) and the
+  // build passes, which is exactly how the same mistake once 404'd every trip
+  // page for six days.
+  searchParams?: Promise<{ tab?: string }>
 }) {
-  const tab = searchParams.tab === "following" ? "following" : "followers"
+  const { tab: requestedTab } = (await searchParams) ?? {}
+  const tab = requestedTab === "following" ? "following" : "followers"
   const supabase = await createClient()
   const {
     data: { session },
