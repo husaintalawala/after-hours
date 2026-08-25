@@ -745,3 +745,54 @@ export function mayHaveLanded(status: number | null): boolean {
  * plan never inherits a reservation made for another one.
  */
 export const RESERVED_TRIP_IDS = new Map<string, string>()
+
+/**
+ * Claim the server-side "finish taking me to this guide" note for an address.
+ *
+ * The counterpart to GUIDE_COOKIE, for the case the cookie cannot reach: read
+ * the guide on a phone, open the magic link on a laptop, and the laptop has no
+ * cookie. The note is keyed by EMAIL because that is the one thing both devices
+ * share — the destination cannot ride `?next=` through Supabase's redirect
+ * allow-list, and that allow-list is dashboard config this code cannot verify.
+ *
+ * SINGLE USE. The row is deleted as it is read, so a stale note can never bounce
+ * somebody into a guide they finished with weeks ago. Anything older than half
+ * an hour is swept at the same time — an unbounded table of email addresses is a
+ * liability, not a feature.
+ *
+ * Returns null on ANY failure. This is an enhancement to a hand-off that already
+ * works same-device; it must never be the reason a sign-in fails to land.
+ */
+export async function claimPendingGuide(email: string): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceRole) return null
+
+  try {
+    const { createClient } = await import("@supabase/supabase-js")
+    const admin = createClient(url, serviceRole, { auth: { persistSession: false } })
+    const key = email.trim().toLowerCase()
+
+    // Opportunistic housekeeping — no cron to own, and it costs one statement on
+    // a path that already talks to the database.
+    void admin.rpc("sweep_pending_guide_intent").then(
+      () => {},
+      () => {},
+    )
+
+    // Delete-and-return: the read and the consume are one statement, so two
+    // tabs racing the same note cannot both act on it.
+    const { data, error } = await admin
+      .from("pending_guide_intent")
+      .delete()
+      .eq("email", key)
+      .gt("created_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
+      .select("slug")
+      .maybeSingle()
+
+    if (error || !data?.slug) return null
+    return isGuideSlug(data.slug) ? data.slug : null
+  } catch {
+    return null
+  }
+}
