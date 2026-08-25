@@ -64,6 +64,19 @@ export default function CoverCredit({
   // rather than rendering an empty byline if that ever changes.
   const photographer = /^Photo by (.+?) on Unsplash$/.exec(text)?.[1] ?? null
 
+  // WHICH SERVICE, derived — never assumed. This component used to hardcode
+  // "Unsplash", which is why the Inspire shelf refused to use it: 23 of its 38
+  // heros are Wikimedia Commons, and crediting them to Unsplash is worse than
+  // the bare source chip it printed instead.
+  //
+  // Commons is not a second Unsplash. There is no photographer profile to link,
+  // and the LICENCE is part of the credit — CC BY-SA is not CC0 and must not be
+  // displayed as though it were. So its whole string ("Author / CC BY-SA 4.0 ·
+  // Wikimedia Commons") is the byline, linked to the file's description page,
+  // which carries author, licence and source together.
+  const isCommons = !photographer && /wikimedia|wikipedia/i.test(text)
+  const service = photographer ? "Unsplash" : isCommons ? "Wikimedia" : "Photo"
+
   const UNSPLASH = "https://unsplash.com/?utm_source=drift&utm_medium=referral"
   const chip =
     "flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] leading-none text-white/85 backdrop-blur-sm " +
@@ -97,8 +110,33 @@ export default function CoverCredit({
           <path d="M4 8.5h3.2L8.8 6h6.4l1.6 2.5H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z" />
           <circle cx="12" cy="13.2" r="3.1" />
         </svg>
-        Unsplash
+        {service}
       </button>
+    )
+  }
+
+  // Non-Unsplash credits carry their own complete wording, including the
+  // licence, so they are rendered verbatim rather than forced into "Photo by X
+  // on Y" — a shape that would drop the licence and invent a byline.
+  if (!photographer) {
+    return (
+      <div ref={box} className={`${chip} max-w-[92%] flex-wrap`}>
+        <span className="truncate">
+          {href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={(e) => e.stopPropagation()}
+              className="underline underline-offset-2"
+            >
+              {text}
+            </a>
+          ) : (
+            text
+          )}
+        </span>
+      </div>
     )
   }
 

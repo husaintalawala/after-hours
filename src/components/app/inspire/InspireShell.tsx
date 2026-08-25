@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import OptimizedImg from "@/components/app/OptimizedImg"
+import CoverCredit from "@/components/app/CoverCredit"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
 import type {
   InspireCard,
@@ -478,7 +479,19 @@ function Card({
                 </span>
               )}
             </span>
-            <SourceChip source={card.source} />
+            {/* Prefer the real credit now that it exists on every row: the
+                author's name is what both licences actually ask for, and
+                CoverCredit carries the link. SourceChip remains the fallback so
+                a photo we did not take is never bare. */}
+            {card.heroAttribution ? (
+              <CoverCredit
+                text={card.heroAttribution}
+                href={card.heroLink}
+                placement="inline"
+              />
+            ) : (
+              <SourceChip source={card.source} />
+            )}
           </div>
           <p className="font-drift-display text-[26px] font-bold leading-none text-white">
             {card.headline}

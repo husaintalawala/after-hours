@@ -186,6 +186,10 @@ export interface InspirePattern {
   bestMonths: number[]
   blurb: string | null
   heroUrl: string | null
+  /** Credit for heroUrl, rendered wherever the hero is. Both licences bind
+   *  attribution to the DISPLAY, so it travels with the photo. */
+  heroAttribution: string | null
+  heroLink: string | null
   authorHandle: string | null
   authorAvatarUrl: string | null
   snapshot: InspireSnapshot
