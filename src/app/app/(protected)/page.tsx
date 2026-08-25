@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { INVITE_COOKIE, isValidInviteToken } from "@/lib/drift/invite"
-import { GUIDE_COOKIE, isGuideSlug } from "@/lib/drift/inspire"
+import { GUIDE_COOKIE, isGuideSlug, claimPendingGuide } from "@/lib/drift/inspire"
 import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
@@ -42,6 +42,18 @@ export default async function TripsHome() {
   } = await supabase.auth.getSession()
   const user = session?.user
   if (!user) return null
+
+  // CROSS-DEVICE guide pickup. The cookie above covers the common case, but it
+  // is httpOnly and per-browser: read the guide on a phone, open the magic link
+  // on a laptop, and the laptop has nothing. So the note is ALSO kept server
+  // side keyed by email — the one thing both devices share — and claimed here,
+  // after the session exists and the address is known to be theirs.
+  //
+  // Deliberately after the cookie check: same-device costs no query at all.
+  if (user.email) {
+    const claimed = await claimPendingGuide(user.email)
+    if (claimed) redirect(`/i/${claimed}/start`)
+  }
 
   // Parallelize the independent lookups — every serial await here is felt
   // as navigation latency.

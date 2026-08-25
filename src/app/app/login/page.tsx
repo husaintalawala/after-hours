@@ -114,6 +114,25 @@ export default function LoginPage() {
       ? `${window.location.origin}/auth/callback`
       : undefined
 
+
+  // Keep the guide the user was reading, keyed to their address so it survives
+  // opening the magic link on a DIFFERENT DEVICE than the one that read it —
+  // which the httpOnly, per-browser GUIDE_COOKIE cannot do. The slug is read
+  // server-side from that cookie, never sent from here. Fire-and-forget and
+  // fully optional: if it fails, the cookie still covers the same-device path
+  // and sign-in is unaffected.
+  async function rememberGuide(address: string) {
+    try {
+      await fetch("/api/auth/remember-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address }),
+      })
+    } catch {
+      /* never block sign-in on this */
+    }
+  }
+
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || busy) return
@@ -131,6 +150,7 @@ export default function LoginPage() {
     setBusy(true)
     setError(null)
     capture(AnalyticsEvent.LoginAttempt, { method: "magic_link" })
+    await rememberGuide(email.trim())
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo, captchaToken: captchaToken ?? undefined },
@@ -167,6 +187,7 @@ export default function LoginPage() {
   async function resend() {
     if (missingCaptcha()) return
     setResending(true)
+    await rememberGuide(email.trim())
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: redirectTo, captchaToken: captchaToken ?? undefined },
