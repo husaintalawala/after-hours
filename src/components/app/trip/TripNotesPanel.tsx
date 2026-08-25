@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { identityPair } from "@/lib/drift/tripCover"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { splitNoteURL, isMapsURL, type TripNote, type TripNoteGroup } from "@/lib/drift/tripNotes"
+import { resolveMissingMapLinks } from "@/lib/drift/mapLinks"
 
 // Every note in the trip, in one place, grouped by stop in itinerary order.
 //
@@ -127,6 +128,19 @@ export default function TripNotesPanel({
   // Without this a delete leaves the row on screen for the whole round trip,
   // which reads as "that didn't take" and invites a second tap.
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
+
+  // Name any link-only notes that have never been resolved. router.refresh() is
+  // what brings the new names onto the screen, and only runs when something was
+  // actually written, so the usual case is one no-op pass.
+  useEffect(() => {
+    let cancelled = false
+    resolveMissingMapLinks(groups).then((wrote) => {
+      if (wrote && !cancelled) router.refresh()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [groups, router])
 
   const visible = groups
     .map((g) => ({ ...g, notes: g.notes.filter((n) => !deletedIds.has(n.id)) }))
@@ -442,6 +456,16 @@ function NoteRow({
                   {text}
                 </p>
               )}
+              {/* A note that is ONLY a link has no text to show, so the
+                  resolved name is its headline — "Drive · Hvammstangi →
+                  Húsavík → Akureyri" rather than a chip repeated down the
+                  panel. Until expand-map-link has named it, the chip alone
+                  still stands. */}
+              {!text && note.savedLabel && (
+                <p className="text-[15px] font-semibold leading-snug text-drift-ink">
+                  {note.savedLabel}
+                </p>
+              )}
               {url && (
                 <a
                   href={url}
@@ -451,7 +475,11 @@ function NoteRow({
                   style={{ background: "rgba(55,214,196,0.14)", color: "#37D6C4" }}
                 >
                   <span aria-hidden="true">{isMapsURL(url) ? "📍" : "🔗"}</span>
-                  {isMapsURL(url) ? "View on Google Maps" : "Open link"}
+                  {!text && note.savedLabel
+                    ? "Open in Maps"
+                    : isMapsURL(url)
+                      ? "View on Google Maps"
+                      : "Open link"}
                 </a>
               )}
               {long && text && (
