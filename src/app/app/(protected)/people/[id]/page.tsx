@@ -42,7 +42,45 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
         .order("start_date", { ascending: false })
         .returns<TripRow[]>(),
     ])
-  const trips = tripsRaw ?? [] // RLS already limits this to trips the viewer may see
+
+  // A PROFILE'S TRIPS ARE THE TRIPS THEY ARE ON, not only the ones they own.
+  //
+  // Querying `user_id = them` alone is why a real traveller's profile read
+  // "No public trips to show": someone who joins their friends' trips rather
+  // than creating them owns nothing, so their profile looked empty while iOS
+  // showed the trips perfectly well. iOS has done this union since the
+  // "No trips yet" bug (ProfileView.swift ~:1000) and the web never picked it up.
+  //
+  // RLS still decides what the VIEWER may see — this only widens which trips are
+  // asked about, never who may read them. A buddy-only PRIVATE trip stays hidden
+  // until the trips SELECT policy gains a co-member clause.
+  const owned = tripsRaw ?? []
+  const ownedIds = new Set(owned.map((t) => t.id))
+
+  const { data: buddyRows } = await supabase
+    .from("trip_buddies")
+    .select("trip_id")
+    .eq("user_id", profileId)
+    .eq("status", "accepted")
+    .returns<Array<{ trip_id: string }>>()
+
+  const buddyOnlyIds = [...new Set((buddyRows ?? []).map((r) => r.trip_id))].filter(
+    (id) => !ownedIds.has(id)
+  )
+
+  let buddyTrips: TripRow[] = []
+  if (buddyOnlyIds.length > 0) {
+    const { data } = await supabase
+      .from("trips")
+      .select("*")
+      .in("id", buddyOnlyIds)
+      .returns<TripRow[]>()
+    buddyTrips = data ?? []
+  }
+
+  const trips = [...owned, ...buddyTrips].sort((a, b) =>
+    (b.start_date ?? "").localeCompare(a.start_date ?? "")
+  )
 
   const countries = new Set<string>()
   for (const t of trips) for (const c of t.countries ?? []) if (c) countries.add(c)
