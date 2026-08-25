@@ -50,6 +50,10 @@ export interface TripNote {
   createdAt: string | null
   /** The step/booking this came from, for a "go to it" affordance. */
   sourceId: string
+  /** A human name for a note whose whole body is a map link, resolved once by
+   *  expand-map-link and stored on the step. null until that has happened —
+   *  which is what tells the resolver there is work to do. */
+  savedLabel: string | null
 }
 
 export interface TripNoteGroup {
@@ -120,6 +124,18 @@ export function splitNoteURL(body: string): { text: string; url: string | null }
   return { text: body.replace(m[0], "").trim(), url: m[0] }
 }
 
+/** A note step mirrors its first 80 characters into `location_name`. For a note
+ *  that is only a pasted link that mirror is the URL itself, which is no use as
+ *  a title — so a URL there means "not resolved yet", and anything else is the
+ *  name expand-map-link worked out. Mirrors TripNotesBuilder.savedLabel. */
+export function savedLabelOf(locationName: string | null | undefined): string | null {
+  const raw = (locationName ?? "").trim()
+  if (!raw) return null
+  const lower = raw.toLowerCase()
+  if (lower.startsWith("http://") || lower.startsWith("https://")) return null
+  return raw
+}
+
 export function isMapsURL(url: string): boolean {
   const s = url.toLowerCase()
   return (
@@ -183,6 +199,7 @@ export function buildTripNotes(
           authorId: null,
         createdAt: destRow.created_at,
         sourceId: destRow.id,
+        savedLabel: null,
       })
     }
 
@@ -202,6 +219,7 @@ export function buildTripNotes(
           authorId: s.author_id,
           createdAt: s.created_at,
           sourceId: s.id,
+          savedLabel: savedLabelOf(s.location_name),
         })
       } else {
         notes.push({
@@ -214,6 +232,7 @@ export function buildTripNotes(
           authorId: null,
           createdAt: s.created_at,
           sourceId: s.id,
+          savedLabel: null,
         })
       }
     }
@@ -239,6 +258,7 @@ export function buildTripNotes(
         authorId: null,
         createdAt: null,
         sourceId: b.id,
+        savedLabel: null,
       })
     }
 
@@ -273,6 +293,7 @@ export function buildTripNotes(
       authorId: s.step_type === "note" ? s.author_id : null,
       createdAt: s.created_at,
       sourceId: s.id,
+      savedLabel: null,
     })
   }
   if (orphans.length) {
