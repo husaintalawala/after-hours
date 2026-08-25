@@ -386,10 +386,114 @@ export default async function ActivityPage() {
     })
   }
   const crewIds = new Set(people.map((p) => p.id))
+
+  // ── FRIENDS OF YOUR CREW. The tier that makes this discovery rather than a
+  //    roster: someone your crew has travelled with, whom you have not met.
+  //    iOS has had it since the Activity redesign (SearchView.loadMutuals); the
+  //    web declared the "mutual" tier in its type and never produced one, so
+  //    once you had followed everyone who followed you the People mode showed
+  //    only the handful of people you already know — no way to find anyone new.
+  //
+  //    The warmth is what makes it worth showing: not "here are strangers", but
+  //    "this person travelled with Rashida, in Japan". A suggestion you cannot
+  //    place is not a suggestion.
+  if (crewIds.size > 0) {
+    const crewList = [...crewIds]
+    const myTripIds = new Set(trips.map((t) => t.id))
+
+    const [crewBuddyRes, crewOwnedRes] = await Promise.all([
+      supabase
+        .from("trip_buddies")
+        .select("trip_id,user_id")
+        .in("user_id", crewList)
+        .eq("status", "accepted")
+        .limit(400)
+        .returns<Array<{ trip_id: string; user_id: string }>>(),
+      supabase
+        .from("trips")
+        .select("id,user_id,title")
+        .in("user_id", crewList)
+        .limit(200)
+        .returns<Array<{ id: string; user_id: string; title: string | null }>>(),
+    ])
+
+    // Trips my crew are on or own that I am NOT part of — those are the only
+    // ones that can introduce me to somebody.
+    const ownerOfTrip = new Map<string, string>()
+    const titleOfTrip = new Map<string, string>()
+    const candidateTrips = new Set<string>()
+    for (const t of crewOwnedRes.data ?? []) {
+      ownerOfTrip.set(t.id, t.user_id)
+      if (t.title?.trim()) titleOfTrip.set(t.id, t.title.trim())
+      if (!myTripIds.has(t.id)) candidateTrips.add(t.id)
+    }
+    for (const b of crewBuddyRes.data ?? []) {
+      if (!ownerOfTrip.has(b.trip_id)) ownerOfTrip.set(b.trip_id, b.user_id)
+      if (!myTripIds.has(b.trip_id)) candidateTrips.add(b.trip_id)
+    }
+
+    if (candidateTrips.size > 0) {
+      const { data: otherRows } = await supabase
+        .from("trip_buddies")
+        .select("trip_id,user_id")
+        .in("trip_id", [...candidateTrips])
+        .eq("status", "accepted")
+        .limit(400)
+        .returns<Array<{ trip_id: string; user_id: string }>>()
+
+      // First trip that connects us wins — it is the one the reason names.
+      const viaTrip = new Map<string, string>()
+      for (const o of otherRows ?? []) {
+        if (o.user_id === me) continue
+        if (crewIds.has(o.user_id) || followingIds.has(o.user_id)) continue
+        if (!viaTrip.has(o.user_id)) viaTrip.set(o.user_id, o.trip_id)
+      }
+
+      if (viaTrip.size > 0) {
+        const { data: mutualProfiles } = await supabase
+          .from("profiles")
+          .select("id,username,display_name,avatar_url")
+          .in("id", [...viaTrip.keys()])
+          .returns<Array<Pick<ProfileRow, "id" | "username" | "display_name" | "avatar_url">>>()
+        for (const p of mutualProfiles ?? []) profiles.set(p.id, p)
+
+        for (const [candidateId, tripId] of viaTrip) {
+          // Anonymous profiles are SKIPPED, not rendered as "Traveler" with a
+          // "?" avatar — six of those filled the whole section on iOS once.
+          const name = nameOf(candidateId)
+          if (!name) continue
+          const viaName = nameOf(ownerOfTrip.get(tripId) ?? null)
+          const where = titleOfTrip.get(tripId)
+          const why =
+            viaName && where
+              ? `Travelled with ${viaName} · ${where}`
+              : viaName
+                ? `Travelled with ${viaName}`
+                : (where ?? "Through your crew")
+          people.push({
+            id: candidateId,
+            name,
+            avatar: profiles.get(candidateId)?.avatar_url ?? null,
+            // Deliberately empty so PersonRow falls through to `why`. It
+            // prefers `places`, and for a mutual the place alone ("Japan") is
+            // the weaker half — "Travelled with Rashida · Japan" is the line
+            // that tells you why this person is on your screen at all.
+            places: [],
+            isFollowing: false,
+            tier: "mutual",
+            why,
+          })
+        }
+      }
+    }
+  }
+
+  const knownIds = new Set(people.map((p) => p.id))
   for (const n of notifRes.data ?? []) {
     if (n.type !== "follow" || !n.actor_id) continue
-    if (crewIds.has(n.actor_id) || followingIds.has(n.actor_id)) continue
-    if (people.some((p) => p.id === n.actor_id)) continue
+    // knownIds covers crew AND the friends-of-crew just added, so someone
+    // already suggested with a warm reason is not repeated with a colder one.
+    if (knownIds.has(n.actor_id) || followingIds.has(n.actor_id)) continue
     const name = nameOf(n.actor_id)
     if (!name) continue
     people.push({
