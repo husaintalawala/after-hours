@@ -69,6 +69,9 @@ export interface InspireDestination {
   longitude: number | null
   day_offset: number
   nights: number
+  /** Same-host photo URL (Wikimedia Commons / Unsplash). 90 of the 102
+   *  destinations carry one. */
+  photo: string | null
   /** Kept verbatim as a STRING. It is echoed back to copy-trip inside a
    *  tailored plan, where it is the only handle proving a plan row is the
    *  curated row it claims to be — and the snapshot stores it lower case. */
@@ -84,6 +87,21 @@ export interface InspireItem {
   title: string | null
   location_name: string | null
   nights: number
+  city: string | null
+  country: string | null
+  latitude: number | null
+  longitude: number | null
+  day_offset: number
+  /** "HH:MM" or null. A wall clock, never an instant — no zone is implied and
+   *  nothing may turn it into one. */
+  time: string | null
+  duration_minutes: number | null
+  /** The voice of the thing. 519 of the 520 items carry one, ~77 characters
+   *  each, and it is the reason the guide reads like a person wrote it. */
+  notes: string | null
+  place_category: string | null
+  photo: string | null
+  source_step_id: string | null
 }
 
 export interface InspireSnapshot {
@@ -106,6 +124,7 @@ export function parseDestination(raw: unknown): InspireDestination {
     longitude: num(r.longitude),
     day_offset: int(r.day_offset, 0),
     nights: int(r.nights, 0),
+    photo: str(r.photo),
     source_step_id: str(r.source_step_id),
   }
 }
@@ -114,6 +133,7 @@ export function parseItem(raw: unknown): InspireItem {
   const r = asRecord(raw)
   const stepType = str(r.step_type) ?? ""
   const rawNights = num(r.nights)
+  const time = str(r.time)
   return {
     destination_ref: str(r.destination_ref),
     step_type: stepType,
@@ -123,6 +143,19 @@ export function parseItem(raw: unknown): InspireItem {
     // copy-trip clamps them server-side. Floor here too or a hotel reads
     // "0 nights".
     nights: stepType === "stay" ? Math.max(1, rawNights ?? 1) : rawNights ?? 0,
+    city: str(r.city),
+    country: str(r.country),
+    latitude: num(r.latitude),
+    longitude: num(r.longitude),
+    day_offset: int(r.day_offset, 0),
+    // Only ever printed back exactly as stored. "19:00" is 19:00 wherever you
+    // read it — parsing it into a Date would zone-shift the guide.
+    time: time && /^\d{1,2}:\d{2}/.test(time) ? time.slice(0, 5) : null,
+    duration_minutes: num(r.duration_minutes),
+    notes: str(r.notes),
+    place_category: str(r.place_category),
+    photo: str(r.photo),
+    source_step_id: str(r.source_step_id),
   }
 }
 
@@ -141,6 +174,12 @@ export function parseSnapshot(raw: unknown): InspireSnapshot {
 /** One row of `public.inspire_trips`, snapshot already parsed. */
 export interface InspirePattern {
   tripId: string
+  /** The PUBLIC handle for this pattern — the `/i/<slug>` guide a stranger can
+   *  read with no account. Null when the row predates slugs, which is the only
+   *  reason a share control may be absent: `/app/inspire/<tripId>` is behind the
+   *  auth gate, so sharing it hands the recipient a login wall instead of a
+   *  trip. */
+  slug: string | null
   tags: string[]
   /** Months 1…12 the trip is actually good. Editorial, and used only to RANK —
    *  never to hide. */
@@ -156,6 +195,50 @@ export interface InspirePattern {
 export function hasUsableSnapshot(s: InspireSnapshot): boolean {
   return s.title.length > 0 && s.day_count > 0 && s.destinations.length > 0
 }
+
+// ---------------------------------------------------------------------------
+// The public guide — /i/<slug>
+// ---------------------------------------------------------------------------
+
+/** Where a share link points. Hard-coded rather than read off `location`: the
+ *  app also runs on localhost and on Vercel preview hosts, and a link copied
+ *  there is a link nobody else can open. */
+export const PUBLIC_ORIGIN = "https://drift.after-hours.app"
+
+/** The one URL a pattern may be shared as. `/app/inspire/<tripId>` is inside
+ *  the auth gate — sending it is sending a login wall. */
+export function guideUrl(slug: string): string {
+  return `${PUBLIC_ORIGIN}/i/${slug}`
+}
+
+/** Slugs are generated lowercase-kebab (all 38 live rows match, longest 37
+ *  chars). Anything else cannot be a row, so it is rejected before a round trip
+ *  — and before it is ever written into a cookie or a redirect path. */
+const SLUG = /^[a-z0-9][a-z0-9-]{0,118}[a-z0-9]$/
+
+export function isGuideSlug(v: string | null | undefined): v is string {
+  return typeof v === "string" && SLUG.test(v)
+}
+
+/**
+ * The guide somebody was reading when they hit the sign-in wall.
+ *
+ * IT CANNOT RIDE THE REDIRECT. `/app/login` builds `redirectTo` with no query
+ * params on purpose — Supabase matches redirect URLs against an allow-list and a
+ * `?next=` variant can fail the match, silently falling back to the Site URL
+ * (that was the "stuck Google login" bug) — and the magic-link email template
+ * hardcodes `next=/app`, so the callback's `next` is decided before we ever see
+ * it. The invite flow hit this exact wall and solved it with a cookie; this is
+ * the same mechanism, and it works identically for magic link and OAuth because
+ * it depends on nothing the auth provider round-trips for us.
+ *
+ * Set by /i/<slug>/start, redeemed and cleared by the /app landing.
+ */
+export const GUIDE_COOKIE = "drift_guide"
+
+/** Two hours — long enough to go and find the confirmation email, short enough
+ *  that a stale one is not still hijacking the /app landing tomorrow. */
+export const GUIDE_COOKIE_MAX_AGE = 60 * 60 * 2
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -301,6 +384,47 @@ export function bestWindowLabel(months: number[]): string | null {
   if (bestLen <= 1) return `BEST ${monthShort(bestStart).toUpperCase()}`
   const end = ((bestStart - 1 + bestLen - 1) % 12) + 1
   return `BEST ${monthShort(bestStart).toUpperCase()} – ${monthShort(end).toUpperCase()}`
+}
+
+// ---------------------------------------------------------------------------
+// Photos — SAME-HOST resizing only
+// ---------------------------------------------------------------------------
+
+/**
+ * Ask the photo's OWN host for a smaller copy. Never our optimizer.
+ *
+ * Every photo in this corpus is Wikimedia Commons (386 of them) or Unsplash
+ * (33). Both hosts resize on request — `Special:FilePath?width=`, and
+ * Unsplash's `w=`/`q=` — so a 96px row thumbnail costs 96px of bytes without
+ * anything being re-hosted. Routing these through Vercel's image optimizer is
+ * the one thing OptimizedImg's allow-list exists to prevent (it would cache and
+ * re-serve the bytes, which both hosts' terms forbid), so the allow-list is
+ * deliberately left alone and the width is negotiated here instead.
+ *
+ * An unrecognised host is returned untouched rather than dropped.
+ */
+export function photoAt(url: string | null | undefined, width: number): string | null {
+  if (!url) return null
+  const w = Math.max(48, Math.round(width))
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return url
+  }
+  if (u.hostname.endsWith("wikimedia.org") || u.hostname.endsWith("wikipedia.org")) {
+    if (!u.pathname.includes("/Special:FilePath/")) return url
+    u.searchParams.set("width", String(w))
+    return u.toString()
+  }
+  if (u.hostname.endsWith("unsplash.com")) {
+    u.searchParams.set("w", String(w))
+    u.searchParams.set("q", "70")
+    u.searchParams.set("auto", "format")
+    u.searchParams.set("fit", "crop")
+    return u.toString()
+  }
+  return url
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import OptimizedImg from "@/components/app/OptimizedImg"
+import type { TripCoverResult } from "@/lib/drift/tripCover"
 import type {
   InspireCard,
   InspireCategory,
@@ -27,14 +28,33 @@ import type {
 const RAIL =
   "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
+const MONTH_LONG = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
+
+/** The names of the months holding a given count, as prose: "March and
+ *  October", "July, August and December". Two is the readable limit for a
+ *  clause in the middle of a sentence, so a longer tie prints the first two and
+ *  says so. */
+function nameMonths(months: number[]): string {
+  const names = months.map((m) => MONTH_LONG[m - 1])
+  if (names.length === 0) return ""
+  if (names.length === 1) return names[0]
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`
+}
+
 export default function InspireShell({
   cards,
   categories,
   months,
+  everythingCover,
 }: {
   cards: InspireCard[]
   categories: InspireCategory[]
   months: InspireMonth[]
+  everythingCover: TripCoverResult
 }) {
   const [category, setCategory] = useState<string | null>(null)
   const [monthKey, setMonthKey] = useState<string | null>(null)
@@ -43,6 +63,29 @@ export default function InspireShell({
   const categoryLabel = categories.find((c) => c.slug === category)?.label ?? null
 
   const filtered = category ? cards.filter((c) => c.tags.includes(category)) : cards
+
+  // THE YEAR, MEASURED. Twelve real counts off the shelf you are actually
+  // looking at — so the chart and the band header below can never disagree
+  // about how many trips suit October.
+  const counts = months.map((m) => filtered.filter((c) => c.bestMonths.includes(m.month)).length)
+  const peakCount = Math.max(0, ...counts)
+  const troughCount = counts.length ? Math.min(...counts) : 0
+  const peaks = months.filter((_, i) => counts[i] === peakCount && peakCount > 0).map((m) => m.month)
+  const troughs = months
+    .filter((_, i) => counts[i] === troughCount && troughCount < peakCount)
+    .map((m) => m.month)
+
+  const shapeClause =
+    peaks.length && peaks.length < 6
+      ? troughs.length && troughs.length < 6
+        ? `fullest in ${nameMonths(peaks)}, thinnest in ${nameMonths(troughs)}`
+        : `fullest in ${nameMonths(peaks)}`
+      : "spread evenly across the year"
+
+  const selectedCount = selectedMonth ? counts[months.indexOf(selectedMonth)] : 0
+  const monthSentence = selectedMonth
+    ? `${selectedCount} of ${filtered.length} suit ${MONTH_LONG[selectedMonth.month - 1]} — this shelf is ${shapeClause}.`
+    : `This shelf is ${shapeClause} — pick a month to bring those to the top.`
 
   // The rank. Order inside each group is the curated rank the server sent, so a
   // month reorders the shelf without scrambling it.
@@ -74,6 +117,7 @@ export default function InspireShell({
             <CategoryTile
               label="Everything"
               count={cards.length}
+              cover={everythingCover}
               active={category === null}
               onClick={() => setCategory(null)}
             />
@@ -82,29 +126,46 @@ export default function InspireShell({
                 key={c.slug}
                 label={c.label}
                 count={c.count}
+                cover={c.cover}
                 active={category === c.slug}
                 onClick={() => setCategory(category === c.slug ? null : c.slug)}
               />
             ))}
           </div>
+          {/* Every photo on those tiles is somebody else's. One credit line for
+              the rail rather than a chip on each 180px door. */}
+          <p className="mt-1.5 text-[10.5px] text-aurora-ink3">
+            Tile photos:{" "}
+            <a
+              className="underline decoration-white/20 underline-offset-2 hover:text-aurora-ink2"
+              href="https://unsplash.com/?utm_source=drift&utm_medium=referral"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Unsplash
+            </a>{" "}
+            ·{" "}
+            <a
+              className="underline decoration-white/20 underline-offset-2 hover:text-aurora-ink2"
+              href="https://commons.wikimedia.org"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Wikimedia Commons
+            </a>
+          </p>
         </section>
       )}
 
-      <section className="mt-6">
-        <Kicker>When you could go</Kicker>
-        <div className={`${RAIL} mt-2.5`}>
-          <MonthChip label="Any" active={monthKey === null} onClick={() => setMonthKey(null)} />
-          {months.map((m) => (
-            <MonthChip
-              key={m.key}
-              label={m.label}
-              sub={m.yearLabel}
-              active={monthKey === m.key}
-              onClick={() => setMonthKey(monthKey === m.key ? null : m.key)}
-            />
-          ))}
-        </div>
-      </section>
+      <MonthChart
+        months={months}
+        counts={counts}
+        peakCount={peakCount}
+        selectedKey={monthKey}
+        sentence={monthSentence}
+        onSelect={(k) => setMonthKey(monthKey === k ? null : k)}
+        onClear={() => setMonthKey(null)}
+      />
 
       {shorter.length > 1 && (
         <section className="mt-7 border-t border-aurora-border pt-6">
@@ -185,16 +246,123 @@ function BandHeader({ title, kicker }: { title: string; kicker?: string }) {
   )
 }
 
-/** 96×104. The count is not decoration: a category that cannot say how much is
- *  behind it is a door you open to find out, which is one tap of nothing. */
+/**
+ * THE YEAR AS A CHART, not twelve identical pills.
+ *
+ * Twelve chips said nothing: every month looked equally good, so the only way
+ * to find out that August has 8 trips behind it and October 19 was to tap all
+ * twelve. The heights are the real counts off the shelf below, so the shape of
+ * the corpus — heavy shoulders, a thin northern summer — is readable before you
+ * touch anything.
+ *
+ * The current month is drawn dashed and muted rather than removed: you cannot
+ * leave today, and its key already points a year out, so picking it is a real
+ * choice that simply means "next August".
+ */
+function MonthChart({
+  months,
+  counts,
+  peakCount,
+  selectedKey,
+  sentence,
+  onSelect,
+  onClear,
+}: {
+  months: InspireMonth[]
+  counts: number[]
+  peakCount: number
+  selectedKey: string | null
+  sentence: string
+  onSelect: (key: string) => void
+  onClear: () => void
+}) {
+  const TRACK = 76 // px of drawable column
+  return (
+    <section className="mt-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <Kicker>When you could go</Kicker>
+        <button
+          type="button"
+          onClick={onClear}
+          className={`shrink-0 text-[11.5px] font-bold uppercase tracking-[0.12em] transition-colors ${
+            selectedKey ? "text-aurora-teal hover:text-aurora-ink" : "text-aurora-ink3"
+          }`}
+          aria-pressed={selectedKey === null}
+        >
+          Any month
+        </button>
+      </div>
+
+      <div className="mt-3 flex items-end gap-[3px]" role="group" aria-label="Trips by month">
+        {months.map((m, i) => {
+          const n = counts[i]
+          const active = selectedKey === m.key
+          // Floor at 4px so an empty month is still a column you can press,
+          // rather than a gap you assume is broken.
+          const h = peakCount > 0 ? Math.max(4, Math.round((n / peakCount) * TRACK)) : 4
+          return (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => onSelect(m.key)}
+              aria-pressed={active}
+              aria-label={`${MONTH_LONG[m.month - 1]}${m.yearLabel ? ` ${m.yearLabel}` : ""}, ${n} trip${n === 1 ? "" : "s"}${m.isCurrent ? ", this month" : ""}`}
+              className="group flex flex-1 flex-col items-center gap-1.5 rounded-lg py-1 outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+            >
+              <span
+                className={`text-[10px] font-bold leading-none transition-colors ${
+                  active ? "text-aurora-teal" : "text-aurora-ink3 group-hover:text-aurora-ink2"
+                }`}
+              >
+                {n}
+              </span>
+              <span
+                style={{ height: h }}
+                className={`w-full rounded-[4px] transition-colors ${
+                  active
+                    ? "bg-aurora-teal"
+                    : m.isCurrent
+                      ? "border border-dashed border-aurora-ink3/70 bg-transparent"
+                      : "bg-aurora-glass2 group-hover:bg-aurora-border-strong"
+                }`}
+              />
+              <span
+                className={`text-[9.5px] leading-none tracking-tight transition-colors ${
+                  active
+                    ? "font-bold text-aurora-teal"
+                    : m.isCurrent
+                      ? "font-medium text-aurora-ink3"
+                      : "font-medium text-drift-muted"
+                }`}
+              >
+                {m.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <p className="mt-2.5 text-[12.5px] leading-relaxed text-drift-muted">{sentence}</p>
+    </section>
+  )
+}
+
+/**
+ * A door with a photo on it. 180×112, the cover of the strongest trip in the
+ * category behind a scrim, the name bottom-left, the count as a chip — because
+ * a category that cannot say how much is behind it is a door you open to find
+ * out, which is one tap of nothing.
+ */
 function CategoryTile({
   label,
   count,
+  cover,
   active,
   onClick,
 }: {
   label: string
   count: number
+  cover: TripCoverResult
   active: boolean
   onClick: () => void
 }) {
@@ -203,48 +371,31 @@ function CategoryTile({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex h-[104px] w-[96px] shrink-0 flex-col justify-between rounded-2xl border p-2.5 text-left transition-colors ${
-        active
-          ? "border-aurora-teal bg-drift-coral-50 text-aurora-ink"
-          : "border-aurora-border bg-aurora-glass text-aurora-ink hover:bg-aurora-glass2"
+      aria-label={`${label}, ${count} trip${count === 1 ? "" : "s"}`}
+      className={`relative h-[112px] w-[180px] shrink-0 overflow-hidden rounded-2xl text-left outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-aurora-teal/50 ${
+        active ? "ring-2 ring-aurora-teal" : "ring-1 ring-aurora-border"
       }`}
     >
+      <TripCoverImg cover={cover} sizes="180px" showCredit={false} />
       <span
-        className={`text-[20px] font-bold leading-none ${
-          active ? "text-aurora-teal" : "text-aurora-ink"
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.10) 38%, rgba(0,0,0,0.80))",
+        }}
+      />
+      <span
+        className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-extrabold leading-tight ${
+          active ? "bg-aurora-teal text-aurora-teal-ink" : "bg-black/55 text-white"
         }`}
       >
         {count}
       </span>
-      <span className="text-[12.5px] font-semibold leading-[1.2]">{label}</span>
-    </button>
-  )
-}
-
-function MonthChip({
-  label,
-  sub,
-  active,
-  onClick,
-}: {
-  label: string
-  sub?: string
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`shrink-0 rounded-full px-3.5 py-2 text-[13px] transition-colors ${
-        active
-          ? "bg-aurora-teal font-bold text-aurora-teal-ink"
-          : "bg-aurora-glass font-medium text-drift-muted hover:text-aurora-ink"
-      }`}
-    >
-      {label}
-      {sub && <span className="ml-1 opacity-70">{sub}</span>}
+      {/* min-w-0 + the block below it: a long name ("Eat your way through") must
+          wrap inside the tile, never set its width. */}
+      <span className="absolute inset-x-0 bottom-0 block p-2.5">
+        <span className="block text-[13px] font-bold leading-[1.15] text-white">{label}</span>
+      </span>
     </button>
   )
 }

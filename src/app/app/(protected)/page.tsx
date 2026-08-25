@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { INVITE_COOKIE, isValidInviteToken } from "@/lib/drift/invite"
+import { GUIDE_COOKIE, isGuideSlug } from "@/lib/drift/inspire"
 import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
@@ -22,8 +23,17 @@ export default async function TripsHome() {
   //
   // Reading a cookie in a Server Component is fine; only WRITING throws. The
   // clearing therefore happens in the /join route handlers, not here.
-  const pendingInvite = (await cookies()).get(INVITE_COOKIE)?.value
+  const jar = await cookies()
+  const pendingInvite = jar.get(INVITE_COOKIE)?.value
   if (isValidInviteToken(pendingInvite)) redirect(`/join/${pendingInvite}`)
+
+  // Guide pickup, same mechanism and for the same reason. Somebody read a
+  // public /i/<slug> guide, pressed "Make this trip mine", and was sent through
+  // login — which always lands here. /i/<slug>/start is where the cookie is both
+  // written and cleared, so bouncing back through it hands them the trip they
+  // were reading and leaves nothing behind to bounce off next time.
+  const pendingGuide = jar.get(GUIDE_COOKIE)?.value
+  if (isGuideSlug(pendingGuide)) redirect(`/i/${pendingGuide}/start`)
 
   const supabase = await createClient()
   // Middleware already verified this request's user; cookie read is enough here.
