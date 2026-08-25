@@ -327,6 +327,14 @@ function People({
   crew: ActivityPerson[]
   others: ActivityPerson[]
 }) {
+  // THREE TIERS, ordered by how EARNED the connection is — the same ranking
+  // iOS uses. Collapsing the middle one into "New on Drift" was what made the
+  // page look like a roster: someone your crew has actually travelled with is
+  // not a stranger, and labelling them as one throws away the only reason you
+  // would tap them.
+  const mutual = others.filter((p) => p.tier === "mutual")
+  const fresh = others.filter((p) => p.tier !== "mutual")
+
   if (!crew.length && !others.length) {
     return (
       <Empty
@@ -347,11 +355,21 @@ function People({
           </ul>
         </section>
       )}
-      {others.length > 0 && (
+      {mutual.length > 0 && (
+        <section className="mt-7 border-t border-aurora-border pt-6">
+          <Kicker>Through your crew</Kicker>
+          <ul className="mt-3 space-y-1">
+            {mutual.map((p) => (
+              <PersonRow key={p.id} meId={meId} person={p} />
+            ))}
+          </ul>
+        </section>
+      )}
+      {fresh.length > 0 && (
         <section className="mt-7 border-t border-aurora-border pt-6">
           <Kicker>New on Drift</Kicker>
           <ul className="mt-3 space-y-1">
-            {others.map((p) => (
+            {fresh.map((p) => (
               <PersonRow key={p.id} meId={meId} person={p} />
             ))}
           </ul>
