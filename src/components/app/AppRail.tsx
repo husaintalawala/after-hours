@@ -21,6 +21,19 @@ const NAV: Item[] = [
       </>
     ),
   },
+  {
+    // A folded map: a trip somebody already walked, in the order they walked it.
+    // Deliberately not another compass or star — Discover already owns those,
+    // and Inspire is not searching, it is picking a pattern off the shelf.
+    href: "/app/inspire",
+    label: "Inspire",
+    icon: (
+      <>
+        <path d="M9 3.5L3 6v14.5l6-2.5 6 2.5 6-2.5V3.5l-6 2.5-6-2.5z" />
+        <path d="M9 3.5v14.5M15 6v14.5" />
+      </>
+    ),
+  },
   { href: "/app/chats", label: "Chats", icon: <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" /> },
   {
     href: "/app/activity",

@@ -1011,6 +1011,51 @@ export type Database = {
           },
         ]
       }
+      inspire_trips: {
+        Row: {
+          author_avatar_url: string | null
+          author_handle: string | null
+          best_months: number[] | null
+          blurb: string | null
+          created_at: string | null
+          hero_url: string | null
+          is_active: boolean
+          rank: number
+          snapshot: Json
+          snapshot_at: string | null
+          tags: string[] | null
+          trip_id: string
+        }
+        Insert: {
+          author_avatar_url?: string | null
+          author_handle?: string | null
+          best_months?: number[] | null
+          blurb?: string | null
+          created_at?: string | null
+          hero_url?: string | null
+          is_active?: boolean
+          rank?: number
+          snapshot: Json
+          snapshot_at?: string | null
+          tags?: string[] | null
+          trip_id: string
+        }
+        Update: {
+          author_avatar_url?: string | null
+          author_handle?: string | null
+          best_months?: number[] | null
+          blurb?: string | null
+          created_at?: string | null
+          hero_url?: string | null
+          is_active?: boolean
+          rank?: number
+          snapshot?: Json
+          snapshot_at?: string | null
+          tags?: string[] | null
+          trip_id?: string
+        }
+        Relationships: []
+      }
       itinerary_apply_audit: {
         Row: {
           applied_at: string
