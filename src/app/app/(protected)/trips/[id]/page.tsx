@@ -371,6 +371,16 @@ export default async function TripDetailPage({
   // page in the app for names we can fetch in the one already being made.
   const buddyIds = ((buddyRaw ?? []) as Array<{ user_id: string }>).map((b) => b.user_id)
   const rosterIds = [...new Set([trip.user_id, ...buddyIds].filter(Boolean))]
+  // Is the viewer ON this trip, or just reading it? Everything this needs is
+  // already in memory — the trip row, the accepted trip_buddies and the expense
+  // households all came back in the batch above — so it costs no round trip.
+  //
+  // The three sources are not redundant. `buddyIds` is who joined the trip;
+  // household membership is who splits its bills, and a member added straight to
+  // a household without a trip_buddies row would otherwise read as a stranger
+  // and be offered a copy of the trip they are already on.
+  const viewerIsMember =
+    !!meId && (meId === trip.user_id || buddyIds.includes(meId) || memberIds.includes(meId))
   // Step authors ride in the same batch too (Trip Table attribution: "added by
   // <name>" on plan rows). Usually a subset of the roster, but a member who
   // left the trip after adding stops isn't — the union keeps their name.
@@ -620,6 +630,7 @@ export default async function TripDetailPage({
         tripNotes={tripNotes}
         noteStops={noteStops.map((d) => ({ id: d.id, label: d.label, startDate: d.startDate }))}
         isOwner={meId === trip.user_id}
+        viewerIsMember={viewerIsMember}
         tripMeta={{
           // `cities[0]` before "Untitled trip": FindBookings used to run its own
           // `title || cities[0]` lookup for its "Adding to {trip}" line, so an

@@ -859,6 +859,10 @@ export function copyErrorMessage(status: number | null): string {
   if (status === null) return "Drift couldn't reach the server. Check your connection and try again."
   if (status === 401 || status === 403) return "Your session expired. Sign in again and try once more."
   if (status === 404 || status === 410) return "This trip isn't available to copy any more."
+  // 422 is reachable only from the SOCIAL copy — a curated Inspire pattern
+  // always has a shape, but a real trip somebody shared may have been saved
+  // with no dates at all, and there is nothing to lay out from.
+  if (status === 422) return "That trip has no dates to copy."
   if (status === 429) return "Drift is busy right now. Try again in a moment."
   if (status >= 500) {
     return "Drift couldn't save this trip just now. Nothing was added to your trips — try again in a moment."
