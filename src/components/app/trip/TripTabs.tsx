@@ -475,7 +475,7 @@ export default function TripTabs({
           </div>
         </div>
       ) : (
-        <div className="relative -mx-5 -mt-4 h-[300px] overflow-hidden shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:mx-0 md:mt-3 md:h-[300px] md:rounded-[26px] lg:mt-0">
+        <div className="relative -mx-5 -mt-4 min-h-[300px] overflow-hidden shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:mx-0 md:mt-3 md:min-h-[300px] md:rounded-[26px] lg:mt-0">
           {tripMeta.cover ? (
             // eslint-disable-next-line @next/next/no-img-element
             <>
@@ -517,7 +517,18 @@ export default function TripTabs({
               <TripWeather lat={weatherDest.lat!} lng={weatherDest.lng!} place={weatherDest.label} />
             </div>
           )}
-          <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
+          {/* IN FLOW, not `absolute inset-0`. This hero was a fixed h-[300px] box
+              with overflow-hidden and absolutely-positioned content, so the
+              content could not affect its height — the moment the action row
+              wrapped to a second line (Invite, Make it mine, and the
+              Discover/Where/Budget chips) it was clipped by the bottom edge and
+              the buttons were cut in half. Relative + min-h keeps the 300px
+              cover on a short trip and lets a tall one grow. The photo and the
+              scrims stay absolute; only the content participates in layout.
+
+              The destination drill-in hero above is deliberately NOT changed: it
+              carries no action row, and it is h-[240px] on mobile by design. */}
+          <div className="relative flex min-h-[300px] flex-col justify-between p-5 md:p-7">
             <div className="flex items-start justify-between gap-3">
               <BackLink href="/app" label="Home" />
               <div className="flex items-center gap-2">
