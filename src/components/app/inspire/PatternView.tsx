@@ -6,6 +6,9 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 import CoverCredit from "@/components/app/CoverCredit"
 import BackLink from "@/components/app/BackLink"
 import TailorPanel from "@/components/app/inspire/TailorPanel"
+import PlaceCard from "@/components/app/inspire/PlaceCard"
+import { PatternPhotoCredits } from "@/components/app/inspire/PhotoCredits"
+import { buildPoints } from "@/components/app/inspire/GuideMap"
 import {
   bestWindowLabel,
   guideUrl,
@@ -130,19 +133,12 @@ export default function PatternView({
     })
   }, [s])
 
-  const mapPoints: TripMapPoint[] = useMemo(
-    () =>
-      stops
-        .filter((st) => st.dest.latitude !== null && st.dest.longitude !== null)
-        .map((st) => ({
-          id: st.dest.ref || `d${st.n}`,
-          lat: st.dest.latitude as number,
-          lng: st.dest.longitude as number,
-          label: st.dest.name ?? st.dest.city ?? `Stop ${st.n}`,
-          n: st.n,
-        })),
-    [stops],
-  )
+  // Stops AND their places, from the ONE shared builder — the same function
+  // the public /i/<slug> page calls, so the two web surfaces cannot disagree
+  // about what a guide contains.
+  const mapPoints: TripMapPoint[] = useMemo(() => buildPoints(s), [s])
+  const pinnedStops = mapPoints.filter((p) => p.rank === "stop").length
+  const pinnedPlaces = mapPoints.length - pinnedStops
 
   if (tailoring) {
     return <TailorPanel pattern={pattern} months={months} onCancel={() => setTailoring(false)} />
@@ -358,10 +354,20 @@ export default function PatternView({
                 className="h-[320px] w-full overflow-hidden rounded-card border border-aurora-border"
               />
             </div>
+            {/* Counted BY RANK. Comparing the mixed total against the stop
+                count read "31 of 3 stops carry coordinates" the moment places
+                joined the map. */}
             <p className="mt-2 text-[12px] text-aurora-ink3">
-              {mapPoints.length === stops.length
-                ? `All ${stops.length} stops, in order.`
-                : `${mapPoints.length} of ${stops.length} stops carry coordinates.`}
+              {[
+                pinnedStops === stops.length
+                  ? `All ${stops.length} stops, in order.`
+                  : `${pinnedStops} of ${stops.length} stops carry coordinates.`,
+                pinnedPlaces > 0
+                  ? `${pinnedPlaces} place${pinnedPlaces === 1 ? "" : "s"} pinned.`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
             </p>
           </section>
         )}
@@ -412,9 +418,13 @@ export default function PatternView({
                     Day {d.day}
                   </p>
                 )}
-                <ul className="space-y-4">
+                <ul className="space-y-3">
                   {d.items.map((it, i) => (
-                    <PlaceRow key={`${it.source_step_id ?? it.title}-${i}`} item={it} />
+                    <PlaceCard
+                      key={`${it.source_step_id ?? it.title}-${i}`}
+                      item={it}
+                      authorHandle={pattern.authorHandle}
+                    />
                   ))}
                 </ul>
               </div>
@@ -423,28 +433,11 @@ export default function PatternView({
         </section>
       ))}
 
-      {/* Every photo in the guide is somebody else's. One credit line for the
-          page rather than a chip on each 92px thumbnail. */}
-      <p className="mt-8 px-4 text-[11px] text-aurora-ink3">
-        Photos:{" "}
-        <a
-          className="underline decoration-white/20 underline-offset-2 hover:text-aurora-ink2"
-          href="https://commons.wikimedia.org"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Wikimedia Commons
-        </a>{" "}
-        ·{" "}
-        <a
-          className="underline decoration-white/20 underline-offset-2 hover:text-aurora-ink2"
-          href="https://unsplash.com/?utm_source=drift&utm_medium=referral"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Unsplash
-        </a>
-      </p>
+      {/* Per-photo credit, not a service name. Every place photograph is now a
+          Wikimedia Commons file, and Commons is not CC0 — CC BY-SA needs the
+          AUTHOR and the LICENCE. A line saying only "Wikimedia Commons" now
+          under-credits every one of them. */}
+      <PatternPhotoCredits pattern={pattern} className="mt-10 px-4" />
 
       {/* ---- CTA ---- */}
       <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t border-aurora-border bg-aurora-midnight/95 px-4 pb-5 pt-3 backdrop-blur lg:bottom-0 lg:left-[76px]">
@@ -477,80 +470,6 @@ export default function PatternView({
         </p>
       </div>
     </main>
-  )
-}
-
-/** [photo][name + its note]. The note IS the body copy — it is the sentence the
- *  person who took this trip wrote about the place, and it is the only reason
- *  this reads as a guide rather than a list of names. */
-function PlaceRow({ item }: { item: InspireItem }) {
-  const name = item.title ?? item.location_name
-  const isNote = item.step_type === "note"
-
-  // A trailing note — "Dubrovnik → DBV → FCO. Nine days down the coast." — is
-  // the author talking, not a place. It gets the aside, not a thumbnail.
-  if (isNote) {
-    // An aside with neither a title nor a body is an empty bordered box in the
-    // middle of the guide. There is nothing to say, so nothing is drawn.
-    if (!name && !item.notes) return null
-    return (
-      <li className="rounded-card border border-aurora-border bg-aurora-glass px-3.5 py-3">
-        {name && <p className="text-[13px] font-semibold text-aurora-ink2">{name}</p>}
-        {item.notes && (
-          <p className="mt-1 text-[13.5px] leading-relaxed text-drift-muted">{item.notes}</p>
-        )}
-      </li>
-    )
-  }
-
-  // 92px, DEFINITE. An aspect-fill photo in an auto-width box reports the
-  // filled width as its own and drags the text column off the row.
-  const thumb = photoAt(item.photo, 260)
-  return (
-    <li className="flex items-start gap-3">
-      <span className="relative block h-[92px] w-[92px] shrink-0 overflow-hidden rounded-2xl bg-aurora-glass2">
-        {thumb ? (
-          <OptimizedImg src={thumb} alt="" fill sizes="92px" className="h-full w-full object-cover" />
-        ) : (
-          <span className="absolute inset-0 grid place-items-center text-aurora-ink3">
-            <TypeGlyph type={item.step_type} />
-          </span>
-        )}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <p className="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-aurora-ink">
-            {name ?? "—"}
-          </p>
-          {item.step_type === "stay" && (
-            <span className="shrink-0 rounded-full bg-aurora-glass2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-aurora-ink3">
-              {nightsWord(Math.max(1, item.nights))}
-            </span>
-          )}
-        </div>
-        {item.notes && (
-          <p className="mt-1 text-[13.5px] leading-relaxed text-drift-muted">{item.notes}</p>
-        )}
-      </div>
-    </li>
-  )
-}
-
-/** The stand-in when a place has no photo — a shape for what it is, never an
- *  empty grey square. */
-function TypeGlyph({ type }: { type: string }) {
-  const path =
-    type === "stay"
-      ? "M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M7 10V7h10v3"
-      : type === "food"
-        ? "M6 3v8a3 3 0 0 0 6 0V3M9 11v10M17 3c-1.5 2-2 4-2 6s.5 3 2 3 2-1 2-3-.5-4-2-6zM17 12v9"
-        : type === "activity"
-          ? "M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M17.7 6.3l-2.8 2.8M9.1 14.9l-2.8 2.8"
-          : "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zM12 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d={path} />
-    </svg>
   )
 }
 

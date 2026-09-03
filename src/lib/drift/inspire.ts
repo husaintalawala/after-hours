@@ -69,9 +69,17 @@ export interface InspireDestination {
   longitude: number | null
   day_offset: number
   nights: number
-  /** Same-host photo URL (Wikimedia Commons / Unsplash). 90 of the 102
-   *  destinations carry one. */
+  /** Same-host photo URL (Wikimedia Commons). Resolved FOR THIS STOP: v2 gave
+   *  each stop "the first photo among its own places", and since 0 of 102
+   *  destination steps carry media that made every stop hero a duplicate of the
+   *  thumbnail directly beneath it, on all 38 guides. */
   photo: string | null
+  photo_attribution: string | null
+  photo_link: string | null
+  /** What the stop is, in a sentence. Nullable — the enrichment declines rather
+   *  than invents, so absent is a normal state. */
+  blurb: string | null
+  kind: string | null
   /** Kept verbatim as a STRING. It is echoed back to copy-trip inside a
    *  tailored plan, where it is the only handle proving a plan row is the
    *  curated row it claims to be — and the snapshot stores it lower case. */
@@ -101,8 +109,42 @@ export interface InspireItem {
   notes: string | null
   place_category: string | null
   photo: string | null
+  photo_attribution: string | null
+  photo_link: string | null
   source_step_id: string | null
+
+  // The facts, from `inspire_place_facts` — our own prose, written once, never
+  // resolved at render time. EVERY ONE IS NULLABLE AND MUST RENDER ABSENT: the
+  // generator is required to decline when a row has no real referent ("Beach
+  // day" has nothing to canonicalise), because a writer forced to name
+  // everything invents, and a confident wrong name reads exactly like a right
+  // one.
+
+  /** The real, searchable place behind an editorial title — "Dinner in the
+   *  cave" is Grotta Palazzese. Only shown above NAME_CONFIDENCE. */
+  canonical_name: string | null
+  /** A short human noun: "Sea-cave restaurant", "Baroque basilica". */
+  kind: string | null
+  /** One or two sentences on what the place IS. `notes` is the opinion; this is
+   *  the thing the opinion is about. */
+  blurb: string | null
+  /** Durable practical lines. No hours, no prices, no phone numbers. */
+  tips: string[]
+  /** When in the day or season, never a clock time: "Before 9am". */
+  best_time: string | null
+  /** free · € · €€ · €€€ · €€€€. A band, never a number. */
+  price_band: string | null
+  typical_minutes: number | null
+  neighbourhood: string | null
+  /** walk_in · reserve_ahead · book_weeks_ahead · ticketed · n_a */
+  booking: string | null
+  confidence: number | null
 }
+
+/** Below this the canonical name is withheld entirely. A guide that names the
+ *  wrong restaurant is worse than one that names none, because the reader has
+ *  no way to tell which they got. */
+export const NAME_CONFIDENCE = 0.6
 
 export interface InspireSnapshot {
   title: string
@@ -125,6 +167,10 @@ export function parseDestination(raw: unknown): InspireDestination {
     day_offset: int(r.day_offset, 0),
     nights: int(r.nights, 0),
     photo: str(r.photo),
+    photo_attribution: str(r.photo_attribution),
+    photo_link: str(r.photo_link),
+    blurb: str(r.blurb),
+    kind: str(r.kind),
     source_step_id: str(r.source_step_id),
   }
 }
@@ -155,8 +201,102 @@ export function parseItem(raw: unknown): InspireItem {
     notes: str(r.notes),
     place_category: str(r.place_category),
     photo: str(r.photo),
+    photo_attribution: str(r.photo_attribution),
+    photo_link: str(r.photo_link),
     source_step_id: str(r.source_step_id),
+    canonical_name: str(r.canonical_name),
+    kind: str(r.kind),
+    blurb: str(r.blurb),
+    tips: strArray(r.tips),
+    best_time: str(r.best_time),
+    price_band: str(r.price_band),
+    typical_minutes: num(r.typical_minutes),
+    neighbourhood: str(r.neighbourhood),
+    booking: str(r.booking),
+    confidence: num(r.confidence),
   }
+}
+
+// ---------------------------------------------------------------------------
+// Presenting the facts
+// ---------------------------------------------------------------------------
+//
+// ONE implementation per platform, mirroring `extension InspireItem` in
+// InspireService.swift line for line. The guide row, the place panel and the
+// map card all print the same four facts, and hand-writing "book_weeks_ahead"
+// → "Book weeks ahead" at each call site is three chances to disagree — the bug
+// this feature has already shipped twice (the season label on the shelf card,
+// and the place count in the headline).
+
+/** "2h", "45 min", "1h 30m". Prefers the writer's `typical_minutes` over the
+ *  curator's scheduled block: the schedule says how long they allotted, the fact
+ *  says how long it takes, and the reader is planning their own day. */
+export function durationLabel(item: InspireItem): string | null {
+  const m = item.typical_minutes ?? item.duration_minutes
+  if (!m || m <= 0) return null
+  if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60)
+  const rem = m % 60
+  return rem === 0 ? `${h}h` : `${h}h ${rem}m`
+}
+
+export function priceLabel(item: InspireItem): string | null {
+  const raw = item.price_band?.trim()
+  if (!raw) return null
+  return raw.toLowerCase() === "free" ? "Free" : raw
+}
+
+/** null for `n_a` and anything unrecognised. "Booking: not applicable" is not a
+ *  fact about a viewpoint, it is a rendering fault. */
+export function bookingLabel(item: InspireItem): string | null {
+  switch ((item.booking ?? "").toLowerCase()) {
+    case "walk_in": return "Walk in"
+    case "reserve_ahead": return "Reserve ahead"
+    case "book_weeks_ahead": return "Book weeks ahead"
+    case "ticketed": return "Ticketed"
+    default: return null
+  }
+}
+
+export type FactChip = { icon: "price" | "clock" | "sun" | "seal"; text: string }
+
+/** Every fact worth a chip, in reading order, or [] when the enrichment has not
+ *  reached this row. */
+export function factChips(item: InspireItem): FactChip[] {
+  const out: FactChip[] = []
+  const p = priceLabel(item)
+  if (p) out.push({ icon: "price", text: p })
+  const d = durationLabel(item)
+  if (d) out.push({ icon: "clock", text: d })
+  if (item.best_time) out.push({ icon: "sun", text: item.best_time })
+  const b = bookingLabel(item)
+  if (b) out.push({ icon: "seal", text: b })
+  return out
+}
+
+/** The canonical name, only when it is safe to print AND it adds something — a
+ *  name identical to the title is noise, not a fact. */
+export function trustedName(item: InspireItem): string | null {
+  const raw = item.canonical_name?.trim()
+  if (!raw) return null
+  if ((item.confidence ?? 0) < NAME_CONFIDENCE) return null
+  const shown = (item.title ?? item.location_name ?? "").trim()
+  return raw.toLowerCase() === shown.toLowerCase() ? null : raw
+}
+
+/** "Sea-cave restaurant · Centro storico" — what it is, and where in the city. */
+export function kindLine(item: InspireItem): string | null {
+  const parts = [item.kind, item.neighbourhood]
+    .map((s) => s?.trim())
+    .filter((s): s is string => !!s)
+  return parts.length ? parts.join(" · ") : null
+}
+
+/** What to search for in a map — the real name where we have one, so the pin
+ *  lands on the restaurant and not on the poem about it. */
+export function mapsQuery(item: InspireItem): string {
+  const name = trustedName(item) ?? item.title ?? item.location_name ?? ""
+  return [name, item.city, item.country].filter(Boolean).join(", ")
 }
 
 export function parseSnapshot(raw: unknown): InspireSnapshot {
