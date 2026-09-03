@@ -40,6 +40,7 @@ import BackLink from "@/components/app/BackLink"
 import OptimizedImg from "@/components/app/OptimizedImg"
 import Link from "next/link"
 import TripBuddiesPanel, { type TripBuddy } from "./TripBuddiesPanel"
+import MakeItMinePanel from "./MakeItMinePanel"
 import TripNotesPanel from "./TripNotesPanel"
 import { countTripNotes, splitNoteURL, isMapsURL, type TripNote, type TripNoteGroup } from "@/lib/drift/tripNotes"
 import { TripToolsDeck } from "./TripToolsDeck"
@@ -81,6 +82,7 @@ export default function TripTabs({
   tripNotes = [],
   noteStops = [],
   isOwner,
+  viewerIsMember,
   tripMeta,
   destinations,
   stepDetails,
@@ -103,6 +105,10 @@ export default function TripTabs({
   /** Every stop, so a note can be written on a trip with none yet. */
   noteStops?: { id: string; label: string; startDate: string | null }[]
   isOwner: boolean
+  /** Owner, accepted buddy, or a member of one of the trip's expense
+   *  households. Everyone else is a VISITOR reading a public trip, and the only
+   *  one offered "Make it mine". */
+  viewerIsMember: boolean
   tripMeta: TripMetaVM
   chipData?: {
     placeName: string
@@ -128,6 +134,7 @@ export default function TripTabs({
 }) {
   const [showBuddies, setShowBuddies] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
+  const [showMakeItMine, setShowMakeItMine] = useState(false)
   const notesTotal = countTripNotes(tripNotes)
   // Web has no viewerMode/canEdit concept — the only role-shaped props here are
   // isOwner and tripBuddies. A member is the owner or an accepted buddy, which
@@ -571,6 +578,39 @@ export default function TripTabs({
                   {tripBuddies.length > 1 ? `${tripBuddies.length} · Invite` : "Invite"}
                 </span>
               </button>
+
+              {/* "Make it mine" — a VISITOR's one action on somebody else's
+                  trip. Only rendered for a non-member, because for a member it
+                  would offer to duplicate a trip they already have. That is
+                  presentation only: copy-trip re-selects the source with the
+                  caller's own JWT, so what a viewer may copy is decided by RLS
+                  and not by whether this button was drawn.
+
+                  The verb matches Inspire deliberately. The app says TAILOR and
+                  "Make it mine" and never "Copy", and a second way to create a
+                  trip from someone else's should not invent a second vocabulary
+                  for it. */}
+              {!viewerIsMember && (
+                <button
+                  onClick={() => setShowMakeItMine(true)}
+                  className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-full bg-aurora-teal px-4 text-[13px] font-bold text-aurora-teal-ink shadow-[0_8px_20px_-8px_rgba(0,0,0,0.6)] transition-transform active:scale-[0.98]"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-[15px] w-[15px]"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.1}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="12" height="12" rx="2.5" />
+                    <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+                  </svg>
+                  Make it mine
+                </button>
+              )}
               {chipData && (
                 <TripCoverChips
                   tripId={tripId}
@@ -783,6 +823,15 @@ export default function TripTabs({
           buddies={tripBuddies}
           viewerIsOwner={isOwner}
           onClose={() => setShowBuddies(false)}
+        />
+      )}
+
+      {showMakeItMine && (
+        <MakeItMinePanel
+          sourceTripId={tripId}
+          defaultTitle={tripMeta.title}
+          sourceStartDate={chipData?.startDate ?? null}
+          onClose={() => setShowMakeItMine(false)}
         />
       )}
     </div>
