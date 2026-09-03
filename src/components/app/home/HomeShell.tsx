@@ -14,6 +14,8 @@ const GlobeHero = dynamic(() => import("@/components/app/GlobeHero"), {
 import SignOutButton from "@/components/app/SignOutButton"
 import OptimizedImg from "@/components/app/OptimizedImg"
 import TripCoverImg from "@/components/app/TripCoverImg"
+import BackLink from "@/components/app/BackLink"
+import FollowButton from "@/components/app/people/FollowButton"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
@@ -47,12 +49,54 @@ export interface HomeData {
   others: HomeTrip[]
 }
 
-export default function HomeShell({ data }: { data: HomeData }) {
+/**
+ * Whose profile this is.
+ *
+ * Someone else's profile used to be a separate, much thinner screen — no
+ * globe, no featured trip, a flat list of links. It is the same question
+ * ("what are this person's trips?") so it is now the same shell, and only the
+ * genuinely owner-bound affordances are gated: sign out, settings, the plan-a-
+ * trip CTA, Ask Drift, and the stat links, which point at YOUR /app/people
+ * tabs and would silently mislead on someone else's page.
+ */
+export type HomeViewer =
+  | { kind: "self" }
+  | {
+      kind: "other"
+      meId: string
+      targetId: string
+      initiallyFollowing: boolean
+      /** Logical parent for the back chip. */
+      backHref: string
+    }
+
+export default function HomeShell({
+  data,
+  viewer = { kind: "self" },
+}: {
+  data: HomeData
+  viewer?: HomeViewer
+}) {
   const [focusTripId, setFocusTripId] = useState<string | null>(null)
+  const isSelf = viewer.kind === "self"
   const allTrips = [
     ...(data.featured ? [data.featured] : []),
     ...data.others,
   ]
+
+  // Stats link to the signed-in user's own tabs, so on another profile they
+  // are rendered as plain figures rather than links that quietly navigate to
+  // YOUR followers while showing THEIR count.
+  const statHref = (href: string) => (isSelf ? href : undefined)
+
+  const follow =
+    viewer.kind === "other" ? (
+      <FollowButton
+        meId={viewer.meId}
+        targetId={viewer.targetId}
+        initiallyFollowing={viewer.initiallyFollowing}
+      />
+    ) : null
 
   return (
     <div className="relative">
@@ -77,23 +121,25 @@ export default function HomeShell({ data }: { data: HomeData }) {
                 </p>
               )}
             </div>
-            <SignOutButton />
+            {isSelf ? <SignOutButton /> : follow}
           </div>
 
           {/* Stats */}
           <div className="mt-5 flex gap-7 border-b border-drift-divider pb-4">
-            <Stat value={data.countries} label="Countries" href="/app/countries" />
-            <Stat value={data.followers} label="Followers" href="/app/people?tab=followers" />
-            <Stat value={data.following} label="Following" href="/app/people?tab=following" />
+            <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
+            <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
+            <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
           </div>
 
           {/* Plan CTA */}
-          <Link
-            href="/app/trips/new"
-            className="mt-4 flex h-12 items-center justify-center rounded-full bg-drift-coral text-[15px] font-semibold text-white shadow-md shadow-drift-coral/25 transition-transform hover:scale-[1.01]"
-          >
-            Plan a new trip
-          </Link>
+          {isSelf && (
+            <Link
+              href="/app/trips/new"
+              className="mt-4 flex h-12 items-center justify-center rounded-full bg-drift-coral text-[15px] font-semibold text-white shadow-md shadow-drift-coral/25 transition-transform hover:scale-[1.01]"
+            >
+              Plan a new trip
+            </Link>
+          )}
 
           {/* Featured */}
           {data.featured && data.featuredHeader && (
@@ -135,7 +181,9 @@ export default function HomeShell({ data }: { data: HomeData }) {
             <div className="py-10 text-center">
               <p className="text-3xl opacity-30">🗺</p>
               <p className="mt-2 text-[14px] text-drift-muted">
-                No trips yet — plan your first one.
+                {isSelf
+                  ? "No trips yet — plan your first one."
+                  : "No trips to show yet."}
               </p>
             </div>
           )}
@@ -145,15 +193,25 @@ export default function HomeShell({ data }: { data: HomeData }) {
       {/* Ask Drift pill — generic entry to chat (was "Ask Drift about <next
           trip>", which read as confusing on the home globe). Sits above the
           globe's bottom-right +/- zoom controls so neither is obscured. */}
-      <Link
-        href="/app/chats"
-        className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-aurora-glass py-3 pl-4 pr-5 shadow-aurora-glow transition-transform hover:scale-[1.02] lg:flex"
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
-          ✦
-        </span>
-        <span className="text-[14.5px] font-medium text-drift-ink">Ask Drift</span>
-      </Link>
+      {isSelf && (
+        <Link
+          href="/app/chats"
+          className="fixed bottom-24 right-6 z-10 hidden items-center gap-2.5 rounded-full border border-white/40 bg-aurora-glass py-3 pl-4 pr-5 shadow-aurora-glow transition-transform hover:scale-[1.02] lg:flex"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-drift-coral text-[15px] text-white">
+            ✦
+          </span>
+          <span className="text-[14.5px] font-medium text-drift-ink">Ask Drift</span>
+        </Link>
+      )}
+
+      {/* Back chip, only when this is someone else's profile — the signed-in
+          home is a tab root and has no up-path. Sits above the globe. */}
+      {viewer.kind === "other" && (
+        <div className="fixed left-4 top-4 z-20 lg:left-[100px]">
+          <BackLink href={viewer.backHref} label="People" />
+        </div>
+      )}
 
       {/* ---------- Mobile: iOS sheet-over-globe ---------- */}
       <div className="relative z-10 mt-[44vh] rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
@@ -175,23 +233,29 @@ export default function HomeShell({ data }: { data: HomeData }) {
             {/* Settings was reachable ONLY from the desktop AppRail, so on phone
                 there was no route to it at all. Mirrors the gear in the iOS
                 profile header. */}
-            <Link
-              href="/app/settings"
-              aria-label="Settings"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-aurora-border bg-aurora-glass text-drift-muted transition-colors hover:text-drift-ink"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </Link>
-            <SignOutButton />
+            {isSelf ? (
+              <>
+                <Link
+                  href="/app/settings"
+                  aria-label="Settings"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-aurora-border bg-aurora-glass text-drift-muted transition-colors hover:text-drift-ink"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                </Link>
+                <SignOutButton />
+              </>
+            ) : (
+              follow
+            )}
           </div>
 
           <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
-            <Stat value={data.countries} label="Countries" href="/app/countries" />
-            <Stat value={data.followers} label="Followers" href="/app/people?tab=followers" />
-            <Stat value={data.following} label="Following" href="/app/people?tab=following" />
+            <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
+            <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
+            <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
           </div>
 
           {data.featured && data.featuredHeader && (
@@ -224,7 +288,9 @@ export default function HomeShell({ data }: { data: HomeData }) {
           {allTrips.length === 0 && (
             <div className="py-12 text-center">
               <p className="text-4xl opacity-30">🗺</p>
-              <p className="mt-3 text-[15px] text-drift-muted">No trips yet</p>
+              <p className="mt-3 text-[15px] text-drift-muted">
+                {isSelf ? "No trips yet" : "No trips to show yet"}
+              </p>
             </div>
           )}
         </div>
@@ -261,15 +327,25 @@ function Avatar({
   )
 }
 
-function Stat({ value, label, href }: { value: number; label: string; href: string }) {
-  return (
+// `href` is optional: the stat destinations are the signed-in user's own
+// /app/people tabs, so on someone else's profile the figure is shown without
+// a link rather than navigating to YOUR followers under THEIR count.
+function Stat({ value, label, href }: { value: number; label: string; href?: string }) {
+  const body = (
+    <>
+      <p className="text-[19px] font-bold leading-tight">{value}</p>
+      <p className="text-[12px] text-drift-muted">{label}</p>
+    </>
+  )
+  return href ? (
     <Link
       href={href}
       className="rounded-lg outline-none transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-drift-coral/50"
     >
-      <p className="text-[19px] font-bold leading-tight">{value}</p>
-      <p className="text-[12px] text-drift-muted">{label}</p>
+      {body}
     </Link>
+  ) : (
+    <div>{body}</div>
   )
 }
 

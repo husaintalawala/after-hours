@@ -1,17 +1,22 @@
-import Link from "next/link"
-import TripCoverImg from "@/components/app/TripCoverImg"
-import { tripCover } from "@/lib/drift/tripCover"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import type { ProfileRow, TripRow } from "@/lib/db-types"
-import { countryFlagEmoji } from "@/lib/drift/flags"
-import FollowButton from "@/components/app/people/FollowButton"
-import BackLink from "@/components/app/BackLink"
-import OptimizedImg from "@/components/app/OptimizedImg"
+import HomeShell from "@/components/app/home/HomeShell"
+import { buildHomeData, profileExists } from "@/lib/drift/homeData"
 
-// Public profile — reached by tapping a person in the followers/following list.
-// Shows their identity, follower/following counts, and the trips visible to the
-// viewer (RLS returns only public — or buddy-shared — trips of others).
+// Someone else's profile — reached by tapping a person in the followers/
+// following list.
+//
+// This is now the SAME screen as your own passport: globe, featured trip, trip
+// cards, identical cover chain. It used to be a separate, much thinner
+// rendering — avatar, three stats and a flat list of links, no globe — because
+// it had grown its own data assembly and its own markup. Two screens answering
+// the same question, sharing no code, so they shared no behaviour either.
+//
+// Both now call buildHomeData() and render HomeShell, so any future field
+// lands on both at once instead of one drifting behind the other.
+//
+// Visibility is still RLS's job: the identical query returns your own trips in
+// full on your own page, and only the public or buddy-shared ones here.
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: profileId } = await params
@@ -22,161 +27,31 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const me = session?.user
   if (!me) return null
 
-  // Viewing your own id → send to Home (your own passport lives there).
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", profileId)
-    .maybeSingle<ProfileRow>()
-  if (!profile) notFound()
+  // Your own id → Home, which is the same shell with the owner affordances.
+  if (me.id === profileId) redirect("/app")
 
-  const [{ count: followers }, { count: following }, { data: iFollowRow }, { data: tripsRaw }] =
-    await Promise.all([
-      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profileId),
-      supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profileId),
-      supabase.from("follows").select("follower_id").eq("follower_id", me.id).eq("following_id", profileId).maybeSingle(),
-      supabase
-        .from("trips")
-        .select("*")
-        .eq("user_id", profileId)
-        .order("start_date", { ascending: false })
-        .returns<TripRow[]>(),
-    ])
+  if (!(await profileExists(supabase, profileId))) notFound()
 
-  // A PROFILE'S TRIPS ARE THE TRIPS THEY ARE ON, not only the ones they own.
-  //
-  // Querying `user_id = them` alone is why a real traveller's profile read
-  // "No public trips to show": someone who joins their friends' trips rather
-  // than creating them owns nothing, so their profile looked empty while iOS
-  // showed the trips perfectly well. iOS has done this union since the
-  // "No trips yet" bug (ProfileView.swift ~:1000) and the web never picked it up.
-  //
-  // RLS still decides what the VIEWER may see — this only widens which trips are
-  // asked about, never who may read them. A buddy-only PRIVATE trip stays hidden
-  // until the trips SELECT policy gains a co-member clause.
-  const owned = tripsRaw ?? []
-  const ownedIds = new Set(owned.map((t) => t.id))
-
-  const { data: buddyRows } = await supabase
-    .from("trip_buddies")
-    .select("trip_id")
-    .eq("user_id", profileId)
-    .eq("status", "accepted")
-    .returns<Array<{ trip_id: string }>>()
-
-  const buddyOnlyIds = [...new Set((buddyRows ?? []).map((r) => r.trip_id))].filter(
-    (id) => !ownedIds.has(id)
-  )
-
-  let buddyTrips: TripRow[] = []
-  if (buddyOnlyIds.length > 0) {
-    const { data } = await supabase
-      .from("trips")
-      .select("*")
-      .in("id", buddyOnlyIds)
-      .returns<TripRow[]>()
-    buddyTrips = data ?? []
-  }
-
-  const trips = [...owned, ...buddyTrips].sort((a, b) =>
-    (b.start_date ?? "").localeCompare(a.start_date ?? "")
-  )
-
-  const countries = new Set<string>()
-  for (const t of trips) for (const c of t.countries ?? []) if (c) countries.add(c)
-
-  const name = profile.display_name || profile.username || "Traveler"
+  const [data, { data: iFollowRow }] = await Promise.all([
+    buildHomeData(supabase, profileId),
+    supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", me.id)
+      .eq("following_id", profileId)
+      .maybeSingle(),
+  ])
 
   return (
-    <div className="mx-auto w-full max-w-xl px-5 pb-32 pt-8 lg:pt-12">
-      <BackLink href="/app/people" label="People" className="mb-5" />
-
-      {/* Identity */}
-      <div className="flex items-center gap-4">
-        {profile.avatar_url ? (
-          <OptimizedImg
-            src={profile.avatar_url}
-            alt=""
-            width={80}
-            height={80}
-            className="h-20 w-20 shrink-0 rounded-full object-cover ring-2 ring-drift-coral/60"
-          />
-        ) : (
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-drift-coral-50 font-drift-display text-[28px] font-bold text-drift-coral ring-2 ring-drift-coral/60">
-            {name.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-drift-display text-[24px] font-bold leading-tight">{name}</p>
-          {profile.username && (
-            <p className="truncate text-[13px] text-drift-muted">@{profile.username}</p>
-          )}
-        </div>
-        {profileId !== me.id && (
-          <FollowButton meId={me.id} targetId={profileId} initiallyFollowing={!!iFollowRow} />
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="mt-5 flex gap-7 border-b border-drift-divider pb-4">
-        <Stat value={countries.size} label="Countries" />
-        <Stat value={followers ?? 0} label="Followers" />
-        <Stat value={following ?? 0} label="Following" />
-      </div>
-
-      {/* Their trips (RLS-scoped to what you can see) */}
-      <h2 className="mt-6 font-drift-display text-[19px] font-bold">Trips</h2>
-      {trips.length === 0 ? (
-        <p className="mt-3 text-[14px] text-drift-muted">No public trips to show.</p>
-      ) : (
-        <ul className="mt-3 space-y-2">
-          {trips.map((t) => (
-            <li key={t.id}>
-              <Link
-                href={`/app/trips/${t.id}`}
-                className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition-colors hover:bg-drift-card-active"
-              >
-                {/* Was cover_url only — this surface had no photo fallback and
-                    no sourced fallback at all. */}
-                <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
-                  <TripCoverImg
-                    cover={tripCover({
-                      id: t.id,
-                      title: t.title,
-                      cover_url: t.cover_url,
-                      cover_fallback_url: t.cover_fallback_url,
-                      cover_fallback_attribution: t.cover_fallback_attribution,
-                      cover_fallback_link: t.cover_fallback_link,
-                      countries: t.countries,
-                    })}
-                    sizes="48px"
-                    showCredit={false}
-                  />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15px] font-semibold">{t.title || "Untitled trip"}</p>
-                  <p className="truncate text-[12.5px] text-drift-muted">
-                    {(t.cities ?? []).filter(Boolean).join(", ") ||
-                      (t.countries ?? []).filter(Boolean).join(", ")}
-                  </p>
-                </div>
-                {(t.countries?.[0] ?? null) && (
-                  <span className="text-[17px]">{countryFlagEmoji(t.countries![0])}</span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <div>
-      <p className="text-[19px] font-bold leading-tight">{value}</p>
-      <p className="text-[12px] text-drift-muted">{label}</p>
-    </div>
+    <HomeShell
+      data={data}
+      viewer={{
+        kind: "other",
+        meId: me.id,
+        targetId: profileId,
+        initiallyFollowing: !!iFollowRow,
+        backHref: "/app/people",
+      }}
+    />
   )
 }
