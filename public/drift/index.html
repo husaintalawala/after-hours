@@ -736,28 +736,41 @@
   }
 </style>
 
-<!-- Travelpayouts (Drive) site verification + affiliate tracking, project
-     t=551440.
+<!-- Travelpayouts (Drive) verification + affiliate tracking for the
+     drift.after-hours.app website. Pasted verbatim from the dashboard.
+     Deliberately no other Travelpayouts id appears in this file: the id is
+     encoded in the script filename, and a stale one in a comment is exactly
+     the kind of thing a verifier could match on.
 
-     SERVER-RENDERED ON PURPOSE. This tag used to live in the Next.js root
-     layout's <head>, and was later moved into <MarketingTags> — a "use client"
-     component that injects it from a useEffect — to keep a 2,715ms third-party
-     cascade off /join, /app and /auth. That was the right performance call and
-     is deliberately not reverted.
+     SERVER-RENDERED ON PURPOSE. The tag used to be an inline <head> script,
+     then moved into <MarketingTags> — a "use client" component injecting it
+     from a useEffect — to keep a 2,715ms third-party cascade off /join, /app
+     and /auth. That performance call was right and is NOT reverted. But a
+     script created in a useEffect only exists after hydration, so a verifier
+     fetching HTML saw nothing: measured 2026-09-03, zero occurrences of
+     "tpembars" in the served HTML of both after-hours.app and
+     drift.after-hours.app. The project sat unapproved from 2026-07-17 with
+     Priceline and flights locked behind it, on what was almost certainly this
+     and not a review queue.
 
-     But it also made the tag invisible to Travelpayouts. Their verifier fetches
-     HTML; a script created in a useEffect only exists after React hydrates, so
-     a plain fetch of after-hours.app finds nothing. Measured 2026-09-03:
-     0 occurrences of "tpembars" in the served HTML of BOTH after-hours.app
-     (9,065 bytes) and drift.after-hours.app (99,834 bytes) — the latter, this
-     static file, had never carried it at all. The project has sat unapproved
-     since 2026-07-17, with Priceline and flights locked behind it, most likely
-     for exactly this reason rather than anything in a review queue.
+     This snippet is itself an injector, but the literal URL sits in the inline
+     script text, so it IS in the served HTML. That is the whole difference
+     between this and the MarketingTags arrangement, where the URL lived only
+     in a JS bundle.
 
-     This is a static file, a different document from the Next.js app, so the
-     tag being here costs the app routes nothing — the /join and /app exclusions
-     in MarketingTags still hold. -->
-<script async src="https://tpembars.com/NTUxNDQw.js?t=551440"></script>
+     Being a static file — a different document from the Next.js app — this
+     costs the app routes nothing; the /join and /app exclusions still hold.
+     MarketingTags.tsx keeps its own, different website's tag, which is correct
+     there if after-hours.app remains a registered channel. -->
+<script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1" data-cmp-ab="2">
+  (function () {
+      var script = document.createElement("script");
+      script.async = 1;
+      script.setAttribute("data-cmp-ab","2");
+      script.src = 'https://tpembars.com/NTY5Nzc2.js?t=569776';
+      document.head.appendChild(script);
+  })();
+</script>
 </head>
 <body>
 
