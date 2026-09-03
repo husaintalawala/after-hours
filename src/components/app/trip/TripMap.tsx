@@ -9,7 +9,27 @@ import "mapbox-gl/dist/mapbox-gl.css"
 // on the legible navigation-night basemap. Non-blocking: renders nothing without
 // a token or points. Kept in sync with the iOS DayPeekMap styling.
 
-export type TripMapPoint = { id: string; lat: number; lng: number; label: string; n: number }
+export type TripMapPoint = {
+  id: string
+  lat: number
+  lng: number
+  label: string
+  n: number
+  /**
+   * What rank of thing this is. Omitted means "stop", so every existing caller
+   * behaves exactly as before and this stays additive.
+   *
+   * The Inspire guide draws its individual PLACES here as well as its stops —
+   * a map that pins only the destinations shows a trip's skeleton and hides its
+   * content. Two things follow from the distinction, and both matter:
+   *   · the ROUTE LINE joins stops only. Threading it through every café makes
+   *     a scribble that says the traveller drove between restaurants.
+   *   · places get a smaller, quieter marker. Without a size difference a café
+   *     and a city read as the same kind of thing, which is worse than not
+   *     drawing the café at all.
+   */
+  rank?: "stop" | "place"
+}
 
 export default function TripMap({
   points,
@@ -43,13 +63,16 @@ export default function TripMap({
       // The day's route through the ordered stops as a glowing line — the
       // spotlight upgrade over scattered dots. A wide, blurred teal halo sits
       // under a crisp indigo core (Aurora two-tone), mirroring the iOS day map.
-      if (points.length > 1) {
+      // Stops only — see the note on `rank`. With no ranks given this is every
+      // point, which is what every existing caller passes.
+      const route = points.filter((p) => p.rank !== "place")
+      if (route.length > 1) {
         map.addSource("route", {
           type: "geojson",
           data: {
             type: "Feature",
             properties: {},
-            geometry: { type: "LineString", coordinates: points.map((p) => [p.lng, p.lat]) },
+            geometry: { type: "LineString", coordinates: route.map((p) => [p.lng, p.lat]) },
           },
         })
         map.addLayer({
@@ -69,13 +92,24 @@ export default function TripMap({
       }
 
       const bounds = new mapboxgl.LngLatBounds()
-      for (const p of points) {
+      // Places first, so a stop marker is never buried under a café that
+      // happens to share its corner of the map.
+      const ordered = [...points].sort((a, b) =>
+        (a.rank === "place" ? 0 : 1) - (b.rank === "place" ? 0 : 1),
+      )
+      for (const p of ordered) {
         const el = document.createElement("div")
-        el.textContent = String(p.n)
-        el.style.cssText =
-          "display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;" +
-          "background:#37D6C4;color:#04231F;font-weight:700;font-size:12px;border:2px solid #fff;" +
-          "box-shadow:0 0 0 4px rgba(55,214,196,.18),0 0 12px 2px rgba(55,214,196,.55),0 1px 6px rgba(0,0,0,.45);cursor:pointer"
+        if (p.rank === "place") {
+          el.style.cssText =
+            "width:11px;height:11px;border-radius:50%;background:#6B5CFF;border:2px solid rgba(255,255,255,.92);" +
+            "box-shadow:0 0 8px 1px rgba(107,92,255,.6),0 1px 4px rgba(0,0,0,.5);cursor:pointer"
+        } else {
+          el.textContent = String(p.n)
+          el.style.cssText =
+            "display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;" +
+            "background:#37D6C4;color:#04231F;font-weight:700;font-size:12px;border:2px solid #fff;" +
+            "box-shadow:0 0 0 4px rgba(55,214,196,.18),0 0 12px 2px rgba(55,214,196,.55),0 1px 6px rgba(0,0,0,.45);cursor:pointer"
+        }
         new mapboxgl.Marker({ element: el })
           .setLngLat([p.lng, p.lat])
           .setPopup(new mapboxgl.Popup({ offset: 14, closeButton: false }).setText(p.label))

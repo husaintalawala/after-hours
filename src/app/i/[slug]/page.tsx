@@ -3,6 +3,9 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import OptimizedImg from "@/components/app/OptimizedImg"
+import PlaceCard from "@/components/app/inspire/PlaceCard"
+import PhotoCredits from "@/components/app/inspire/PhotoCredits"
+import GuideMap from "@/components/app/inspire/GuideMap"
 import CoverCredit from "@/components/app/CoverCredit"
 import {
   bestWindowLabel,
@@ -137,22 +140,6 @@ const TYPE_LABEL: Record<string, string> = {
   restaurant: "Eat",
   time_block: "Do",
 }
-
-function typeLabel(item: InspireItem): string | null {
-  const t = item.step_type.toLowerCase()
-  if (TYPE_LABEL[t]) return TYPE_LABEL[t]
-  if (!t) return null
-  return t.charAt(0).toUpperCase() + t.slice(1).replace(/_/g, " ")
-}
-
-// NO CLOCK TIMES ON THIS PAGE, deliberately — `item.time` orders the day here
-// and is never printed. Measured across the live corpus: 520 items carry a time
-// but only 24 DISTINCT values exist, 160 of them at exactly 13:00 and 38 of the
-// 66 meals at 23:45. They are packing slots the seeder assigned, not hours
-// anybody chose. Printing them puts "dinner, 11:45 PM" and "golden hour,
-// 10:45 PM" on a page whose whole job is to be believed by a stranger. The
-// knowledge this corpus actually holds is the ORDER and the NIGHTS, and that is
-// what renders. If real editorial times ever land, print them then.
 
 // RESIZING IS `photoAt`, shared with every other Inspire surface. This page had
 // its own narrower copy that only understood wikimedia.org — so the corpus's 33
@@ -438,8 +425,23 @@ export default async function PublicGuidePage({
 
       {/* The guide itself — whole, ungated. */}
       <div className="mx-auto max-w-3xl px-6 pt-14 pb-20 space-y-16">
+        {/* THE SHAPE, BEFORE THE PROSE. A stranger opening a shared link has no
+            idea where in the world this is; four stops in a line down a coast
+            answers that in one glance and a paragraph never quite does. Stops
+            AND places, from the same builder the signed-in guide uses. */}
+        <section>
+          <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.25em] text-aurora-ink3">
+            The route
+          </h2>
+          <GuideMap
+            snapshot={snapshot}
+            className="h-[340px] w-full overflow-hidden rounded-hero border border-aurora-border"
+          />
+        </section>
+
         {stops.map((stop, index) => (
           <StopSection
+            authorHandle={row.author_handle}
             key={stop.destination?.ref ?? `orphans-${index}`}
             stop={stop}
             index={index}
@@ -485,6 +487,17 @@ export default async function PublicGuidePage({
             </p>
           </div>
         </section>
+
+        {/* Per-photo credit, after the ask so it does not interrupt the read.
+            Every place photograph is a Wikimedia Commons file and Commons is not
+            CC0 — CC BY-SA requires the AUTHOR and the LICENCE together, and this
+            page is anonymous and search-indexable. */}
+        <PhotoCredits
+          snapshot={snapshot}
+          heroUrl={row.hero_url}
+          heroAttribution={row.hero_attribution}
+          heroLink={row.hero_link}
+        />
       </div>
 
       <footer className="border-t border-aurora-border py-8 text-center">
@@ -502,7 +515,15 @@ function Dot() {
   return <span className="text-aurora-ink3/50">·</span>
 }
 
-function StopSection({ stop, index }: { stop: Stop; index: number }) {
+function StopSection({
+  stop,
+  index,
+  authorHandle,
+}: {
+  stop: Stop
+  index: number
+  authorHandle: string | null
+}) {
   const d = stop.destination
   const name = d ? d.name ?? d.city ?? "Stop" : "Also on this trip"
   const where = d
@@ -528,7 +549,24 @@ function StopSection({ stop, index }: { stop: Stop; index: number }) {
       {photo && (
         <div className="relative mt-5 aspect-[16/9] overflow-hidden rounded-hero border border-aurora-border bg-aurora-glass">
           <OptimizedImg src={photo} alt={name} fill className="h-full w-full object-cover" />
+          {/* The stop's picture is now resolved FOR THE STOP rather than
+              borrowed from a place beneath it, so it carries its own credit —
+              both licences bind the duty to the display. */}
+          {/* No positioning wrapper: CoverCredit is already
+              `absolute bottom-1.5 right-1.5` for placement="corner". Wrapping it
+              in a second absolutely-positioned div gave it a 0x0 containing
+              block, so the expanded credit's max-w-[92%] resolved to 0px and the
+              author + licence text was clipped to an empty pill. */}
+          {d?.photo_attribution && (
+            <CoverCredit text={d.photo_attribution} href={d.photo_link} />
+          )}
         </div>
+      )}
+
+      {/* What the stop IS. A stranger who has never heard of Ostuni should not
+          be asked to infer a town from a photograph of it. */}
+      {d?.blurb && (
+        <p className="mt-4 text-[15px] leading-relaxed text-aurora-ink2">{d.blurb}</p>
       )}
 
       <div className="mt-6 space-y-8">
@@ -542,9 +580,12 @@ function StopSection({ stop, index }: { stop: Stop; index: number }) {
             </div>
             <ul className="space-y-4">
               {day.entries.map((entry, i) => (
-                <ItemCard
+                <PlaceCard
                   key={entry.item.source_step_id ?? `${day.dayNumber}-${i}`}
-                  entry={entry}
+                  item={entry.item}
+                  photo={entry.photo}
+                  variant="wide"
+                  authorHandle={authorHandle}
                 />
               ))}
             </ul>
@@ -555,49 +596,3 @@ function StopSection({ stop, index }: { stop: Stop; index: number }) {
   )
 }
 
-function ItemCard({ entry }: { entry: Entry }) {
-  const { item, photo } = entry
-  const title = item.title ?? item.location_name ?? "A stop"
-  const label = typeLabel(item)
-
-  return (
-    <li className="overflow-hidden rounded-card border border-aurora-border bg-aurora-glass">
-      <div className="sm:flex">
-        {photo && (
-          <div className="relative aspect-[16/10] w-full overflow-hidden sm:aspect-auto sm:w-44 sm:shrink-0 sm:self-stretch">
-            <OptimizedImg src={photo} alt={title} fill className="h-full w-full object-cover" />
-          </div>
-        )}
-        {/* min-w-0 so a long unbroken word wraps instead of setting the row's
-            width and pushing the card off the screen. */}
-        <div className="min-w-0 flex-1 px-4 py-4 sm:px-5">
-          <div className="flex flex-wrap items-center gap-2">
-            {label && (
-              <span className="rounded-full border border-aurora-border bg-aurora-glass2 px-2 py-0.5 text-[10px] uppercase tracking-wide text-aurora-ink3">
-                {label}
-              </span>
-            )}
-            {item.step_type === "stay" && item.nights > 0 && (
-              <span className="text-[11px] text-aurora-ink3">
-                {nightsWord(item.nights)}
-              </span>
-            )}
-          </div>
-          <h3 className="mt-1.5 font-drift-display text-xl font-medium leading-snug break-words">
-            {title}
-          </h3>
-          {item.notes && (
-            <p className="mt-1.5 text-[15px] leading-relaxed text-aurora-ink2 break-words">
-              {item.notes}
-            </p>
-          )}
-          {item.location_name && item.location_name !== title && (
-            <p className="mt-1.5 text-xs text-aurora-ink3 break-words">
-              {item.location_name}
-            </p>
-          )}
-        </div>
-      </div>
-    </li>
-  )
-}
