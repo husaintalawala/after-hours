@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getDriftUpstream } from "@/lib/drift/server"
 import { tripCover } from "@/lib/drift/tripCover"
 import { compareDate, dateOnly } from "@/lib/drift/dates"
+import { STEP_BOOKING_EMBED } from "@/lib/drift/stepBooking"
 import type { StepRow, TripRow, TransportBookingRow } from "@/lib/db-types"
 import { buildItineraryDocument } from "@/lib/pdf/itinerary"
 import { ItineraryPdf } from "@/lib/pdf/ItineraryPdf"
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
 
   const [{ data: stepsRaw }, { data: transportRaw }, { data: mediaRaw }, { data: buddyRaw }] =
     await Promise.all([
-      supabase.from("steps").select("*").eq("trip_id", trip.id),
+      supabase.from("steps").select(`*, ${STEP_BOOKING_EMBED}`).eq("trip_id", trip.id),
       supabase.from("transport_bookings").select("*").eq("trip_id", trip.id),
       supabase
         .from("media")
