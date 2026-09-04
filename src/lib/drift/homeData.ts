@@ -128,20 +128,31 @@ export async function buildHomeData(
     const e = (t.end_date ?? t.start_date)?.slice(0, 10)
     return !!s && !!e && s <= today && today <= e
   }
-  const featuredRow =
-    trips.find(isNow) ??
-    trips
-      .filter((t) => (t.start_date ?? "") > today)
-      .sort((a, b) => (a.start_date ?? "").localeCompare(b.start_date ?? ""))[0] ??
-    trips
-      .slice()
-      .sort((a, b) => (b.start_date ?? "").localeCompare(a.start_date ?? ""))[0] ??
-    trips[0]
+  // Ordering rank — same date basis as the NOW TRAVELING badge (isNow), so the
+  // list order and the badge stay consistent. 0 = travelling, 1 = upcoming,
+  // 2 = past/other. Comparisons are date-only (YYYY-MM-DD) to absorb the UTC
+  // 00:00:00Z day-shift.
+  const rank = (t: TripRow): number => {
+    if (isNow(t)) return 0
+    if ((t.start_date?.slice(0, 10) ?? "") > today) return 1
+    return 2
+  }
+  // Trips ordered for the list: travelling first, then upcoming (soonest start
+  // first), then past (most recent travel date first).
+  const orderedTrips = trips.slice().sort((a, b) => {
+    const ra = rank(a)
+    const rb = rank(b)
+    if (ra !== rb) return ra - rb
+    const sa = a.start_date?.slice(0, 10) ?? ""
+    const sb = b.start_date?.slice(0, 10) ?? ""
+    return ra === 1 ? sa.localeCompare(sb) : sb.localeCompare(sa)
+  })
+  const featuredRow = orderedTrips[0] ?? null
   const featuredHeader = !featuredRow
     ? null
-    : isNow(featuredRow)
+    : rank(featuredRow) === 0
       ? { title: "Now", subtitle: "Traveling now" }
-      : (featuredRow.start_date ?? "") > today
+      : rank(featuredRow) === 1
         ? { title: "Next", subtitle: "Coming up" }
         : { title: "Latest", subtitle: "Most recent" }
 
@@ -173,7 +184,7 @@ export async function buildHomeData(
     pins,
     featured: featuredRow ? toHomeTrip(featuredRow) : null,
     featuredHeader,
-    others: trips.filter((t) => t.id !== featuredRow?.id).map(toHomeTrip),
+    others: orderedTrips.slice(1).map(toHomeTrip),
   }
 }
 
