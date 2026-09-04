@@ -158,6 +158,55 @@ export default async function TripDetailPage({
     .filter((s) => s.step_type === "destination" && !s.parent_step_id)
     .sort((a, b) => compareDate(dateOnly(a.date) ?? "", dateOnly(b.date) ?? ""))
 
+  // ---- The trip's HONEST window -----------------------------------------
+  // trips.start_date/end_date is a STORED envelope; the stops below are what
+  // this page actually draws. They drift apart — moving a stop past the stored
+  // end on the phone leaves the header claiming a range shorter than the
+  // itinerary underneath it. The reported case: a "Japan" header reading
+  // Nov 23 – Dec 8 over a Miyakojima stop running Dec 8 – Dec 10.
+  //
+  // The rule is that a trip's window must CONTAIN the days its stops occupy:
+  // widen to fit, NEVER shrink. Shrinking would throw away a date somebody
+  // typed; widening cannot destroy anything.
+  //
+  // This is a DISPLAY reconciliation, not a write. Web has no stop-date
+  // editor — every steps.date write on web is an INSERT (DayAddStop,
+  // TripCoverChips' Where sheet, Track photo placement, notes), never an
+  // UPDATE — so there is no forward path here to widen the row from. The row
+  // is left alone and the page simply stops under-reporting it.
+  //
+  // The span of a stop is [date, date + nights], which is exactly what the
+  // Plan tab renders: destVMs.dateRange below and groupTimelineByDay's
+  // nights + 1 buckets both end on addDays(start, nights).
+  const storedStartDay = dateOnly(trip.start_date)
+  const storedEndDay = dateOnly(trip.end_date)
+  const stopDays = destinations.flatMap((d) => {
+    const from = dateOnly(d.date)
+    // The 1970 sentinel means "dateless", not 1970 (see google.ts
+    // parseTripDate and TripTabs' isoDay). One such stop would otherwise drag
+    // the header back half a century.
+    if (!from || from.startsWith("1970")) return []
+    return [from, addDays(from, Math.max(0, d.nights ?? 0))]
+  })
+  const windowStartDay = stopDays.reduce<string | null>(
+    (acc, day) => (!acc || day < acc ? day : acc),
+    storedStartDay
+  )
+  const windowEndDay = stopDays.reduce<string | null>(
+    (acc, day) => (!acc || day > acc ? day : acc),
+    storedEndDay
+  )
+  // Midday UTC, never midnight — a midnight-UTC stamp renders as the PREVIOUS
+  // day for any viewer behind UTC. Same convention as TripSettingsShell's
+  // fromDateInput, which is what writes these columns from web.
+  const asStamp = (day: string | null) => (day ? `${day}T12:00:00+00:00` : null)
+  // Pass the stored value straight through when it already contains its stops,
+  // so a consistent trip renders byte-identically to before.
+  const tripStartDate =
+    windowStartDay === storedStartDay ? trip.start_date : asStamp(windowStartDay)
+  const tripEndDate =
+    windowEndDay === storedEndDay ? trip.end_date : asStamp(windowEndDay)
+
   // ---- Commission: "Complete your trip" stay gaps ----
   // A destination with nights but no booked stay (a child step_type "stay") is a
   // gap we can fill with commissioned Stay22 listings. Only surface gaps whose
@@ -268,9 +317,10 @@ export default async function TripDetailPage({
       },
     ]
     const doneCount = cats.filter((c) => c.done).length
-    const startMs = dateOnly(trip.start_date)
-      ? Date.parse(`${dateOnly(trip.start_date)}T00:00:00Z`)
-      : null
+    // windowStartDay, not the raw row: a "Starts in 3 days" countdown against
+    // a stored start that a stop already precedes contradicts the header
+    // directly above it.
+    const startMs = windowStartDay ? Date.parse(`${windowStartDay}T00:00:00Z`) : null
     const todayMs = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)
     return {
       categories: cats,
@@ -638,15 +688,19 @@ export default async function TripDetailPage({
           // heading behind it. One string now, and it is the better one.
           title: trip.title || trip.cities?.[0] || "Untitled trip",
           flag,
-          dateRange: tripSubtitle(trip),
-          statusLine: tripStatusLine(trip.start_date, trip.end_date),
+          // The honest window, not the raw row — see "The trip's HONEST
+          // window" above. Everything on this hero that states the trip's
+          // dates reads the same pair, so the header, the status line and the
+          // Dates chip cannot disagree with each other or with the stops.
+          dateRange: tripSubtitle({ ...trip, start_date: tripStartDate, end_date: tripEndDate }),
+          statusLine: tripStatusLine(tripStartDate, tripEndDate),
           cover: tripCover,
           coverCredit: heroCover.credit,
         }}
         chipData={{
           placeName,
-          startDate: trip.start_date,
-          endDate: trip.end_date,
+          startDate: tripStartDate,
+          endDate: tripEndDate,
           adults: trip.travelers_adults ?? 0,
           children: trip.travelers_children ?? 0,
           infants: trip.travelers_infants ?? 0,
@@ -659,8 +713,11 @@ export default async function TripDetailPage({
         stayGaps={stayGaps}
         budget={{
           amountUsd: trip.budget_amount_usd ?? null,
-          startDate: trip.start_date,
-          endDate: trip.end_date,
+          // Budget PACE is "how far through the trip are you" — against a
+          // stored end that a stop has already passed it pegs at 100% while
+          // the trip is still running.
+          startDate: tripStartDate,
+          endDate: tripEndDate,
         }}
         destinations={destVMs}
         stepDetails={stepDetails}
