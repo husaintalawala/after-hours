@@ -28,6 +28,7 @@ import {
   type ReviewSegmentRow,
   type TripScope,
 } from "@/lib/drift/reviewSegments"
+import { STEP_BOOKING_EMBED, stepConfirmationNumber } from "@/lib/drift/stepBooking"
 
 export interface SegmentVM {
   id: string
@@ -78,7 +79,12 @@ export async function loadReviewList(
     db.from("trips").select("start_date, end_date, cities, countries").eq("id", tripId).limit(1),
     db
       .from("steps")
-      .select("id, step_type, city, title, location_name, confirmation_number, dedupe_key, date, scheduled_at")
+      // The booking reference comes off the membership-scoped sibling, NOT
+      // `steps.confirmation_number` — this is an explicit column list, and
+      // naming a dropped column 400s the whole query.
+      .select(
+        `id, step_type, city, title, location_name, ${STEP_BOOKING_EMBED}, dedupe_key, date, scheduled_at`
+      )
       .eq("trip_id", tripId)
       .limit(400),
     db
@@ -113,9 +119,10 @@ export async function loadReviewList(
   // What's already on the itinerary — the strongest "already added" signal,
   // because it survives the segment row being re-parsed under a new id.
   const itinerary: ItineraryKeys = {
-    confirmationNumbers: [...steps, ...transport]
-      .map((r) => r.confirmation_number)
-      .filter((c): c is string => !!c),
+    confirmationNumbers: [
+      ...steps.map((s) => stepConfirmationNumber(s)),
+      ...transport.map((t) => t.confirmation_number),
+    ].filter((c): c is string => !!c),
     dedupeKeys: [...steps, ...transport]
       .map((r) => r.dedupe_key)
       .filter((k): k is string => !!k),

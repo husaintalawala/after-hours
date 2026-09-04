@@ -16,6 +16,11 @@ import {
   type TransportBookingLike,
 } from "@/lib/drift/timeline"
 import { addDays, compareDate, dateOnly } from "@/lib/drift/dates"
+import {
+  STEP_BOOKING_EMBED,
+  stepConfirmationNumber,
+  stepGuestCount,
+} from "@/lib/drift/stepBooking"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 import type {
   DestinationVM,
@@ -82,7 +87,7 @@ export default async function TripDetailPage({
     },
   ] = await Promise.all([
     supabase.from("trips").select("*").eq("id", tripId).maybeSingle(),
-    supabase.from("steps").select("*").eq("trip_id", tripId),
+    supabase.from("steps").select(`*, ${STEP_BOOKING_EMBED}`).eq("trip_id", tripId),
     supabase.from("transport_bookings").select("*").eq("trip_id", tripId),
     supabase.from("expenses").select("*").eq("trip_id", tripId),
     supabase.from("kit_items").select("*").eq("trip_id", tripId),
@@ -609,8 +614,8 @@ export default async function TripDetailPage({
       bookingUrl: s.booking_url,
       websiteUrl: s.website_url,
       importProvider: s.import_source_provider,
-      confirmationNumber: s.confirmation_number,
-      guestCount: s.guest_count,
+      confirmationNumber: stepConfirmationNumber(s),
+      guestCount: stepGuestCount(s),
       // Attribution. memberNames already holds every step author — their ids
       // joined the profiles batch above — so a miss here means the profile row
       // itself is gone, and the client falls back to "a trip member".

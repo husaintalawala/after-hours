@@ -2425,6 +2425,42 @@ export type Database = {
           },
         ]
       }
+      step_bookings: {
+        Row: {
+          confirmation_number: string | null
+          guest_count: number | null
+          step_id: string
+          trip_id: string
+        }
+        Insert: {
+          confirmation_number?: string | null
+          guest_count?: number | null
+          step_id: string
+          trip_id: string
+        }
+        Update: {
+          confirmation_number?: string | null
+          guest_count?: number | null
+          step_id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "step_bookings_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: true
+            referencedRelation: "steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "step_bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       steps: {
         Row: {
           address: string | null

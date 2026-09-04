@@ -18,6 +18,7 @@ import {
   type TransportBookingLike,
 } from "@/lib/drift/timeline"
 import { addDays, compareDate, dateOnly, type DateStr } from "@/lib/drift/dates"
+import { stepConfirmationNumber, stepGuestCount } from "@/lib/drift/stepBooking"
 
 // ---------------------------------------------------------------- palette --
 
@@ -379,12 +380,13 @@ function bookingMeta(
   if (item.durationMinutes && item.durationMinutes > 0 && item.type !== "stay") {
     parts.push(durationText(item.durationMinutes))
   }
-  const confirmation = trimmed(booking?.confirmation_number ?? step?.confirmation_number)
+  const confirmation = trimmed(booking?.confirmation_number ?? stepConfirmationNumber(step))
   if (confirmation) parts.push(`Confirmation ${confirmation}`)
   const seat = trimmed(booking?.seat)
   if (seat) parts.push(`Seat ${seat}`)
-  if (step?.guest_count && step.guest_count > 0) {
-    parts.push(`${step.guest_count} guest${step.guest_count === 1 ? "" : "s"}`)
+  const guests = stepGuestCount(step)
+  if (guests && guests > 0) {
+    parts.push(`${guests} guest${guests === 1 ? "" : "s"}`)
   }
   return parts.length ? parts.join("  ·  ") : null
 }
