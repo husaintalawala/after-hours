@@ -218,14 +218,19 @@ export default function TailorPanel({
         : `Make it mine · ${effectiveDays} days`
 
   // ---- The copy ----------------------------------------------------------
-  async function makeItMine() {
-    // Live while tailoring, the button would send the PREVIOUS dial's plan —
-    // the shape on screen and the trip written would differ.
-    if (isCopying || isTailoring) return
+  /** `asIs` writes the guide's ORIGINAL shape: no plan is sent, so copy-trip
+   *  reproduces the snapshot unaltered. It does not wait on the tailor, because
+   *  it does not use its answer — the whole point is skipping the dials. */
+  async function makeItMine(asIs = false) {
+    // Live while tailoring, the tailored button would send the PREVIOUS dial's
+    // plan — the shape on screen and the trip written would differ. The as-is
+    // button carries no plan at all, so it is safe mid-tailor.
+    if (isCopying || (!asIs && isTailoring)) return
     setIsCopying(true)
     setCopyError(null)
 
-    const key = attemptKey(pattern.tripId, startDay, null, result?.plan ?? null)
+    const plan = asIs ? null : (result?.plan ?? null)
+    const key = attemptKey(pattern.tripId, startDay, null, plan)
     // The trip id is minted HERE, not by the function, so the call is
     // idempotent: copy-trip inserts AT the supplied trip_id and answers a
     // duplicate on that id — this same copy having already landed — with the
@@ -245,7 +250,7 @@ export default function TailorPanel({
           start_date: startDay,
           // Verbatim, exactly as tailor-trip returned it. copy-trip checks
           // every row against the snapshot it claims to have come from.
-          ...(result?.rawPlan ? { plan: result.rawPlan } : {}),
+          ...(!asIs && result?.rawPlan ? { plan: result.rawPlan } : {}),
         }),
       })
       const json: unknown = await res.json().catch(() => null)
@@ -530,7 +535,7 @@ export default function TailorPanel({
           )}
           {copyError && <p className="mb-2.5 text-[12.5px] text-aurora-warn">{copyError}</p>}
           <button
-            onClick={makeItMine}
+            onClick={() => makeItMine(false)}
             disabled={isCopying || isTailoring}
             className={`flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl text-[16px] font-bold text-aurora-teal-ink transition-transform active:scale-[0.99] ${
               isCopying || isTailoring ? "bg-aurora-teal/45" : "bg-aurora-teal"
@@ -542,7 +547,18 @@ export default function TailorPanel({
             {/* The button states the length it will actually write. */}
             {buttonLabel}
           </button>
-          <p className="mt-2 text-center text-[12px] text-aurora-ink3">{dateLine}</p>
+          {/* The no-dials path, matching iOS. A reader who wants this trip
+              exactly as it was written should not have to answer a length
+              slider and a pace question first. A text button, not a second
+              slab: only one of these is the main road. */}
+          <button
+            onClick={() => makeItMine(true)}
+            disabled={isCopying}
+            className="mt-2 flex h-8 w-full items-center justify-center text-[13px] font-bold text-aurora-teal transition-opacity disabled:opacity-45"
+          >
+            Add as-is · {s.day_count}d from {monthLong(month.month)}
+          </button>
+          <p className="mt-1 text-center text-[12px] text-aurora-ink3">{dateLine}</p>
         </div>
       </div>
     </main>
