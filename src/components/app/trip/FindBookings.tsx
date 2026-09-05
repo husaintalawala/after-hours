@@ -176,6 +176,7 @@ function FindBookingsSheet({
   const [loadingSegments, setLoadingSegments] = useState(true)
   const [applying, setApplying] = useState(false)
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
+  const [skippedCount, setSkippedCount] = useState<number>(0)
   const [error, setError] = useState<string | null>(null)
   const [plaidStatus, setPlaidStatus] = useState<string | null>(null)
   // Two screens in one sheet: "sources" (add methods, with the pending queue
@@ -529,6 +530,7 @@ function FindBookingsSheet({
       byBatch.set(s.batchId, list)
     }
     let applied = 0
+    let skipped = 0
     try {
       for (const [batchId, ids] of byBatch) {
         const res = await fetch("/api/drift/apply-import", {
@@ -537,10 +539,18 @@ function FindBookingsSheet({
           body: JSON.stringify({ batch_id: batchId, segment_ids: ids }),
         })
         const json = await res.json().catch(() => null)
-        if (res.ok && json?.ok) applied += (json.applied ?? []).length
-        else throw new Error(json?.error ?? "Apply failed")
+        if (res.ok && json?.ok) {
+          applied += (json.applied ?? []).length
+          // apply-import-batch answers ok:true for a booking it could NOT
+          // place — no destination match, or a category it has no auto-creator
+          // for — and returns it under `skipped`. Counting only `applied` is
+          // how "Added 0 bookings to the trip ✓" got printed over a booking
+          // that was still sitting in the list.
+          skipped += (json.skipped ?? []).length
+        } else throw new Error(json?.error ?? "Apply failed")
       }
       setAppliedCount(applied)
+      setSkippedCount(skipped)
       await loadSegments({ keepMode: true })
     } catch (e) {
       setError(msg(e))
@@ -810,8 +820,21 @@ function FindBookingsSheet({
           </ul>
 
           {appliedCount != null && !error && (
-            <p className="mt-3 rounded-xl bg-emerald-500/10 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-300">
-              Added {appliedCount} {appliedCount === 1 ? "booking" : "bookings"} to the trip ✓
+            <p
+              className={`mt-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold ${
+                appliedCount > 0
+                  ? "bg-emerald-500/10 text-emerald-300"
+                  : "bg-amber-500/10 text-amber-300"
+              }`}
+            >
+              {appliedCount > 0
+                ? `Added ${appliedCount} ${appliedCount === 1 ? "booking" : "bookings"} to the trip ✓`
+                : "Nothing was added"}
+              {skippedCount > 0
+                ? ` · ${skippedCount} ${
+                    skippedCount === 1 ? "booking needs" : "bookings need"
+                  } a destination on the trip first`
+                : ""}
             </p>
           )}
 
