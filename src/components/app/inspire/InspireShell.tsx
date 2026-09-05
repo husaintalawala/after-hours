@@ -59,6 +59,20 @@ export default function InspireShell({
 }) {
   const [category, setCategory] = useState<string | null>(null)
   const [monthKey, setMonthKey] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
+
+  // Every word has to match, but they may match in different places: "japan
+  // toddler" is a country in the title and a word in a place name. Folded the
+  // same way `card.search` was built on the server.
+  const terms = query
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  const searching = query.trim().length >= 2 && terms.length > 0
+  const results = searching ? cards.filter((c) => terms.every((t) => c.search.includes(t))) : []
 
   const selectedMonth = months.find((m) => m.key === monthKey) ?? null
   const categoryLabel = categories.find((c) => c.slug === category)?.label ?? null
@@ -112,6 +126,47 @@ export default function InspireShell({
         tailor it to your dates.
       </p>
 
+      {/* A search, because forty guides is past the point where three rails is
+          a way to find the one about ramen. It searches the whole corpus — the
+          stops, the tags, and the name of every place inside every guide — and
+          it REPLACES the shelf rather than filtering one rail of it. */}
+      <label className="mt-5 flex h-11 items-center gap-2 rounded-full border border-aurora-border bg-aurora-glass px-4">
+        <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 stroke-aurora-ink3" fill="none" strokeWidth="2" strokeLinecap="round">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search places, countries, food…"
+          aria-label="Search guides"
+          className="w-full bg-transparent text-[15px] text-aurora-ink outline-none placeholder:text-aurora-ink3"
+        />
+      </label>
+
+      {searching ? (
+        <section className="mt-6">
+          <Kicker>
+            {results.length === 0
+              ? `Nothing matches ${query.trim()}`
+              : `${results.length} guide${results.length === 1 ? "" : "s"}`}
+          </Kicker>
+          {results.length === 0 ? (
+            <Empty
+              title="No guide says that"
+              body="Try a country, a city, a kind of food, or the sort of trip it is — islands, ramen, hiking."
+            />
+          ) : (
+            <div className="mt-3 flex flex-col gap-2.5">
+              {results.map((c) => (
+                <CompactCard key={c.tripId} card={c} />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : (
+      <>
       {categories.length > 0 && (
         <section className="mt-5">
           <div className={RAIL}>
@@ -224,6 +279,8 @@ export default function InspireShell({
           </>
         )}
       </section>
+      </>
+      )}
     </main>
   )
 }
