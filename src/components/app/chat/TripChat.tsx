@@ -82,6 +82,10 @@ export default function TripChat({
   const [messages, setMessages] = useState<Msg[]>([])
   const [myId, setMyId] = useState<string | null>(null)
   const [streaming, setStreaming] = useState<string | null>(null)
+  // `stop` is called from an event handler that closed over an older render, so
+  // it cannot read `streaming` directly and see the newest delta.
+  const streamingRef = useRef<string | null>(null)
+  streamingRef.current = streaming
   const [status, setStatus] = useState<string | null>(null)
   const [input, setInput] = useState("")
   // Attached photo (downscaled base64 data URL) for a vision question —
@@ -180,6 +184,8 @@ export default function TripChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId])
   const [busy, setBusy] = useState(false)
+  /** The in-flight turn, so the composer's STOP button can cancel it. */
+  const abortRef = useRef<AbortController | null>(null)
   const [undo, setUndo] = useState<{ label: string; stepId: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const seq = useRef(0)
@@ -246,6 +252,9 @@ export default function TripChat({
     let streamBuf = ""
     setStreaming("")
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     await askDrift(
       { tripId, message: text, conversation, image: img },
       {
@@ -279,8 +288,34 @@ export default function TripChat({
           setStatus(null)
           setError(msg)
         },
-      }
+      },
+      controller.signal
     )
+    if (abortRef.current === controller) abortRef.current = null
+    setBusy(false)
+  }
+
+  /** Stop an answer that is still being written.
+   *
+   *  Whatever has already streamed is KEPT, as a finished assistant message —
+   *  the user asked it to stop, not to throw away what it had said, and a half
+   *  answer that vanishes reads as a crash. Nothing is recorded as an error,
+   *  and the composer returns to idle so they can type straight away. The
+   *  abort reaches the fetch itself, so the request really is cancelled. */
+  function stop() {
+    const controller = abortRef.current
+    if (!controller) return
+    abortRef.current = null
+    controller.abort()
+    const partial = streamingRef.current
+    if (partial && partial.trim()) {
+      const id = nextId()
+      setMessages((m) => [...m, { id, role: "assistant", text: partial }])
+      if (sessionRef.current) void saveMessage(sessionRef.current, tripId, "assistant", partial)
+    }
+    setStreaming(null)
+    setStatus(null)
+    setError(null)
     setBusy(false)
   }
 
@@ -587,14 +622,28 @@ export default function TripChat({
             placeholder={attached ? "Ask about this photo…" : "Plan with Drift…"}
             className="h-[46px] min-w-0 flex-1 rounded-full border border-aurora-border bg-aurora-midnight px-5 text-[14.5px] outline-none transition-colors focus:border-drift-coral disabled:opacity-60"
           />
-          <button
-            onClick={() => send()}
-            disabled={busy || (!input.trim() && !attached)}
-            aria-label="Send"
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-[17px] text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)] disabled:opacity-50"
-          >
-            ↑
-          </button>
+          {/* One control, two jobs. While an answer is being written this is
+              STOP; the rest of the time it is Send. A separate stop button
+              would sit dead and greyed for the whole of every idle moment. */}
+          {busy ? (
+            <button
+              onClick={stop}
+              aria-label="Stop generating"
+              title="Stop"
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)]"
+            >
+              <span className="block h-3.5 w-3.5 rounded-[3px] bg-white" />
+            </button>
+          ) : (
+            <button
+              onClick={() => send()}
+              disabled={!input.trim() && !attached}
+              aria-label="Send"
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-drift-coral text-[17px] text-white shadow-[0_8px_18px_-8px_rgba(224,86,59,0.65)] disabled:opacity-50"
+            >
+              ↑
+            </button>
+          )}
         </div>
       </div>
     </section>
