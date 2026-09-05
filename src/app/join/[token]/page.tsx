@@ -91,8 +91,21 @@ const loadCover = cache(async (token: string): Promise<CoverRow | null> => {
 /// `v=` is the trip's updated_at: iMessage, Slack and WhatsApp cache a preview
 /// image by its URL for days, so a cover changed after the first share would
 /// otherwise keep unfurling as the old picture on every device that had seen it.
-function inviteImage(cover: CoverRow | null, tripTitle: string): string {
-  const own = cover?.cover_url?.trim() || cover?.cover_fallback_url?.trim() || ""
+function inviteImage(
+  cover: CoverRow | null,
+  tripTitle: string,
+  rpcCover?: string | null
+): string {
+  // Three rungs, and the third is why any of this works in production. The
+  // first two come from `loadCover`, a service-role read that needs
+  // SUPABASE_SERVICE_ROLE_KEY — which Vercel production does not have, so
+  // `cover` is null there and every invite unfurled as the branded card no
+  // matter what the trip's cover was. `preview_trip_invite` now returns the
+  // same answer over the anon path (migration 20260905170000: cover_url, else
+  // cover_fallback_url, and the media rung dropped so it can never be a
+  // member's own photo), so the unfurl no longer depends on that secret.
+  const own =
+    cover?.cover_url?.trim() || cover?.cover_fallback_url?.trim() || rpcCover?.trim() || ""
   if (!own) return brandedCard(tripTitle)
   const stamp = cover?.updated_at ? Date.parse(cover.updated_at) : NaN
   if (!Number.isFinite(stamp)) return own
@@ -156,7 +169,7 @@ export async function generateMetadata({
 
   // This trip's cover — never the anon RPC's media rung (a member's own
   // photo) and never the marketing photo. See inviteImage.
-  const image = inviteImage(cover, trip)
+  const image = inviteImage(cover, trip, p?.trip_cover_url)
 
   return {
     title,
