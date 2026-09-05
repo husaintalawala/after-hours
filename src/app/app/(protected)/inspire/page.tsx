@@ -74,6 +74,12 @@ export interface InspireCard {
   heroAttribution: string | null
   heroLink: string | null
   authorHandle: string | null
+  /** Everything a reader might type, folded to lowercase: the title, countries,
+   *  cities, stops, tags, and the name of every place inside the guide. Built
+   *  here because only the server has the snapshot — without it a shelf search
+   *  can match titles and nothing else, and nobody searches forty guides by
+   *  title. */
+  search: string
   authorAvatar: string | null
 }
 
@@ -247,9 +253,43 @@ function decode(raw: unknown): InspireCard | null {
     source: sourceFor(heroUrl),
     heroAttribution,
     heroLink,
+    search: foldSearch([
+      title,
+      headline,
+      ...asArray(snap.countries).map(asString),
+      ...asArray(snap.cities).map(asString),
+      ...stops.map((s) => s.name),
+      ...tags.map((t) => INSPIRE_TAGS[t]),
+      asString(row.author_handle),
+      asString(row.blurb),
+      // The places themselves — this is the half that makes "ramen" or
+      // "onsen" find anything.
+      ...asArray(snap.items).flatMap((i) => {
+        const it = asRecord(i)
+        if (!it) return []
+        return [
+          asString(it.title),
+          asString(it.location_name),
+          asString(it.canonical_name),
+          asString(it.kind),
+          asString(it.place_category),
+        ]
+      }),
+    ]),
     authorHandle: asString(row.author_handle),
     authorAvatar: asString(row.author_avatar_url),
   }
+}
+
+/** Lowercased and stripped of accents, so "sao paulo" finds "São Paulo" and
+ *  "kyoto" finds "Kyōto" — half this corpus carries a macron or a cedilla. */
+function foldSearch(parts: (string | null | undefined)[]): string {
+  return parts
+    .filter((p): p is string => typeof p === "string" && p.length > 0)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
 }
 
 /**

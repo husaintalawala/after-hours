@@ -35,7 +35,11 @@ const tabs: TabDef[] = [
   { href: "/app/discover", label: "Discover", icon: icons.discover },
   { href: "/app/inspire", label: "Inspire", icon: icons.inspire },
   { href: "/app/chats", label: "Chats", icon: icons.chats },
-  { href: "/app/activity", label: "Activity", icon: icons.activity },
+  // Activity is off the nav for now to de-congest it — five tabs plus the
+  // create button left nothing room to breathe, and Activity is the one whose
+  // permanent home is undecided. The route, its page and its icon all stay;
+  // restoring it is uncommenting this entry.
+  // { href: "/app/activity", label: "Activity", icon: icons.activity },
 ]
 
 export default function AppNav() {
