@@ -72,6 +72,11 @@ export default function FindBookings({
   // Which batch to scope the review to: the chip's batch when opened via the
   // chip, null (show everything) when opened via the "Find bookings" button.
   const [scopeBatchId, setScopeBatchId] = useState<string | null>(null)
+  // How many bookings are waiting. The tile reads "N · to review" like iOS's
+  // deck tile; it is only a number on the tile — tapping it still opens the
+  // sources, with the queue as its own section there. Re-read whenever the
+  // sheet closes, since reviewing inside it changes the count.
+  const [underReview, setUnderReview] = useState<number | null>(null)
 
   useEffect(() => {
     if (openSignal > 0) {
@@ -81,13 +86,29 @@ export default function FindBookings({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openSignal])
 
+  useEffect(() => {
+    if (open || variant !== "tile") return
+    let cancelled = false
+    loadReviewList(createClient(), tripId, null)
+      .then((list) => {
+        if (!cancelled) setUnderReview(list.length)
+      })
+      .catch(() => {
+        if (!cancelled) setUnderReview(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tripId, open, variant])
+
   return (
     <>
       {variant === "tile" ? (
         <TripToolTile
           tint="teal"
           title="Find bookings"
-          caption="Scan your inbox"
+          value={underReview && underReview > 0 ? String(underReview) : null}
+          caption={underReview && underReview > 0 ? "to review" : "Scan your inbox"}
           preview={<SourceFan />}
           onClick={() => {
             setScopeBatchId(null)
@@ -157,11 +178,18 @@ function FindBookingsSheet({
   const [appliedCount, setAppliedCount] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [plaidStatus, setPlaidStatus] = useState<string | null>(null)
-  // Two screens in one sheet: "sources" (add methods) and "review" (the found
-  // bookings, its own screen with a reachable close + sticky Add bar). Opening
-  // to review a specific scan, or any load that turns up results, lands on
-  // review so the found list is never buried under the add-sources list.
+  // Two screens in one sheet: "sources" (add methods, with the pending queue
+  // as its own "Under review" section) and "review" (the found bookings, its
+  // own screen with a reachable close + sticky Add bar). Opening to review a
+  // specific scan, or an import run inside the sheet, lands on review; merely
+  // having something pending does not — see loadSegments.
   const [mode, setMode] = useState<"sources" | "review">(reviewBatchId ? "review" : "sources")
+  // Which batch the review list is scoped to. Starts as the chip's batch (or
+  // null for "everything") and is cleared the moment the user does anything
+  // that reaches past that scan — an in-sheet import, or "Add more" — so the
+  // booking they just imported, or the rest of the queue, is not filtered
+  // out of the very list they are looking at.
+  const [scope, setScope] = useState<string | null>(reviewBatchId)
   const [tripName, setTripName] = useState<string | null>(tripTitle)
   // Undo for inline dismiss: keep the removed row + defer the ignore write so an
   // Undo within the window costs no round-trip (commit-on-timeout).
@@ -202,22 +230,34 @@ function FindBookingsSheet({
 
   /** `keepMode` holds the review screen open after an apply, so the
    *  "Added N bookings ✓" confirmation isn't yanked away when the list it
-   *  belongs to empties out. */
-  async function loadSegments(opts: { keepMode?: boolean } = {}) {
+   *  belongs to empties out. `toReview` jumps to the review screen when the
+   *  load turns up results — asked for by the scan chip (a specific batch) and
+   *  by an in-sheet import the user just ran, NOT by merely opening the sheet.
+   *  Opening used to jump whenever anything was pending, which made the queue
+   *  a gate: with one booking waiting, the sources were a "back" tap away and
+   *  a new Gmail scan looked unavailable. Pending items are now a section of
+   *  their own on the sources screen instead. */
+  async function loadSegments(
+    opts: { keepMode?: boolean; toReview?: boolean; scope?: string | null } = {}
+  ) {
     setLoadingSegments(true)
     const db = createClient()
     // Shared with ScanStatus's "Found N" count — see loadReviewList. Both must
     // read the same filter or the banner can promise rows the screen can't show.
-    const shown = await loadReviewList(db, tripId, reviewBatchId)
+    // An explicit `scope` wins over state: React batches setScope, so a caller
+    // that just widened the scope passes it directly rather than racing it.
+    const batchScope = opts.scope === undefined ? scope : opts.scope
+    const shown = await loadReviewList(db, tripId, batchScope)
     setSegments(shown)
     setSelected(new Set(shown.filter((v) => v.batchId).map((v) => v.id)))
     setLoadingSegments(false)
-    // Results present → jump to the review screen (found bookings get their own
-    // screen instead of being appended below the add-sources list). Nothing
-    // left after filtering (the scan only re-found bookings already in the
-    // trip) → don't strand the user on an empty review screen.
-    if (shown.length > 0) setMode("review")
-    else if (!opts.keepMode) setMode("sources")
+    // Nothing left after filtering (the scan only re-found bookings already in
+    // the trip) → don't strand the user on an empty review screen.
+    if (shown.length > 0) {
+      if (opts.toReview) setMode("review")
+    } else if (!opts.keepMode) {
+      setMode("sources")
+    }
   }
 
   // Write status=ignored (allowed value; RLS lets a trip member write it) so a
@@ -289,7 +329,9 @@ function FindBookingsSheet({
   }
 
   useEffect(() => {
-    loadSegments()
+    // Opened from the scan chip for a specific batch → straight to its results.
+    // Opened from the tile → the sources, with "Under review" as a section.
+    loadSegments({ toReview: reviewBatchId != null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId])
 
@@ -321,7 +363,11 @@ function FindBookingsSheet({
     })
     const json = await res.json().catch(() => null)
     if (!res.ok || !json?.ok) throw new Error(json?.error ?? `Couldn't read that ${noun}`)
-    await loadSegments()
+    // The user just imported something here — show them what it found. That
+    // means the whole queue: a sheet opened from the scan chip is scoped to
+    // that scan's batch, and the import they just ran is a different batch.
+    setScope(null)
+    await loadSegments({ toReview: true, scope: null })
     if (!json.batch_id) setError(`Read the ${noun}, but found no bookings in it.`)
   }
 
@@ -532,7 +578,15 @@ function FindBookingsSheet({
           <div className="min-w-0">
             {mode === "review" && (
               <button
-                onClick={() => setMode("sources")}
+                onClick={() => {
+                  setMode("sources")
+                  // Leaving a scan-scoped review: the sources screen's "Under
+                  // review" is the whole queue, not just that scan's share.
+                  if (scope !== null) {
+                    setScope(null)
+                    void loadSegments({ scope: null })
+                  }
+                }}
                 className="mb-1.5 inline-flex items-center gap-1 text-[12.5px] font-semibold text-drift-muted transition-colors hover:text-drift-ink"
               >
                 <Icon name="chevron" className="h-3.5 w-3.5 rotate-180" /> Add more
@@ -565,16 +619,28 @@ function FindBookingsSheet({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
           {mode === "sources" && (
           <>
-          {segments.length > 0 && (
-            <button
-              onClick={() => setMode("review")}
-              className="mt-4 flex w-full items-center justify-between gap-3 rounded-2xl border border-drift-coral/40 bg-drift-coral-50 px-4 py-3 text-left"
-            >
-              <span className="text-[13.5px] font-semibold text-drift-ink">
-                {segments.length} booking{segments.length === 1 ? "" : "s"} ready to review
-              </span>
-              <Icon name="chevron" className="h-4 w-4 text-drift-coral" />
-            </button>
+          {/* The review queue as its OWN section, beside the sources — never a
+              gate on them. Every add method below stays live while it shows. */}
+          {!loadingSegments && segments.length > 0 && (
+            <>
+              <SectionLabel>Under review</SectionLabel>
+              <button
+                onClick={() => setMode("review")}
+                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-drift-coral/40 bg-drift-coral-50 px-4 py-3 text-left"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[13.5px] font-semibold text-drift-ink">
+                    {segments.length} booking{segments.length === 1 ? "" : "s"} to review
+                  </span>
+                  <span className="block text-[12px] text-drift-muted">
+                    Found by your scans — add the ones you want, dismiss the rest
+                  </span>
+                </span>
+                <span className="shrink-0 rounded-full bg-drift-coral px-3 py-1.5 text-[12px] font-bold text-white">
+                  Review
+                </span>
+              </button>
+            </>
           )}
           {/* Working methods */}
           <SectionLabel>Add bookings</SectionLabel>
@@ -743,11 +809,6 @@ function FindBookingsSheet({
             })}
           </ul>
 
-          {error && (
-            <p className="mt-3 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-400">
-              {error}
-            </p>
-          )}
           {appliedCount != null && !error && (
             <p className="mt-3 rounded-xl bg-emerald-500/10 px-3.5 py-2.5 text-[13px] font-semibold text-emerald-300">
               Added {appliedCount} {appliedCount === 1 ? "booking" : "bookings"} to the trip ✓
@@ -755,6 +816,16 @@ function FindBookingsSheet({
           )}
 
           </>
+          )}
+
+          {/* Failures surface on whichever screen raised them. This used to
+              live inside the review block only, so a Gmail popup closed early,
+              a calendar with no travel events, or an unreadable PDF — all
+              raised from the sources screen — produced no visible message. */}
+          {error && (
+            <p className="mt-3 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-400">
+              {error}
+            </p>
           )}
 
           {/* Hidden pickers driving the PDF / .ics action rows */}
