@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import Skeleton from "./loading"
 import { createClient } from "@/lib/supabase/server"
 import { tripCover, type TripCoverResult } from "@/lib/drift/tripCover"
 import { photoAt } from "@/lib/drift/inspire"
@@ -351,7 +353,18 @@ function ShelfUnavailable() {
   )
 }
 
-export default async function InspirePage() {
+export default function InspirePage() {
+  // force-dynamic, and it reads every guide's whole snapshot with no limit —
+  // the longest wait in the app. Behind a boundary the skeleton is on screen
+  // while that happens instead of the document being held open.
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <InspireContent />
+    </Suspense>
+  )
+}
+
+async function InspireContent() {
   const supabase = await createClient()
 
   // Read as `unknown` on purpose, despite the generated row type: `snapshot` is

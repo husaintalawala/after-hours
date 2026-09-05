@@ -52,11 +52,11 @@ const NAV: Item[] = [
 ]
 
 export default function AppRail({
-  initial,
-  avatarUrl,
+  avatar,
 }: {
-  initial: string
-  avatarUrl: string | null
+  /** Rendered as-is. A slot rather than two props because the layout streams
+   *  this in behind a Suspense boundary — see RailAvatar. */
+  avatar: React.ReactNode
 }) {
   const pathname = usePathname()
   const isActive = (i: Item) => (i.exact ? pathname === i.href : pathname.startsWith(i.href))
@@ -113,21 +113,7 @@ export default function AppRail({
         aria-label="Settings"
         className="mt-auto outline-none focus-visible:ring-2 focus-visible:ring-drift-coral/50 rounded-full"
       >
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt=""
-            className="h-9 w-9 rounded-full object-cover shadow-[0_0_0_2px_rgba(255,255,255,0.85)]"
-          />
-        ) : (
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-bold text-white shadow-[0_0_0_2px_rgba(255,255,255,0.85)]"
-            style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
-          >
-            {initial}
-          </span>
-        )}
+        {avatar}
       </Link>
     </aside>
   )

@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import HomeSkeleton from "./loading"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -52,11 +54,24 @@ export default async function TripsHome() {
     if (claimed) redirect(`/i/${claimed}/start`)
   }
 
+  // The assembly is three serial waves of queries, and until this file was
+  // split they all had to finish before the browser got ANYTHING — the skeleton
+  // in loading.tsx only covers a soft navigation, not a hard load. Behind a
+  // boundary, the document streams straight away and the same skeleton holds
+  // the place until the data lands.
+  return (
+    <Suspense fallback={<HomeSkeleton />}>
+      <Home userId={user.id} />
+    </Suspense>
+  )
+}
+
+async function Home({ userId }: { userId: string }) {
+  const supabase = await createClient()
   // The whole assembly — globe pins, featured pick, cover chain, stats — lives
   // in buildHomeData so that someone else's profile at /app/people/[id] renders
   // from the SAME code. It used to be inline here, which is precisely why that
   // page had drifted into a thinner screen with no globe.
-  const data = await buildHomeData(supabase, user.id)
-
+  const data = await buildHomeData(supabase, userId)
   return <HomeShell data={data} />
 }
