@@ -1,5 +1,6 @@
 import { cache } from "react"
 import type { Metadata } from "next"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { isValidInviteToken } from "@/lib/drift/invite"
 
@@ -46,13 +47,57 @@ const TITLE = "#F4F8F9"
 const SUBTITLE = "rgba(198,208,217,0.9)"
 
 const ORIGIN = "https://drift.after-hours.app"
-/// NOT /drift/assets/… — that is the path inside public/, and on this host the
-/// marketing middleware already rewrites /x → /drift/x, so the internal path
-/// double-prefixes to /drift/drift/… and 404s. A 404 og:image is not a
-/// degraded card, it is a BLANK one, and nothing in a typecheck or a page
-/// render catches it: the tag is present and well-formed, the bytes just
-/// aren't there. Verified 200 image/jpeg at this URL.
-const FALLBACK_OG = `${ORIGIN}/assets/photo/og-image.jpg`
+
+/// The card an invite unfurls with when the trip has no cover of its own: a
+/// Drift-branded one, rendered by /api/og/invite with the trip's title on it.
+///
+/// This used to be /assets/photo/og-image.jpg — the marketing site's photo of a
+/// couple at a lagoon. Every trip whose cover the invite lookup could not find
+/// unfurled as two strangers on holiday, which read as somebody's personal
+/// photo attached to the wrong trip. /api/… is carved out of the marketing
+/// rewrite by the middleware matcher, so this URL serves the route handler.
+function brandedCard(tripTitle: string): string {
+  return `${ORIGIN}/api/og/invite?t=${encodeURIComponent(tripTitle)}`
+}
+
+/// The trip's cover, looked up with the service role so a signed-out stranger's
+/// unfurl still gets it. `preview_trip_invite` runs as anon and deliberately
+/// returns neither the trip id nor the Unsplash fallback cover — but the
+/// fallback IS the cover a copied or freshly-planned trip shows everywhere in
+/// the app (cover_url stays null until a photo is chosen), so an invite
+/// previewing without it showed a trip the recipient would not recognise.
+/// Server-only: the key never leaves this process, and the token is validated
+/// by the same RPC before this is ever consulted.
+type CoverRow = { cover_url: string | null; cover_fallback_url: string | null; updated_at: string | null }
+const loadCover = cache(async (token: string): Promise<CoverRow | null> => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceRole || !isValidInviteToken(token)) return null
+  const admin = createAdminClient(url, serviceRole, { auth: { persistSession: false } })
+  const inv = await admin.from("trip_invites").select("trip_id").eq("token", token).limit(1)
+  const tripId = (inv.data as { trip_id: string }[] | null)?.[0]?.trip_id
+  if (!tripId) return null
+  const res = await admin
+    .from("trips")
+    .select("cover_url, cover_fallback_url, updated_at")
+    .eq("id", tripId)
+    .limit(1)
+  return ((res.data as CoverRow[] | null) ?? [])[0] ?? null
+})
+
+/// Which image the unfurl shows: the trip's own cover, else the Unsplash cover
+/// the app already shows for it, else the branded card. Never a person.
+///
+/// `v=` is the trip's updated_at: iMessage, Slack and WhatsApp cache a preview
+/// image by its URL for days, so a cover changed after the first share would
+/// otherwise keep unfurling as the old picture on every device that had seen it.
+function inviteImage(cover: CoverRow | null, tripTitle: string): string {
+  const own = cover?.cover_url?.trim() || cover?.cover_fallback_url?.trim() || ""
+  if (!own) return brandedCard(tripTitle)
+  const stamp = cover?.updated_at ? Date.parse(cover.updated_at) : NaN
+  if (!Number.isFinite(stamp)) return own
+  return `${own}${own.includes("?") ? "&" : "?"}v=${Math.floor(stamp / 1000)}`
+}
 
 /// One preview lookup per request, shared by generateMetadata and the page.
 /// React.cache dedupes it — Next only dedupes `fetch`, and this is an RPC, so
@@ -88,7 +133,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>
 }): Promise<Metadata> {
   const { token } = await params
-  const p = await loadPreview(token)
+  const [p, cover] = await Promise.all([loadPreview(token), loadCover(token)])
   const robots = { index: false, follow: false }
 
   if (!p || !p.valid) {
@@ -109,10 +154,9 @@ export async function generateMetadata({
     ? `${bits.join(" · ")}. See the plan and join on Drift.`
     : "See the plan and join on Drift."
 
-  // The trip's own cover when it has one — that is the "beautiful cover photo"
-  // the preview should be showing. Falls back to Drift's card so a coverless
-  // trip still unfurls as Drift rather than as nothing.
-  const image = p.trip_cover_url || FALLBACK_OG
+  // This trip's cover — never the anon RPC's media rung (a member's own
+  // photo) and never the marketing photo. See inviteImage.
+  const image = inviteImage(cover, trip)
 
   return {
     title,
@@ -146,11 +190,14 @@ export default async function JoinPage({
   const supabase = await createClient()
   // loadPreview is React.cache'd, so generateMetadata's lookup above and this
   // one are a single round trip.
-  const [{ data: auth }, preview] = await Promise.all([
+  const [{ data: auth }, preview, cover] = await Promise.all([
     supabase.auth.getUser(),
     loadPreview(token),
+    loadCover(token),
   ])
   const signedIn = !!auth?.user
+  // The same cover the unfurl showed, so the page and the card agree.
+  const heroUrl = cover?.cover_url?.trim() || cover?.cover_fallback_url?.trim() || preview?.trip_cover_url || null
 
   if (!preview || !preview.valid) {
     return <Shell><DeadCard reason={preview?.reason ?? "not_found"} title={preview?.trip_title} /></Shell>
@@ -162,7 +209,7 @@ export default async function JoinPage({
 
   return (
     <Shell>
-      {preview.trip_cover_url && (
+      {heroUrl && (
         // A background-image on a div, not an <img>, and that is the point: a
         // cover URL that 404s (a purged CDN object, a trip whose cover was
         // never resolved) renders as Chrome's broken-image box in an <img> —
@@ -174,7 +221,7 @@ export default async function JoinPage({
           className="mb-5 h-40 w-full rounded-2xl bg-cover bg-center"
           style={{
             backgroundColor: "rgba(55,214,196,0.10)",
-            backgroundImage: `linear-gradient(180deg, rgba(8,19,29,0) 40%, rgba(8,19,29,0.55) 100%), url(${JSON.stringify(preview.trip_cover_url)})`,
+            backgroundImage: `linear-gradient(180deg, rgba(8,19,29,0) 40%, rgba(8,19,29,0.55) 100%), url(${JSON.stringify(heroUrl)})`,
           }}
         />
       )}
