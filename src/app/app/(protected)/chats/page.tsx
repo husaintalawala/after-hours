@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import Skeleton from "./loading"
 import { createClient } from "@/lib/supabase/server"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
@@ -22,7 +24,16 @@ interface SessionRow {
   last_message_at: string
 }
 
-export default async function ChatsPage() {
+export default function ChatsPage() {
+  // Three waves of queries used to finish before the browser got anything on a hard load; loading.tsx only covers a soft navigation. Behind a boundary the document streams at once and the same skeleton holds the place.
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <ChatsContent />
+    </Suspense>
+  )
+}
+
+async function ChatsContent() {
   const supabase = await createClient()
   const {
     data: { session },

@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import Skeleton from "./loading"
 import { createClient } from "@/lib/supabase/server"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import type { DiscoverAnchor } from "@/lib/drift/discover"
@@ -6,7 +8,16 @@ import DiscoverShell, { type DiscoverPlace } from "@/components/app/discover/Dis
 // Discover — anchors to the user's featured trip's first destination when one
 // exists (iOS trip-anchored mode); otherwise opens in search-first mode.
 
-export default async function DiscoverPage() {
+export default function DiscoverPage() {
+  // Two waves, the second keyed on the first, so they cannot be parallelised — but they can stream behind the skeleton instead of blocking the document.
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <DiscoverContent />
+    </Suspense>
+  )
+}
+
+async function DiscoverContent() {
   const supabase = await createClient()
   // Middleware already verified this request's user; cookie read is enough here.
   const {

@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import Skeleton from "./loading"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import type { TripRow, TripBuddyRow } from "@/lib/db-types"
@@ -13,7 +15,16 @@ import CountriesMapClient from "@/components/app/countries/CountriesMapClient"
 
 const WORLD_COUNTRIES = 195
 
-export default async function CountriesPage() {
+export default function CountriesPage() {
+  // Four SERIAL waves of queries. Streaming the shell first is the difference between a skeleton and a blank page on a hard load.
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <CountriesContent />
+    </Suspense>
+  )
+}
+
+async function CountriesContent() {
   const supabase = await createClient()
   const {
     data: { session },

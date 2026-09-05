@@ -1,8 +1,10 @@
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import AppNav from "@/components/app/AppNav"
 import AppRail from "@/components/app/AppRail"
 import PostHogAuthBridge from "@/components/app/PostHogAuthBridge"
+import RailAvatar, { RailAvatarFallback } from "@/components/app/RailAvatar"
 
 // Browser-tab identity (title + favicon) is inherited from the /app section
 // layout (src/app/app/layout.tsx) so login and the logged-in app match; the
@@ -29,14 +31,10 @@ export default async function ProtectedLayout({
 
   if (!user) redirect("/app/login")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name,username,avatar_url")
-    .eq("id", user.id)
-    .maybeSingle<{ display_name: string | null; username: string | null; avatar_url: string | null }>()
-  const initial = (profile?.display_name || profile?.username || "T")
-    .slice(0, 1)
-    .toUpperCase()
+  // NOTHING ELSE IS AWAITED HERE. A loading.tsx wraps a layout's children, not
+  // the layout's own awaits, so anything this function waits on delays the
+  // first byte of every hard load — and the profiles lookup that used to live
+  // here bought one letter and one image URL. It streams in now; see RailAvatar.
 
   // Magic link serves both sign-up and sign-in, so a just-created auth user is
   // the only signal that this app entry is a signup (funnel step).
@@ -53,7 +51,13 @@ export default async function ProtectedLayout({
       <div className="min-h-screen bg-aurora-midnight font-drift-body text-aurora-ink">
         {/* Desktop: persistent left nav rail. Mobile: floating bottom dock. */}
         <div className="hidden lg:block">
-          <AppRail initial={initial} avatarUrl={profile?.avatar_url ?? null} />
+          <AppRail
+            avatar={
+              <Suspense fallback={<RailAvatarFallback />}>
+                <RailAvatar userId={user.id} />
+              </Suspense>
+            }
+          />
         </div>
         {/* Content clears the attached mobile nav (56px + safe area) and the
             desktop rail (pl). */}
