@@ -74,14 +74,21 @@ const FIRST_TOKEN_TIMEOUT_MS = 18_000
  */
 export async function askDrift(
   body: AskRequestBody,
-  handlers: AskHandlers
+  handlers: AskHandlers,
+  /** Abort this turn. The composer's STOP button owns one of these. */
+  signal?: AbortSignal
 ): Promise<void> {
   try {
-    await streamAsk(body, handlers)
+    await streamAsk(body, handlers, signal)
   } catch {
+    // A USER abort must stop here. Every other failure below falls through to
+    // the blocking call, and doing that after a stop would fire a SECOND
+    // request — the opposite of what the button says. The watchdog's own abort
+    // is not the caller's signal, so it still gets its retry.
+    if (signal?.aborted) return
     // Watchdog abort (code -5 analog) or transport error → blocking retry.
     try {
-      const answer = await blockingAsk(body)
+      const answer = await blockingAsk(body, signal)
       handlers.onPayload?.(answer)
       return
     } catch (e) {
@@ -89,9 +96,10 @@ export async function askDrift(
       // now answers 503 model_unavailable instead of the canned prose it used
       // to invent, so this is reachable where it never used to be — retry once,
       // then hand back a clarifying question as a normal turn.
+      if (signal?.aborted) return
       if (e instanceof AskError && e.code === "model_unavailable") {
         try {
-          const answer = await blockingAsk(body)
+          const answer = await blockingAsk(body, signal)
           handlers.onPayload?.(answer)
           return
         } catch {
@@ -99,6 +107,7 @@ export async function askDrift(
           return
         }
       }
+      if (signal?.aborted) return
       handlers.onError?.(
         e instanceof Error ? e.message : "Couldn't reach Drift. Try again."
       )
@@ -120,8 +129,20 @@ function clarifyingAnswer(text: string): ChatAnswer {
   } as unknown as ChatAnswer
 }
 
-async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<void> {
+async function streamAsk(
+  body: AskRequestBody,
+  handlers: AskHandlers,
+  signal?: AbortSignal
+): Promise<void> {
   const controller = new AbortController()
+  // The caller's signal and the watchdog both feed the SAME fetch controller,
+  // so a stop cancels the in-flight request rather than merely hiding it: the
+  // connection closes and the edge function stops being paid for.
+  const relayAbort = () => controller.abort()
+  if (signal) {
+    if (signal.aborted) controller.abort()
+    else signal.addEventListener("abort", relayAbort, { once: true })
+  }
   let gotFirstToken = false
 
   // Watchdog = SILENCE detector, not a time-to-first-token deadline. A reasoning
@@ -181,6 +202,7 @@ async function streamAsk(body: AskRequestBody, handlers: AskHandlers): Promise<v
     }
   } finally {
     if (watchdog) clearTimeout(watchdog)
+    signal?.removeEventListener("abort", relayAbort)
   }
 }
 
@@ -312,11 +334,12 @@ class AskError extends Error {
   }
 }
 
-async function blockingAsk(body: AskRequestBody): Promise<ChatAnswer> {
+async function blockingAsk(body: AskRequestBody, signal?: AbortSignal): Promise<ChatAnswer> {
   const res = await fetch(ASK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...body, stream: false }),
+    signal,
   })
   if (!res.ok) {
     // The proxy forwards ask-drift-chat's body verbatim, and that body is JSON.
