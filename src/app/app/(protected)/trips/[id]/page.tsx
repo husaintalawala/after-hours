@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import Skeleton from "../loading"
 import Link from "next/link"
 import { tripCover as resolveTripCover } from "@/lib/drift/tripCover"
 import { buildTripNotes } from "@/lib/drift/tripNotes"
@@ -56,6 +58,40 @@ export default async function TripDetailPage({
 }) {
   const { id: tripId } = await params
   const { ask } = (await searchParams) ?? {}
+  const supabase = await createClient()
+
+  // DOES THIS TRIP EXIST, AND MAY THIS PERSON SEE IT — asked here, outside the
+  // boundary below, because `notFound()` only sets a 404 while the status is
+  // still ours to set. From inside a Suspense child, after the shell has
+  // streamed, it renders the not-found view with a 200 instead, and a deleted
+  // or unshared trip link would quietly stop being a 404.
+  //
+  // The cost is one extra lookup on the primary key, on every trip open. That
+  // is the price of streaming the heaviest screen in the app: everything below
+  // — a ten-way batch, then a second wave keyed on its ids, then a very large
+  // payload — used to hold the document open with nothing on screen.
+  //
+  // RLS makes a trip this person may not see return no row, so this one query
+  // answers both questions at once.
+  const { data: tripExists, error: existsError } = await supabase
+    .from("trips")
+    .select("id")
+    .eq("id", tripId)
+    .maybeSingle()
+  if (existsError) {
+    console.error("[trips/[id]] trip lookup failed", tripId, existsError)
+    throw new Error(`Couldn't load this trip: ${existsError.message}`)
+  }
+  if (!tripExists) notFound()
+
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <TripDetailContent tripId={tripId} ask={ask} />
+    </Suspense>
+  )
+}
+
+async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string }) {
   const supabase = await createClient()
 
   // ONE round trip for everything that keys on the trip id alone. This used to
@@ -119,6 +155,8 @@ export default async function TripDetailPage({
     throw new Error(`Couldn't load this trip: ${tripError.message}`)
   }
   const trip = tripRaw as TripRow | null
+  // Belt and braces: the check above already 404'd a missing trip, so this can
+  // only fire if it was deleted between the two queries.
   if (!trip) notFound()
 
   const steps = (stepsRaw ?? []) as StepRow[]
