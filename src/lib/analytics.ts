@@ -100,6 +100,13 @@ export function initAnalytics(): void {
         autocapture: true,
         person_profiles: "identified_only",
         sanitize_properties: redactCapabilityUrls,
+        // Unhandled errors and promise rejections into PostHog's Error
+        // tracking. Web captured NO client-side errors before this — Vercel's
+        // logs only ever saw the server half, so a component that threw in the
+        // browser failed silently and invisibly. Same SDK already on the page:
+        // no second vendor, no second key. sanitize_properties above still
+        // applies, so a capability URL cannot ride along in a stack frame.
+        capture_exceptions: true,
       })
       ph = posthog as unknown as PostHogLike
       if (pendingIdentity) {
