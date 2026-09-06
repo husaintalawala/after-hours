@@ -47,7 +47,12 @@ export default async function ProtectedLayout({
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
         rel="stylesheet"
       />
-      <PostHogAuthBridge userId={user.id} email={user.email} isNew={isNew} />
+      {/* Supabase user id only — no email; the provider is the signup's method. */}
+      <PostHogAuthBridge
+        userId={user.id}
+        method={user.app_metadata?.provider ?? null}
+        isNew={isNew}
+      />
       <div className="min-h-screen bg-aurora-midnight font-drift-body text-aurora-ink">
         {/* Desktop: persistent left nav rail. Mobile: floating bottom dock. */}
         <div className="hidden lg:block">

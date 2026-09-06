@@ -17,6 +17,7 @@ import { addDays, dateOnly } from "@/lib/drift/dates"
 import { ensureTripSession, loadTripMessages, saveMessage, getCurrentUserId, loadAuthorNames }
 from "@/lib/drift/chatStore"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { checkTripActivated } from "@/lib/drift/activation"
 
 // Trip-scoped Ask Drift: streaming answers, photo place-card carousel
 // (hydrated via resolve-place, like DriftChatView), "You might want to ask"
@@ -358,6 +359,7 @@ export default function TripChat({
         step_type: op.type,
         has_day: !!op.date,
       })
+      void checkTripActivated(tripId)
       setUndo({ label: `Added ${op.title}`, stepId: step.id })
       setMessages((m) =>
         m.map((msg) =>

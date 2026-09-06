@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
 
 // Travel Buddies — web port of the iOS TravelBuddiesSheet, opened from the
 // "Invite" pill on the trip cover exactly as it is on the phone.
@@ -72,6 +73,9 @@ export default function TripBuddiesPanel({
       // that the landing page then rejects.
       const token = ((data as { token?: string }[] | null) ?? [])[0]?.token
       if (!token) throw new Error("No invite token came back. Try again.")
+      // The invite loop's numerator. No token, no trip id, no names — the loop
+      // is measured as links minted vs. invite_accepted redeemed.
+      capture(AnalyticsEvent.InviteLinkCreated)
       setInviteUrl(`https://drift.after-hours.app/join/${token}`)
     } catch (err) {
       setError(
