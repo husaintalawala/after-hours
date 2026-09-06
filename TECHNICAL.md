@@ -14,7 +14,32 @@ One Next.js app (App Router) serves three things, split by hostname in `src/midd
 |---------|------|-------------|
 | **Side Quest** — scroll-driven 3D globe travel portfolio | `after-hours.app` | `src/app/page.tsx` + `src/components/Globe.tsx` |
 | **Drift marketing landing** — hand-written static HTML | `drift.after-hours.app` (all paths not carved out below) | `public/drift/` via middleware rewrite |
-| **Drift web app** — logged-in product, Supabase-backed | `drift.after-hours.app/app`, `/auth`, `/trip` — the path carve-out is checked before the host, so these paths serve on every host | `src/app/app`, `src/app/auth`, `src/app/trip`, `src/app/api/drift` |
+| **Drift web app** — logged-in product, Supabase-backed | `drift.after-hours.app/app`, `/auth`, `/trip`, `/join` — the path carve-out is checked before the host, so these paths serve on every host. `/i/<slug>` (the public guide) and `/.well-known/apple-app-site-association` are carved out too, but with a plain `next()` and NO session work: they read no cookies, and crawlers and link unfurlers should not cost an auth round trip | `src/app/app`, `src/app/auth`, `src/app/trip`, `src/app/i`, `src/app/join`, `src/app/api/drift` |
+
+---
+
+## Session Refresh and First Paint
+
+Two things changed on 2026-09-05 that anyone reading this file should know before touching middleware or a page's data
+fetching.
+
+**Middleware no longer refreshes the session on every request.** `updateSession` still RUNS on every `/app`, `/auth`,
+`/trip` and `/join` request, but `supabase.auth.getUser()` is a round trip to Supabase's auth server, and it sat in front of
+every navigation AND every `<Link>` prefetch — the nav rail alone mounts six always-visible links — delaying even the
+`loading.tsx` skeleton whose whole job is to paint instantly. It now decodes the access token's `exp` from the cookie
+locally and only refreshes within 120 s of expiry. Every cookie shape it cannot read (missing, chunked across `.0`/`.1`,
+`base64-` prefixed, malformed) falls through to refreshing exactly as before, so the failure mode is "as slow as it was",
+never a signed-out user.
+
+**Every section streams.** Each of home, chats, countries, discover, inspire and `trips/[id]` returns immediately and
+fetches behind a `<Suspense>` boundary whose fallback is that section's own `loading.tsx`. Two rules came out of doing it:
+
+- A `loading.tsx` wraps a layout's *children*, never the layout's own awaits. The `(protected)` layout used to await a
+  profiles lookup for one avatar letter, which delayed the first byte of every hard load; the rail now takes an `avatar`
+  slot and `RailAvatar` streams behind its own boundary.
+- `notFound()` only sets a 404 while the status is still the server's to set. From inside a streamed child it renders the
+  not-found view with a 200, so `trips/[id]` checks the trip exists *before* its boundary — one indexed lookup, and RLS
+  makes a trip you may not see return no row, so it answers both questions.
 
 ---
 
