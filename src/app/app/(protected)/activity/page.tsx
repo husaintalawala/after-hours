@@ -518,7 +518,15 @@ export default async function ActivityPage() {
           ? "liked your trip"
           : n.type === "comment"
             ? `commented on ${titleOf.get(n.trip_id ?? "") ?? "your trip"}`
-            : "trip update",
+            // Not named, unlike the push: this page reads under the viewer's
+            // own session, and a pending invitee is not a trip member yet, so
+            // titleOf has no entry and it would render "invited you on ".
+            : n.type === "trip_invite"
+              ? "invited you on a trip"
+              // Anything unrecognised previously fell through to this string,
+              // so a new type silently renders as "trip update" — which is how
+              // a trip_invite would have read before the branch above.
+              : "trip update",
     agoText: ago(n.created_at),
   }))
 
