@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { checkTripActivated } from "@/lib/drift/activation"
 
 // Direct "+ Add a stop" for a day (web port of the iOS day "+" add flow). Search
 // a place → pick a time-of-day → insert a spot step parented to the destination
@@ -96,6 +98,10 @@ export default function DayAddStop({
       alert(e instanceof Error ? `Couldn't add ${picked.name}: ${e.message}` : `Couldn't add ${picked.name}.`)
       return
     }
+    // The day sheet's "+ Add a stop" is an add like any other; without this the
+    // activation step under-counts every stop added straight from the timeline.
+    capture(AnalyticsEvent.AddToItinerary, { source: "search" })
+    void checkTripActivated(tripId)
     setSaving(false)
     reset()
     router.refresh()

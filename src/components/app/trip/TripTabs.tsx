@@ -21,6 +21,7 @@ import { staticMapUrl } from "@/lib/drift/staticMap"
 import CoverCredit from "@/components/app/CoverCredit"
 import { applyRemoveStep, applyRemoveTransport, isConfirmedBookingRefusal } from "@/lib/drift/quickOp"
 import { createClient } from "@/lib/supabase/client"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
 const TrackMap = dynamic(() => import("./TrackMap"), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-aurora-glass2" />,
@@ -2541,6 +2542,9 @@ function ExpenseForm({
       setBusy(false)
       return
     }
+    // Only the insert branch: an edit is not a new expense. No label, amount or
+    // currency — splitting costs is either used or it isn't, and the count says so.
+    if (!expense) capture(AnalyticsEvent.ExpenseAdded)
     router.refresh()
     onClose()
   }

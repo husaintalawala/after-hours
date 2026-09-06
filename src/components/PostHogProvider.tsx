@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { initAnalytics, trackPageview } from "@/lib/analytics"
+import { captureAppOpened, initAnalytics, trackPageview } from "@/lib/analytics"
 
 // App Router is a SPA after the first load, so posthog's automatic pageview
 // capture is off (see analytics.ts) and we fire $pageview on every client
@@ -25,6 +25,10 @@ function Pageview() {
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initAnalytics()
+    // After init, so the event is queued rather than dropped while the posthog
+    // chunk loads. Fires for signed-out visitors too — an invite landing page is
+    // an app open, and it is the same person once they sign in.
+    captureAppOpened()
   }, [])
   // No <PHProvider> wrapper: nothing in the app uses posthog-js/react's hooks,
   // and importing it here would statically pull posthog-js into the shared

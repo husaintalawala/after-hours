@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { resolvePlaceCandidates, placePhotoUrl, type PlaceCandidate } from "@/lib/drift/chat"
 import { applyCreateStep, applyRemoveStep, type CreateStepOp } from "@/lib/drift/quickOp"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { checkTripActivated } from "@/lib/drift/activation"
 import type { DestinationVM, StepDetailVM } from "./TripTabs"
 
 // Full-screen trip Map — the day mini-map expanded.
@@ -312,7 +313,10 @@ export default function TripMapView({
     const op: CreateStepOp = { op: "create_step", type: "spot", title: cand.name, destination_ref: dest.label, date: targetDay.date }
     try {
       await applyCreateStep(tripId, op, { name: cand.name, lat: cand.latitude, lng: cand.longitude, place_id: placeId })
-      capture(AnalyticsEvent.AddToItinerary, { source: "trip_map" })
+      // "map", not "trip_map": the source values are the shared taxonomy's
+      // (discover | chat | search | map) and iOS emits the same four.
+      capture(AnalyticsEvent.AddToItinerary, { source: "map" })
+      void checkTripActivated(tripId)
       setToast(`Added ${cand.name} to Day ${targetDay.dayNumber}`)
       setSelected(null); setQuery(""); setResults([])
       router.refresh()

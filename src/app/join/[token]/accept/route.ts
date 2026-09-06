@@ -47,8 +47,12 @@ export async function POST(
       return NextResponse.redirect(`${origin}/join/${token}`, 303)
     }
     const tripId = ((data as { trip_id?: string }[] | null) ?? [])[0]?.trip_id
+    // ?joined=1 is how the redemption reaches analytics: this handler is the only
+    // place that knows the invite was actually redeemed, and it has no browser to
+    // fire from. PostHogAuthBridge captures invite_accepted on arrival and strips
+    // the param. Nothing else reads it.
     return NextResponse.redirect(
-      tripId ? `${origin}/app/trips/${tripId}` : `${origin}/app`,
+      tripId ? `${origin}/app/trips/${tripId}?joined=1` : `${origin}/app?joined=1`,
       303
     )
   })()

@@ -15,6 +15,13 @@
 //
 // The distinct_id persists across the marketing→app hop (same domain, same
 // posthog cookie), so the whole landing→signup→activation path is one funnel.
+// SHARED WITH iOS. Every name and property key below is also emitted by the
+// iOS app, byte for byte — one taxonomy, one funnel. Where a name already had
+// recorded history on web it WINS and iOS adopts it, which is why the
+// activation events read create_trip / add_to_itinerary / start_chat rather
+// than the tidier trip_created / place_added_to_trip / chat_message_sent:
+// renaming an event with history splits the funnel in PostHog. Do not rename
+// these, and do not add a variant on one platform only.
 export const AnalyticsEvent = {
   // Fired by the /api/ph loader on the static landing (keep the string in sync).
   MarketingLandingView: "marketing_landing_view",
@@ -27,6 +34,15 @@ export const AnalyticsEvent = {
   CreateTrip: "create_trip",
   AddToItinerary: "add_to_itinerary",
   StartChat: "start_chat",
+  // ---- Launch funnel (new; no prior history, so these names are the shared ones) ----
+  /** Once per browser session. { is_first_open, platform, days_since_first_open } */
+  AppOpened: "app_opened",
+  /** The transition to a real itinerary: the FIRST time a trip reaches 3 stops. */
+  TripActivated: "trip_activated",
+  /** The invite loop's two halves — mint, and redeem. */
+  InviteLinkCreated: "invite_link_created",
+  InviteAccepted: "invite_accepted",
+  ExpenseAdded: "expense_added",
 } as const
 
 type Props = Record<string, unknown>
@@ -47,6 +63,24 @@ type PostHogLike = {
 // Until that chunk lands (and until the Vercel env vars are set) the whole thing
 // is a silent no-op, so callers never need to check. Events fired in the gap are
 // queued rather than dropped — login_attempt can fire seconds after paint.
+// An invite URL is a bearer capability: whoever holds /join/<token> can join
+// that trip. posthog-js stamps $current_url, $pathname and $referrer onto EVERY
+// event it sends, so an invite landing page files a working invite token in a
+// third-party analytics store — on the one page whose whole audience is people
+// who are not signed in yet. The path shape is kept (the funnel still sees "an
+// invite landing"); only the token itself is dropped.
+const CAPABILITY_PATH = /\/join\/[^/?#]+/g
+
+function redactCapabilityUrls(props: Props): Props {
+  for (const k of Object.keys(props)) {
+    const v = props[k]
+    if (typeof v === "string" && v.includes("/join/")) {
+      props[k] = v.replace(CAPABILITY_PATH, "/join/[token]")
+    }
+  }
+  return props
+}
+
 let ph: PostHogLike | null = null
 let initStarted = false
 const queue: Array<[string, Props | undefined]> = []
@@ -65,6 +99,7 @@ export function initAnalytics(): void {
         capture_pageleave: true,
         autocapture: true,
         person_profiles: "identified_only",
+        sanitize_properties: redactCapabilityUrls,
       })
       ph = posthog as unknown as PostHogLike
       if (pendingIdentity) {
@@ -98,6 +133,35 @@ export function identifyUser(id: string, props?: Props): void {
     else if (initStarted) pendingIdentity = [id, props]
   } catch {
     /* noop */
+  }
+}
+
+// ── app_opened ───────────────────────────────────────────────────────────────
+// The web half of the iOS launch event, so "opened the app" is one number
+// across both platforms. Once per browser session (a SPA navigation is not a
+// new open), and first-seen is a localStorage date so a returning stranger is
+// distinguishable from a brand new one BEFORE they ever sign in — which is the
+// whole point: the anonymous distinct_id carries this through signup.
+const OPENED_SESSION_KEY = "drift_app_opened"
+const FIRST_SEEN_KEY = "drift_first_seen"
+const DAY_MS = 86_400_000
+
+export function captureAppOpened(): void {
+  if (typeof window === "undefined") return
+  try {
+    if (sessionStorage.getItem(OPENED_SESSION_KEY)) return
+    sessionStorage.setItem(OPENED_SESSION_KEY, "1")
+    const now = Date.now()
+    const stored = Number(localStorage.getItem(FIRST_SEEN_KEY))
+    const first = Number.isFinite(stored) && stored > 0 ? stored : null
+    if (first === null) localStorage.setItem(FIRST_SEEN_KEY, String(now))
+    capture(AnalyticsEvent.AppOpened, {
+      is_first_open: first === null,
+      platform: "web",
+      days_since_first_open: first === null ? 0 : Math.max(0, Math.floor((now - first) / DAY_MS)),
+    })
+  } catch {
+    /* storage throws in private mode — analytics is best-effort */
   }
 }
 
