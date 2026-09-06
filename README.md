@@ -9,7 +9,11 @@ One Next.js app serves two products, split by hostname in `src/middleware.ts`:
 | [after-hours.app](https://after-hours.app) | **Side Quest** — the scroll-driven 3D globe |
 | [drift.after-hours.app](https://drift.after-hours.app) | **Drift** — static landing page at `/`, logged-in web app under `/app` |
 
-Only the marketing rewrite is host-gated. The `/app`, `/auth`, and `/trip` carve-out returns from `src/middleware.ts` before the host check, so those routes serve on every host — `after-hours.app` and `localhost` included.
+Only the marketing rewrite is host-gated (`src/middleware.ts:75`). Several carve-outs return before that check, so they serve on every host — `after-hours.app` and `localhost` included:
+
+- `/.well-known/apple-app-site-association` — plain `next()`, no session work; Apple fetches it unauthenticated and negative-caches a 404 for about a day
+- `/i/<slug>` — the public guide. Plain `next()`: it reads no cookies and renders identically signed in or out, and share links are hit by crawlers that should not cost an auth round trip
+- `/app`, `/auth`, `/trip`, `/join` — routed through `updateSession`. `/join` is public but branches on whether a session already exists, and its route handlers read and write auth cookies
 
 ---
 
@@ -29,13 +33,22 @@ A scroll-driven 3D interactive globe visualizing 89 days of travel across 10 cou
 
 ### Drift Web App
 
-The logged-in web port of the Drift iOS app — trips, discover, chats, activity, people, countries, settings — plus a public share page at `/trip/[id]`.
+The logged-in web port of the Drift iOS app — trips, discover, inspire, chats, people, countries, settings — plus a public share page at `/trip/[id]` and a public guide page at `/i/[slug]`. (Activity still exists at `/app/activity`; as of 2026-09-05 it is commented out of `AppNav` and `AppRail` to de-congest the nav, pending a decision on where it belongs.)
 
 - Routes live in `src/app/app/` (the `(protected)` group sits behind a Supabase auth gate) and `src/app/auth/`
-- Sessions are `@supabase/ssr` cookies, refreshed in middleware on every `/app`, `/auth`, `/trip` request
+- Sessions are `@supabase/ssr` cookies. Middleware still RUNS on every `/app`, `/auth`, `/trip` and `/join` request, but since 2026-09-05 it only **refreshes** when the access token is within 120s of expiry — it decodes `exp` from the cookie locally and returns early otherwise. `getUser()` is a round trip to Supabase's auth server, and it sat in front of every navigation AND every `<Link>` prefetch, delaying even the `loading.tsx` skeleton. Every shape it cannot read (missing, chunked, `base64-` encoded, malformed) falls through to refreshing exactly as before
 - Login is magic link + Google/Apple/X OAuth, behind a Cloudflare Turnstile captcha; an allow-list of demo accounts (`PASSWORD_DEMO_EMAILS`) gets a password field instead
 - `src/app/api/drift/*` are authenticated route handlers that read the caller's access token server-side from the session cookie (`src/lib/drift/server.ts`) rather than taking it from the request, then forward to Supabase Edge Functions. `itinerary-pdf` is the exception — it queries Supabase itself and renders the PDF locally with `@react-pdf/renderer`
 - Drift's own marketing landing page is hand-written static HTML in `public/drift/`
+- Every section returns immediately and streams its data behind a `<Suspense>` boundary whose fallback is that section's own
+  `loading.tsx` (home, chats, countries, discover, inspire, `trips/[id]`). The `(protected)` layout no longer awaits a profiles
+  lookup either — the nav rail takes an `avatar` slot and `RailAvatar` streams behind its own boundary. A `loading.tsx` wraps a
+  layout's children, never the layout's own awaits, which is why that one mattered
+- `trips/[id]` checks the trip exists BEFORE its boundary. `notFound()` only sets a 404 while the status is still the server's to
+  set; from inside a streamed child it renders the not-found view with a 200
+- The chat composer's send button becomes a STOP button while an answer streams, aborting the real request. The abort must be
+  distinguishable from the internal watchdog's, or `askDrift`'s blocking retry fires a second request the moment the user asks
+  for none
 
 ---
 
@@ -61,6 +74,8 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project (the same one the Drift iOS app uses) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server Supabase clients |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | maps and the app globe — on Vercel this is set as `MAPBOX_PUBLIC_TOKEN` and re-exported in `next.config.js` |
+
+`SUPABASE_SERVICE_ROLE_KEY` is read by the guide-pickup path (`claimPendingGuide`), the guide-remembering path, and the invite page's cover lookup. **It is not set in Vercel production**, and all three degrade silently without it — which is why the invite unfurl now falls back to the anon `preview_trip_invite` RPC rather than depending on it.
 
 Optional: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Drift only); `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` cover both halves — `PostHogProvider` is mounted in the root layout, and `/api/ph` loads PostHog for the static marketing pages.
 
