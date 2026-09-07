@@ -75,6 +75,17 @@ npm run dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server Supabase clients |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | maps and the app globe — on Vercel this is set as `MAPBOX_PUBLIC_TOKEN` and re-exported in `next.config.js` |
 
+`NEXT_PUBLIC_META_PIXEL_ID` turns on the Meta pixel (`src/lib/analytics.ts`). Unset, no script loads and
+no request is made — it is inert, not merely quiet. It is scoped to the Drift halves of the app: `drift.*`
+hosts and the `/app`, `/auth`, `/trip`, `/join`, `/i` carve-out, so the Side Quest portfolio on
+`after-hours.app` never loads an ad tracker. Advanced matching is explicitly off and no email, name or user
+id is passed. Only `signup` (as Meta's `CompleteRegistration`), `create_trip` and `trip_activated` are
+mirrored, plus PageView on client navigation.
+
+**Before setting it, read this:** an ad pixel is not strictly necessary for the site to work, so EU and UK
+visitors need consent before it loads, and this app has no consent banner. Setting the variable switches
+tracking on for everyone, everywhere.
+
 `SUPABASE_SERVICE_ROLE_KEY` is read by the guide-pickup path (`claimPendingGuide`), the guide-remembering path, and the invite page's cover lookup. **It is not set in Vercel production**, and all three degrade silently without it — which is why the invite unfurl now falls back to the anon `preview_trip_invite` RPC rather than depending on it.
 
 Optional: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Drift only); `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` cover both halves — `PostHogProvider` is mounted in the root layout, and `/api/ph` loads PostHog for the static marketing pages.
