@@ -84,12 +84,25 @@ mirrored, plus PageView on client navigation.
 
 It is **gated on geography**, because an ad pixel is not strictly necessary for the site to work and the
 EEA and UK require consent before it loads — which this app has no banner for. `/api/geo` resolves the
-country from `x-vercel-ip-country` at the edge and answers yes or no; `src/lib/adRegion.ts` holds the list
-(EU 27, the three non-EU EEA states, the UK and Crown dependencies, Gibraltar, Switzerland — 36 codes).
+country from `x-vercel-ip-country` at the edge and answers yes or no.
 
-**It fails closed.** Unknown country, failed request, malformed answer: no pixel. That includes local dev,
-where there is no geo header at all — so the pixel does not fire on `localhost` by design. Vercel supplies
-the header on preview and production, so test it there.
+`src/lib/adRegion.ts` is an **allow-list**: US, CA, AU, NZ, and nothing else. It was briefly a deny-list of
+consent-required countries, which fails OPEN for every code nobody thought of — it let the pixel load for
+Réunion, Guadeloupe, Martinique, French Guiana, Mayotte, Saint-Martin and Åland, all EU territory with
+their own ISO codes, which MaxMind reports as `RE` and `AX` rather than `FR` and `FI`. Enumerating
+territories harder would not fix the shape; defaulting to no does. A second guard blocks the EEA/UK/CH
+codes outright, so adding `FR` to the allow-list by mistake still cannot switch tracking on there.
+
+**Adding a market is a deliberate act** — check that country's consent law first. The UAE and India are
+left out on purpose despite being plausible ad markets: both have consent regimes worth reading properly.
+
+**It fails closed.** Unknown country, unlisted country, failed request, malformed answer: no pixel. That
+includes local dev, where there is no geo header at all — so the pixel does not fire on `localhost` by
+design. Vercel supplies the header on preview and production, so test it there.
+
+**Only the denial is cached** (`sessionStorage`), never the permission. A cached yes outlived the IP that
+produced it, survived tab restore, and sat somewhere any script on the origin could plant it. A stale no
+merely under-tracks.
 
 That is a geography gate, **not consent**. It keeps the pixel away from people whose law requires asking;
 it does not ask anybody. Running ads into the EEA or UK needs a real consent banner first, and then that

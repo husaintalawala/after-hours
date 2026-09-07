@@ -247,14 +247,26 @@ function fbq(...args: unknown[]): void {
   ;(window as FbWindow).fbq?.(...args)
 }
 
-/** Cached for the tab: one geo lookup per session, not one per navigation. */
-const GEO_SESSION_KEY = "drift_ads_allowed"
+/** Only a DENIAL is cached, never a permission — see adsAllowedHere. */
+const GEO_DENIED_KEY = "drift_ads_denied"
 
 async function adsAllowedHere(): Promise<boolean> {
+  // ONLY THE "NO" IS CACHED, and that asymmetry is deliberate.
+  //
+  // Caching the "yes" was wrong three ways at once. It outlived the IP that
+  // produced it, so a visitor who loaded a page through a US VPN and then turned
+  // it off kept the pixel for the rest of the tab. sessionStorage survives
+  // session restore and tab duplication, so the decision could follow a laptop
+  // onto a plane and land in Frankfurt still saying yes. And it sat in a store
+  // any script on the origin can write, so a single XSS could switch tracking on
+  // permanently by planting one character.
+  //
+  // Caching only the denial removes all three: a stale "no" merely under-tracks,
+  // and the plantable direction is now the safe one. The permission is re-asked
+  // per document load, which is what it cost anyway — module state already stops
+  // it being re-asked per client navigation.
   try {
-    const cached = sessionStorage.getItem(GEO_SESSION_KEY)
-    if (cached === "1") return true
-    if (cached === "0") return false
+    if (sessionStorage.getItem(GEO_DENIED_KEY) === "1") return false
   } catch {
     /* private mode — fall through and just ask */
   }
@@ -262,16 +274,21 @@ async function adsAllowedHere(): Promise<boolean> {
     const res = await fetch("/api/geo", { cache: "no-store" })
     if (!res.ok) return false
     const body = (await res.json()) as { adsAllowed?: unknown }
+    // Strict: only a real boolean true opens the gate. A missing field, a
+    // string "true", or an HTML error page parsed into something else all fail.
     const allowed = body.adsAllowed === true
-    try {
-      sessionStorage.setItem(GEO_SESSION_KEY, allowed ? "1" : "0")
-    } catch {
-      /* noop */
+    if (!allowed) {
+      try {
+        sessionStorage.setItem(GEO_DENIED_KEY, "1")
+      } catch {
+        /* noop */
+      }
     }
     return allowed
   } catch {
     // Network failure, blocked request, malformed answer — all of it means we do
-    // not know where this visitor is, and unknown means no.
+    // not know where this visitor is, and unknown means no. Not cached: a
+    // transient failure should not disable the pixel for the whole session.
     return false
   }
 }
