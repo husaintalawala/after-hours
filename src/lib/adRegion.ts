@@ -44,6 +44,16 @@
  * It exists because "allowed today, illegal on a known future date" is a real
  * situation and a comment does not enforce itself. A market whose consent law
  * commences later belongs here with the commencement date, not in a TODO.
+ *
+ * DELIBERATELY ABSENT: the UAE ("AE"), added 2026-09-06 on request and removed the
+ * same day once the reason was clear. DIFC (Data Protection Law No. 5 of 2020,
+ * GDPR-aligned) and ADGM have been enforceable since 2020, and a country lookup
+ * returns "AE" for the whole federation — a visitor inside DIFC cannot be told
+ * apart from one anywhere else in Dubai, so allowing the country allows those
+ * zones with no way to separate them. The federal PDPL deadline of 2027-01-01 is
+ * the smaller half of the problem. Do not re-add AE on the strength of the federal
+ * date alone; the free zones are the reason, and a consent banner is what answers
+ * them.
  */
 export const AD_ALLOWED_COUNTRIES: ReadonlyMap<string, { until?: string; note: string }> =
   new Map([
@@ -63,23 +73,6 @@ export const AD_ALLOWED_COUNTRIES: ReadonlyMap<string, { until?: string; note: s
     // India still matters then, the answer is a consent banner, not a later date.
     ["IN", { until: "2027-05-13", note: "India — DPDP Act consent provisions commence 2027-05-13" }],
 
-    // UAE — added 2026-09-06 on request, KNOWINGLY, and it expires sooner.
-    //
-    // ⚠️ TWO LIVE RISKS, both accepted deliberately rather than overlooked:
-    //
-    // 1. DIFC AND ADGM ARE ALREADY ENFORCEABLE, AND GEO-IP CANNOT SEE THEM. The
-    //    DIFC Data Protection Law No. 5 of 2020 has been enforceable since
-    //    2020-10-01 and is GDPR-aligned; ADGM's regulations likewise. A country
-    //    lookup returns "AE" for the whole federation, so a visitor sitting in
-    //    DIFC is indistinguishable here from one in the rest of Dubai. Allowing
-    //    AE therefore allows those zones too, and nothing in this file can
-    //    separate them.
-    // 2. The federal PDPL (Decree-Law 45/2021) requires compliance by
-    //    2027-01-01, which is close.
-    //
-    // Expiry is set to the federal date. Revisit before then; a consent banner
-    // resolves both risks at once.
-    ["AE", { until: "2027-01-01", note: "UAE — federal PDPL compliance due 2027-01-01; DIFC/ADGM already enforceable and not distinguishable by IP" }],
   ])
 
 /**
