@@ -82,9 +82,18 @@ hosts and the `/app`, `/auth`, `/trip`, `/join`, `/i` carve-out, so the Side Que
 id is passed. Only `signup` (as Meta's `CompleteRegistration`), `create_trip` and `trip_activated` are
 mirrored, plus PageView on client navigation.
 
-**Before setting it, read this:** an ad pixel is not strictly necessary for the site to work, so EU and UK
-visitors need consent before it loads, and this app has no consent banner. Setting the variable switches
-tracking on for everyone, everywhere.
+It is **gated on geography**, because an ad pixel is not strictly necessary for the site to work and the
+EEA and UK require consent before it loads — which this app has no banner for. `/api/geo` resolves the
+country from `x-vercel-ip-country` at the edge and answers yes or no; `src/lib/adRegion.ts` holds the list
+(EU 27, the three non-EU EEA states, the UK and Crown dependencies, Gibraltar, Switzerland — 36 codes).
+
+**It fails closed.** Unknown country, failed request, malformed answer: no pixel. That includes local dev,
+where there is no geo header at all — so the pixel does not fire on `localhost` by design. Vercel supplies
+the header on preview and production, so test it there.
+
+That is a geography gate, **not consent**. It keeps the pixel away from people whose law requires asking;
+it does not ask anybody. Running ads into the EEA or UK needs a real consent banner first, and then that
+list becomes "regions we have not yet been given consent for".
 
 `SUPABASE_SERVICE_ROLE_KEY` is read by the guide-pickup path (`claimPendingGuide`), the guide-remembering path, and the invite page's cover lookup. **It is not set in Vercel production**, and all three degrade silently without it — which is why the invite unfurl now falls back to the anon `preview_trip_invite` RPC rather than depending on it.
 

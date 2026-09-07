@@ -195,11 +195,15 @@ export function captureAppOpened(): void {
 // is explicitly disabled and no email, name or user id is ever passed — the
 // pixel sees a URL and its own cookie, nothing we hand it.
 //
-// ⚠️ CONSENT IS NOT HANDLED HERE. An ad pixel is not strictly necessary for the
-// site to work, so EU/UK visitors need consent before it loads, and this app has
-// no consent banner. Setting the env var switches tracking on for everyone,
-// everywhere. Gate it behind a banner (or on geography) before enabling it for
-// EU traffic.
+// GEOGRAPHY-GATED. An ad pixel is not strictly necessary for the site to work,
+// so the EEA and the UK require consent before it loads and this app has no
+// consent banner. Rather than track those visitors anyway, the pixel simply does
+// not load for them: /api/geo resolves the country at the edge and answers yes or
+// no, and the answer FAILS CLOSED — unknown means no. See src/lib/adRegion.ts.
+//
+// That is a geography gate, not consent. It keeps the pixel away from people
+// whose law requires asking; it does not ask anybody. Serving ads to the EEA/UK
+// needs a real banner first.
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 
 /** Our events → Meta STANDARD events, which are the ones a campaign can
@@ -229,6 +233,8 @@ type FbqFn = ((...args: unknown[]) => void) & {
 type FbWindow = Window & { fbq?: FbqFn; _fbq?: FbqFn }
 
 let metaStarted = false
+/** True once geo said no, so metaCapture stops asking whether fbq exists. */
+let metaBlocked = false
 
 /** True on the Drift halves of this app — see SCOPED TO DRIFT above. */
 function isDriftSurface(): boolean {
@@ -241,10 +247,55 @@ function fbq(...args: unknown[]): void {
   ;(window as FbWindow).fbq?.(...args)
 }
 
+/** Cached for the tab: one geo lookup per session, not one per navigation. */
+const GEO_SESSION_KEY = "drift_ads_allowed"
+
+async function adsAllowedHere(): Promise<boolean> {
+  try {
+    const cached = sessionStorage.getItem(GEO_SESSION_KEY)
+    if (cached === "1") return true
+    if (cached === "0") return false
+  } catch {
+    /* private mode — fall through and just ask */
+  }
+  try {
+    const res = await fetch("/api/geo", { cache: "no-store" })
+    if (!res.ok) return false
+    const body = (await res.json()) as { adsAllowed?: unknown }
+    const allowed = body.adsAllowed === true
+    try {
+      sessionStorage.setItem(GEO_SESSION_KEY, allowed ? "1" : "0")
+    } catch {
+      /* noop */
+    }
+    return allowed
+  } catch {
+    // Network failure, blocked request, malformed answer — all of it means we do
+    // not know where this visitor is, and unknown means no.
+    return false
+  }
+}
+
 function initMetaPixel(): void {
   if (metaStarted || typeof window === "undefined") return
   if (!META_PIXEL_ID || !isDriftSurface()) return
+  // Claim the slot before the await so two calls in the same tick cannot both
+  // load the pixel.
   metaStarted = true
+  void adsAllowedHere()
+    .then((allowed) => {
+      if (allowed) loadMetaPixel()
+      else metaBlocked = true
+    })
+    // adsAllowedHere() catches its own failures and resolves false, so this
+    // cannot fire today. It is here so the safety property does not depend on
+    // that staying true: if the gate ever rejects, the answer is still no.
+    .catch(() => {
+      metaBlocked = true
+    })
+}
+
+function loadMetaPixel(): void {
   try {
     const w = window as FbWindow
     if (!w.fbq) {
@@ -278,7 +329,12 @@ function initMetaPixel(): void {
 
 /** Mirror one funnel event to the pixel, if it is one Meta should hear about. */
 function metaCapture(event: string): void {
-  if (!metaStarted) return
+  // `metaStarted` is claimed before the geo answer arrives, so it is not proof
+  // the pixel loaded — the presence of fbq is. An event fired during the lookup
+  // is dropped rather than queued: a conversion Meta hears about a second late
+  // is worth less than the certainty that nothing leaks before the gate answers.
+  if (!metaStarted || metaBlocked) return
+  if (!(window as FbWindow).fbq) return
   try {
     const standard = META_STANDARD[event]
     if (standard) fbq("track", standard)
@@ -294,7 +350,7 @@ export function trackPageview(url: string): void {
   try {
     // The App Router is a SPA after first load, so the pixel's own automatic
     // PageView fires once and never again. Client navigations need this.
-    if (metaStarted) fbq("track", "PageView")
+    if (metaStarted && !metaBlocked && (window as FbWindow).fbq) fbq("track", "PageView")
     ph?.capture("$pageview", { $current_url: url })
   } catch {
     /* noop */
