@@ -86,15 +86,15 @@ It is **gated on geography**, because an ad pixel is not strictly necessary for 
 EEA and UK require consent before it loads — which this app has no banner for. `/api/geo` resolves the
 country from `x-vercel-ip-country` at the edge and answers yes or no.
 
-`src/lib/adRegion.ts` is an **allow-list**: US, CA, AU, NZ, plus IN and AE — the last two with hard expiry
-dates, because both are "legal today, not legal on a known date". India's DPDP Act consent provisions
-commence **2027-05-13**; the UAE's federal PDPL requires compliance by **2027-01-01**. Each entry carries
-that date and blocks itself when it arrives, so the deadline cannot be forgotten in a comment.
+`src/lib/adRegion.ts` is an **allow-list**: US, CA, AU, NZ, plus IN with a hard expiry. India's DPDP Act
+consent provisions commence **2027-05-13**, so the entry carries that date and blocks itself when it
+arrives — a compliance deadline recorded only in a comment is one nobody meets.
 
-⚠️ **The UAE entry is knowingly risky.** DIFC (Data Protection Law No. 5 of 2020, GDPR-aligned) and ADGM
-have been enforceable since 2020 and a country IP lookup returns `AE` for the whole federation — a visitor
-inside DIFC is indistinguishable here from one anywhere else in Dubai. Allowing `AE` allows those zones
-too. A consent banner resolves it; nothing in this file can. It was briefly a deny-list of
+**The UAE is deliberately absent.** DIFC (Data Protection Law No. 5 of 2020, GDPR-aligned) and ADGM have
+been enforceable since 2020, and a country IP lookup returns `AE` for the whole federation, so a visitor
+inside DIFC cannot be told apart from one anywhere else in Dubai. Allowing the country allows those zones.
+The federal PDPL deadline of 2027-01-01 is the smaller half of that problem — do not re-add `AE` on the
+strength of the federal date alone. It was briefly a deny-list of
 consent-required countries, which fails OPEN for every code nobody thought of — it let the pixel load for
 Réunion, Guadeloupe, Martinique, French Guiana, Mayotte, Saint-Martin and Åland, all EU territory with
 their own ISO codes, which MaxMind reports as `RE` and `AX` rather than `FR` and `FI`. Enumerating
