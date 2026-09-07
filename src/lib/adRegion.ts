@@ -35,24 +35,52 @@
 // wants EEA/UK ad traffic, the answer is a consent banner.
 
 /**
- * ISO 3166-1 alpha-2 codes where the ad pixel may load.
+ * ISO 3166-1 alpha-2 codes where the ad pixel may load, and until when.
  *
- * Deliberately short. These are markets with no prior-consent requirement for
- * advertising cookies, and they are the ones ads would actually be bought in.
- * Everything not named here — including every country not yet considered — is
- * blocked by default.
+ * Deliberately short. Everything not named here — including every country not
+ * yet considered — is blocked by default.
  *
- * Not included on purpose, despite being plausible ad markets: the UAE (PDPL)
- * and India (DPDP Act) both have consent regimes worth reading properly before
- * a pixel is pointed at them. Add them if you have checked; do not add them
- * because a campaign is waiting.
+ * `until` is a hard expiry in ISO date form: past it, the country blocks again.
+ * It exists because "allowed today, illegal on a known future date" is a real
+ * situation and a comment does not enforce itself. A market whose consent law
+ * commences later belongs here with the commencement date, not in a TODO.
  */
-export const AD_ALLOWED_COUNTRIES: ReadonlySet<string> = new Set([
-  "US", // United States
-  "CA", // Canada
-  "AU", // Australia
-  "NZ", // New Zealand
-])
+export const AD_ALLOWED_COUNTRIES: ReadonlyMap<string, { until?: string; note: string }> =
+  new Map([
+    ["US", { note: "United States — no prior-consent requirement for ad cookies at federal level" }],
+    ["CA", { note: "Canada" }],
+    ["AU", { note: "Australia" }],
+    ["NZ", { note: "New Zealand" }],
+
+    // India — added 2026-09-06 on request, and it EXPIRES.
+    //
+    // The DPDP Act 2023's rules were notified on 2025-11-13, but the substantive
+    // provisions — notice, consent, data-principal rights — commence on
+    // 2026-05-13 + 18 months = 2027-05-13. Until then the consent obligation is
+    // not yet in force, so loading the pixel is defensible today.
+    //
+    // On 2027-05-13 that stops being true, and this entry stops allowing it. If
+    // India still matters then, the answer is a consent banner, not a later date.
+    ["IN", { until: "2027-05-13", note: "India — DPDP Act consent provisions commence 2027-05-13" }],
+
+    // UAE — added 2026-09-06 on request, KNOWINGLY, and it expires sooner.
+    //
+    // ⚠️ TWO LIVE RISKS, both accepted deliberately rather than overlooked:
+    //
+    // 1. DIFC AND ADGM ARE ALREADY ENFORCEABLE, AND GEO-IP CANNOT SEE THEM. The
+    //    DIFC Data Protection Law No. 5 of 2020 has been enforceable since
+    //    2020-10-01 and is GDPR-aligned; ADGM's regulations likewise. A country
+    //    lookup returns "AE" for the whole federation, so a visitor sitting in
+    //    DIFC is indistinguishable here from one in the rest of Dubai. Allowing
+    //    AE therefore allows those zones too, and nothing in this file can
+    //    separate them.
+    // 2. The federal PDPL (Decree-Law 45/2021) requires compliance by
+    //    2027-01-01, which is close.
+    //
+    // Expiry is set to the federal date. Revisit before then; a consent banner
+    // resolves both risks at once.
+    ["AE", { until: "2027-01-01", note: "UAE — federal PDPL compliance due 2027-01-01; DIFC/ADGM already enforceable and not distinguishable by IP" }],
+  ])
 
 /**
  * A second, independent guard: codes that must NEVER be allowed, whatever the
@@ -89,12 +117,27 @@ export const CONSENT_REQUIRED_COUNTRIES: ReadonlySet<string> = new Set([
  * `country` is an ISO 3166-1 alpha-2 code, or null/undefined when unknown.
  * Both guards must agree, and anything unrecognised is a no.
  */
-export function adsAllowedIn(country: string | null | undefined): boolean {
+export function adsAllowedIn(
+  country: string | null | undefined,
+  /** Injectable so the expiry logic is testable without waiting for 2027. */
+  now: Date = new Date()
+): boolean {
   if (typeof country !== "string") return false
   const code = country.trim().toUpperCase()
   // Exactly two letters, or we do not know what we are looking at. Vercel sends
   // "XX" for unknown, which fails the allow-list below in any case.
   if (!/^[A-Z]{2}$/.test(code)) return false
-  if (!AD_ALLOWED_COUNTRIES.has(code)) return false
+
+  const entry = AD_ALLOWED_COUNTRIES.get(code)
+  if (!entry) return false
+
+  // A market whose permission has run out blocks again, with no edit required.
+  if (entry.until) {
+    const expiry = Date.parse(entry.until + "T00:00:00Z")
+    // An unparseable date is treated as expired: a malformed expiry must not
+    // become an unlimited permission.
+    if (!Number.isFinite(expiry) || now.getTime() >= expiry) return false
+  }
+
   return !CONSENT_REQUIRED_COUNTRIES.has(code)
 }
