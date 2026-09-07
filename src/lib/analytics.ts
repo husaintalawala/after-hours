@@ -87,7 +87,11 @@ const queue: Array<[string, Props | undefined]> = []
 let pendingIdentity: [string, Props | undefined] | null = null
 
 export function initAnalytics(): void {
-  if (initStarted || typeof window === "undefined") return
+  if (typeof window === "undefined") return
+  // Independent of PostHog: either can be configured without the other, so the
+  // pixel must not sit behind PostHog's early return below.
+  initMetaPixel()
+  if (initStarted) return
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
   if (!key) return // not configured yet (no key in Vercel env) → stay a no-op
   initStarted = true
@@ -125,6 +129,7 @@ export function initAnalytics(): void {
 
 export function capture(event: string, props?: Props): void {
   if (typeof window === "undefined") return
+  metaCapture(event)
   try {
     if (ph) ph.capture(event, props)
     else if (initStarted && queue.length < 50) queue.push([event, props])
@@ -172,10 +177,124 @@ export function captureAppOpened(): void {
   }
 }
 
+// ── Meta pixel ───────────────────────────────────────────────────────────────
+// The ad side of the funnel. PostHog answers "what are people doing"; the pixel
+// answers "which ad caused it", which is the one question a paid campaign
+// cannot run without — Meta optimises delivery toward a conversion it can see.
+//
+// OFF UNTIL CONFIGURED. No NEXT_PUBLIC_META_PIXEL_ID, no script, no requests,
+// exactly like the PostHog key above. Nothing changes for anyone until the ID
+// is set in Vercel.
+//
+// SCOPED TO DRIFT. This repo also serves the Side Quest portfolio on
+// after-hours.app, and loading an ad tracker on a personal site because it
+// shares a Next app would be wrong. Only drift.* hosts and the Drift path
+// carve-out (which serves on every host, localhost included) get the pixel.
+//
+// NO IDENTIFYING DATA, same rule as the rest of this module. Advanced matching
+// is explicitly disabled and no email, name or user id is ever passed — the
+// pixel sees a URL and its own cookie, nothing we hand it.
+//
+// ⚠️ CONSENT IS NOT HANDLED HERE. An ad pixel is not strictly necessary for the
+// site to work, so EU/UK visitors need consent before it loads, and this app has
+// no consent banner. Setting the env var switches tracking on for everyone,
+// everywhere. Gate it behind a banner (or on geography) before enabling it for
+// EU traffic.
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
+
+/** Our events → Meta STANDARD events, which are the ones a campaign can
+ *  optimise toward. Signup is the conversion that matters for acquisition.
+ *  Everything else below is sent as a custom event instead of being forced into
+ *  a standard name that means something else. */
+const META_STANDARD: Record<string, string> = {
+  [AnalyticsEvent.Signup]: "CompleteRegistration",
+}
+
+/** Sent to Meta under their own names, for custom conversions. Deliberately
+ *  short: every extra event is another thing leaving the browser, and an
+ *  optimiser given six goals has none. */
+const META_CUSTOM = new Set<string>([
+  AnalyticsEvent.CreateTrip,
+  AnalyticsEvent.TripActivated,
+])
+
+type FbqFn = ((...args: unknown[]) => void) & {
+  callMethod?: (...args: unknown[]) => void
+  queue: unknown[]
+  loaded?: boolean
+  version?: string
+  push?: unknown
+}
+
+type FbWindow = Window & { fbq?: FbqFn; _fbq?: FbqFn }
+
+let metaStarted = false
+
+/** True on the Drift halves of this app — see SCOPED TO DRIFT above. */
+function isDriftSurface(): boolean {
+  if (typeof window === "undefined") return false
+  if (window.location.hostname.toLowerCase().startsWith("drift.")) return true
+  return /^\/(app|auth|trip|join|i)(\/|$)/.test(window.location.pathname)
+}
+
+function fbq(...args: unknown[]): void {
+  ;(window as FbWindow).fbq?.(...args)
+}
+
+function initMetaPixel(): void {
+  if (metaStarted || typeof window === "undefined") return
+  if (!META_PIXEL_ID || !isDriftSurface()) return
+  metaStarted = true
+  try {
+    const w = window as FbWindow
+    if (!w.fbq) {
+      // Meta's loader, written out rather than eval'd from their minified
+      // snippet: same behaviour, and it type-checks.
+      const q: FbqFn = function (...args: unknown[]) {
+        if (q.callMethod) q.callMethod(...args)
+        else q.queue.push(args)
+      } as FbqFn
+      q.queue = []
+      q.loaded = true
+      q.version = "2.0"
+      q.push = q
+      w.fbq = q
+      w._fbq = q
+      const tag = document.createElement("script")
+      tag.async = true
+      tag.src = "https://connect.facebook.net/en_US/fbevents.js"
+      document.head.appendChild(tag)
+    }
+    // Before init: autoConfig off stops Meta collecting button text and form
+    // field names on its own, which is how a pixel picks up data nobody chose
+    // to send it.
+    fbq("set", "autoConfig", false, META_PIXEL_ID)
+    fbq("init", META_PIXEL_ID)
+    fbq("track", "PageView")
+  } catch {
+    /* analytics must never break the app */
+  }
+}
+
+/** Mirror one funnel event to the pixel, if it is one Meta should hear about. */
+function metaCapture(event: string): void {
+  if (!metaStarted) return
+  try {
+    const standard = META_STANDARD[event]
+    if (standard) fbq("track", standard)
+    else if (META_CUSTOM.has(event)) fbq("trackCustom", event)
+  } catch {
+    /* noop */
+  }
+}
+
 export function trackPageview(url: string): void {
   // Not queued: a pageview for a route the user has already navigated away from
   // is noise, and initAnalytics() captures the entry route itself.
   try {
+    // The App Router is a SPA after first load, so the pixel's own automatic
+    // PageView fires once and never again. Client navigations need this.
+    if (metaStarted) fbq("track", "PageView")
     ph?.capture("$pageview", { $current_url: url })
   } catch {
     /* noop */
