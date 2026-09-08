@@ -197,7 +197,13 @@ export default function LoginPage() {
     if (error) setError(error.message)
   }
 
-  async function oauth(provider: "google" | "apple" | "twitter") {
+  // `x` is OAuth 2.0; `twitter` is the deprecated OAuth 1.0a provider. They
+  // are two separate providers in the Supabase dashboard, not aliases, and
+  // only the OAuth 2.0 one is configured server-side — so `twitter` returns
+  // "provider is not enabled" before the request ever reaches X. iOS already
+  // sends `.x` (AuthView.swift), which is why the X button worked there and
+  // not here; this is that same fix, a parity gap rather than a new bug.
+  async function oauth(provider: "google" | "apple" | "x") {
     setError(null)
     // Fire before signInWithOAuth navigates away (posthog beacons on unload).
     capture(AnalyticsEvent.LoginAttempt, { method: provider })
@@ -355,7 +361,7 @@ export default function LoginPage() {
               <SocialButton label="Continue with Apple" onClick={() => oauth("apple")}>
                 <AppleLogo />
               </SocialButton>
-              <SocialButton label="Continue with X" onClick={() => oauth("twitter")}>
+              <SocialButton label="Continue with X" onClick={() => oauth("x")}>
                 <span
                   className="text-[24px] font-black leading-none"
                   style={{ color: "rgb(20,20,20)" }}
