@@ -1174,7 +1174,26 @@
   });});
 
   function onScroll(){
-    if(!reduce){var y=scrollY;px.forEach(function(el){var r=+el.getAttribute('data-px');el.style.transform='translate3d(0,'+(y*r).toFixed(1)+'px,0)';});}
+    if(!reduce){px.forEach(function(el){
+      var r=+el.getAttribute('data-px'), rc=el.getBoundingClientRect();
+      /* Offset from the element's OWN position in the viewport, not absolute
+         scrollY. The old form was `scrollY * r`, which grows without bound as
+         the page gets longer: by the outro, scrollY is ~8600 and 0.12 of that
+         is ~1030px of translate on a ~600px-tall background — pushing it clean
+         out of its own section. The section then showed the white page behind
+         it, and .outro sets color:#fff, so the closing copy was white on white.
+         It was latent for as long as the page has been this tall and tipped
+         over when a sixth story chapter was added. Bounded now: the element is
+         only ever nudged by a fraction of its distance from centre screen, and
+         .bg's inset:-10% covers the travel. */
+      /* Clamped to the overhang .bg actually has (inset:-10% => ~10% of its
+         height on each side). Unclamped, the worst case across a full scroll is
+         ~79px against ~60px of cover — a thin gap at the extremes. The clamp
+         makes a gap arithmetically impossible rather than merely unlikely. */
+      var cap=rc.height*0.09;
+      var off=Math.max(-cap,Math.min(cap,((rc.top+rc.height/2)-innerHeight/2)*r));
+      el.style.transform='translate3d(0,'+off.toFixed(1)+'px,0)';
+    });}
     onStory();
   }
   // single rAF-coalesced scroll ticker — one aligned frame drives every handler,
