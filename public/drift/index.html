@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drift — Every trip, together</title>
+<link rel="icon" href="assets/icon/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/icon/icon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon/icon-180.png">
+<link rel="icon" href="drift-logo.png" sizes="any">
 <meta name="description" content="The group-trip app. Start from 40 ready-made trips, keep bookings and plans in one place, split every cost — then watch your world fill in. iPhone.">
 <meta property="og:title" content="Drift — Every trip, together">
 <meta property="og:description" content="Plan with your crew, keep every booking in one place, split every cost, and watch your world fill in. The group-trip app for iPhone.">
@@ -44,12 +48,16 @@
 
   /* ============ NAVBAR (floating pill, morphs) ============ */
   .nav{position:fixed;top:16px;left:0;right:0;z-index:100;padding:0 clamp(12px,4vw,24px);transition:top .3s var(--e)}
-  .nav-in{max-width:920px;margin:0 auto;padding:12px clamp(16px,4vw,22px);display:flex;align-items:center;justify-content:space-between;
-     border-radius:100px;transition:background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
+  .nav-in{max-width:660px;margin:0 auto;padding:9px clamp(14px,3vw,18px);display:flex;align-items:center;justify-content:space-between;gap:18px;
+     border-radius:100px;transition:max-width .35s var(--e),padding .35s var(--e),background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
+  /* Tightens further once the page has scrolled, so the bar reads as a
+     compact pill over content rather than a full-width header. */
+  .nav.solid .nav-in{max-width:560px;padding:7px 14px}
   .nav.solid .nav-in{background:rgba(255,255,255,.82);backdrop-filter:blur(14px);box-shadow:0 10px 34px -14px rgba(20,14,6,.32)}
-  .brand{display:inline-flex;align-items:center;gap:9px;font-family:var(--sans);font-weight:800;font-size:21px;letter-spacing:-.02em;color:#fff;transition:color .35s}
+  .brand{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-weight:800;font-size:19px;letter-spacing:-.02em;color:#fff;transition:color .35s,font-size .35s var(--e)}
+  .nav.solid .brand{font-size:17px}
   .nav.solid .brand{color:var(--ink)}
-  .brand .mk{width:29px;height:29px;border-radius:9px;background:var(--coral);display:grid;place-items:center;box-shadow:0 6px 16px -4px rgba(20,184,166,.6)}
+  .brand .mk{width:26px;height:26px;transition:width .35s var(--e),height .35s var(--e);border-radius:9px;background:var(--coral);display:grid;place-items:center;box-shadow:0 6px 16px -4px rgba(20,184,166,.6)}
   .brand .mk svg{width:16px;height:16px}
   .nav-r{display:flex;align-items:center;gap:14px}
   .nav-login{font-weight:700;font-size:14.5px;color:#fff;transition:color .35s}
@@ -1002,7 +1010,7 @@
 
 <!-- ============ OUTRO ============ -->
 <section class="outro" id="beta">
-  <div class="bg" data-px="0.12"><picture><source type="image/webp" srcset="assets/photo/machupicchu.webp"><img loading="lazy" decoding="async" src="assets/photo/machupicchu.webp" alt="" width="2000" height="1333"></picture></div>
+  <div class="bg" data-px="0.12"><picture><source type="image/webp" srcset="assets/photo/hero-aurora.webp"><img decoding="async" src="assets/photo/hero-aurora.webp" alt="" width="2000" height="1333" style="object-position:center 46%"></picture></div>
   <div class="in">
     <h2 id="outroH2">Your next adventure starts with Drift.</h2>
     <p class="beta-open">Plan it right in your browser, or grab the iPhone beta — no invite needed.</p>
