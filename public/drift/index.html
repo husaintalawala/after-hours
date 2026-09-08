@@ -674,6 +674,25 @@
   .s.on .dc{animation:appin .55s var(--e) forwards}
   .dc.c1{animation-delay:.7s}.dc.c2{animation-delay:.86s}.dc.c3{animation-delay:1.02s}.dc.c4{animation-delay:1.18s}
 
+  /* INSPIRE — 40 ready-made trips you can copy into your own */
+  .ap-insp{padding:0}
+  .in-head{position:absolute;left:13px;right:13px;top:13px;z-index:6}
+  .in-head .tt{font-weight:800;font-size:15px;color:#fff;letter-spacing:-.01em}
+  .in-head .mt{font-size:10px;color:rgba(234,242,244,.66);margin-top:2px}
+  .in-grid{position:absolute;left:13px;right:13px;top:52px;bottom:13px;z-index:5;
+     display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:9px}
+  .ic{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.13);
+     box-shadow:0 18px 32px -18px rgba(0,0,0,.8);opacity:0;transform:translateY(20px)}
+  .ic .im{position:absolute;inset:0;background-size:cover;background-position:center}
+  .ic .sc{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,14,24,0) 34%,rgba(8,14,24,.86) 100%)}
+  .ic .cc{position:absolute;left:8px;right:8px;bottom:7px}
+  .ic .nn{font-weight:700;font-size:11px;line-height:1.25;color:#fff}
+  .ic .mt{font-size:9px;color:rgba(234,242,244,.72);margin-top:2px}
+  .ic .mine{position:absolute;top:7px;right:7px;font-size:8.5px;font-weight:700;letter-spacing:.02em;
+     color:#08131d;background:#37D6C4;border-radius:999px;padding:3px 7px}
+  .s.on .ic{animation:appin .55s var(--e) forwards}
+  .ic.i1{animation-delay:.60s}.ic.i2{animation-delay:.72s}.ic.i3{animation-delay:.84s}.ic.i4{animation-delay:.96s}
+
   /* SPLIT — expenses + settle up */
   .xrow{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:14px;opacity:0;transform:translateY(14px)}
   .xrow .xi{width:30px;height:30px;border-radius:9px;background-size:cover;background-position:center;flex-shrink:0}
@@ -807,7 +826,17 @@
     <div class="stage-phone" id="stagePhone">
       <div class="phone"><div class="scr stage-screens" id="screens">
         <!-- 0 · PLAN — a shared itinerary building itself -->
-        <div class="s appscr aur ap-plan on" data-i="0">
+        <!-- 0 · INSPIRE — 40 ready-made trips, copy one and make it yours -->
+        <div class="s appscr aur ap-insp on" data-i="0">
+          <div class="in-head"><div class="tt">Trips worth stealing</div><div class="mt">40 itineraries, built day by day</div></div>
+          <div class="in-grid">
+            <div class="ic i1"><span class="im" style="background-image:url(assets/photo/iceland.webp)"></span><span class="sc"></span><span class="mine">Make it mine</span><div class="cc"><div class="nn">Iceland: The Ring Road</div><div class="mt">10 days</div></div></div>
+            <div class="ic i2"><span class="im" style="background-image:url(assets/photo/tokyo.webp)"></span><span class="sc"></span><div class="cc"><div class="nn">Japan: Tokyo &amp; Kyoto</div><div class="mt">13 days</div></div></div>
+            <div class="ic i3"><span class="im" style="background-image:url(assets/photo/amalfi.jpg)"></span><span class="sc"></span><div class="cc"><div class="nn">Amalfi Coast</div><div class="mt">11 days</div></div></div>
+            <div class="ic i4"><span class="im" style="background-image:url(assets/photo/machupicchu.webp)"></span><span class="sc"></span><div class="cc"><div class="nn">Peru: The Sacred Valley</div><div class="mt">11 days</div></div></div>
+          </div>
+        </div>
+        <div class="s appscr aur ap-plan" data-i="1">
           <div class="ascr-top">
             <div class="tt">Paris &amp; Rome</div>
             <div class="mt"><span class="crew"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i><i style="background-image:url(assets/photo/friends-bali.jpg)"></i><i style="background-image:url(assets/photo/swing.jpg)"></i></span>Jun 12–19 · 4 going</div>
@@ -822,7 +851,7 @@
           <div class="ap-live k4"><span class="pl-dot"></span>Maya is adding a stop…</div>
         </div>
         <!-- 1 · RESERVATIONS — bookings read from the inbox, dropped onto days -->
-        <div class="s appscr aur ap-res" data-i="1">
+        <div class="s appscr aur ap-res" data-i="2">
           <div class="ascr-top"><div class="tt">Your reservations</div><div class="mt"><span class="pl-dot"></span>Read from your inbox</div></div>
           <div class="ap-body">
             <div class="rz glass d1"><span class="ic fl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3a1.5 1.5 0 00-3 0v5.5l-8 5v2l8-2.6V19l-2 1.4V22l3.5-1 3.5 1v-1.6L11 19v-6.1l10 2.6z"/></svg></span><div class="cc"><div class="dd">FLIGHT · JUN 16</div><div class="nn">CDG → FCO</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
@@ -832,7 +861,7 @@
           <div class="ap-live d4"><span class="pl-dot"></span>3 added to your itinerary</div>
         </div>
         <!-- 2 · DISCOVER — live map with pins + a place carousel -->
-        <div class="s appscr aur ap-disc" data-i="2">
+        <div class="s appscr aur ap-disc" data-i="3">
           <div class="dmap">
             <span class="dpin amber p2" style="left:38%;top:39%"></span>
             <span class="dpin p3" style="left:64%;top:44%"></span>
@@ -850,7 +879,7 @@
           </div>
         </div>
         <!-- 3 · SPLIT — expenses + settle up (dark aurora) -->
-        <div class="s appscr aur ap-split" data-i="3">
+        <div class="s appscr aur ap-split" data-i="4">
           <div class="ascr-top"><div class="tt">Trip expenses</div><div class="mt">Paris &amp; Rome · 4 people</div></div>
           <div class="ap-body">
             <div class="xrow glass r1"><span class="xi" style="background-image:url(assets/photo/friends-kl.jpg)"></span><div class="cc"><div class="nn">Dinner at Septime</div><div class="dd">Maya paid · split 4</div></div><span class="xp">€240</span></div>
@@ -865,7 +894,7 @@
           </div>
         </div>
         <!-- 4 · GLOBE — your world fills in, pins + Kodak moments -->
-        <div class="s appscr aur ap-globe" data-i="4">
+        <div class="s appscr aur ap-globe" data-i="5">
           <img loading="lazy" decoding="async" class="gl-bg" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trips, rotating">
           <div class="gl-head"><div class="tt">Your world</div><div class="mt">Everywhere you've been, together</div></div>
           <div class="gl-card">
@@ -878,23 +907,24 @@
     </div>
     <!-- chapter text blocks -->
     <div class="chapters" id="chapters">
-      <div class="chap on right" data-i="0"><div class="eyebrow">Plan together</div><h2>Plan it <em>together.</em></h2><p>Everyone adds stops to one shared itinerary — the plan builds itself as your crew chimes in.</p></div>
-      <div class="chap left" data-i="1"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Drift reads your inbox and drops every flight, stay and ticket onto the right day.</p></div>
-      <div class="chap right" data-i="2"><div class="eyebrow">Know what to do</div><h2>A local guide,<br><em>built in.</em></h2><p>Top sights, tours and hidden gems for every stop — add any in a tap.</p></div>
-      <div class="chap left" data-i="3"><div class="eyebrow">Split every cost</div><h2>Split it.<br><em>Settle</em> in a tap.</h2><p>Log what everyone pays and Drift does the math — the trip ends square, no spreadsheet required.</p></div>
-      <div class="chap right" data-i="4"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Your routes and photos pin themselves to a living globe of everywhere you&rsquo;ve been — and everyone you went with.</p></div>
+      <div class="chap on left" data-i="0"><div class="eyebrow">Start from a real trip</div><h2>40 trips,<br><em>ready</em> to go.</h2><p>Iceland’s Ring Road. Tokyo to Kyoto. Copy any one into your own trip and change what you like — the plan is already built.</p></div>
+      <div class="chap right" data-i="1"><div class="eyebrow">Plan together</div><h2>Plan it <em>together.</em></h2><p>Everyone adds stops to one shared itinerary — the plan builds itself as your crew chimes in.</p></div>
+      <div class="chap left" data-i="2"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Drift reads your inbox and drops every flight, stay and ticket onto the right day.</p></div>
+      <div class="chap right" data-i="3"><div class="eyebrow">Know what to do</div><h2>A local guide,<br><em>built in.</em></h2><p>Top sights, tours and hidden gems for every stop — add any in a tap.</p></div>
+      <div class="chap left" data-i="4"><div class="eyebrow">Split every cost</div><h2>Split it.<br><em>Settle</em> in a tap.</h2><p>Log what everyone pays and Drift does the math — the trip ends square, no spreadsheet required.</p></div>
+      <div class="chap right" data-i="5"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Your routes and photos pin themselves to a living globe of everywhere you&rsquo;ve been — and everyone you went with.</p></div>
     </div>
     <!-- tab indicator -->
     <div class="tabs" id="tabs">
-      <span class="tab plan on" data-phase="plan" data-to="0">Plan</span>
-      <span class="tab split" data-phase="split" data-to="3">Split</span>
-      <span class="tab relive" data-phase="relive" data-to="4">Relive</span>
+      <span class="tab plan on" data-phase="plan" data-to="1">Plan</span>
+      <span class="tab split" data-phase="split" data-to="4">Split</span>
+      <span class="tab relive" data-phase="relive" data-to="5">Relive</span>
     </div>
   </div>
 </section>
 
 <!-- ============ CHAT (Ask Drift) ============ -->
-<section class="chatsec"><div class="cs-sticky"><div class="cs-wrap">
+<section class="chatsec" id="ask"><div class="cs-sticky"><div class="cs-wrap">
   <div class="cs-copy">
     <span class="eyebrow" data-r>Your co-planner</span>
     <h2 data-ghost>Ask Drift <em>anything.</em></h2>
@@ -1009,7 +1039,7 @@
       </div>
     </div>
     <div class="fcol"><h4>Get started</h4><a href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener">Get the iPhone beta</a><a href="/app/login">Open on the web</a><a href="/app/login">Log in</a></div>
-    <div class="fcol"><h4>Features</h4><a href="#story">Trip planner</a><a href="#story">Trip tracker</a><a href="#story">Split costs</a><a href="#story">Your globe</a></div>
+    <div class="fcol"><h4>Features</h4><a href="#story">Plan together</a><a href="#story">Find my reservations</a><a href="#ask">Ask Drift</a><a href="#story">Split costs</a><a href="#story">Your globe</a></div>
     <div class="fcol"><h4>Company</h4><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="/app/contact">Contact</a></div>
   </div>
   <div class="fbot">
