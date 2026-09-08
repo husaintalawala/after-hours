@@ -285,12 +285,60 @@ export default function HomeShell({
             </>
           )}
 
-          {allTrips.length === 0 && (
+          {allTrips.length === 0 && !isSelf && (
             <div className="py-12 text-center">
               <p className="text-4xl opacity-30">🗺</p>
-              <p className="mt-3 text-[15px] text-drift-muted">
-                {isSelf ? "No trips yet" : "No trips to show yet"}
-              </p>
+              <p className="mt-3 text-[15px] text-drift-muted">No trips to show yet</p>
+            </div>
+          )}
+
+          {/* Parity with iOS (Drift ProfileTripsView.emptyTripsState). This was a
+              map glyph at 30% opacity and the words "No trips yet" — no button and
+              no route anywhere, on the highest-traffic screen for anyone who has
+              not started. 14 of 41 accounts have never created anything.
+
+              It names the two paths that work from zero, and neither is "create a
+              trip": that form is the longest route to a populated trip, while
+              copying a finished Inspire itinerary is a couple of taps and no
+              typing. Someone else's empty profile still gets the plain line
+              above — these are actions only the owner can take. */}
+          {allTrips.length === 0 && isSelf && (
+            <div className="py-6">
+              <p className="mb-3 text-[13px] font-semibold text-aurora-ink">Start here</p>
+              <div className="flex flex-col gap-2.5">
+                <Link
+                  href="/app/inspire"
+                  className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition hover:bg-aurora-glass2"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-aurora-teal/15 text-lg">
+                    🧭
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold text-aurora-ink">
+                      Steal a finished trip
+                    </span>
+                    <span className="block text-[12.5px] text-aurora-ink3">
+                      Forty of them, with the days already in order.
+                    </span>
+                  </span>
+                </Link>
+                <Link
+                  href="/app/trips/new"
+                  className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition hover:bg-aurora-glass2"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg">
+                    ✏️
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold text-aurora-ink">
+                      Start from scratch
+                    </span>
+                    <span className="block text-[12.5px] text-aurora-ink3">
+                      Name it, pick the dates, fill it in as you go.
+                    </span>
+                  </span>
+                </Link>
+              </div>
             </div>
           )}
         </div>
