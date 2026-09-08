@@ -48,29 +48,37 @@
 
   /* ============ NAVBAR (floating pill, morphs) ============ */
   .nav{position:fixed;top:16px;left:0;right:0;z-index:100;padding:0 clamp(12px,4vw,24px);transition:top .3s var(--e)}
-  .nav-in{width:max-content;max-width:calc(100% - 24px);margin:0 auto;padding:6px 8px 6px 15px;display:flex;align-items:center;gap:15px;
-     border-radius:100px;transition:padding .3s var(--e),gap .3s var(--e),background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
-  .nav.solid .nav-in{padding:4px 6px 4px 13px;gap:13px}
+  .nav-in{width:100%;max-width:900px;margin:0 auto;padding:13px 14px 13px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;
+     border-radius:100px;transition:max-width .45s var(--e),padding .45s var(--e),gap .45s var(--e),background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
+  /* Scrolled: slides down to a compact pill. 430px is a little above the
+     bar's natural content width, so space-between still leaves a small gap
+     rather than cramming — and because this is max-width and not
+     width:max-content, it can actually animate. */
+  .nav.shrunk .nav-in{max-width:430px;padding:5px 6px 5px 13px;gap:12px}
   .nav.solid .nav-in{background:rgba(255,255,255,.82);backdrop-filter:blur(14px);box-shadow:0 10px 34px -14px rgba(20,14,6,.32)}
-  .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-weight:800;font-size:17px;letter-spacing:-.02em;color:#fff;transition:color .35s,font-size .3s var(--e)}
-  .nav.solid .brand{font-size:15.5px}
-  .brand img{width:30px;height:30px;object-fit:contain;display:block;margin:0;transition:width .3s var(--e),height .3s var(--e)}
-  .nav.solid .brand img{width:26px;height:26px}
+  .brand{display:inline-flex;align-items:center;gap:9px;font-family:var(--sans);font-weight:800;font-size:21px;letter-spacing:-.02em;color:#fff;transition:color .35s,font-size .3s var(--e)}
+  .nav.shrunk .brand{font-size:16px}
+  .brand img{width:38px;height:38px;object-fit:contain;display:block;margin:0;transition:width .3s var(--e),height .3s var(--e)}
+  .nav.shrunk .brand img{width:27px;height:27px}
   .nav.solid .brand{color:var(--ink)}
   .brand .mk{width:26px;height:26px;transition:width .35s var(--e),height .35s var(--e);border-radius:9px;background:var(--coral);display:grid;place-items:center;box-shadow:0 6px 16px -4px rgba(20,184,166,.6)}
   .brand .mk svg{width:16px;height:16px}
-  .nav-r{display:flex;align-items:center;gap:13px}
-  .nav-login{font-weight:700;font-size:13.5px;color:#fff;transition:color .35s}
+  .nav-r{display:flex;align-items:center;gap:18px;transition:gap .45s var(--e)}
+  .nav.shrunk .nav-r{gap:13px}
+  .nav-login{font-weight:700;font-size:15px;color:#fff;transition:color .35s,font-size .45s var(--e)}
+  .nav.shrunk .nav-login{font-size:13.5px}
   .nav.solid .nav-login{color:var(--ink)}
   /* Same treatment as .nav-login but a step quieter — it sits beside the two
      real actions and should read as a utility link, not compete with them. */
-  .nav-contact{font-weight:600;font-size:13.5px;color:rgba(255,255,255,.78);transition:color .35s}
+  .nav-contact{font-weight:600;font-size:15px;color:rgba(255,255,255,.78);transition:color .35s,font-size .45s var(--e)}
+  .nav.shrunk .nav-contact{font-size:13.5px}
   .nav-contact:hover{color:#fff}
   .nav.solid .nav-contact{color:var(--muted)}
   .nav.solid .nav-contact:hover{color:var(--ink)}
   @media(max-width:700px){.nav-contact{display:none}}
-  .nav-cta{font-weight:700;font-size:13.5px;background:var(--coral);color:#fff;padding:7px 15px;border-radius:100px;display:inline-flex;align-items:center;gap:7px;transition:transform .2s}
+  .nav-cta{font-weight:700;font-size:15px;background:var(--coral);color:#fff;padding:10px 19px;border-radius:100px;display:inline-flex;align-items:center;gap:7px;transition:transform .2s,font-size .45s var(--e),padding .45s var(--e)}
   .nav-cta:hover{transform:translateY(-1px)}
+  .nav.shrunk .nav-cta{font-size:13.5px;padding:7px 15px}
   .nav-cta svg{width:14px;height:14px}
   /* "Log in" stays visible on mobile — returning users reach the web app from
      the header. On very narrow phones, drop the "Drift" wordmark (keep the mark)
@@ -1069,7 +1077,15 @@
 
   /* ---- navbar morph ---- */
   var nav=document.getElementById('nav');
-  function onNav(){nav.classList.toggle('solid',scrollY>innerHeight*0.7);}
+  function onNav(){
+    /* Two thresholds on purpose. `solid` swaps the pill to its white,
+       blurred treatment and stays where it was — late enough that it is
+       not fighting the dark hero. `shrunk` drives the SIZE and fires as
+       soon as the page moves, so the bar visibly slides from wide+thick
+       to narrow+thin as you scroll rather than snapping much later. */
+    nav.classList.toggle('solid',scrollY>innerHeight*0.7);
+    nav.classList.toggle('shrunk',scrollY>48);
+  }
   onNav();addEventListener('scroll',onNav,{passive:true});
 
   /* ---- parallax ---- */
