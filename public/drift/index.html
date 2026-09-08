@@ -1078,13 +1078,14 @@
   /* ---- navbar morph ---- */
   var nav=document.getElementById('nav');
   function onNav(){
-    /* Two thresholds on purpose. `solid` swaps the pill to its white,
-       blurred treatment and stays where it was — late enough that it is
-       not fighting the dark hero. `shrunk` drives the SIZE and fires as
-       soon as the page moves, so the bar visibly slides from wide+thick
-       to narrow+thin as you scroll rather than snapping much later. */
-    nav.classList.toggle('solid',scrollY>innerHeight*0.7);
-    nav.classList.toggle('shrunk',scrollY>48);
+    /* One threshold: the pill's size AND its white blurred background move
+       together, so the bar reads as a single transition rather than two
+       unrelated ones. `solid` used to wait until 70% of the viewport had
+       scrolled, which meant the shape changed early and the surface much
+       later. Both classes are kept so either can be re-timed alone. */
+    var past = scrollY > 48;
+    nav.classList.toggle('solid', past);
+    nav.classList.toggle('shrunk', past);
   }
   onNav();addEventListener('scroll',onNav,{passive:true});
 
