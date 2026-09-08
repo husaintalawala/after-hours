@@ -48,28 +48,28 @@
 
   /* ============ NAVBAR (floating pill, morphs) ============ */
   .nav{position:fixed;top:16px;left:0;right:0;z-index:100;padding:0 clamp(12px,4vw,24px);transition:top .3s var(--e)}
-  .nav-in{max-width:660px;margin:0 auto;padding:9px clamp(14px,3vw,18px);display:flex;align-items:center;justify-content:space-between;gap:18px;
-     border-radius:100px;transition:max-width .35s var(--e),padding .35s var(--e),background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
-  /* Tightens further once the page has scrolled, so the bar reads as a
-     compact pill over content rather than a full-width header. */
-  .nav.solid .nav-in{max-width:560px;padding:7px 14px}
+  .nav-in{width:max-content;max-width:calc(100% - 24px);margin:0 auto;padding:6px 8px 6px 15px;display:flex;align-items:center;gap:15px;
+     border-radius:100px;transition:padding .3s var(--e),gap .3s var(--e),background .35s var(--e),box-shadow .35s var(--e),backdrop-filter .35s var(--e)}
+  .nav.solid .nav-in{padding:4px 6px 4px 13px;gap:13px}
   .nav.solid .nav-in{background:rgba(255,255,255,.82);backdrop-filter:blur(14px);box-shadow:0 10px 34px -14px rgba(20,14,6,.32)}
-  .brand{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-weight:800;font-size:19px;letter-spacing:-.02em;color:#fff;transition:color .35s,font-size .35s var(--e)}
-  .nav.solid .brand{font-size:17px}
+  .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-weight:800;font-size:17px;letter-spacing:-.02em;color:#fff;transition:color .35s,font-size .3s var(--e)}
+  .nav.solid .brand{font-size:15.5px}
+  .brand img{width:30px;height:30px;object-fit:contain;display:block;margin:0;transition:width .3s var(--e),height .3s var(--e)}
+  .nav.solid .brand img{width:26px;height:26px}
   .nav.solid .brand{color:var(--ink)}
   .brand .mk{width:26px;height:26px;transition:width .35s var(--e),height .35s var(--e);border-radius:9px;background:var(--coral);display:grid;place-items:center;box-shadow:0 6px 16px -4px rgba(20,184,166,.6)}
   .brand .mk svg{width:16px;height:16px}
-  .nav-r{display:flex;align-items:center;gap:14px}
-  .nav-login{font-weight:700;font-size:14.5px;color:#fff;transition:color .35s}
+  .nav-r{display:flex;align-items:center;gap:13px}
+  .nav-login{font-weight:700;font-size:13.5px;color:#fff;transition:color .35s}
   .nav.solid .nav-login{color:var(--ink)}
   /* Same treatment as .nav-login but a step quieter — it sits beside the two
      real actions and should read as a utility link, not compete with them. */
-  .nav-contact{font-weight:600;font-size:14.5px;color:rgba(255,255,255,.78);transition:color .35s}
+  .nav-contact{font-weight:600;font-size:13.5px;color:rgba(255,255,255,.78);transition:color .35s}
   .nav-contact:hover{color:#fff}
   .nav.solid .nav-contact{color:var(--muted)}
   .nav.solid .nav-contact:hover{color:var(--ink)}
   @media(max-width:700px){.nav-contact{display:none}}
-  .nav-cta{font-weight:700;font-size:14px;background:var(--coral);color:#fff;padding:9px 17px;border-radius:100px;display:inline-flex;align-items:center;gap:7px;transition:transform .2s}
+  .nav-cta{font-weight:700;font-size:13.5px;background:var(--coral);color:#fff;padding:7px 15px;border-radius:100px;display:inline-flex;align-items:center;gap:7px;transition:transform .2s}
   .nav-cta:hover{transform:translateY(-1px)}
   .nav-cta svg{width:14px;height:14px}
   /* "Log in" stays visible on mobile — returning users reach the web app from
@@ -803,7 +803,7 @@
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav"><div class="nav-in">
-  <a class="brand" href="#top"><img loading="lazy" decoding="async" src="/drift-logo.png" alt="Drift" style="width:46px;height:46px;object-fit:contain;display:block;margin:-6px 0">Drift</a>
+  <a class="brand" href="#top"><img decoding="async" src="/drift-logo.png" alt="Drift">Drift</a>
   <div class="nav-r">
     <!-- Hidden under 700px: the brand plus three actions will not fit a 375px
          phone. Small screens still reach it from the outro line and the
