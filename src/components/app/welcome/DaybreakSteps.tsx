@@ -1,19 +1,24 @@
 "use client"
 
 import TripCoverImg from "@/components/app/TripCoverImg"
+import CoverCredit from "@/components/app/CoverCredit"
 import {
+  BUDGET_STYLES,
   distanceText,
   spelledCount,
+  TRAVEL_RHYTHMS,
   TRIP_LENGTHS,
   type Coord,
   type TripLength,
 } from "@/lib/drift/daybreak"
+import { plateForTag, type Plate } from "@/lib/drift/daybreakArt"
+import { tripCover } from "@/lib/drift/tripCover"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import type { PlaceCandidate } from "@/lib/drift/chat"
 
-// The six screens of the first-run flow. Each one owns a question and nothing
-// else — the sky, the progress bar, the back button and every transition live
-// in DaybreakFlow, so a screen here is only its content.
+// The seven screens of the first-run flow. Each one owns a question and nothing
+// else — the sky, the photograph, the progress bar, the back button and every
+// transition live in DaybreakFlow, so a screen here is only its content.
 //
 // Ported from Drift/Views/DaybreakSteps.swift. Every headline, subtitle, button
 // and skip label is verbatim: the two platforms are one product and must not
@@ -107,6 +112,68 @@ function Spinner({ className = "h-4 w-4" }: { className?: string }) {
  *  than stacking everything against the headline. */
 function Footer({ children }: { children: React.ReactNode }) {
   return <div className="mt-auto pt-5">{children}</div>
+}
+
+// MARK: - The photographic canvas
+
+/**
+ * Full-bleed photograph, scrim, and the credit the licence requires.
+ *
+ * The flow ran over a CSS-gradient sky. In an app whose whole asset is 108
+ * photographed places, a person could answer four screens before seeing one — so
+ * the picture is the ground now and the question sits on it. DaybreakSky
+ * survives UNDERNEATH as the fallback, for the moment before the shelf lands and
+ * for a shelf that never does: this draws nothing at all when there is no
+ * photograph, rather than painting a flat colour over a sunrise that is already
+ * correct.
+ *
+ * A SCRIM IS NOT OPTIONAL. White serif over an unknown photograph is legible
+ * only by luck, and the corpus runs from an aurora at midnight to a lemon
+ * terrace at noon. It lives inside this component rather than in the flow so
+ * there is no way to put a photograph on screen without it.
+ *
+ * NEITHER IS THE CREDIT. Both licences bind attribution to the DISPLAY, so a
+ * full-bleed photo without one is a licence problem rather than a styling
+ * choice. `showCredit={false}` on the image and CoverCredit rendered here is the
+ * case that prop was added for — the same photo, credited somewhere the layout
+ * can actually hold it. The chip cannot ride at the photo's own bottom-right
+ * because the photo is the whole viewport and that corner belongs to the skip
+ * link, so it sits top-right the way iOS does, aligned to the reading column at
+ * every width and above it in the stack.
+ */
+export function Backdrop({ plate, deep = false }: { plate: Plate | null; deep?: boolean }) {
+  const cover = plate?.cover
+  if (!cover?.url) return null
+
+  return (
+    <>
+      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+        <TripCoverImg cover={cover} sizes="100vw" showCredit={false} priority />
+        <div
+          className="absolute inset-0"
+          style={{
+            // Scrim.photoTop and Scrim.photoBottomDeep, the same two values
+            // GuideCard already uses. `deep` is for the screens whose content
+            // reaches the top of the frame — the mosaic and the three cards.
+            background: deep
+              ? "linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.70) 50%, rgba(0,0,0,0.45))"
+              : "linear-gradient(to bottom, rgba(0,0,0,0.45), transparent 50%, rgba(0,0,0,0.85))",
+          }}
+        />
+      </div>
+
+      {cover.credit && (
+        // pointer-events-none on the strip, auto on the chip: this layer spans
+        // the top of the screen above the chrome, and without it the back
+        // button underneath would stop responding.
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-20 mx-auto flex w-full max-w-[440px] justify-end px-[18px]">
+          <div className="pointer-events-auto">
+            <CoverCredit text={cover.credit.text} href={cover.credit.href} placement="inline" />
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 // MARK: - 01 · Is this you?
@@ -281,15 +348,20 @@ export function OriginStep({
   )
 }
 
-// MARK: - 03 · What kind of trip is yours?
+// MARK: - 03 · What pulls you (the mosaic)
 
 /**
- * Drift's own seven shapes, not a generic interest list. These already tag
- * every guide on the shelf, so an answer here ranks the very next screen rather
- * than being a preference stored and forgotten.
+ * Seven chips become seven photographs.
+ *
+ * The words were reported as simply not understood — "Old stones", "Up high" —
+ * and renaming them helped, but the deeper fault was asking in WORDS what this
+ * app can ask in PICTURES. Each tile is a real destination from the highest-
+ * ranked guide carrying that tag (see daybreakArt.ts), so the answer looks like
+ * what it means, and nothing here is a place name typed into a source file.
  */
-export function ShapeStep({
+export function MosaicStep({
   categories,
+  shelf,
   picked,
   onToggle,
   length,
@@ -298,6 +370,8 @@ export function ShapeStep({
   onSkip,
 }: {
   categories: ReadonlyArray<{ slug: string; name: string }>
+  /** In rank order — plateForTag reads "highest ranked" as "first". */
+  shelf: readonly DaybreakGuide[]
   picked: ReadonlySet<string>
   onToggle: (slug: string) => void
   length: TripLength
@@ -308,59 +382,61 @@ export function ShapeStep({
   return (
     <>
       <Question
-        title={"What kind of\ntrip is yours?"}
-        subtitle="Pick as many as fit. It's how the shelf is already sorted."
+        title="What pulls you?"
+        subtitle={
+          picked.size ? `${picked.size} picked. Pick as many as fit.` : "Pick as many as fit."
+        }
       />
 
-      {/* Wrapping, not a grid: the chips are different widths and a grid would
-          column them, leaving ragged gaps beside "One base, slow days". */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {categories.map((c) => {
-          const on = picked.has(c.slug)
-          return (
-            <button
-              key={c.slug}
-              type="button"
-              aria-pressed={on}
-              onClick={() => onToggle(c.slug)}
-              className={`h-[38px] rounded-full border px-3.5 text-[13.5px] font-semibold transition-colors ${
-                on
-                  ? "border-aurora-teal/50 bg-aurora-teal/15 text-aurora-teal"
-                  : "border-aurora-border bg-aurora-glass text-aurora-ink2"
-              }`}
-            >
-              {c.name}
-            </button>
-          )
-        })}
-      </div>
+      {/* Two columns, deliberately uneven heights: a flat grid of seven equal
+          rectangles reads as a form, which is the thing this screen exists to
+          stop being. `items-start` is what keeps it uneven — CSS grid stretches
+          a short cell to its row by default, which would quietly flatten the
+          mosaic back into the form.
 
-      {/* The second half of the question, on the same screen rather than a
-          seventh. It also fills the hole this screen had — chips at the top and
-          a button at the bottom with two thirds of a phone between them. */}
-      <div className="mt-5">
-        <p className="text-[10px] font-bold tracking-[0.11em] text-aurora-ink3">
+          Six in the grid, the seventh full width beneath it. Seven items in two
+          columns leaves the last one beside a hole, and a hole in a mosaic reads
+          as a tile that failed to load rather than as layout. */}
+      <div className="mt-3 grid grid-cols-2 items-start gap-[7px]">
+        {categories.slice(0, 6).map((c, i) => (
+          <Tile
+            key={c.slug}
+            category={c}
+            shelf={shelf}
+            on={picked.has(c.slug)}
+            onToggle={() => onToggle(c.slug)}
+            tall={i % 3 === 0}
+          />
+        ))}
+      </div>
+      {categories[6] && (
+        <div className="mt-[7px]">
+          <Tile
+            category={categories[6]}
+            shelf={shelf}
+            on={picked.has(categories[6].slug)}
+            onToggle={() => onToggle(categories[6].slug)}
+            tall={false}
+          />
+        </div>
+      )}
+
+      {/* The second half of the question, on the same screen rather than an
+          eighth. ink2 rather than ink3 for the label: this sits on a photograph
+          now, where the muted tertiary grey is very nearly gone. */}
+      <div className="mt-4">
+        <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink2">
           HOW LONG HAVE YOU GOT?
         </p>
-        <div className="mt-[9px] flex gap-2">
-          {TRIP_LENGTHS.map((option) => {
-            const on = length === option.id
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onLength(option.id)}
-                className={`h-9 flex-1 truncate rounded-full border px-2 text-[12.5px] font-semibold transition-colors ${
-                  on
-                    ? "border-aurora-teal/50 bg-aurora-teal/15 text-aurora-teal"
-                    : "border-aurora-border bg-aurora-glass text-aurora-ink2"
-                }`}
-              >
-                {option.label}
-              </button>
-            )
-          })}
+        <div className="mt-1.5 flex gap-1.5">
+          {TRIP_LENGTHS.map((option) => (
+            <PhotoPill
+              key={option.id}
+              label={option.label}
+              on={length === option.id}
+              onClick={() => onLength(option.id)}
+            />
+          ))}
         </div>
       </div>
 
@@ -379,7 +455,206 @@ export function ShapeStep({
   )
 }
 
-// MARK: - 04 · Three of ours fit that
+/**
+ * One photographed tile.
+ *
+ * STRETCHED BUTTON, NOT A WRAPPER, and the button carries NO z-index — the same
+ * shape, and the same reason, as GuideCard below. The photo credit is itself a
+ * button, so it cannot sit inside the selection control and has to stay
+ * clickable through it; TripCoverImg draws it at z-10 inside the photo box,
+ * which is `relative` with z-index auto and therefore starts no stacking context
+ * of its own, so the credit is compared against the stretched button directly
+ * and wins. Giving the button any z-index at all would bury it — and a button
+ * nested inside a button is invalid markup besides.
+ *
+ * ONE CREDIT PER TILE, which is stricter than the phone: iOS's mosaic draws
+ * these photographs bare. Both licences bind attribution to the display and
+ * every one of these is a display, so on web the obligation rides along for free
+ * — TripCoverImg cannot render a stock photo without it.
+ */
+function Tile({
+  category,
+  shelf,
+  on,
+  onToggle,
+  tall,
+}: {
+  category: { slug: string; name: string }
+  shelf: readonly DaybreakGuide[]
+  on: boolean
+  onToggle: () => void
+  tall: boolean
+}) {
+  const plate = plateForTag(category.slug, shelf)
+  // Rung 4 — the deterministic gradient with the category's initial on it. This
+  // is what a slow network actually holds, and it is a designed state rather
+  // than a hole: the tile stays readable, tappable and the same size.
+  const cover = plate?.cover ?? tripCover({ id: category.slug, title: category.name })
+
+  return (
+    <div className={`relative ${tall ? "h-[118px]" : "h-[82px]"}`}>
+      <div
+        className={`relative h-full overflow-hidden rounded-[13px] border-2 ${
+          on ? "border-aurora-teal" : "border-transparent"
+        }`}
+      >
+        <TripCoverImg cover={cover} sizes="(max-width: 480px) 50vw, 220px" />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.85))" }}
+        />
+        {/* Cleared to the left of the credit chip, exactly as GuideCard is. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-2 pr-[74px]">
+          <p className="line-clamp-2 text-[12px] font-bold leading-tight text-white">
+            {category.name}
+          </p>
+          {plate?.place && (
+            <p className="truncate text-[8px] font-semibold uppercase tracking-[0.06em] text-white/70">
+              {plate.place}
+            </p>
+          )}
+        </div>
+        {/* Selection reads on a photograph only if it has its own ground. */}
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute right-[7px] top-[7px] flex h-[18px] w-[18px] items-center justify-center rounded-full ${
+            on ? "bg-aurora-teal text-aurora-teal-ink" : "border-[1.4px] border-white/80"
+          }`}
+        >
+          {on && <CheckGlyph className="h-2.5 w-2.5" />}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={on}
+        aria-label={category.name}
+        className="absolute inset-0 rounded-[13px] outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+      />
+    </div>
+  )
+}
+
+/** A small pill that has to read on a photograph. The glass fill the rest of the
+ *  flow uses disappears over one, so selection is a solid teal fill and the rest
+ *  is white at 14%. `bg-aurora-teal` is the house gradient — the same filled
+ *  teal GuideCard's selection dot uses. */
+function PhotoPill({
+  label,
+  on,
+  onClick,
+}: {
+  label: string
+  on: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`h-8 flex-1 truncate rounded-full px-2 text-[11.5px] font-semibold transition-colors ${
+        on ? "bg-aurora-teal text-aurora-teal-ink" : "bg-white/[0.14] text-aurora-ink"
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+// MARK: - 04 · How you travel
+
+/**
+ * Two questions the app ALREADY reads and the flow never asked.
+ *
+ * `travel_rhythm` and `budget_style` are columns of `user_travel_preferences`
+ * that build-itinerary and refine-itinerary consume server-side, so these
+ * answers are load-bearing the moment they are given — this is not a survey.
+ * The values written are NOT the labels shown; see TRAVEL_RHYTHMS in daybreak.ts
+ * for why, and for what iOS gets wrong about it.
+ *
+ * "Who's usually with you" is deliberately ABSENT. There is no column for it,
+ * and the corpus records who a trip is for only in prose — "Amalfi Coast —
+ * Girls' Trip". Asking it would be a question with nothing behind it, which is
+ * the mistake this flow has already made twice.
+ */
+export function StyleStep({
+  rhythm,
+  onRhythm,
+  budget,
+  onBudget,
+  onNext,
+  onSkip,
+}: {
+  rhythm: string
+  onRhythm: (v: string) => void
+  budget: string
+  onBudget: (v: string) => void
+  onNext: () => void
+  onSkip: () => void
+}) {
+  return (
+    <>
+      <Question
+        title={"And how do\nyou travel?"}
+        subtitle="This shapes every itinerary Drift builds you, not just this one."
+      />
+
+      {/* Floated into the space between the question and the button. Pinned to
+          the top it rendered as a header, a small box, and two thirds of a phone
+          of nothing. */}
+      <div className="my-auto py-6">
+        <Panel className="space-y-3.5 p-3.5">
+          <Choice label="PACE" options={TRAVEL_RHYTHMS} value={rhythm} onChange={onRhythm} />
+          <Choice label="BUDGET" options={BUDGET_STYLES} value={budget} onChange={onBudget} />
+        </Panel>
+      </div>
+
+      <Footer>
+        <Cta label="Continue" onClick={onNext} />
+        <Skip label="Skip for now" onClick={onSkip} />
+      </Footer>
+    </>
+  )
+}
+
+function Choice({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: ReadonlyArray<{ value: string; label: string }>
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div>
+      <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink3">{label}</p>
+      <div className="mt-1.5 flex gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={value === o.value}
+            onClick={() => onChange(o.value)}
+            className={`h-[34px] flex-1 truncate rounded-full px-2 text-[12px] font-semibold transition-colors ${
+              value === o.value
+                ? "bg-aurora-teal text-aurora-teal-ink"
+                : "bg-white/10 text-aurora-ink2"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// MARK: - 05 · Three of ours fit that
 
 /** The payoff for screen 3: real trips that real people finished, ranked by
  *  what was just said. */
@@ -509,7 +784,7 @@ function GuideCard({
   )
 }
 
-// MARK: - 05 · Who's coming with you?
+// MARK: - 06 · Who's coming with you?
 
 /**
  * Group trips and the shared ledger are the wedge, and a trip with someone else
@@ -581,7 +856,7 @@ export function CrewStep({
   )
 }
 
-// MARK: - 06 · Daybreak
+// MARK: - 07 · Daybreak
 
 /**
  * The wait, made into the best screen in the flow.

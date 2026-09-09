@@ -147,6 +147,53 @@ export function lengthFits(length: TripLength, days: number): boolean {
   }
 }
 
+// ---------------------------------------------------------------------------
+// How you travel — the two columns screen 4 writes
+// ---------------------------------------------------------------------------
+
+/**
+ * `travel_rhythm` and `budget_style` are real columns of
+ * `user_travel_preferences`, and both are read server-side: build-itinerary
+ * branches on the rhythm for how many stops a day it plans, and refine-itinerary
+ * puts both into the prompt and into its cache key. So an answer here is
+ * load-bearing the moment it is given — this screen is not a survey.
+ *
+ * THE STORED VALUE IS NOT THE LABEL, and the difference is the whole reason this
+ * table exists rather than three inline strings. iOS's DaybreakStyleStep (commit
+ * 2e3f1829) writes `packed`, `careful` and `no_limit`, and the server reads none
+ * of them: build-itinerary tests `travel_rhythm === "full_days"` and
+ * refine-itinerary tests the same, so "Packed" is a hard `===` miss that changes
+ * nothing at all, while `careful`/`no_limit` miss the {save, smart_mix, splurge}
+ * label map and reach the prompt as raw slugs. The vocabulary the whole rest of
+ * the product uses is documented at Drift/Core/UserPreferencesService.swift:10 —
+ * rhythm easy|balanced|full_days, budget save|smart_mix|splurge — and it is what
+ * iOS's own TuneDriftPreferencesView writes into the same row.
+ *
+ * So web shows iOS's WORDS and stores the product's VALUES. Both platforms ask
+ * the same question in the same language, and web's answer is the one that
+ * actually reaches the itinerary. The alternative — matching iOS byte for byte —
+ * would port a preference the server ignores, which is the exact failure this
+ * flow's own history keeps naming: a flow that asks questions and does nothing
+ * with them is worse than one that asks nothing, because it implies a
+ * personalisation that is not happening.
+ */
+export const TRAVEL_RHYTHMS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "easy", label: "Easy" },
+  { value: "balanced", label: "Balanced" },
+  { value: "full_days", label: "Packed" },
+]
+
+export const BUDGET_STYLES: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "save", label: "Careful" },
+  { value: "smart_mix", label: "Smart mix" },
+  { value: "splurge", label: "No limit" },
+]
+
+/** The column defaults, so an untouched screen 4 writes what the row already
+ *  holds rather than a second opinion about what "normal" is. */
+export const DEFAULT_RHYTHM = "balanced"
+export const DEFAULT_BUDGET = "smart_mix"
+
 /** Everything the sort reads, and nothing else — so the shelf's own row shape
  *  can grow without this file knowing about it. */
 export interface RankableGuide {

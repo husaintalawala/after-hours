@@ -20,15 +20,33 @@ import {
   RESERVED_TRIP_IDS,
   type DayStr,
 } from "@/lib/drift/inspire"
-import { markDaybreakSeen, rankGuides, type Coord, type TripLength } from "@/lib/drift/daybreak"
+import { CATEGORY_ORDER } from "@/lib/drift/inspire"
+import {
+  DEFAULT_BUDGET,
+  DEFAULT_RHYTHM,
+  markDaybreakSeen,
+  rankGuides,
+  type Coord,
+  type TripLength,
+} from "@/lib/drift/daybreak"
+import { backdropAt } from "@/lib/drift/daybreakArt"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import DaybreakSky from "./DaybreakSky"
 import DaybreakProfileEditor from "./DaybreakProfileEditor"
-import { BuildStep, CrewStep, IdentityStep, OriginStep, PickStep, ShapeStep } from "./DaybreakSteps"
+import {
+  Backdrop,
+  BuildStep,
+  CrewStep,
+  IdentityStep,
+  MosaicStep,
+  OriginStep,
+  PickStep,
+  StyleStep,
+} from "./DaybreakSteps"
 
 /**
- * Drift's first-run flow on the web: six questions, and the sky gets lighter as
- * you go. Port of Drift/Views/DaybreakFlow.swift.
+ * Drift's first-run flow on the web: seven questions over the photographs the
+ * app is made of. Port of Drift/Views/DaybreakFlow.swift.
  *
  * WHAT IT REPLACES. A new account signed in and landed on /app with a globe
  * carrying nothing, no welcome and nothing to do. Web had no first-run routing
@@ -49,7 +67,12 @@ import { BuildStep, CrewStep, IdentityStep, OriginStep, PickStep, ShapeStep } fr
  * first-run flow, which is the exact bug UsernameSetupView shipped.
  */
 
-const STEPS = ["identity", "origin", "shape", "pick", "crew", "build"] as const
+/**
+ * SEVEN, and no more. Every screen past the first is skippable and the close is
+ * always live, but length is its own kind of gate — a flow long enough to feel
+ * like a form is one people leave.
+ */
+const STEPS = ["identity", "origin", "shape", "style", "pick", "crew", "build"] as const
 type Step = (typeof STEPS)[number]
 
 /**
@@ -121,13 +144,21 @@ export default function DaybreakFlow({
   const [shapes, setShapes] = useState<ReadonlySet<string>>(new Set())
   const [length, setLength] = useState<TripLength>("any")
 
-  // 04
-  const [chosenTripId, setChosenTripId] = useState<string | null>(null)
+  // 04 — NOT invented fields. These are two of the six columns of
+  // `user_travel_preferences`, and both are read server-side by build-itinerary
+  // and refine-itinerary, so answering here is load-bearing immediately.
+  // Seeded with the column defaults so a screen nobody touched writes back what
+  // the row already holds.
+  const [rhythm, setRhythm] = useState(DEFAULT_RHYTHM)
+  const [budget, setBudget] = useState(DEFAULT_BUDGET)
 
   // 05
-  const [wantsToInvite, setWantsToInvite] = useState(false)
+  const [chosenTripId, setChosenTripId] = useState<string | null>(null)
 
   // 06
+  const [wantsToInvite, setWantsToInvite] = useState(false)
+
+  // 07
   const [buildStage, setBuildStage] = useState(0)
   const [buildError, setBuildError] = useState<string | null>(null)
   const [landedTripId, setLandedTripId] = useState<string | null>(null)
@@ -147,7 +178,22 @@ export default function DaybreakFlow({
 
   // MARK: Derived
 
-  const categories = useMemo(() => categoriesWithCounts(guides), [guides])
+  /**
+   * The seven tiles.
+   *
+   * `categoriesWithCounts` drops a category no guide carries — right, because a
+   * tile that opens an empty shelf is worse than one fewer tile. But when the
+   * shelf itself failed to arrive EVERY count is zero, and the filter turns a
+   * question into a blank screen: seven tiles that cannot be photographed is a
+   * slow network, seven tiles that cannot be drawn is a broken product. A failed
+   * query and an empty shelf must not render the same, so an empty shelf falls
+   * back to the full seven, which the tiles paint as their designed placeholder
+   * and which stay readable and tappable with nothing behind them.
+   */
+  const categories = useMemo(
+    () => (guides.length ? categoriesWithCounts(guides) : CATEGORY_ORDER),
+    [guides]
+  )
 
   /**
    * The three the flow offers.
@@ -181,6 +227,24 @@ export default function DaybreakFlow({
   const skyProgress = step / (STEPS.length - 1)
   const barFraction = (step + 1) / STEPS.length
   const name: Step = STEPS[step]
+
+  /**
+   * A different photograph per screen, walked DOWN the shelf so consecutive
+   * screens are never the same picture. The crew and build screens are about a
+   * trip that has already been chosen, so they show that guide's own hero
+   * instead of carrying on down the shelf.
+   *
+   * Derived, never stored by an effect: the shelf reaches this component from a
+   * single server render, and a `[]`-deps effect closing over it is the trap
+   * GlobeHero already paid for.
+   */
+  const backdrop = useMemo(
+    () =>
+      chosenGuide && (name === "crew" || name === "build")
+        ? chosenGuide.backdrop
+        : backdropAt(step, guides),
+    [chosenGuide, name, step, guides]
+  )
 
   // MARK: Leaving
 
@@ -411,6 +475,51 @@ export default function DaybreakFlow({
     setSavingCity(false)
   }
 
+  /**
+   * Screen 4, straight into `user_travel_preferences`.
+   *
+   * MERGED, NEVER REPLACED. The row has six answer columns and this screen holds
+   * two of them; a whole-row write would blank `food_moods`, `priorities`,
+   * `mobility_style` and `notes` for anyone who had already tuned them on the
+   * phone. PostgREST's upsert only sets the columns present in the payload, so
+   * the merge is the write rather than a read-modify-write around it — which
+   * also means two devices answering different screens cannot clobber each
+   * other, as iOS's load-then-save-the-whole-row can.
+   *
+   * `user_id` is the primary key, so `onConflict` is the row's own identity and
+   * the insert and the update are the same call. RLS has `owner update` and
+   * `owner upsert` policies keyed on `auth.uid()`, so a write for anybody else
+   * is refused rather than silently dropped.
+   *
+   * Fire and forget, and the flow never waits on it: the screen is skippable,
+   * nothing downstream in this session reads the answer back, and no part of the
+   * UI claims the save succeeded. A failure here costs a preference, not a trip.
+   */
+  const saveStyle = useCallback(async (pace: string, spend: string) => {
+    try {
+      const db = createClient()
+      const {
+        data: { session },
+      } = await db.auth.getSession()
+      const uid = session?.user?.id
+      if (!uid) return
+      await db
+        .from("user_travel_preferences")
+        .upsert(
+          {
+            user_id: uid,
+            travel_rhythm: pace,
+            budget_style: spend,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        )
+        .throwOnError()
+    } catch {
+      // Optional and skippable, and the next screen is already on its way.
+    }
+  }, [])
+
   async function shareInvite() {
     if (!inviteUrl) return
     const text = "Come travel with me — here's the plan:"
@@ -435,13 +544,22 @@ export default function DaybreakFlow({
 
   return (
     <div className="relative flex min-h-[100dvh] flex-col text-aurora-ink">
+      {/* The photograph IS the ground. The sky survives only as the fallback
+          beneath it, for the moment before the shelf lands and for a shelf that
+          never does. */}
       <DaybreakSky progress={skyProgress} />
+      <Backdrop plate={backdrop} deep={name === "shape" || name === "pick"} />
 
       {/* Back on the left, a hairline of progress, and a close that is always
           live. The bar is almost redundant — the sky already says how far in
-          you are — so it is 3px and nearly silent rather than a six-dot pager
-          counting down screens the user did not agree to. */}
-      <div className="relative z-10 mx-auto flex w-full max-w-[440px] items-center gap-[11px] px-[18px] pb-[18px] pt-2">
+          you are — so it is 3px and nearly silent rather than a seven-dot pager
+          counting down screens the user did not agree to.
+
+          The right padding clears the photo credit, which rides at the top
+          right of this same column — the same reservation GuideCard makes for
+          the same chip, plus that strip's own 18px inset, because here the two
+          are siblings rather than one inside the other. */}
+      <div className="relative z-10 mx-auto flex w-full max-w-[440px] items-center gap-[11px] pb-[18px] pl-[18px] pr-[104px] pt-2">
         <button
           type="button"
           onClick={back}
@@ -498,8 +616,9 @@ export default function DaybreakFlow({
           />
         )}
         {name === "shape" && (
-          <ShapeStep
+          <MosaicStep
             categories={categories}
+            shelf={guides}
             picked={shapes}
             onToggle={(slug) =>
               setShapes((prev) => {
@@ -521,13 +640,33 @@ export default function DaybreakFlow({
             }}
           />
         )}
+        {name === "style" && (
+          <StyleStep
+            rhythm={rhythm}
+            onRhythm={setRhythm}
+            budget={budget}
+            onBudget={setBudget}
+            onNext={() => {
+              // Arguments, not the state — this handler's closure still holds
+              // the values from the render it was built in, and the pair the
+              // pills are showing is exactly what those are. Same trap `build`
+              // documents below, where reading state cost the invite entirely.
+              void saveStyle(rhythm, budget)
+              setStep(4)
+            }}
+            // Skip writes NOTHING. The column defaults are already what these
+            // pills are showing, so a row is not created for an unanswered
+            // question — and one that exists keeps whatever the phone put there.
+            onSkip={() => setStep(4)}
+          />
+        )}
         {name === "pick" && (
           <PickStep
             guides={suggested}
             home={homeCoord}
             chosen={chosenTripId}
             onChoose={setChosenTripId}
-            onNext={() => setStep(4)}
+            onNext={() => setStep(5)}
             onBrowseAll={() => router.push("/app/inspire")}
           />
         )}

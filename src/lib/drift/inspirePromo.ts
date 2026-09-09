@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { parseDestination, photoAt, type InspireDestination } from "@/lib/drift/inspire"
 import { tripCover, type TripCoverResult } from "@/lib/drift/tripCover"
+import type { Plate } from "@/lib/drift/daybreakArt"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
 
 /**
@@ -72,6 +73,13 @@ export interface DaybreakGuide extends InspirePromoCard {
    *  nameless stop (a bare number in the line reads as a rendering fault) and
    *  printing a nights-less stop as its bare name ("Tokyo 0" reads as one too). */
   shapeLine: string
+  /** This guide's face on a mosaic tile, with the credit bound to it. Its first
+   *  photographed STOP before its hero: seven tiles all showing the same three
+   *  covers would say less than the seven words they replaced. */
+  tile: Plate
+  /** The hero at full-bleed width, with the credit bound to it — the ground
+   *  under one screen of the flow. */
+  backdrop: Plate
 }
 
 /** How many cards the deck draws. The rest of the corpus is behind "see all". */
@@ -84,6 +92,10 @@ const TILE_W = 400
 const PIN_W = 96
 /** Daybreak stacks three full-width cards on a phone. */
 const CARD_W = 760
+/** A mosaic tile is ~200px wide on a phone; iOS asks for the same 420. */
+const MOSAIC_W = 420
+/** Full-bleed behind a whole screen. iOS's DaybreakArt.backdrop default. */
+const BACKDROP_W = 1200
 
 interface PromoSource {
   tripId: string
@@ -98,6 +110,14 @@ interface PromoSource {
   bestMonths: number[]
   stops: number
   shapeLine: string
+  /** The guide's first stop that carries its OWN photograph, with the
+   *  attribution that stop stores. Null when none of them do. */
+  stopPhoto: {
+    url: string | null
+    attribution: string | null
+    link: string | null
+    place: string | null
+  } | null
 }
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -144,6 +164,11 @@ function decode(raw: unknown): PromoSource | null {
     .map(parseDestination)
     .sort((a, b) => a.day_offset - b.day_offset)
   const first = destinations.find(usableCoord)
+  // Its own photo before the guide's hero, and NOT restricted to a stop with
+  // coordinates: a mosaic tile is a picture, not a pin. Read from the same
+  // `destinations` payload the projection already fetches, so seven tiles cost
+  // no extra query — the fields were arriving and being thrown away.
+  const shot = destinations.find((d) => d.photo)
 
   return {
     tripId,
@@ -165,6 +190,14 @@ function decode(raw: unknown): PromoSource | null {
     bestMonths: asArray(row.best_months)
       .map(asNumber)
       .filter((m): m is number => m !== null && m >= 1 && m <= 12),
+    stopPhoto: shot
+      ? {
+          url: shot.photo,
+          attribution: shot.photo_attribution,
+          link: shot.photo_link,
+          place: shot.name ?? shot.city,
+        }
+      : null,
     stops: destinations.length,
     shapeLine: destinations
       .map((d) => {
@@ -194,6 +227,33 @@ function card(src: PromoSource, width: number): InspirePromoCard {
       cover_fallback_link: src.heroLink,
     }),
     aria: `${src.title}. ${kicker}. Make it mine.`,
+  }
+}
+
+/**
+ * One photograph and the attribution bound to it, in ONE value.
+ *
+ * It goes through `tripCover` rather than carrying a bare url so the picture
+ * enters the chain at rung 3 WITH its credit — which is what makes rendering it
+ * uncredited structurally awkward rather than merely discouraged. Rung 4 is the
+ * same deterministic gradient every other cover falls back to, so a stop with no
+ * photograph draws a designed tile instead of a hole.
+ */
+function plate(
+  id: string,
+  title: string,
+  photo: { url: string | null; attribution: string | null; link: string | null; place: string | null },
+  width: number
+): Plate {
+  return {
+    cover: tripCover({
+      id,
+      title,
+      cover_fallback_url: photoAt(photo.url, width),
+      cover_fallback_attribution: photo.attribution,
+      cover_fallback_link: photo.link,
+    }),
+    place: photo.place,
   }
 }
 
@@ -301,13 +361,23 @@ export async function buildDaybreakShelf(
 ): Promise<DaybreakGuide[] | null> {
   const sources = await readShelf(supabase, "daybreak")
   if (!sources) return null
-  return sources.map((s) => ({
-    ...card(s, CARD_W),
-    tags: s.tags,
-    bestMonths: s.bestMonths,
-    days: s.days,
-    pin: s.pin,
-    stops: s.stops,
-    shapeLine: s.shapeLine,
-  }))
+  return sources.map((s) => {
+    const hero = {
+      url: s.heroUrl,
+      attribution: s.heroAttribution,
+      link: s.heroLink,
+      place: s.place,
+    }
+    return {
+      ...card(s, CARD_W),
+      tags: s.tags,
+      bestMonths: s.bestMonths,
+      days: s.days,
+      pin: s.pin,
+      stops: s.stops,
+      shapeLine: s.shapeLine,
+      tile: plate(s.tripId, s.title, s.stopPhoto ?? hero, MOSAIC_W),
+      backdrop: plate(s.tripId, s.title, hero, BACKDROP_W),
+    }
+  })
 }
