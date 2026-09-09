@@ -7,6 +7,7 @@ import { INVITE_COOKIE, isValidInviteToken } from "@/lib/drift/invite"
 import { GUIDE_COOKIE, isGuideSlug, claimPendingGuide } from "@/lib/drift/inspire"
 import HomeShell from "@/components/app/home/HomeShell"
 import { buildHomeData } from "@/lib/drift/homeData"
+import { buildInspirePromo } from "@/lib/drift/inspirePromo"
 
 // Logged-in home — server data loader for HomeShell (full-viewport globe +
 // desktop trip rail / mobile sheet). See HomeShell for the layout.
@@ -73,5 +74,21 @@ async function Home({ userId }: { userId: string }) {
   // from the SAME code. It used to be inline here, which is precisely why that
   // page had drifted into a thinner screen with no globe.
   const data = await buildHomeData(supabase, userId)
-  return <HomeShell data={data} />
+
+  // The Inspire deck + its globe pins, and ONLY for an account with nothing of
+  // its own yet.
+  //
+  // Serial rather than parallel with the assembly above, on purpose. Whether it
+  // is needed is a fact about the trips, so a parallel fetch would run the
+  // corpus query on every home load for every established user to throw the
+  // answer away. The one round trip it costs is paid only by accounts whose
+  // home has almost nothing else to load, and it happens inside the Suspense
+  // boundary with the skeleton already on screen.
+  //
+  // ONLY FROM HERE. /app/people/[id] renders the same shell for a stranger's
+  // profile and must never carry this.
+  const empty = !data.featured && data.others.length === 0
+  const inspire = empty ? await buildInspirePromo(supabase) : null
+
+  return <HomeShell data={data} inspire={inspire} />
 }

@@ -16,7 +16,9 @@ import OptimizedImg from "@/components/app/OptimizedImg"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import BackLink from "@/components/app/BackLink"
 import FollowButton from "@/components/app/people/FollowButton"
+import StartHere from "@/components/app/home/StartHere"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
+import type { InspirePromo } from "@/lib/drift/inspirePromo"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
 // Logged-in home. The globe is the room: it fills the entire viewport on
@@ -73,9 +75,18 @@ export type HomeViewer =
 export default function HomeShell({
   data,
   viewer = { kind: "self" },
+  inspire = null,
 }: {
   data: HomeData
   viewer?: HomeViewer
+  /**
+   * The Inspire corpus, for somebody who has not made a trip yet.
+   *
+   * OPTIONAL, and supplied ONLY by the self route. A stranger's profile renders
+   * from this same shell, and "here are forty trips you could copy" on someone
+   * else's page is an advert wearing their name.
+   */
+  inspire?: InspirePromo | null
 }) {
   const [focusTripId, setFocusTripId] = useState<string | null>(null)
   const isSelf = viewer.kind === "self"
@@ -83,6 +94,22 @@ export default function HomeShell({
     ...(data.featured ? [data.featured] : []),
     ...data.others,
   ]
+
+  // Zero, zero and zero is a scoreboard of everything the reader has not done,
+  // printed at the top of their first screen. It appears the moment any of the
+  // three means something.
+  const hasStats = data.countries > 0 || data.followers > 0 || data.following > 0
+
+  // A new account's globe is empty, so the forty Inspire guides are pinned on
+  // it — "watch your world fill in" has to be visible before there is anything
+  // of your own to fill it with.
+  //
+  // ONE ARRAY, and it must be assembled in the render that MOUNTS the globe:
+  // GlobeHero's marker effect has `[]` deps and captures `pins` exactly once, so
+  // a second set arriving later — a client fetch, a nested Suspense boundary —
+  // silently never draws.
+  const showStartHere = isSelf && allTrips.length === 0
+  const pins = showStartHere && inspire ? [...data.pins, ...inspire.pins] : data.pins
 
   // Stats link to the signed-in user's own tabs, so on another profile they
   // are rendered as plain figures rather than links that quietly navigate to
@@ -102,7 +129,7 @@ export default function HomeShell({
     <div className="relative">
       {/* The globe owns the whole viewport */}
       <div className="fixed inset-0">
-        <GlobeHero pins={data.pins} focusTripId={focusTripId} />
+        <GlobeHero pins={pins} focusTripId={focusTripId} />
       </div>
 
       {/* ---------- Desktop: floating glass trip rail (clears the 76px nav rail) ---------- */}
@@ -124,18 +151,27 @@ export default function HomeShell({
             {isSelf ? <SignOutButton /> : follow}
           </div>
 
-          {/* Stats */}
-          <div className="mt-5 flex gap-7 border-b border-drift-divider pb-4">
-            <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
-            <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
-            <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
-          </div>
+          {/* Stats — see `hasStats`. Both renderings of this row are gated; they
+              are NOT the same markup (gap-7 here, gap-8 in the sheet), so they
+              have to be changed as a pair. */}
+          {hasStats && (
+            <div className="mt-5 flex gap-7 border-b border-drift-divider pb-4">
+              <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
+              <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
+              <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
+            </div>
+          )}
 
-          {/* Plan CTA */}
-          {isSelf && (
+          {/* Plan CTA. Withheld only where StartHere is about to draw the same
+              offer as its quiet second line — a full-width coral "Plan a new
+              trip" directly above "or start one from scratch" is the demotion
+              undone, and it is the desktop half of it. */}
+          {isSelf && !showStartHere && (
             <Link
               href="/app/trips/new"
-              className="mt-4 flex h-12 items-center justify-center rounded-full bg-drift-coral text-[15px] font-semibold text-white shadow-md shadow-drift-coral/25 transition-transform hover:scale-[1.01]"
+              className={`flex h-12 items-center justify-center rounded-full bg-drift-coral text-[15px] font-semibold text-white shadow-md shadow-drift-coral/25 transition-transform hover:scale-[1.01] ${
+                hasStats ? "mt-4" : "mt-5"
+              }`}
             >
               Plan a new trip
             </Link>
@@ -177,14 +213,16 @@ export default function HomeShell({
             </>
           )}
 
-          {allTrips.length === 0 && (
+          {/* The desktop zero-trip branch was a 🗺 glyph and one line with no
+              route anywhere — and this rail is where a laptop signup lands, so
+              it is the version most first sessions actually see. It gets the
+              same deck the sheet does, at rail width. */}
+          {showStartHere && <StartHere promo={inspire} dense />}
+
+          {allTrips.length === 0 && !isSelf && (
             <div className="py-10 text-center">
               <p className="text-3xl opacity-30">🗺</p>
-              <p className="mt-2 text-[14px] text-drift-muted">
-                {isSelf
-                  ? "No trips yet — plan your first one."
-                  : "No trips to show yet."}
-              </p>
+              <p className="mt-2 text-[14px] text-drift-muted">No trips to show yet.</p>
             </div>
           )}
         </div>
@@ -259,11 +297,14 @@ export default function HomeShell({
             )}
           </div>
 
-          <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
-            <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
-            <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
-            <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
-          </div>
+          {/* The sheet's copy of the stat row — gap-8, not the aside's gap-7. */}
+          {hasStats && (
+            <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
+              <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
+              <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
+              <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
+            </div>
+          )}
 
           {data.featured && data.featuredHeader && (
             <>
@@ -299,55 +340,12 @@ export default function HomeShell({
             </div>
           )}
 
-          {/* Parity with iOS (Drift ProfileTripsView.emptyTripsState). This was a
-              map glyph at 30% opacity and the words "No trips yet" — no button and
-              no route anywhere, on the highest-traffic screen for anyone who has
-              not started. 14 of 41 accounts have never created anything.
-
-              It names the two paths that work from zero, and neither is "create a
-              trip": that form is the longest route to a populated trip, while
-              copying a finished Inspire itinerary is a couple of taps and no
-              typing. Someone else's empty profile still gets the plain line
-              above — these are actions only the owner can take. */}
-          {allTrips.length === 0 && isSelf && (
-            <div className="py-6">
-              <p className="mb-3 text-[13px] font-semibold text-aurora-ink">Start here</p>
-              <div className="flex flex-col gap-2.5">
-                <Link
-                  href="/app/inspire"
-                  className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition hover:bg-aurora-glass2"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-aurora-teal/15 text-lg">
-                    🧭
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[15px] font-semibold text-aurora-ink">
-                      Steal a finished trip
-                    </span>
-                    <span className="block text-[12.5px] text-aurora-ink3">
-                      Forty of them, with the days already in order.
-                    </span>
-                  </span>
-                </Link>
-                <Link
-                  href="/app/trips/new"
-                  className="flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass p-3.5 transition hover:bg-aurora-glass2"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg">
-                    ✏️
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[15px] font-semibold text-aurora-ink">
-                      Start from scratch
-                    </span>
-                    <span className="block text-[12.5px] text-aurora-ink3">
-                      Name it, pick the dates, fill it in as you go.
-                    </span>
-                  </span>
-                </Link>
-              </div>
-            </div>
-          )}
+          {/* Parity with iOS (Drift ProfileTripsView.emptyTripsState), and the
+              two paths that work from zero. Someone else's empty profile keeps
+              the plain line above — these are actions only the owner can take.
+              The markup itself lives in StartHere, which the desktop rail draws
+              too, so the two cannot drift apart the way they did before. */}
+          {showStartHere && <StartHere promo={inspire} />}
         </div>
       </div>
     </div>

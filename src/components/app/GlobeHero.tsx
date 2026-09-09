@@ -18,6 +18,22 @@ export interface GlobeTripPin {
   imageURL: string | null
   /** route coordinates [lng, lat][] in step order (may be empty) */
   route: [number, number][]
+  /**
+   * What rank of thing this pin is. Omitted means "trip", so every existing
+   * caller behaves exactly as before and this stays additive — the same shape
+   * TripMapPoint.rank uses for stops vs places.
+   *
+   * The home globe also draws the INSPIRE corpus, so that a new account whose
+   * own planet is empty still sees forty places on it. Two things follow, and
+   * both are load-bearing:
+   *   · the CLICK TARGET is a different route. `/app/trips/<id>` on an Inspire
+   *     id opens a trip the viewer does not own: RLS returns nothing and the
+   *     page renders blank, with no error to explain it.
+   *   · the marker is smaller and quieter. Without a size difference somebody
+   *     else's suggestion and your own trip read as the same kind of thing,
+   *     which is worse than not drawing the suggestion at all.
+   */
+  kind?: "trip" | "inspire"
 }
 
 // iOS route palette equivalent — distinct saturated hues per trip.
@@ -38,6 +54,10 @@ export default function GlobeHero({
 
   useEffect(() => {
     if (!focusTripId || !mapRef.current) return
+    // `pins` is the WHOLE set — the viewer's trips and the Inspire suggestions
+    // in one array — so a focus id from either finds its pin here. That is also
+    // why the caller must not pass them as two props: the marker effect below
+    // captures `pins` once at mount, and a second set arriving later never draws.
     const pin = pins.find((p) => p.tripId === focusTripId)
     if (!pin) return
     pauseRef.current?.()
@@ -55,7 +75,10 @@ export default function GlobeHero({
     if (!token || !containerRef.current) return
     mapboxgl.accessToken = token
 
-    const first = pins[0]
+    // Frame on the viewer's OWN first trip. An Inspire pin is a suggestion, and
+    // opening the planet zoomed at one arbitrary suggestion says less than the
+    // default world view, which shows forty of them at once.
+    const first = pins.find((p) => p.kind !== "inspire")
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/standard-satellite",
@@ -108,17 +131,27 @@ export default function GlobeHero({
     })
 
     // Circular cover-photo pins (HTML markers, like the iOS TripPinHostView).
-    const markers: mapboxgl.Marker[] = pins.map((pin) => {
+    // Inspire pins are added FIRST so a trip of your own is never buried under
+    // a suggestion that happens to share its corner of the planet.
+    const ordered = [...pins].sort(
+      (a, b) => (a.kind === "inspire" ? 0 : 1) - (b.kind === "inspire" ? 0 : 1)
+    )
+    const markers: mapboxgl.Marker[] = ordered.map((pin) => {
+      const inspire = pin.kind === "inspire"
       const el = document.createElement("button")
-      el.setAttribute("aria-label", "Open trip")
-      el.style.cssText =
-        "width:44px;height:44px;border-radius:50%;border:2.5px solid #fff;" +
-        "box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;overflow:hidden;" +
-        "background:#37D6C4 center/cover no-repeat;padding:0"
+      el.setAttribute("aria-label", inspire ? "Open guide" : "Open trip")
+      el.style.cssText = inspire
+        ? "width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.72);" +
+          "box-shadow:0 2px 8px rgba(0,0,0,.45);cursor:pointer;overflow:hidden;opacity:.88;" +
+          "background:#37D6C4 center/cover no-repeat;padding:0"
+        : "width:44px;height:44px;border-radius:50%;border:2.5px solid #fff;" +
+          "box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;overflow:hidden;" +
+          "background:#37D6C4 center/cover no-repeat;padding:0"
       if (pin.imageURL) el.style.backgroundImage = `url("${pin.imageURL}")`
       el.addEventListener("click", (e) => {
         e.stopPropagation()
-        router.push(`/app/trips/${pin.tripId}`)
+        // See `kind`: an Inspire id is not a trip the viewer owns.
+        router.push(inspire ? `/app/inspire/${pin.tripId}` : `/app/trips/${pin.tripId}`)
       })
       return new mapboxgl.Marker({ element: el })
         .setLngLat([pin.lng, pin.lat])
