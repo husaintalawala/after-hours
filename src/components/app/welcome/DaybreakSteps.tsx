@@ -1,7 +1,13 @@
 "use client"
 
 import TripCoverImg from "@/components/app/TripCoverImg"
-import { spelledCount } from "@/lib/drift/daybreak"
+import {
+  distanceText,
+  spelledCount,
+  TRIP_LENGTHS,
+  type Coord,
+  type TripLength,
+} from "@/lib/drift/daybreak"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import type { PlaceCandidate } from "@/lib/drift/chat"
 
@@ -273,19 +279,23 @@ export function OriginStep({
 
 /**
  * Drift's own seven shapes, not a generic interest list. These already tag
- * every guide on the shelf, so an answer here is a live filter feeding the very
- * next screen rather than a preference stored and forgotten.
+ * every guide on the shelf, so an answer here ranks the very next screen rather
+ * than being a preference stored and forgotten.
  */
 export function ShapeStep({
   categories,
   picked,
   onToggle,
+  length,
+  onLength,
   onNext,
   onSkip,
 }: {
   categories: ReadonlyArray<{ slug: string; name: string }>
   picked: ReadonlySet<string>
   onToggle: (slug: string) => void
+  length: TripLength
+  onLength: (v: TripLength) => void
   onNext: () => void
   onSkip: () => void
 }) {
@@ -319,8 +329,44 @@ export function ShapeStep({
         })}
       </div>
 
+      {/* The second half of the question, on the same screen rather than a
+          seventh. It also fills the hole this screen had — chips at the top and
+          a button at the bottom with two thirds of a phone between them. */}
+      <div className="mt-5">
+        <p className="text-[10px] font-bold tracking-[0.11em] text-aurora-ink3">
+          HOW LONG HAVE YOU GOT?
+        </p>
+        <div className="mt-[9px] flex gap-2">
+          {TRIP_LENGTHS.map((option) => {
+            const on = length === option.id
+            return (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onLength(option.id)}
+                className={`h-9 flex-1 truncate rounded-full border px-2 text-[12.5px] font-semibold transition-colors ${
+                  on
+                    ? "border-aurora-teal/50 bg-aurora-teal/15 text-aurora-teal"
+                    : "border-aurora-border bg-aurora-glass text-aurora-ink2"
+                }`}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <Footer>
-        <Cta label={picked.size ? "Continue" : "Show me everything"} onClick={onNext} />
+        {/* "Show me everything" is only honest when NEITHER half was answered.
+            A length with no shapes is still an answer, and a button that says
+            everything while three of the pills are excluding trips is the flow
+            claiming not to have heard what it just read. */}
+        <Cta
+          label={!picked.size && length === "any" ? "Show me everything" : "Continue"}
+          onClick={onNext}
+        />
         <Skip label="Skip for now" onClick={onSkip} />
       </Footer>
     </>
@@ -329,16 +375,20 @@ export function ShapeStep({
 
 // MARK: - 04 · Three of ours fit that
 
-/** The payoff for screen 3: real trips that real people finished, filtered by
+/** The payoff for screen 3: real trips that real people finished, ranked by
  *  what was just said. */
 export function PickStep({
   guides,
+  home,
   chosen,
   onChoose,
   onNext,
   onBrowseAll,
 }: {
   guides: DaybreakGuide[]
+  /** Shown on each card when known — see daybreak.ts: distance informs the
+   *  choice, it does not reorder it. */
+  home: Coord | null
   chosen: string | null
   onChoose: (tripId: string) => void
   onNext: () => void
@@ -360,6 +410,7 @@ export function PickStep({
           <GuideCard
             key={g.tripId}
             guide={g}
+            home={home}
             selected={chosen === g.tripId}
             onChoose={() => onChoose(g.tripId)}
           />
@@ -389,13 +440,23 @@ export function PickStep({
  */
 function GuideCard({
   guide,
+  home,
   selected,
   onChoose,
 }: {
   guide: DaybreakGuide
+  home: Coord | null
   selected: boolean
   onChoose: () => void
 }) {
+  // "10 DAYS · ICELAND · 2,900 KM AWAY". The distance is the one fact a person
+  // cannot get from the photo, and without it two cards that look equally
+  // appealing can be a short hop and a long-haul flight. Appended HERE rather
+  // than built into the shelf's kicker: home is a client answer that may have
+  // been given thirty seconds ago, on screen 2, after the server rendered.
+  const far = distanceText(guide.pin, home)
+  const kicker = far ? `${guide.kicker} · ${far}` : guide.kicker
+
   return (
     <article className="relative">
       <div
@@ -415,7 +476,7 @@ function GuideCard({
             title is the overlap this component's own notes warn about. */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pr-[86px]">
           <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-aurora-teal">
-            {guide.kicker}
+            {kicker}
           </p>
           <p className="line-clamp-2 font-drift-display text-[17px] font-semibold leading-tight text-white">
             {guide.title}

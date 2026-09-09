@@ -2,9 +2,10 @@
  * Daybreak — the first-run flow's non-visual half: who sees it, and which
  * guides its fourth screen offers.
  *
- * Ported from the iOS DaybreakFlow (Drift/Views/DaybreakFlow.swift). Everything
- * here is pure except the cookie writer, so the routing rule and the filter can
- * be reasoned about without a browser.
+ * Ported from the iOS DaybreakFlow (Drift/Views/DaybreakFlow.swift) and
+ * DaybreakRanking (Drift/Core/DaybreakRanking.swift). Everything here is pure
+ * except the cookie writer, so the routing rule and the recommendation can be
+ * reasoned about — and tested — without a browser.
  */
 
 /**
@@ -47,27 +48,212 @@ export function markDaybreakSeen(): void {
   document.cookie = `${DAYBREAK_COOKIE}=1; Path=/; Max-Age=${DAYBREAK_COOKIE_MAX_AGE}; SameSite=Lax${secure}`
 }
 
+// ---------------------------------------------------------------------------
+// The ranking — port of Drift/Core/DaybreakRanking.swift
+// ---------------------------------------------------------------------------
+
 /**
- * The guides that match what was picked on screen 3.
+ * WHAT IT REPLACES. `pickForShapes` — a union filter over the shape tags with a
+ * fallback to the front of the shelf when the filter emptied. It read one of
+ * the three answers the flow collects: the home city was written to `profiles`
+ * and never consulted, and `best_months` was not even in the shelf's
+ * projection, so the season could not have been read if anything had tried. A
+ * flow that asks questions and ignores them is worse than one that asks
+ * nothing, because it implies a personalisation that is not happening.
  *
- * UNION, NOT INTERSECTION. Somebody who taps "Into the wild" AND "Up high"
- * means either would suit them, and requiring both of a forty-row corpus
- * returns an empty screen surprisingly often. With nothing picked — or with a
- * pick that nothing on the shelf carries — the front of the shelf is the honest
- * answer, because a screen with no trips on it is the one outcome this flow
- * cannot afford.
+ * RANKS, NEVER FILTERS. Nothing is removed, which is the same stance the
+ * Inspire shelf's own month ranking documents: a trip out of season is a
+ * different holiday, not a forbidden one, and a shelf that hides two thirds of
+ * itself reads as broken. It also means this can never hand back an empty
+ * screen, so the caller no longer needs the "if the filter emptied it, fall
+ * back to the front of the shelf" branch that was papering over exactly that.
  *
- * Structural rather than typed to DaybreakGuide so it stays a pure list
- * operation this file can own without importing the shelf.
+ * DISTANCE IS SHOWN, NOT SCORED. Nearer is not better — someone who says "into
+ * the wild" from Lisbon has not asked to be kept in Europe — so home
+ * coordinates inform the card rather than the order. What a person needs is to
+ * know that one of these is 700 km away and another is 9,000 before they pick,
+ * which is a fact, not a preference we are entitled to infer.
  */
-export function pickForShapes<T extends { tags: string[] }>(
+
+/**
+ * The lengths the CORPUS can actually serve.
+ *
+ * Deliberately coarse: the 40 live guides run 5–13 days and only two of them
+ * are under 8. A "long weekend" option would be a question with one answer
+ * behind it, which is the same dishonesty as a control that offers to change
+ * something nothing can change. If short trips are seeded later, this is where
+ * the third case goes.
+ */
+export type TripLength = "any" | "aboutAWeek" | "tenPlus"
+
+/** In pill order, with the copy iOS shows. */
+export const TRIP_LENGTHS: ReadonlyArray<{ id: TripLength; label: string }> = [
+  { id: "any", label: "Any length" },
+  { id: "aboutAWeek", label: "About a week" },
+  { id: "tenPlus", label: "Ten days or more" },
+]
+
+export function lengthFits(length: TripLength, days: number): boolean {
+  switch (length) {
+    case "any":
+      return true
+    case "aboutAWeek":
+      return days > 0 && days <= 9
+    case "tenPlus":
+      return days >= 10
+  }
+}
+
+/** Everything the sort reads, and nothing else — so the shelf's own row shape
+ *  can grow without this file knowing about it. */
+export interface RankableGuide {
+  /** The shape tags the row stores (`wild`, `stones`, …). */
+  tags: string[]
+  /** Months 1…12 the guide is editorially at its best. May be empty. */
+  bestMonths: number[]
+  /** `snapshot.day_count`. */
+  days: number
+}
+
+export interface RankingAnswers {
+  /** Screen 3's chips. Empty means "show me everything". */
+  shapes: ReadonlySet<string>
+  /** Screen 3's pills. */
+  length: TripLength
+  /** 1…12, the month of the date the copy will ACTUALLY start on — see
+   *  departureMonth in DaybreakFlow. Never the current month. */
+  departureMonth: number
+}
+
+/**
+ * Best first. Lexicographic rather than a weighted score: the precedence is a
+ * product decision and a tuple states it plainly, where weights would bury it
+ * in arithmetic nobody can argue with.
+ *
+ * 1. The shapes they picked — the only thing they chose explicitly.
+ * 2. In season for the month they would actually leave in. NOT the current
+ *    month: you cannot leave today, and the trip is booked from the first of
+ *    the next month you could go, so ranking for "now" would recommend for a
+ *    departure date nobody is offered.
+ * 3. The length they said they had.
+ * 4. Editorial rank, as the incoming order — stable, so equal trips keep the
+ *    shelf's own ordering rather than shuffling per visit.
+ *
+ * The index is carried explicitly rather than leaning on a stable `sort`: it is
+ * the fourth key of the comparison iOS states in a tuple, and writing it down
+ * is what makes that tie-break a decision rather than a property of whichever
+ * engine is running.
+ */
+export function rankGuides<T extends RankableGuide>(
   guides: readonly T[],
-  shapes: ReadonlySet<string>,
-  count = 3
+  answers: RankingAnswers
 ): T[] {
-  if (!shapes.size) return guides.slice(0, count)
-  const matched = guides.filter((g) => g.tags.some((t) => shapes.has(t)))
-  return (matched.length ? matched : guides).slice(0, count)
+  return guides
+    .map((guide, index) => ({ guide, key: sortKey(guide, index, answers) }))
+    .sort((a, b) => {
+      for (let i = 0; i < a.key.length; i++) {
+        if (a.key[i] !== b.key[i]) return a.key[i] - b.key[i]
+      }
+      return 0
+    })
+    .map((entry) => entry.guide)
+}
+
+/** All components ascending: 0 is the better answer. */
+function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number[] {
+  const shapeMiss = !a.shapes.size ? 0 : guide.tags.some((t) => a.shapes.has(t)) ? 0 : 1
+  // An empty `bestMonths` ranks with the out-of-season group: absent editorial
+  // is not a claim that any month will do.
+  const seasonMiss = guide.bestMonths.includes(a.departureMonth) ? 0 : 1
+  const lengthMiss = lengthFits(a.length, guide.days) ? 0 : 1
+  return [shapeMiss, seasonMiss, lengthMiss, index]
+}
+
+// ---------------------------------------------------------------------------
+// Distance — shown on the card, never in the sort
+// ---------------------------------------------------------------------------
+
+export interface Coord {
+  lat: number
+  lng: number
+}
+
+/** The mean Earth radius, in metres. */
+const EARTH_R = 6_371_008.8
+
+/**
+ * Great-circle distance from home to the guide's first located stop, or null
+ * when either end is unknown.
+ *
+ * `(0,0)` is the corpus's unset sentinel and is rejected here as everywhere
+ * else — the shelf's own `usableCoord` has already dropped it on the way in, so
+ * this guard is the second of two on purpose: it is what makes "no distance"
+ * rather than "a trip to the middle of the Atlantic" a property of this
+ * function, testable without a shelf.
+ *
+ * A sphere, not the WGS84 ellipsoid iOS's CLLocation walks. The two disagree by
+ * a few tenths of a percent, which cannot survive rounding to the nearest 100.
+ */
+export function metresFromHome(pin: Coord | null, home: Coord | null): number | null {
+  if (!pin || !home) return null
+  if (!usable(pin) || !usable(home)) return null
+
+  const toRad = Math.PI / 180
+  const dLat = (pin.lat - home.lat) * toRad
+  const dLng = (pin.lng - home.lng) * toRad
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(home.lat * toRad) * Math.cos(pin.lat * toRad) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_R * Math.asin(Math.min(1, Math.sqrt(a)))
+}
+
+function usable(c: Coord): boolean {
+  if (!Number.isFinite(c.lat) || !Number.isFinite(c.lng)) return false
+  if (c.lat === 0 && c.lng === 0) return false
+  return Math.abs(c.lat) <= 90 && Math.abs(c.lng) <= 180
+}
+
+/**
+ * "8,400 km away" / "5,200 mi away".
+ *
+ * Rounded hard on purpose. These are intercontinental numbers standing in for
+ * "how far is this, roughly", and a figure like 8,437 km claims a precision the
+ * input does not have — the origin is a city centroid and the destination is
+ * whichever stop the guide starts at.
+ *
+ * `locale` is an argument rather than read from `navigator` inside, so the unit
+ * choice can be exercised without a browser.
+ */
+export function distanceText(
+  pin: Coord | null,
+  home: Coord | null,
+  locale?: string
+): string | null {
+  const metres = metresFromHome(pin, home)
+  if (metres === null || metres <= 1000) return null
+  const miles = usesMiles(locale)
+  const value = miles ? metres / 1609.34 : metres / 1000
+  const rounded = value >= 1000 ? Math.round(value / 100) * 100 : Math.round(value / 10) * 10
+  const n = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(rounded)
+  return `${n} ${miles ? "mi" : "km"} away`
+}
+
+/** The three territories CLDR gives the US measurement system — the same set
+ *  behind iOS's `Locale.measurementSystem == .us`, rather than the US alone. */
+const MILE_REGIONS = new Set(["US", "LR", "MM"])
+
+function usesMiles(locale?: string): boolean {
+  const tag =
+    locale ??
+    (typeof navigator !== "undefined" ? navigator.language : undefined) ??
+    new Intl.NumberFormat().resolvedOptions().locale
+  try {
+    // maximize(): "en" alone carries no region, and the browser's own default
+    // for it is en-US. A tag with a region keeps the region it was given.
+    return MILE_REGIONS.has(new Intl.Locale(tag).maximize().region ?? "")
+  } catch {
+    return false
+  }
 }
 
 /**

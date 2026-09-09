@@ -54,6 +54,17 @@ export interface DaybreakGuide extends InspirePromoCard {
   /** The shape tags the row stores (`wild`, `stones`, …). Screen 3's answer is
    *  matched against these to choose what screen 4 offers. */
   tags: string[]
+  /** Months 1…12 the guide is editorially at its best, empty when the row says
+   *  nothing. RANKED on, never filtered on — and absent editorial is not a
+   *  claim that any month will do. See rankGuides. */
+  bestMonths: number[]
+  /** `snapshot.day_count`, which screen 3's length pills are matched against.
+   *  Already on the card's kicker as prose; carried as a number because
+   *  re-parsing "10 days" to sort by it is how a kicker becomes an API. */
+  days: number
+  /** The guide's first located stop — the same coordinate the globe pins it at.
+   *  The far end of the distance shown on the card. */
+  pin: { lat: number; lng: number } | null
   /** How many stops the guide has — the "Placing your stops" line. */
   stops: number
   /** "Rome 3 · Florence 2 · Venice 2" — the shape, in one line. Same
@@ -84,6 +95,7 @@ interface PromoSource {
   heroLink: string | null
   pin: { lat: number; lng: number } | null
   tags: string[]
+  bestMonths: number[]
   stops: number
   shapeLine: string
 }
@@ -148,6 +160,11 @@ function decode(raw: unknown): PromoSource | null {
     tags: asArray(row.tags)
       .map(asString)
       .filter((t): t is string => t !== null),
+    // Months, not month names: the column is int[] and a row that carries a 13
+    // or a null would otherwise rank as a month nobody can depart in.
+    bestMonths: asArray(row.best_months)
+      .map(asNumber)
+      .filter((m): m is number => m !== null && m >= 1 && m <= 12),
     stops: destinations.length,
     shapeLine: destinations
       .map((d) => {
@@ -207,12 +224,16 @@ async function readShelf(
   // 520 itinerary items to draw five cards — the projection is 98KB. Measured
   // against production, both.
   //
-  // `tags` is a real column, not a snapshot field — the same one the shelf at
-  // /app/inspire orders its category rails by.
+  // `tags` and `best_months` are real columns, not snapshot fields — the same
+  // two the shelf at /app/inspire orders its category rails and its month rail
+  // by. `best_months` is here because Daybreak ranks on the season: without it
+  // in the projection the season term reads an array that is always empty, so
+  // every guide scores out of season and the ranking silently does nothing —
+  // which is exactly the class of bug this whole change exists to remove.
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id,tags,hero_url,hero_attribution,hero_link," +
+      "trip_id,tags,best_months,hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
         "destinations:snapshot->destinations"
@@ -270,10 +291,10 @@ export async function buildInspirePromo(
 /**
  * The whole shelf for the first-run flow.
  *
- * WHOLE, not a deck: screen 3 filters it by shape tag, so the five the home
- * deck draws would leave most answers with nothing behind them. Forty cards is
- * the same 98KB read — the projection is what makes reading all of them cheap,
- * and only the three that screen 4 chooses are ever rendered.
+ * WHOLE, not a deck: screen 3 ranks it by shape, season and length, so the five
+ * the home deck draws would put the same handful at the top of every answer.
+ * Forty cards is the same 98KB read — the projection is what makes reading all
+ * of them cheap, and only the three that screen 4 chooses are ever rendered.
  */
 export async function buildDaybreakShelf(
   supabase: SupabaseClient
@@ -283,6 +304,9 @@ export async function buildDaybreakShelf(
   return sources.map((s) => ({
     ...card(s, CARD_W),
     tags: s.tags,
+    bestMonths: s.bestMonths,
+    days: s.days,
+    pin: s.pin,
     stops: s.stops,
     shapeLine: s.shapeLine,
   }))

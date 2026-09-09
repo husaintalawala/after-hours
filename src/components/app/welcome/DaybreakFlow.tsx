@@ -13,12 +13,14 @@ import {
   firstOfMonth,
   mayHaveLanded,
   mintUuid,
+  monthOf,
   monthsYouCouldGo,
   parseCopyResponse,
   PUBLIC_ORIGIN,
   RESERVED_TRIP_IDS,
+  type DayStr,
 } from "@/lib/drift/inspire"
-import { markDaybreakSeen, pickForShapes } from "@/lib/drift/daybreak"
+import { markDaybreakSeen, rankGuides, type Coord, type TripLength } from "@/lib/drift/daybreak"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import DaybreakSky from "./DaybreakSky"
 import DaybreakProfileEditor from "./DaybreakProfileEditor"
@@ -55,6 +57,8 @@ export interface DaybreakProfile {
   username: string
   avatarUrl: string | null
   homeCity: string | null
+  /** Written by screen 2 on a previous visit, and until now never read back. */
+  homeCoord: Coord | null
 }
 
 export default function DaybreakFlow({
@@ -79,12 +83,18 @@ export default function DaybreakFlow({
   const [searching, setSearching] = useState(false)
   const [savingCity, setSavingCity] = useState(false)
   const [homeCity, setHomeCity] = useState(profile.homeCity)
+  /** Feeds the distance on each guide card — the reason screen 2 exists at all
+   *  beyond Travel Stats. Held in state rather than read from the prop so a
+   *  city picked NOW reaches screen 4 in this same session: the server
+   *  component that supplied the prop rendered before the question was asked. */
+  const [homeCoord, setHomeCoord] = useState<Coord | null>(profile.homeCoord)
   const searchSeq = useRef(0)
 
-  // 03 — local, deliberately. Nothing on `profiles` holds shape tags and
-  // inventing a column is a migration; the answer's real job is to filter the
-  // very next screen, which it does without persisting anywhere.
+  // 03 — local, deliberately. Nothing on `profiles` holds shape tags or a trip
+  // length and inventing columns is a migration; the answers' real job is to
+  // rank the very next screen, which they do without persisting anywhere.
   const [shapes, setShapes] = useState<ReadonlySet<string>>(new Set())
+  const [length, setLength] = useState<TripLength>("any")
 
   // 04
   const [chosenTripId, setChosenTripId] = useState<string | null>(null)
@@ -113,7 +123,28 @@ export default function DaybreakFlow({
   // MARK: Derived
 
   const categories = useMemo(() => categoriesWithCounts(guides), [guides])
-  const suggested = useMemo(() => pickForShapes(guides, shapes), [guides, shapes])
+
+  /**
+   * The three the flow offers.
+   *
+   * Everything the previous two screens collected finally gets read here: the
+   * shapes, the length, and the month they would actually leave in.
+   * `rankGuides` ranks rather than filters, so this can never come back empty
+   * and there is no "if the filter emptied it, fall back" branch left to get
+   * out of step with the filter it was compensating for.
+   */
+  const suggested = useMemo(
+    () =>
+      rankGuides(guides, {
+        shapes,
+        length,
+        // The month of firstDepartureDate — the month the copy will actually
+        // start in, not the month it is today. Ranking for "now" would
+        // recommend against a departure date nobody is ever offered.
+        departureMonth: monthOf(firstDepartureDate()).month,
+      }).slice(0, 3),
+    [guides, shapes, length]
+  )
   const chosenGuide = useMemo(
     () => guides.find((g) => g.tripId === chosenTripId) ?? null,
     [guides, chosenTripId]
@@ -165,11 +196,7 @@ export default function DaybreakFlow({
         setTimeout(() => setBuildStage((s) => Math.max(s, 2)), 1800),
       ]
 
-      // The first day of the leading month you could actually go — the same
-      // derivation the Inspire "add as is" path uses, so the two never disagree
-      // about when "later" is. You cannot leave today.
-      const months = monthsYouCouldGo(localToday())
-      const startDate = months.length ? firstOfMonth(months[0]) : localToday()
+      const startDate = firstDepartureDate()
 
       // The trip id is minted HERE, not by the function. copy-trip inserts AT the
       // supplied id and answers a duplicate on it — this same copy having already
@@ -294,6 +321,15 @@ export default function DaybreakFlow({
       // Only after the write lands. Setting the label first shows a city the
       // row does not have, which is the bug Settings › Home city already had.
       setHomeCity(c.name)
+      // And the coordinates with it, so the cards two screens later measure
+      // from the city just picked rather than waiting for the next page load.
+      // A city with no coordinates simply means no distance on the cards — not
+      // a fabricated one, and not a stale one from a previous answer.
+      setHomeCoord(
+        c.latitude != null && c.longitude != null
+          ? { lat: c.latitude, lng: c.longitude }
+          : null
+      )
       setCityResults([])
       setCityQuery("")
     } catch {
@@ -400,9 +436,15 @@ export default function DaybreakFlow({
                 return next
               })
             }
+            length={length}
+            onLength={setLength}
             onNext={() => setStep(3)}
             onSkip={() => {
+              // Skip means "I did not answer this screen", so it clears BOTH
+              // halves of the question — a length left standing behind a
+              // skipped screen is an answer nobody gave.
               setShapes(new Set())
+              setLength("any")
               setStep(3)
             }}
           />
@@ -410,6 +452,7 @@ export default function DaybreakFlow({
         {name === "pick" && (
           <PickStep
             guides={suggested}
+            home={homeCoord}
             chosen={chosenTripId}
             onChoose={setChosenTripId}
             onNext={() => setStep(4)}
@@ -478,9 +521,24 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+/**
+ * The first day of the leading month you could actually go — the same
+ * derivation the Inspire "add as is" path uses, so the two never disagree about
+ * when "later" is. You cannot leave today.
+ *
+ * ONE derivation, read twice: screen 6 copies the trip FROM this date and
+ * screen 4 ranks the shelf FOR its month. Computing the month separately is how
+ * a flow ends up recommending for August and booking September.
+ */
+function firstDepartureDate(): DayStr {
+  const today = localToday()
+  const months = monthsYouCouldGo(today)
+  return months.length ? firstOfMonth(months[0]) : today
+}
+
 /** The viewer's own calendar day as "yyyy-MM-dd" — never UTC, because "the
  *  month you could go" is a fact about the traveller's calendar. */
-function localToday(): string {
+function localToday(): DayStr {
   const t = new Date()
   return [
     t.getFullYear(),

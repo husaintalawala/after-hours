@@ -40,18 +40,25 @@ export default async function WelcomePage({
   if (!user) redirect("/app/login")
 
   // Independent reads, so they go together. The shelf is the whole corpus (40
-  // rows, the same 98KB projection the home deck uses) because screen 3 filters
-  // it by shape tag and the deck's five would leave most answers empty.
+  // rows, the same 98KB projection the home deck uses) because screen 3 ranks
+  // it and the deck's five would put the same handful atop every answer.
+  //
+  // home_lat/home_lng ride along with home_city because screen 2 has always
+  // written all three and only the label was ever read back — the coordinates
+  // are what puts "2,900 km away" on a guide card for someone who answered
+  // this question on a previous visit.
   const [profileRes, guides] = await Promise.all([
     supabase
       .from("profiles")
-      .select("username,display_name,avatar_url,home_city")
+      .select("username,display_name,avatar_url,home_city,home_lat,home_lng")
       .eq("id", user.id)
       .maybeSingle<{
         username: string | null
         display_name: string | null
         avatar_url: string | null
         home_city: string | null
+        home_lat: number | null
+        home_lng: number | null
       }>(),
     buildDaybreakShelf(supabase),
   ])
@@ -74,6 +81,10 @@ export default async function WelcomePage({
             username: p?.username ?? "",
             avatarUrl: p?.avatar_url ?? null,
             homeCity: p?.home_city ?? null,
+            homeCoord:
+              p?.home_lat != null && p?.home_lng != null
+                ? { lat: p.home_lat, lng: p.home_lng }
+                : null,
           }}
           // A failed corpus read hands the flow an empty shelf rather than a
           // redirect back to /app: /app is what sent us here, and bouncing
