@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { INVITE_COOKIE, isValidInviteToken } from "@/lib/drift/invite"
 import { GUIDE_COOKIE, isGuideSlug, claimPendingGuide } from "@/lib/drift/inspire"
+import { DAYBREAK_COOKIE } from "@/lib/drift/daybreak"
 import HomeShell from "@/components/app/home/HomeShell"
 import { buildHomeData } from "@/lib/drift/homeData"
 import { buildInspirePromo } from "@/lib/drift/inspirePromo"
@@ -60,14 +61,19 @@ export default async function TripsHome() {
   // in loading.tsx only covers a soft navigation, not a hard load. Behind a
   // boundary, the document streams straight away and the same skeleton holds
   // the place until the data lands.
+  // Daybreak's dismissal marker, read here where the cookie jar is already
+  // open. It is passed down rather than read again inside the boundary because
+  // the decision it feeds is made after the trips are known — see Home.
+  const seenDaybreak = Boolean(jar.get(DAYBREAK_COOKIE)?.value)
+
   return (
     <Suspense fallback={<HomeSkeleton />}>
-      <Home userId={user.id} />
+      <Home userId={user.id} seenDaybreak={seenDaybreak} />
     </Suspense>
   )
 }
 
-async function Home({ userId }: { userId: string }) {
+async function Home({ userId, seenDaybreak }: { userId: string; seenDaybreak: boolean }) {
   const supabase = await createClient()
   // The whole assembly — globe pins, featured pick, cover chain, stats — lives
   // in buildHomeData so that someone else's profile at /app/people/[id] renders
@@ -88,6 +94,21 @@ async function Home({ userId }: { userId: string }) {
   // ONLY FROM HERE. /app/people/[id] renders the same shell for a stranger's
   // profile and must never carry this.
   const empty = !data.featured && data.others.length === 0
+
+  // FIRST RUN. iOS decides with FirstRun.shouldLand(userID:) — "not seen
+  // before" AND "the account has no trips" — and this is the same pair: the
+  // cookie, and the fact just computed above.
+  //
+  // DECIDED HERE, AFTER buildHomeData, ON PURPOSE. "Has this account any
+  // trips" is the expensive half, and it is already answered by the assembly
+  // this page has to run anyway. Asking it earlier — before the Suspense
+  // boundary, where the redirect would cost no skeleton — means a COUNT on
+  // trips ahead of the first byte of every home load for every established
+  // user, who never has the cookie and so would pay it forever. The redirect
+  // therefore streams: the skeleton is briefly on screen. That is the whole
+  // cost, and it is paid only by accounts with nothing to show anyway.
+  if (empty && !seenDaybreak) redirect("/app/welcome")
+
   const inspire = empty ? await buildInspirePromo(supabase) : null
 
   return <HomeShell data={data} inspire={inspire} />

@@ -272,6 +272,23 @@ export interface PlaceCandidate {
   source?: string | null // "google" | "osm" | "geonames"
 }
 
+// A home base is a city/region — not a hotel or attraction. Google Places text
+// search is POI-biased ("new york" → "New York-New York Hotel & Casino"), so we
+// keep only locality/administrative results (OSM/Geonames are city geocoders).
+//
+// Lives here rather than in Settings because two screens now ask the same
+// question — Settings › Home city, and the first-run flow's "Where do you set
+// out from?" — and a second copy of this table is a second place for the
+// Hotel & Casino to come back.
+const CITY_TYPES = new Set([
+  "locality", "postal_town", "sublocality", "neighborhood", "colloquial_area",
+  "administrative_area_level_1", "administrative_area_level_2",
+  "administrative_area_level_3", "political", "country",
+])
+export function isCityish(c: PlaceCandidate): boolean {
+  return c.source !== "google" || !c.primaryType || CITY_TYPES.has(c.primaryType)
+}
+
 export async function resolvePlaceCandidates(
   query: string,
   destinationName?: string,

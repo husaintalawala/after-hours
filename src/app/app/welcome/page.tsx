@@ -1,0 +1,88 @@
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { buildDaybreakShelf } from "@/lib/drift/inspirePromo"
+import { DAYBREAK_COOKIE } from "@/lib/drift/daybreak"
+import DaybreakFlow from "@/components/app/welcome/DaybreakFlow"
+
+// Daybreak — the six questions a brand-new account meets before it meets the
+// app. /app routes here when the account has no trips and has not seen this;
+// see the note in (protected)/page.tsx for why the decision is made there.
+//
+// OUTSIDE THE (protected) GROUP, deliberately, next to /app/login: that layout
+// draws the nav rail and the bottom dock, and this screen is one continuous
+// sunrise from edge to edge. It carries its own auth check instead, which is
+// the same shape login's siblings already use.
+
+export const dynamic = "force-dynamic"
+
+export default async function WelcomePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ again?: string }>
+}) {
+  const { again } = (await searchParams) ?? {}
+
+  // ALREADY SEEN → the app. This is what makes a force-refresh mid-flow land
+  // in the app rather than back at question one: the flow writes the cookie on
+  // mount, so the second load of this URL is bounced. `?again=1` is the way
+  // back in for anyone who wants to look at it twice — it does not clear
+  // anything, so the route stays honest about having been seen.
+  const jar = await cookies()
+  if (jar.get(DAYBREAK_COOKIE)?.value && again !== "1") redirect("/app")
+
+  const supabase = await createClient()
+  // Middleware already verified this request's user; the cookie read is enough.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) redirect("/app/login")
+
+  // Independent reads, so they go together. The shelf is the whole corpus (40
+  // rows, the same 98KB projection the home deck uses) because screen 3 filters
+  // it by shape tag and the deck's five would leave most answers empty.
+  const [profileRes, guides] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("username,display_name,avatar_url,home_city")
+      .eq("id", user.id)
+      .maybeSingle<{
+        username: string | null
+        display_name: string | null
+        avatar_url: string | null
+        home_city: string | null
+      }>(),
+    buildDaybreakShelf(supabase),
+  ])
+
+  const p = profileRes.data
+
+  return (
+    <>
+      {/* Fraunces (display). The (protected) layout loads it for the rest of
+          the app; this route is outside that layout, and its headlines are the
+          largest display type in the product. */}
+      <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
+        rel="stylesheet"
+      />
+      <div className="min-h-[100dvh] bg-aurora-midnight font-drift-body">
+        <DaybreakFlow
+          profile={{
+            displayName: p?.display_name ?? "",
+            username: p?.username ?? "",
+            avatarUrl: p?.avatar_url ?? null,
+            homeCity: p?.home_city ?? null,
+          }}
+          // A failed corpus read hands the flow an empty shelf rather than a
+          // redirect back to /app: /app is what sent us here, and bouncing
+          // before the client can write the dismissal cookie is an infinite
+          // loop. Screen 4 keeps its "Finding your first trip." headline and
+          // its live skip, so the way out is on the screen.
+          guides={guides ?? []}
+        />
+      </div>
+    </>
+  )
+}

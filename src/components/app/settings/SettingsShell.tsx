@@ -6,20 +6,10 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
 import { revokeGoogleAccess } from "@/lib/drift/google"
-import { resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
+// isCityish moved to lib/drift/chat.ts — the first-run flow asks the same
+// question ("Where do you set out from?") and must filter it the same way.
+import { resolvePlaceCandidates, isCityish } from "@/lib/drift/chat"
 import BackLink from "@/components/app/BackLink"
-
-// A home base is a city/region — not a hotel or attraction. Google Places text
-// search is POI-biased ("new york" → "New York-New York Hotel & Casino"), so we
-// keep only locality/administrative results (OSM/Geonames are city geocoders).
-const CITY_TYPES = new Set([
-  "locality", "postal_town", "sublocality", "neighborhood", "colloquial_area",
-  "administrative_area_level_1", "administrative_area_level_2",
-  "administrative_area_level_3", "political", "country",
-])
-function isCityish(c: PlaceCandidate): boolean {
-  return c.source !== "google" || !c.primaryType || CITY_TYPES.has(c.primaryType)
-}
 
 // Web port of the iOS SettingsView: profile header, preferences (default
 // trip privacy — stored locally like iOS UserDefaults), account (sign out),

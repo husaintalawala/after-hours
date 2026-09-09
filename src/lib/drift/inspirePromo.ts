@@ -43,6 +43,26 @@ export interface InspirePromo {
   pins: GlobeTripPin[]
 }
 
+/**
+ * The same shelf, as the first-run flow needs it: the WHOLE corpus rather than
+ * a deck, carrying the three facts Daybreak reads that the deck never does.
+ *
+ * It is the same row, the same projection and the same ordering — a second
+ * query would be a second place for the tie-break to be forgotten.
+ */
+export interface DaybreakGuide extends InspirePromoCard {
+  /** The shape tags the row stores (`wild`, `stones`, …). Screen 3's answer is
+   *  matched against these to choose what screen 4 offers. */
+  tags: string[]
+  /** How many stops the guide has — the "Placing your stops" line. */
+  stops: number
+  /** "Rome 3 · Florence 2 · Venice 2" — the shape, in one line. Same
+   *  derivation as the iOS InspireSnapshot.shapeLine, including skipping a
+   *  nameless stop (a bare number in the line reads as a rendering fault) and
+   *  printing a nights-less stop as its bare name ("Tokyo 0" reads as one too). */
+  shapeLine: string
+}
+
 /** How many cards the deck draws. The rest of the corpus is behind "see all". */
 const DECK_SIZE = 5
 
@@ -51,6 +71,8 @@ const DECK_SIZE = 5
 const HERO_W = 1000
 const TILE_W = 400
 const PIN_W = 96
+/** Daybreak stacks three full-width cards on a phone. */
+const CARD_W = 760
 
 interface PromoSource {
   tripId: string
@@ -61,6 +83,9 @@ interface PromoSource {
   heroAttribution: string | null
   heroLink: string | null
   pin: { lat: number; lng: number } | null
+  tags: string[]
+  stops: number
+  shapeLine: string
 }
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -120,6 +145,18 @@ function decode(raw: unknown): PromoSource | null {
     heroAttribution: asString(row.hero_attribution),
     heroLink: asString(row.hero_link),
     pin: first ? { lat: first.latitude, lng: first.longitude } : null,
+    tags: asArray(row.tags)
+      .map(asString)
+      .filter((t): t is string => t !== null),
+    stops: destinations.length,
+    shapeLine: destinations
+      .map((d) => {
+        const name = asString(d.name)
+        if (!name) return null
+        return d.nights > 0 ? `${name} ${d.nights}` : name
+      })
+      .filter((s): s is string => s !== null)
+      .join(" · "),
   }
 }
 
@@ -146,24 +183,36 @@ function card(src: PromoSource, width: number): InspirePromoCard {
 /**
  * Read the shelf down to what a promo needs.
  *
+ * ONE QUERY, TWO CALLERS. The home deck and the first-run flow want different
+ * slices of the same forty rows, and the ordering below is load-bearing for
+ * both — a second query somewhere else is a second place for the tie-break to
+ * be left off.
+ *
  * Returns null on ANY failure or empty result, and the caller falls back to the
  * screen it already had. A FAILED QUERY AND AN EMPTY SHELF MUST NOT RENDER THE
  * SAME: an outage dressed as a deck with no photos on it is indistinguishable
  * from a curated shelf that happens to be empty, and nothing anywhere would say
  * the query failed — so the failure is logged and the deck is simply not drawn.
+ *
+ * `label` names the surface in the log, because "the corpus query failed" is
+ * only actionable if you know which screen went blank.
  */
-export async function buildInspirePromo(
-  supabase: SupabaseClient
-): Promise<InspirePromo | null> {
+async function readShelf(
+  supabase: SupabaseClient,
+  label: string
+): Promise<PromoSource[] | null> {
   // PROJECTED, not `select(snapshot)`. The shelf reads whole snapshots because
   // it searches inside them; this needs a title, a day count, a country and one
   // coordinate. Pulling all 40 snapshots costs 861KB over the wire and parses
   // 520 itinerary items to draw five cards — the projection is 98KB. Measured
   // against production, both.
+  //
+  // `tags` is a real column, not a snapshot field — the same one the shelf at
+  // /app/inspire orders its category rails by.
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id,hero_url,hero_attribution,hero_link," +
+      "trip_id,tags,hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
         "destinations:snapshot->destinations"
@@ -177,7 +226,7 @@ export async function buildInspirePromo(
     .returns<unknown[]>()
 
   if (error) {
-    console.error("[home] inspire promo query failed", error)
+    console.error(`[${label}] inspire shelf query failed`, error)
     return null
   }
 
@@ -186,9 +235,17 @@ export async function buildInspirePromo(
   // Rows arriving and every one of them dropping looks exactly like an empty
   // table from the outside. It is a curation fault, and only the log can say so.
   if (rows.length > 0 && sources.length === 0) {
-    console.error("[home] every inspire promo row failed to decode", { rows: rows.length })
+    console.error(`[${label}] every inspire shelf row failed to decode`, { rows: rows.length })
   }
-  if (!sources.length) return null
+  return sources.length ? sources : null
+}
+
+/** The home deck: one big photo, four smaller faces, one pin per guide. */
+export async function buildInspirePromo(
+  supabase: SupabaseClient
+): Promise<InspirePromo | null> {
+  const sources = await readShelf(supabase, "home")
+  if (!sources) return null
 
   const [hero, ...rest] = sources
   return {
@@ -208,4 +265,25 @@ export async function buildInspirePromo(
         kind: "inspire" as const,
       })),
   }
+}
+
+/**
+ * The whole shelf for the first-run flow.
+ *
+ * WHOLE, not a deck: screen 3 filters it by shape tag, so the five the home
+ * deck draws would leave most answers with nothing behind them. Forty cards is
+ * the same 98KB read — the projection is what makes reading all of them cheap,
+ * and only the three that screen 4 chooses are ever rendered.
+ */
+export async function buildDaybreakShelf(
+  supabase: SupabaseClient
+): Promise<DaybreakGuide[] | null> {
+  const sources = await readShelf(supabase, "daybreak")
+  if (!sources) return null
+  return sources.map((s) => ({
+    ...card(s, CARD_W),
+    tags: s.tags,
+    stops: s.stops,
+    shapeLine: s.shapeLine,
+  }))
 }

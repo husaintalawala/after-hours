@@ -1,0 +1,690 @@
+"use client"
+
+import TripCoverImg from "@/components/app/TripCoverImg"
+import { spelledCount } from "@/lib/drift/daybreak"
+import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
+import type { PlaceCandidate } from "@/lib/drift/chat"
+
+// The six screens of the first-run flow. Each one owns a question and nothing
+// else — the sky, the progress bar, the back button and every transition live
+// in DaybreakFlow, so a screen here is only its content.
+//
+// Ported from Drift/Views/DaybreakSteps.swift. Every headline, subtitle, button
+// and skip label is verbatim: the two platforms are one product and must not
+// say different things about the same question.
+
+// MARK: - Shared furniture
+
+/**
+ * The question at the top of every screen. One size, one weight, everywhere —
+ * the flow's whole rhythm is that the headline is the largest thing on screen
+ * and the answer is directly beneath it.
+ *
+ * The line breaks are the iOS ones, kept rather than left to the browser: the
+ * column is phone-width by design and "Where do you / set out from?" is a
+ * chosen break, not an accident of wrapping.
+ */
+export function Question({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="space-y-[7px]">
+      <h1 className="whitespace-pre-line font-drift-display text-[30px] font-bold leading-[1.08] text-aurora-ink">
+        {title}
+      </h1>
+      {subtitle && (
+        // ink2, NOT ink3. This line sits on a sky that ends the flow at
+        // #FFA96B, and ink3 (#7D8C98) is grey-on-peach by the last screen —
+        // legible in the first four and nearly gone in the sixth. Paired with
+        // the scrim in DaybreakSky.
+        <p className="text-[13px] leading-snug text-aurora-ink2">{subtitle}</p>
+      )}
+    </div>
+  )
+}
+
+/** The one filled action at the bottom of every screen. `aurora-cta` is the
+ *  house teal gradient — `bg-aurora-teal` is a backgroundImage, so it only
+ *  behaves as a fill through that class. */
+export function Cta({
+  label,
+  disabled = false,
+  onClick,
+}: {
+  label: string
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="aurora-cta flex h-[50px] w-full items-center justify-center text-[15.5px] disabled:opacity-45"
+    >
+      {label}
+    </button>
+  )
+}
+
+/** The way out. Present on every screen after the first, because the account is
+ *  already usable before any of this and nothing here is allowed to be a gate. */
+export function Skip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full py-2.5 text-[13.5px] font-semibold text-aurora-ink3 transition-colors hover:text-aurora-ink2"
+    >
+      {label}
+    </button>
+  )
+}
+
+function Panel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-[18px] border border-aurora-border bg-aurora-glass ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** The bottom of a screen: the action, and the way past it. `mt-auto` is what
+ *  floats the answer into the space between the question and the button rather
+ *  than stacking everything against the headline. */
+function Footer({ children }: { children: React.ReactNode }) {
+  return <div className="mt-auto pt-5">{children}</div>
+}
+
+// MARK: - 01 · Is this you?
+
+/**
+ * Confirmation, not a form.
+ *
+ * The screen it replaces was `UsernameSetupView` — a root view with no exit
+ * whose Continue button arrived DISABLED for the 29 of 41 accounts that signed
+ * up by email, and 7 of them never got past it.
+ */
+export function IdentityStep({
+  displayName,
+  username,
+  avatarUrl,
+  onEdit,
+  onNext,
+}: {
+  displayName: string
+  username: string
+  avatarUrl: string | null
+  onEdit: () => void
+  onNext: () => void
+}) {
+  const initial = (displayName.trim()[0] ?? "D").toUpperCase()
+  return (
+    <>
+      <Question
+        title="Is this you?"
+        subtitle="Your crew sees this when you share a trip. Change any of it now, or never."
+      />
+
+      {/* Floated rather than stacked under the headline — the answer belongs in
+          the space between the question and the button. */}
+      <div className="my-auto py-6">
+        <Panel className="px-4 py-5 text-center">
+          <span className="mx-auto block h-[72px] w-[72px] overflow-hidden rounded-full ring-2 ring-aurora-teal/50">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center bg-aurora-indigo font-drift-display text-[28px] font-bold text-white">
+                {initial}
+              </span>
+            )}
+          </span>
+          <p className="mt-[9px] truncate font-drift-display text-[20px] font-semibold text-aurora-ink">
+            {displayName.trim() || "Traveler"}
+          </p>
+          <p className="mt-[9px] text-[12px] text-aurora-ink3">@{username || "drift"}</p>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="mt-3 text-[12px] font-bold text-aurora-teal hover:opacity-80"
+          >
+            Edit name, handle or photo
+          </button>
+        </Panel>
+      </div>
+
+      <Footer>
+        <Cta label="Yes, that's me" onClick={onNext} />
+      </Footer>
+    </>
+  )
+}
+
+// MARK: - 02 · Where do you set out from?
+
+/**
+ * Every travel app opens on "Where are you going?" — the hardest question in
+ * the product, asked at the moment the user knows least, which is usually why
+ * they downloaded it. This asks the inverse: where you leave from is stable,
+ * answerable without deciding anything, and the one fact that keeps paying —
+ * distance from home in Travel Stats, and never having to ask which airport.
+ */
+export function OriginStep({
+  query,
+  onQuery,
+  onSearch,
+  searching,
+  saving,
+  results,
+  chosen,
+  onPick,
+  onNext,
+  onSkip,
+}: {
+  query: string
+  onQuery: (v: string) => void
+  onSearch: () => void
+  searching: boolean
+  saving: boolean
+  results: PlaceCandidate[]
+  chosen: string | null
+  onPick: (c: PlaceCandidate) => void
+  onNext: () => void
+  onSkip: () => void
+}) {
+  return (
+    <>
+      <Question
+        title={"Where do you\nset out from?"}
+        subtitle="So we can measure how far you've gone — and stop asking where you're flying out of."
+      />
+
+      <form
+        className="mt-4 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          onSearch()
+        }}
+      >
+        <input
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder={chosen ?? "Your home city"}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 rounded-[18px] border border-aurora-border bg-aurora-glass px-3.5 py-3.5 text-[16px] text-aurora-ink outline-none placeholder:text-aurora-ink3 focus:border-aurora-teal"
+        />
+        <button
+          type="submit"
+          disabled={searching || !query.trim()}
+          className="shrink-0 rounded-[18px] border border-aurora-border bg-aurora-glass px-4 text-[13.5px] font-semibold text-aurora-ink2 disabled:opacity-45"
+        >
+          {searching ? "…" : "Search"}
+        </button>
+      </form>
+
+      {results.length > 0 ? (
+        <Panel className="mt-3 overflow-hidden py-1">
+          {results.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              disabled={saving}
+              onClick={() => onPick(c)}
+              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-aurora-glass2 disabled:opacity-50"
+            >
+              <PinGlyph />
+              <span className="min-w-0">
+                <span className="block truncate text-[14px] text-aurora-ink">{c.name}</span>
+                {c.address && (
+                  <span className="block truncate text-[11px] text-aurora-ink3">{c.address}</span>
+                )}
+              </span>
+            </button>
+          ))}
+        </Panel>
+      ) : (
+        chosen && (
+          <p className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-aurora-teal">
+            <CheckGlyph />
+            {chosen}
+          </p>
+        )
+      )}
+
+      <Footer>
+        <Cta label="Continue" onClick={onNext} />
+        <Skip label="Skip for now" onClick={onSkip} />
+      </Footer>
+    </>
+  )
+}
+
+// MARK: - 03 · What kind of trip is yours?
+
+/**
+ * Drift's own seven shapes, not a generic interest list. These already tag
+ * every guide on the shelf, so an answer here is a live filter feeding the very
+ * next screen rather than a preference stored and forgotten.
+ */
+export function ShapeStep({
+  categories,
+  picked,
+  onToggle,
+  onNext,
+  onSkip,
+}: {
+  categories: ReadonlyArray<{ slug: string; name: string }>
+  picked: ReadonlySet<string>
+  onToggle: (slug: string) => void
+  onNext: () => void
+  onSkip: () => void
+}) {
+  return (
+    <>
+      <Question
+        title={"What kind of\ntrip is yours?"}
+        subtitle="Pick as many as fit. It's how the shelf is already sorted."
+      />
+
+      {/* Wrapping, not a grid: the chips are different widths and a grid would
+          column them, leaving ragged gaps beside "Eat your way through". */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {categories.map((c) => {
+          const on = picked.has(c.slug)
+          return (
+            <button
+              key={c.slug}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onToggle(c.slug)}
+              className={`h-[38px] rounded-full border px-3.5 text-[13.5px] font-semibold transition-colors ${
+                on
+                  ? "border-aurora-teal/50 bg-aurora-teal/15 text-aurora-teal"
+                  : "border-aurora-border bg-aurora-glass text-aurora-ink2"
+              }`}
+            >
+              {c.name}
+            </button>
+          )
+        })}
+      </div>
+
+      <Footer>
+        <Cta label={picked.size ? "Continue" : "Show me everything"} onClick={onNext} />
+        <Skip label="Skip for now" onClick={onSkip} />
+      </Footer>
+    </>
+  )
+}
+
+// MARK: - 04 · Three of ours fit that
+
+/** The payoff for screen 3: real trips that real people finished, filtered by
+ *  what was just said. */
+export function PickStep({
+  guides,
+  chosen,
+  onChoose,
+  onNext,
+  onBrowseAll,
+}: {
+  guides: DaybreakGuide[]
+  chosen: string | null
+  onChoose: (tripId: string) => void
+  onNext: () => void
+  onBrowseAll: () => void
+}) {
+  return (
+    <>
+      <Question
+        title={
+          guides.length
+            ? `${spelledCount(guides.length)} of ours\nfit that.`
+            : "Finding your\nfirst trip."
+        }
+        subtitle="Someone finished each of these. Take one and every day is already in the order that worked."
+      />
+
+      <div className="mt-3.5 space-y-3">
+        {guides.map((g) => (
+          <GuideCard
+            key={g.tripId}
+            guide={g}
+            selected={chosen === g.tripId}
+            onChoose={() => onChoose(g.tripId)}
+          />
+        ))}
+      </div>
+
+      <Footer>
+        <Cta label="Make it mine" disabled={!chosen} onClick={onNext} />
+        <Skip label="Show me all of them instead" onClick={onBrowseAll} />
+      </Footer>
+    </>
+  )
+}
+
+/**
+ * A wide guide card.
+ *
+ * STRETCHED BUTTON, NOT A WRAPPER, and the button carries NO z-index. The photo
+ * credit is itself a button — the Unsplash/Commons obligation travels with
+ * every display of these photos — so it cannot sit inside the selection
+ * control, and it has to stay clickable through it. TripCoverImg draws it at
+ * z-10 inside the photo box; the photo box is `relative` with z-index auto and
+ * therefore starts no stacking context of its own, so the credit is compared
+ * against the stretched button directly and wins. Giving the button any
+ * z-index at all would bury it. Same shape, and the same reason, as the home
+ * deck's StartHere tile.
+ */
+function GuideCard({
+  guide,
+  selected,
+  onChoose,
+}: {
+  guide: DaybreakGuide
+  selected: boolean
+  onChoose: () => void
+}) {
+  return (
+    <article className="relative">
+      <div
+        className={`relative h-[132px] overflow-hidden rounded-[18px] border ${
+          selected ? "border-2 border-aurora-teal" : "border-aurora-border"
+        }`}
+      >
+        <TripCoverImg cover={guide.cover} sizes="(max-width: 480px) 100vw, 440px" />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, transparent 45%, rgba(0,0,0,0.86))",
+          }}
+        />
+        {/* Cleared to the right of the credit chip. A floated credit over a
+            title is the overlap this component's own notes warn about. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pr-[86px]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-aurora-teal">
+            {guide.kicker}
+          </p>
+          <p className="line-clamp-2 font-drift-display text-[17px] font-semibold leading-tight text-white">
+            {guide.title}
+          </p>
+        </div>
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute right-2.5 top-2.5 flex h-[22px] w-[22px] items-center justify-center rounded-full ${
+            selected ? "bg-aurora-teal text-aurora-teal-ink" : "border-[1.5px] border-white/75"
+          }`}
+        >
+          {selected && <CheckGlyph className="h-3 w-3" />}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={onChoose}
+        aria-pressed={selected}
+        aria-label={guide.aria}
+        className="absolute inset-0 rounded-[18px] outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+      />
+    </article>
+  )
+}
+
+// MARK: - 05 · Who's coming with you?
+
+/**
+ * Group trips and the shared ledger are the wedge, and a trip with someone else
+ * in it is the only kind that has ever retained — so this earns a whole screen.
+ *
+ * THE INVITE IS NOT MINTED HERE. `create_trip_invite` needs a trip_id and the
+ * trip does not exist until the next screen copies it, so this screen records
+ * the intent and DaybreakFlow mints the link the moment there is something to
+ * invite someone to.
+ */
+export function CrewStep({
+  displayName,
+  guide,
+  onInvite,
+  onAlone,
+}: {
+  displayName: string
+  guide: DaybreakGuide | null
+  onInvite: () => void
+  onAlone: () => void
+}) {
+  const initial = (displayName.trim()[0] ?? "D").toUpperCase()
+  return (
+    <>
+      <Question
+        title={"Who's coming\nwith you?"}
+        subtitle="They get the itinerary, the map and the running total. No app needed to look."
+      />
+
+      <div className="mt-3.5 space-y-3">
+        <Panel className="flex items-center gap-[11px] p-[13px]">
+          <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-aurora-indigo text-[12px] font-bold text-white">
+            {initial}
+          </span>
+          <span>
+            <span className="block text-[13.5px] font-semibold text-aurora-ink">You</span>
+            <span className="block text-[11px] text-aurora-ink3">Organiser</span>
+          </span>
+        </Panel>
+
+        {/* The empty seat, drawn as an empty seat. Without it the screen was a
+            question about other people showing exactly one person, and the only
+            way to find out what "Send an invite" does was to press it. */}
+        <div className="flex items-center gap-[11px] rounded-[18px] border border-dashed border-aurora-teal/35 bg-aurora-glass p-[13px]">
+          <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-aurora-teal/[0.18] text-[15px] font-bold leading-none text-aurora-teal">
+            +
+          </span>
+          <span className="text-[13px] text-aurora-ink2">Invite by link, name or number</span>
+        </div>
+
+        {guide && (
+          <Panel className="p-[13px]">
+            <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink3">
+              THEY&rsquo;LL LAND ON
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-[13.5px] font-semibold text-aurora-ink">
+              {guide.title}
+            </p>
+            <p className="line-clamp-2 text-[11px] text-aurora-ink3">{guide.shapeLine}</p>
+          </Panel>
+        )}
+      </div>
+
+      <Footer>
+        <Cta label="Send an invite" onClick={onInvite} />
+        <Skip label="I'm going alone" onClick={onAlone} />
+      </Footer>
+    </>
+  )
+}
+
+// MARK: - 06 · Daybreak
+
+/**
+ * The wait, made into the best screen in the flow.
+ *
+ * Every line here is a real step copy-trip takes, and it ends on the globe
+ * lighting up — which is the thing the user actually came to see. The ticks are
+ * PACED rather than measured: copy-trip is one call that returns when the whole
+ * itinerary has landed, so there are no intermediate events to report. That
+ * makes the four rows an honest description of what the server is doing and a
+ * dishonest clock — so the last row does not complete until the call actually
+ * returns, and a failure REPLACES the whole list rather than freezing it
+ * mid-tick.
+ */
+export function BuildStep({
+  tripTitle,
+  stopsLine,
+  stage,
+  failed,
+  inviteUrl,
+  copied,
+  onShareInvite,
+  onOpen,
+  onRetry,
+}: {
+  tripTitle: string
+  stopsLine: string
+  /** 0…3, the index of the step currently running. 4 = finished. */
+  stage: number
+  failed: string | null
+  inviteUrl: string | null
+  copied: boolean
+  onShareInvite: () => void
+  onOpen: () => void
+  onRetry: () => void
+}) {
+  const steps = [
+    { icon: <SuitcaseGlyph />, title: "Copying the pattern", detail: "Every day, in order" },
+    { icon: <PinGlyph />, title: "Placing your stops", detail: stopsLine },
+    {
+      icon: <CalendarGlyph />,
+      title: "Setting your dates",
+      detail: "From the next month you could go",
+    },
+    { icon: <GlobeGlyph />, title: "Lighting your globe", detail: "Your first pin" },
+  ]
+
+  return (
+    <>
+      <Question
+        title={failed ? "That didn't\ngo through." : "Putting it on\nyour globe."}
+        subtitle={failed ?? tripTitle}
+      />
+
+      {!failed && (
+        <div className="mt-3.5 space-y-3">
+          {steps.map((s, i) => (
+            <Panel
+              key={s.title}
+              className={`flex items-center gap-[11px] p-[11px] ${i <= stage ? "" : "opacity-[0.42]"}`}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-aurora-teal/15 text-aurora-teal">
+                {s.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold text-aurora-ink">{s.title}</span>
+                <span className="block truncate text-[10.5px] text-aurora-ink3">{s.detail}</span>
+              </span>
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center text-aurora-teal">
+                {i < stage ? (
+                  <CheckGlyph className="h-3.5 w-3.5" />
+                ) : i === stage ? (
+                  <Spinner className="h-3.5 w-3.5" />
+                ) : (
+                  <span className="block h-[13px] w-[13px] rounded-full border-2 border-aurora-ink3/40" />
+                )}
+              </span>
+            </Panel>
+          ))}
+        </div>
+      )}
+
+      {/* The link only exists once the trip does, which is why it lands here
+          rather than on the screen that asked for it. */}
+      {!failed && inviteUrl && (
+        <Panel className="mt-3 p-[13px]">
+          <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink3">
+            YOUR INVITE LINK
+          </p>
+          <p className="mt-1 truncate text-[12.5px] text-aurora-ink2">{inviteUrl}</p>
+          <button
+            type="button"
+            onClick={onShareInvite}
+            className="mt-2 rounded-full border border-aurora-border px-3.5 py-1.5 text-[12.5px] font-semibold text-aurora-teal"
+          >
+            {copied ? "Copied" : "Share it"}
+          </button>
+        </Panel>
+      )}
+
+      <Footer>
+        {failed ? (
+          <>
+            <Cta label="Try again" onClick={onRetry} />
+            <Skip label="Skip — take me in" onClick={onOpen} />
+          </>
+        ) : stage >= steps.length ? (
+          <Cta label="Open my trip" onClick={onOpen} />
+        ) : (
+          <p className="pb-4 text-center text-[12px] text-aurora-ink3">A few seconds</p>
+        )}
+      </Footer>
+    </>
+  )
+}
+
+// MARK: - Glyphs
+// SF Symbols on the phone; hand-drawn here so the four checklist rows carry the
+// same four ideas without pulling an icon package into this route's bundle.
+
+function CheckGlyph({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="m5 13 4.5 4.5L19 7"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function PinGlyph() {
+  return (
+    <svg className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.9" />
+    </svg>
+  )
+}
+
+function SuitcaseGlyph() {
+  return (
+    <svg className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2" stroke="currentColor" strokeWidth="1.9" />
+    </svg>
+  )
+}
+
+function CalendarGlyph() {
+  return (
+    <svg className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function GlobeGlyph() {
+  return (
+    <svg className="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.9" />
+      <path d="M3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18" stroke="currentColor" strokeWidth="1.9" />
+    </svg>
+  )
+}
