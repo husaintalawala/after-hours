@@ -214,7 +214,14 @@ export default function HomeShell({
       )}
 
       {/* ---------- Mobile: iOS sheet-over-globe ---------- */}
-      <div className="relative z-10 mt-[44vh] rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
+      {/* min-h is load-bearing, not padding. The sheet starts 44vh down over a
+          `fixed inset-0` globe and had no floor, so a profile with little in it
+          — a brand-new account being the obvious case — ended partway down the
+          screen and let the globe show through underneath, with the dock
+          floating over the seam. 56vh is exactly the remainder of the viewport
+          below the 44vh offset, so the sheet always reaches the bottom no matter
+          how empty it is. pb-28 stays: it clears the fixed dock. */}
+      <div className="relative z-10 mt-[44vh] min-h-[56vh] rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
         <div className="mx-auto w-full max-w-2xl px-5">
           <div className="flex justify-center pt-3">
             <div className="h-1 w-9 rounded-full bg-drift-divider" />
