@@ -37,7 +37,10 @@ export default function StartHere({
       <Hero card={promo.hero} dense={dense} />
 
       {promo.rest.length > 0 && (
-        <div className="mt-3 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        // A horizontal scroller is right in a 380px column and wasteful in an
+        // 860px one — four guides hidden off the edge of a panel with room for
+        // all of them. It becomes a grid at the width where the panel does.
+        <div className="mt-3 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:grid xl:grid-cols-4 xl:overflow-visible">
           {promo.rest.map((c) => (
             <Tile key={c.tripId} card={c} />
           ))}

@@ -133,7 +133,13 @@ export default function HomeShell({
       </div>
 
       {/* ---------- Desktop: floating glass trip rail (clears the 76px nav rail) ---------- */}
-      <aside className="fixed bottom-8 left-[100px] top-6 z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex">
+      {/* FLUID PAST lg, capped. This was a constant w-[380px], so a 1440px
+          laptop spent ~960px on an empty planet and a 1920px display spent
+          1440px — the panel never grew, whatever the screen. The globe is
+          still the ground and still the brand; it just stops owning two
+          thirds of every desktop. Capped rather than a bare percentage so an
+          ultrawide does not stretch a reading column to 1200px. */}
+      <aside className="fixed left-[100px] top-6 z-10 hidden max-h-[calc(100vh-56px)] w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex xl:w-[54vw] xl:max-w-[860px]">
         <div className="overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
           {/* Header */}
           <div className="flex items-center gap-3.5">
