@@ -9,6 +9,10 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Node's --experimental-strip-types resolves the REAL specifier, so a
+    // test importing "./daybreak.ts" must say .ts. TypeScript allows that
+    // only when it is emitting nothing, which is already the case here.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
