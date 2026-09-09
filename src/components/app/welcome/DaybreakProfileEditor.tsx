@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { uploadAvatar } from "@/lib/drift/media"
 
 /**
  * The old signup form, inverted — web port of the iOS FirstRunProfileView.
@@ -12,23 +13,32 @@ import { createClient } from "@/lib/supabase/client"
  * corner, and a Skip that leaves the derived values standing — the derivation
  * is the floor, this screen is the polish.
  *
- * THE PHOTO IS SHOWN, NOT EDITED, on both platforms. It comes from the identity
- * the account signed in with; there is no uploader on iOS either, which is why
- * the row explains where the picture came from rather than offering to change
- * it. The home city is the one field iOS asks here that this does not — screen
- * 2 of the flow is entirely that question, and asking twice would be worse than
+ * THE PHOTO IS NOW A PICKER, which is what the link that opens this screen has
+ * been promising. It said "Edit name, handle or photo" and the screen behind it
+ * could only DISPLAY one, under the words "From your account." — the one control
+ * it advertised did not exist. iOS made the same offer true in a6522ea1 by
+ * extracting AvatarUpload out of Settings; this is the web half, over the
+ * presign → PUT path trip files and trip covers already use.
+ *
+ * The home city is the one field iOS asks here that this does not — screen 2 of
+ * the flow is entirely that question, and asking twice would be worse than
  * asking once.
  */
 export default function DaybreakProfileEditor({
   displayName: initialName,
   username: initialHandle,
   avatarUrl,
+  onAvatar,
   onSaved,
   onClose,
 }: {
   displayName: string
   username: string
   avatarUrl: string | null
+  /** Reported the moment the photo lands, NOT on "Looks right": the upload
+   *  persists on pick, so someone who changes their photo and then closes this
+   *  sheet has still changed it, and the screen behind must say so. */
+  onAvatar: (url: string) => void
   onSaved: (v: { displayName: string; username: string }) => void
   onClose: () => void
 }) {
@@ -36,9 +46,54 @@ export default function DaybreakProfileEditor({
   const [username, setUsername] = useState(initialHandle)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
+  /** The picked bytes, shown immediately rather than waiting on a round trip to
+   *  the CDN we just wrote to. */
+  const [preview, setPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [photoNote, setPhotoNote] = useState<string | null>(null)
+
+  /** Released when it is replaced and when this unmounts — an object URL that
+   *  is never revoked holds the whole image in memory for the life of the page,
+   *  and someone trying three photos would hold all three. */
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
+
+  /** Shows the picked image the moment it is ready, and says so honestly when
+   *  the bytes landed but the profile row did not take them — that half failure
+   *  reads to the user as the photo reverting for no reason on the next load. */
+  async function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = "" // so the same file can be re-picked after a failure
+    if (!file) return
+    setPhotoNote(null)
+    setUploading(true)
+    const result = await uploadAvatar(file)
+    setUploading(false)
+    if (result.ok) {
+      // Minted out here, not inside the updater: React can run an updater twice
+      // and each run would mint a URL only one of which is ever revoked.
+      setPreview(URL.createObjectURL(file))
+      onAvatar(result.url)
+      return
+    }
+    setPhotoNote(
+      result.reason === "uploadedButNotLinked"
+        ? "Uploaded, but we couldn't attach it. Try again in a moment."
+        : result.reason === "unreadable"
+          ? "That image couldn't be read. Try another."
+          : "Couldn't upload that. Check your connection."
+    )
+  }
 
   const initial = (displayName.trim()[0] ?? "D").toUpperCase()
   const cleanHandle = username.toLowerCase().replace(/[^a-z0-9]/g, "")
+  /** The local bytes win while they exist: the CDN URL is written the same
+   *  instant, but the object it points at may not be servable for a beat. */
+  const shownPhoto = preview ?? avatarUrl
 
   async function save() {
     if (saving) return
@@ -119,23 +174,46 @@ export default function DaybreakProfileEditor({
           trip.
         </p>
 
-        <div className="mt-4 flex items-center gap-3">
-          <span className="h-[54px] w-[54px] shrink-0 overflow-hidden rounded-full">
-            {avatarUrl ? (
+        {/* A button, not a caption. The whole row is the control, so the photo
+            itself is the thing you press — which is where anyone looks first. */}
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          disabled={uploading}
+          className="mt-4 flex w-full items-center gap-3 text-left disabled:opacity-70"
+        >
+          <span className="h-[54px] w-[54px] shrink-0 overflow-hidden rounded-full ring-[1.5px] ring-aurora-teal/50">
+            {shownPhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              <img src={shownPhoto} alt="" className="h-full w-full object-cover" />
             ) : (
               <span className="flex h-full w-full items-center justify-center bg-aurora-teal/[0.22] font-drift-display text-[21px] font-bold text-aurora-teal">
                 {initial}
               </span>
             )}
           </span>
-          <p className="text-[12px] text-aurora-ink3">
-            {avatarUrl
-              ? "From your account."
-              : "No photo from your sign-in — your initial stands in."}
-          </p>
-        </div>
+          <span className="min-w-0">
+            <span className="block text-[13.5px] font-semibold text-aurora-teal">
+              {uploading
+                ? "Uploading…"
+                : preview
+                  ? "Photo updated"
+                  : avatarUrl
+                    ? "Change your photo"
+                    : "Add a photo"}
+            </span>
+            <span className="block text-[11.5px] text-aurora-ink3">
+              {photoNote ?? (avatarUrl ? "From your account." : "No photo came with your sign-in.")}
+            </span>
+          </span>
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          onChange={(e) => void pickPhoto(e)}
+          className="hidden"
+        />
 
         <Field label="Name" value={displayName} onChange={setDisplayName} placeholder="Your name" />
         <Field label="Username" value={username} onChange={setUsername} placeholder="handle" />

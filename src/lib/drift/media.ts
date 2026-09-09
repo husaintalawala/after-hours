@@ -118,6 +118,90 @@ export async function uploadImageToCDN(file: File): Promise<string | null> {
   return cdnUrl
 }
 
+/**
+ * Why an avatar upload did not land, or the fact that it half did.
+ *
+ * `uploadedButNotLinked` is its own case on purpose, and it is the one that
+ * matters: the bytes DID reach the CDN, so a caller must be able to say "saved,
+ * but it may not stick" rather than "failed". That exact half-failure is
+ * already on record on iOS — the S3 object landing while `profiles.avatar_url`
+ * still pointed at the old one, so the photo reverted on the next load while
+ * the log said it had worked.
+ */
+export type AvatarUploadResult =
+  | { ok: true; url: string }
+  | { ok: false; reason: "unreadable" | "notSignedIn" | "uploadFailed" | "uploadedButNotLinked" }
+
+/**
+ * Resize → JPEG → S3 → `profiles.avatar_url`. The web half of iOS's
+ * `AvatarUpload`, sharing the presign → PUT path every other browser upload
+ * here uses, so it works precisely when trip files and trip covers do.
+ */
+export async function uploadAvatar(file: File): Promise<AvatarUploadResult> {
+  if (!file.type.startsWith("image/")) return { ok: false, reason: "unreadable" }
+
+  const db = createClient()
+  const { data: userRes } = await db.auth.getUser()
+  const userId = userRes?.user?.id
+  if (!userId) return { ok: false, reason: "notSignedIn" }
+
+  const upload = await uploadImageToCDN(await downscaleForAvatar(file))
+  if (!upload) return { ok: false, reason: "uploadFailed" }
+
+  // `.select()` so a write RLS filtered to zero rows is not read as a success.
+  // This is the second half that gets forgotten, and forgetting it is invisible
+  // until the next page load puts the old picture back.
+  const { data: rows, error } = await db
+    .from("profiles")
+    .update({ avatar_url: upload })
+    .eq("id", userId)
+    .select("id")
+  if (error || !rows || rows.length === 0) return { ok: false, reason: "uploadedButNotLinked" }
+
+  return { ok: true, url: upload }
+}
+
+/**
+ * Downscale BEFORE encoding, to the largest size this is ever drawn at.
+ *
+ * A camera-roll pick is 4–6k pixels on the long edge — one real profile on iOS
+ * is 5712×4284 at 7.0 MB — and every viewer then downloads all of it to draw a
+ * 44px circle. `imageOrientation: "from-image"` keeps EXIF rotation, which is
+ * otherwise lost the moment a photo goes through a canvas: portrait phone
+ * photos would upload on their side.
+ *
+ * Best effort by design. Any failure returns the ORIGINAL file, so the worst
+ * case is a large avatar rather than no avatar — the resize is an optimisation
+ * and must never be the reason an upload fails.
+ */
+async function downscaleForAvatar(file: File, max = 512): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" })
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height))
+    if (scale >= 1) {
+      bitmap.close()
+      return file
+    }
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    const ctx = canvas.getContext("2d")
+    if (!ctx) {
+      bitmap.close()
+      return file
+    }
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.8)
+    )
+    if (!blob) return file
+    return new File([blob], "avatar.jpg", { type: "image/jpeg" })
+  } catch {
+    return file
+  }
+}
+
 /** Throws if the row was not deleted. postgrest-js resolves with { error } rather
  *  than rejecting, so this used to return normally on an RLS denial and the caller
  *  had no way to know the file still existed. */

@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import Skeleton from "./loading"
 import { createClient } from "@/lib/supabase/server"
 import { tripCover, type TripCoverResult } from "@/lib/drift/tripCover"
-import { photoAt } from "@/lib/drift/inspire"
+import { CATEGORY_ORDER, photoAt } from "@/lib/drift/inspire"
 import InspireShell from "@/components/app/inspire/InspireShell"
 
 // Inspire — BROWSE.
@@ -22,17 +22,22 @@ import InspireShell from "@/components/app/inspire/InspireShell"
 
 export const dynamic = "force-dynamic"
 
-/** The ONLY seven. Slug → the words a person would actually use. Order is
- *  deliberate and stable: the rail should not reshuffle between visits. */
-export const INSPIRE_TAGS: Record<string, string> = {
-  wild: "Into the wild",
-  stones: "Old stones",
-  drive: "The long drive",
-  eat: "Eat your way through",
-  islands: "Slow islands",
-  high: "Up high",
-  stay: "Stay put",
-}
+/**
+ * The ONLY seven. Slug → the words a person would actually use.
+ *
+ * DERIVED, not repeated. This used to be a second hand-written copy of
+ * CATEGORY_ORDER, so renaming a category meant remembering both — and a rail
+ * tile reading "Mountains & hiking" beside a card reading "Up high" is one
+ * vocabulary presented as two. `lib/drift/inspire.ts` is the source of truth
+ * and this page already imports from it, so the derivation costs nothing.
+ *
+ * Order is deliberate and stable — the rail should not reshuffle between
+ * visits — and it survives the round trip: insertion order is what `Object.keys`
+ * returns for non-numeric keys, which is what TAG_ORDER below reads.
+ */
+export const INSPIRE_TAGS: Record<string, string> = Object.fromEntries(
+  CATEGORY_ORDER.map((c) => [c.slug, c.name])
+)
 
 const TAG_ORDER = Object.keys(INSPIRE_TAGS)
 

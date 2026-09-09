@@ -449,7 +449,7 @@ function CategoryTile({
       >
         {count}
       </span>
-      {/* min-w-0 + the block below it: a long name ("Eat your way through") must
+      {/* min-w-0 + the block below it: a long name ("One base, slow days") must
           wrap inside the tile, never set its width. */}
       <span className="absolute inset-x-0 bottom-0 block p-2.5">
         <span className="block text-[13px] font-bold leading-[1.15] text-white">{label}</span>

@@ -238,6 +238,12 @@ export function OriginStep({
         </button>
       </form>
 
+      {/* Filled as you type — DaybreakFlow debounces the lookup and drops
+          out-of-order answers, so this list is always the newest query's. It
+          stays in flow rather than floating over the screen: the only thing
+          below it is the Continue button, and a question with an open list of
+          answers should not also be offering to move on. An empty result is an
+          empty list, never a row saying so. */}
       {results.length > 0 ? (
         <Panel className="mt-3 overflow-hidden py-1">
           {results.map((c) => (
@@ -307,7 +313,7 @@ export function ShapeStep({
       />
 
       {/* Wrapping, not a grid: the chips are different widths and a grid would
-          column them, leaving ragged gaps beside "Eat your way through". */}
+          column them, leaving ragged gaps beside "One base, slow days". */}
       <div className="mt-4 flex flex-wrap gap-2">
         {categories.map((c) => {
           const on = picked.has(c.slug)

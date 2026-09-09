@@ -204,7 +204,22 @@ export function rankGuides<T extends RankableGuide>(
 
 /** All components ascending: 0 is the better answer. */
 function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number[] {
-  const shapeMiss = !a.shapes.size ? 0 : guide.tags.some((t) => a.shapes.has(t)) ? 0 : 1
+  // HOW MANY of the picked shapes it misses, not merely whether it misses any.
+  // Binary was the reason the same three guides came back whatever was picked:
+  // the shelf's three highest-ranked trips carry `islands`, `eat`, `stay` and
+  // `stones` between them — four of the seven — so any pick among those scored
+  // them 0 alongside everything else that matched, and the editorial tie-break
+  // then handed back the same front of the shelf. Reported on both platforms as
+  // "always the same 3 trips no matter the selection", and it was: for four of
+  // the seven answers. The tags, the payload and the wiring were all correct.
+  //
+  // Counting makes a pick discriminate. Someone who chooses mountains AND
+  // wildlife now gets the trip that is both, ahead of the popular one that is
+  // merely one of them — while a single pick is still fully satisfied by a
+  // single matching tag, so a narrow guide is not penalised against a broad one.
+  const shapeMiss = !a.shapes.size
+    ? 0
+    : [...a.shapes].reduce((n, s) => n + (guide.tags.includes(s) ? 0 : 1), 0)
   // An empty `bestMonths` ranks with the out-of-season group: absent editorial
   // is not a claim that any month will do.
   const seasonMiss = guide.bestMonths.includes(a.departureMonth) ? 0 : 1

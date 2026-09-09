@@ -78,6 +78,63 @@ describe("shapes", () => {
   })
 })
 
+// The web half of DaybreakRankingTests' `// MARK: - Match depth` extension.
+// Added after the flow was reported as showing "always the same 3 trips no
+// matter the selection" on both platforms. Not a plumbing fault: `shapeMiss`
+// was binary, the shelf's three highest-ranked guides carry four of the seven
+// tags between them, and so four of the seven possible answers scored those
+// three at 0 and let the editorial tie-break hand back the same front of the
+// shelf.
+describe("match depth", () => {
+  test("more of the picked shapes wins", () => {
+    // `one` is FIRST in, so under the old binary key it won on editorial order.
+    // Only counting the misses can reorder these.
+    const out = rankGuides(
+      [guide("one", { tags: ["wild"] }), guide("both", { tags: ["wild", "high"] })],
+      answers({ shapes: ["wild", "high"] })
+    )
+    assert.equal(ids(out)[0], "both", "a guide matching BOTH picks lost to one matching half")
+  })
+
+  test("a popular guide does not own every answer", () => {
+    // The regression in the shape the user actually hit: `popular` is ranked
+    // first and carries the four common tags — the Amalfi shape.
+    //
+    // THE PICK OVERLAPS IT BY ONE, deliberately, and this is where the web test
+    // diverges from its Swift counterpart. `testAPopularGuideDoesNotOwnEveryAnswer`
+    // picks {wild, high}, which `popular` carries NEITHER of — so binary scored
+    // it 1 against the specific guide's 0 and that test passes against the
+    // implementation it was written to catch. It pins the name of the bug, not
+    // the bug. Picking one tag `popular` has and one it hasn't is the actual
+    // reported case: binary calls both a match, the editorial tie-break returns
+    // the front of the shelf, and the answer changes nothing.
+    const out = rankGuides(
+      [
+        guide("popular", { tags: ["islands", "eat", "stay", "stones"] }),
+        guide("exact", { tags: ["stones", "high"] }),
+      ],
+      answers({ shapes: ["stones", "high"] })
+    )
+    assert.equal(ids(out)[0], "exact")
+  })
+
+  test("a single pick is satisfied by a single tag", () => {
+    // Matching one of one is still a full match: a narrow guide must not be
+    // penalised against one that happens to carry more tags. Both miss zero
+    // picks, so the shelf's own order decides — as before.
+    //
+    // This one cannot go red against the binary key, and is not meant to: it
+    // guards the OVER-correction, where counting the guide's unpicked tags (or
+    // scoring the fraction of them that matched) would rank a narrow guide
+    // below a broad one for a pick both satisfy completely.
+    const out = rankGuides(
+      [guide("broad", { tags: ["wild", "eat", "high"] }), guide("narrow", { tags: ["wild"] })],
+      answers({ shapes: ["wild"] })
+    )
+    assert.equal(ids(out)[0], "broad")
+  })
+})
+
 describe("season", () => {
   test("in season outranks out of season", () => {
     const out = rankGuides(

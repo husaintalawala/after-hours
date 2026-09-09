@@ -388,16 +388,34 @@ export const GUIDE_COOKIE_MAX_AGE = 60 * 60 * 2
 // Categories
 // ---------------------------------------------------------------------------
 
-/** The seven shape tags, in shelf order. The names are the copy — "Into the
- *  wild" is what the rail says, `wild` is what the row stores. */
+/**
+ * The seven shape tags, in shelf order. The names are the copy; the slug is
+ * what the row stores.
+ *
+ * THE SINGLE COPY OF THIS TABLE. `INSPIRE_TAGS` in the Inspire page is built
+ * from it rather than repeating it — two hand-kept lists of the same seven
+ * names is two chances for the rail and the card to disagree about what a tag
+ * is called.
+ *
+ * PLAIN, not poetic — the same rename iOS's `InspireService.categoryOrder`
+ * just made. "Old stones", "Up high" and "Stay put" read as an editorial voice,
+ * and in the first-run flow they are a QUESTION a stranger has to answer about
+ * themselves in the first minute. Reported as simply not understood, which is
+ * fatal for a control whose only job is to collect a preference: a chip nobody
+ * can decode is a chip nobody picks, and an unpicked chip is a filter that
+ * never runs.
+ *
+ * The slugs are untouched — they are what the rows store, and renaming those
+ * would be a migration to change a label.
+ */
 export const CATEGORY_ORDER: ReadonlyArray<{ slug: string; name: string }> = [
-  { slug: "wild", name: "Into the wild" },
-  { slug: "stones", name: "Old stones" },
-  { slug: "drive", name: "The long drive" },
-  { slug: "eat", name: "Eat your way through" },
-  { slug: "islands", name: "Slow islands" },
-  { slug: "high", name: "Up high" },
-  { slug: "stay", name: "Stay put" },
+  { slug: "wild", name: "Nature & wildlife" },
+  { slug: "stones", name: "History & ruins" },
+  { slug: "drive", name: "Road trip" },
+  { slug: "eat", name: "Food & drink" },
+  { slug: "islands", name: "Islands & beaches" },
+  { slug: "high", name: "Mountains & hiking" },
+  { slug: "stay", name: "One base, slow days" },
 ]
 
 export function categoryName(slug: string): string | null {

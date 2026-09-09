@@ -52,6 +52,21 @@ import { BuildStep, CrewStep, IdentityStep, OriginStep, PickStep, ShapeStep } fr
 const STEPS = ["identity", "origin", "shape", "pick", "crew", "build"] as const
 type Step = (typeof STEPS)[number]
 
+/**
+ * How long the field waits before it asks.
+ *
+ * `resolvePlaceCandidates` is a POST to the resolve-place edge function, so one
+ * per keystroke is a paid call per keystroke. 300ms is long enough that typing
+ * "Lisbon" costs one lookup and short enough that the list appears while the
+ * finger is still on the keyboard — iOS's PlacesAutocompleteService waits 400.
+ */
+const CITY_DEBOUNCE_MS = 300
+
+/** The shortest query worth spending a lookup on, matching iOS's `minChars`.
+ *  Two letters match half the world and the answer is noise. Applies only to
+ *  the type-ahead: an explicit Enter or Search asks whatever was typed. */
+const CITY_MIN_CHARS = 3
+
 export interface DaybreakProfile {
   displayName: string
   username: string
@@ -80,6 +95,11 @@ export default function DaybreakFlow({
   // 01
   const [displayName, setDisplayName] = useState(profile.displayName)
   const [username, setUsername] = useState(profile.username)
+  /** In state, not read from the prop, because the photo can now be CHANGED
+   *  here. The prop is what the server rendered; a picture chosen ten seconds
+   *  ago has to reach the card behind the sheet without a page load, which is
+   *  the half of "upload, then point the row at it" that gets forgotten. */
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl)
   const [editing, setEditing] = useState(false)
 
   // 02
@@ -288,22 +308,69 @@ export default function DaybreakFlow({
     setStep(step - 1)
   }, [finish, step])
 
-  async function searchCity() {
-    const q = cityQuery.trim()
-    if (!q || searching) return
+  /**
+   * One lookup, whoever asked for it — the debounce below or an explicit Enter.
+   *
+   * SEQUENCED, not just awaited. Type-ahead means several of these can be in
+   * flight and they do not come back in order: "Lis" resolving after "Lisbon"
+   * would replace the right list with a staler one, which reads as the field
+   * ignoring the last thing typed. Only the newest request is allowed to write.
+   * Same `seq` counter as Settings › Home city, for the same reason.
+   */
+  const lookUpCity = useCallback(async (raw: string, citiesOnly: boolean) => {
+    const q = raw.trim()
+    if (!q) return
     const s = ++searchSeq.current
     setSearching(true)
     // City-search mode: no destinationName (that biases resolve-place to POIs
     // near the place — the "Hotel & Casino" bug); then keep only city-ish hits.
+    // A failed call answers [] rather than throwing, so a lookup that does not
+    // land leaves the dropdown empty instead of half-drawn.
     const cands = await resolvePlaceCandidates(q)
     if (searchSeq.current !== s) return
     setSearching(false)
     const withCoords = cands.filter((c) => c.latitude != null && c.longitude != null)
     const cities = withCoords.filter(isCityish)
-    setCityResults((cities.length ? cities : withCoords).slice(0, 6))
-  }
+    // CITIES ONLY WHILE TYPING. `resolve-place` is a resolver, not a prefix
+    // predictor — iOS's autocomplete answers "Kyo" with Kyoto, this answers it
+    // with a sushi bar in Salem, Oregon and two clinics, because half a word
+    // matches a business name long before it matches a city. Falling back to
+    // whatever came back is right for a query somebody deliberately submitted
+    // and wrong for one they are still halfway through: on this screen it fills
+    // the answer to "where do you set out from" with places nobody lives.
+    // Quiet until it has a city to offer.
+    const shown = citiesOnly ? cities : cities.length ? cities : withCoords
+    setCityResults(shown.slice(0, 6))
+  }, [])
+
+  /**
+   * Suggestions as you type, which is what iOS has done here all along — this
+   * screen was submit-driven, a field and a Search button, and was reported
+   * twice as having no autocomplete. A first-run question answered by typing a
+   * city name and pressing nothing is the interaction people expect; a text box
+   * that only responds to a button reads as broken before it reads as different.
+   *
+   * The Search button stays as the floor. Enter still submits, and it is the
+   * way past the three-character gate for somebody whose city is shorter.
+   */
+  useEffect(() => {
+    const q = cityQuery.trim()
+    if (q.length < CITY_MIN_CHARS) {
+      // Nothing, rather than the answer to a query two keystrokes ago.
+      setCityResults([])
+      setSearching(false)
+      return
+    }
+    const timer = setTimeout(() => void lookUpCity(q, true), CITY_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [cityQuery, lookUpCity])
 
   async function pickCity(c: PlaceCandidate) {
+    // Retire every in-flight lookup. Without this, a request fired before the
+    // tap lands afterwards and re-opens the dropdown over a question that has
+    // just been answered.
+    searchSeq.current++
+    setSearching(false)
     setSavingCity(true)
     try {
       const db = createClient()
@@ -411,7 +478,7 @@ export default function DaybreakFlow({
           <IdentityStep
             displayName={displayName}
             username={username}
-            avatarUrl={profile.avatarUrl}
+            avatarUrl={avatarUrl}
             onEdit={() => setEditing(true)}
             onNext={() => setStep(1)}
           />
@@ -420,7 +487,7 @@ export default function DaybreakFlow({
           <OriginStep
             query={cityQuery}
             onQuery={setCityQuery}
-            onSearch={() => void searchCity()}
+            onSearch={() => void lookUpCity(cityQuery, false)}
             searching={searching}
             saving={savingCity}
             results={cityResults}
@@ -491,7 +558,8 @@ export default function DaybreakFlow({
         <DaybreakProfileEditor
           displayName={displayName}
           username={username}
-          avatarUrl={profile.avatarUrl}
+          avatarUrl={avatarUrl}
+          onAvatar={setAvatarUrl}
           onSaved={(v) => {
             setDisplayName(v.displayName)
             setUsername(v.username)
