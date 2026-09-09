@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { INVITE_COOKIE, isValidInviteToken } from "@/lib/drift/invite"
 import { GUIDE_COOKIE, isGuideSlug, claimPendingGuide } from "@/lib/drift/inspire"
-import { DAYBREAK_COOKIE } from "@/lib/drift/daybreak"
+import { DAYBREAK_COOKIE, hasSeenDaybreak } from "@/lib/drift/daybreak"
 import HomeShell from "@/components/app/home/HomeShell"
 import { buildHomeData } from "@/lib/drift/homeData"
 import { buildInspirePromo } from "@/lib/drift/inspirePromo"
@@ -64,7 +64,10 @@ export default async function TripsHome() {
   // Daybreak's dismissal marker, read here where the cookie jar is already
   // open. It is passed down rather than read again inside the boundary because
   // the decision it feeds is made after the trips are known — see Home.
-  const seenDaybreak = Boolean(jar.get(DAYBREAK_COOKIE)?.value)
+  // Per ACCOUNT. A bare "seen" flag closed the flow for every account that
+  // signed into this browser after the first one — which, on a machine where
+  // accounts are made and tested back to back, is all of them.
+  const seenDaybreak = hasSeenDaybreak(jar.get(DAYBREAK_COOKIE)?.value, user.id)
 
   return (
     <Suspense fallback={<HomeSkeleton />}>

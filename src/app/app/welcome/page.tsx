@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { buildDaybreakShelf } from "@/lib/drift/inspirePromo"
-import { DAYBREAK_COOKIE } from "@/lib/drift/daybreak"
+import { DAYBREAK_COOKIE, hasSeenDaybreak } from "@/lib/drift/daybreak"
 import DaybreakFlow from "@/components/app/welcome/DaybreakFlow"
 
 // Daybreak — the six questions a brand-new account meets before it meets the
@@ -29,8 +29,6 @@ export default async function WelcomePage({
   // back in for anyone who wants to look at it twice — it does not clear
   // anything, so the route stays honest about having been seen.
   const jar = await cookies()
-  if (jar.get(DAYBREAK_COOKIE)?.value && again !== "1") redirect("/app")
-
   const supabase = await createClient()
   // Middleware already verified this request's user; the cookie read is enough.
   const {
@@ -38,6 +36,13 @@ export default async function WelcomePage({
   } = await supabase.auth.getSession()
   const user = session?.user
   if (!user) redirect("/app/login")
+
+  // Checked HERE, not before the session is read: "seen" is a fact about an
+  // ACCOUNT, so the question cannot be asked until we know which one. The
+  // earlier version asked it of the browser and answered for everybody.
+  if (hasSeenDaybreak(jar.get(DAYBREAK_COOKIE)?.value, user.id) && again !== "1") {
+    redirect("/app")
+  }
 
   // Independent reads, so they go together. The shelf is the whole corpus (40
   // rows, the same 98KB projection the home deck uses) because screen 3 ranks
@@ -76,6 +81,7 @@ export default async function WelcomePage({
       />
       <div className="min-h-[100dvh] bg-aurora-midnight font-drift-body">
         <DaybreakFlow
+          userId={user.id}
           profile={{
             displayName: p?.display_name ?? "",
             username: p?.username ?? "",

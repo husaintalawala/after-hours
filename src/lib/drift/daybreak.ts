@@ -42,10 +42,53 @@ export const DAYBREAK_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
  * Not httpOnly on purpose — it is written here, in the browser, and carries no
  * capability: it says "seen", nothing more.
  */
-export function markDaybreakSeen(): void {
+export function markDaybreakSeen(userId: string): void {
   if (typeof document === "undefined") return
   const secure = typeof location !== "undefined" && location.protocol === "https:" ? "; Secure" : ""
-  document.cookie = `${DAYBREAK_COOKIE}=1; Path=/; Max-Age=${DAYBREAK_COOKIE_MAX_AGE}; SameSite=Lax${secure}`
+  const next = [...readSeen(document.cookie), userId]
+  // Newest first and capped: a cookie is a request header on every navigation,
+  // and an unbounded list of uuids on a shared browser would grow into one.
+  // Twenty accounts deep is far past anyone's real sign-in history here.
+  const value = [...new Set(next)].reverse().slice(0, 20).join(".")
+  document.cookie =
+    `${DAYBREAK_COOKIE}=${value}; Path=/; Max-Age=${DAYBREAK_COOKIE_MAX_AGE}; SameSite=Lax${secure}`
+}
+
+/** The account ids this browser has already shown the flow to. */
+export function readSeen(cookieHeader: string | undefined | null): string[] {
+  if (!cookieHeader) return []
+  const raw = cookieHeader
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${DAYBREAK_COOKIE}=`))
+  if (!raw) return []
+  return decodeURIComponent(raw.slice(DAYBREAK_COOKIE.length + 1))
+    .split(".")
+    .filter(Boolean)
+}
+
+/**
+ * Has THIS account met the flow on this browser?
+ *
+ * PER ACCOUNT, not per browser, which is what the first version got wrong. It
+ * wrote a bare `drift_daybreak=1`, so the first person to finish the flow in a
+ * browser closed it for every account that signed in there afterwards — and on
+ * a machine where accounts get created and tested back to back, that is every
+ * subsequent one. iOS never had the bug: its marker is keyed
+ * `drift.firstRunSeen.<userID>`, and this is the port of that, not of a flag.
+ *
+ * The value is a dot-joined list of ids because that is what fits a cookie:
+ * uuids contain no dots, so the separator cannot collide with the payload.
+ */
+export function hasSeenDaybreak(cookieValue: string | undefined | null,
+                                userId: string): boolean {
+  if (!cookieValue) return false
+  // Accepts the raw header or a bare value, so both the server jar (which hands
+  // back only the value) and document.cookie work.
+  const ids = cookieValue.includes(`${DAYBREAK_COOKIE}=`)
+    ? readSeen(cookieValue)
+    : cookieValue.split(".").filter(Boolean)
+  return ids.includes(userId)
 }
 
 // ---------------------------------------------------------------------------

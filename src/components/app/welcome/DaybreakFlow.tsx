@@ -64,9 +64,14 @@ export interface DaybreakProfile {
 export default function DaybreakFlow({
   profile,
   guides,
+  userId,
 }: {
   profile: DaybreakProfile
   guides: DaybreakGuide[]
+  /// Whose first run this is. The marker is per ACCOUNT, not per browser —
+  /// without it, the first person through closed the flow for everyone who
+  /// signed in here afterwards.
+  userId: string
 }) {
   const router = useRouter()
 
@@ -115,8 +120,8 @@ export default function DaybreakFlow({
   // Written here and nowhere else: the flow is "seen" the instant it is
   // reached, not when it is finished. See markDaybreakSeen.
   useEffect(() => {
-    markDaybreakSeen()
-  }, [])
+    markDaybreakSeen(userId)
+  }, [userId])
 
   useEffect(() => () => tickers.current.forEach(clearTimeout), [])
 
