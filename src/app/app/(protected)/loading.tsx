@@ -4,8 +4,12 @@
 // them ever flash this fixed-position home frame.
 //
 // Mirrors HomeShell's geometry exactly: dark globe canvas filling the
-// viewport, desktop glass trip rail at left-[100px], mobile sheet at
-// mt-[44vh] — so the swap to the real shell doesn't jump.
+// viewport, desktop glass trip rail at left-[100px], mobile sheet opening
+// 44vh down a full-height column — so the swap to the real shell doesn't jump.
+// It has to be mirrored MECHANISM and not just mirrored numbers: the sheet
+// carried the same collapsing `mt-[44vh]` the shell did, which pushed the
+// protected layout's own min-h-screen box 44vh down the document and left a
+// band of bare globe under the skeleton for the whole load.
 export default function Loading() {
   return (
     <div className="relative">
@@ -13,7 +17,9 @@ export default function Loading() {
       <div className="fixed inset-0" style={{ background: "rgb(4,4,8)" }} />
 
       {/* Desktop: floating glass trip rail */}
-      <aside className="fixed bottom-8 left-[100px] top-6 z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex">
+      {/* Fluid past lg like the real rail — this was a fixed 380px, so on a
+          1440px laptop the panel doubled in width the moment the shell landed. */}
+      <aside className="fixed bottom-8 left-[100px] top-6 z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex xl:w-[54vw] xl:max-w-[860px]">
         <div className="p-6">
           <div className="flex items-center gap-3.5">
             <div className="h-14 w-14 shrink-0 animate-pulse rounded-full bg-aurora-glass2 motion-reduce:animate-none" />
@@ -48,31 +54,35 @@ export default function Loading() {
         </div>
       </aside>
 
-      {/* Mobile: sheet-over-globe */}
-      <div className="relative z-10 mt-[44vh] rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
-        <div className="mx-auto w-full max-w-2xl px-5">
-          <div className="flex justify-center pt-3">
-            <div className="h-1 w-9 rounded-full bg-drift-divider" />
-          </div>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="h-16 w-16 shrink-0 animate-pulse rounded-full bg-aurora-glass2 motion-reduce:animate-none" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="h-6 w-44 animate-pulse rounded-md bg-aurora-glass2 motion-reduce:animate-none" />
-              <div className="h-3 w-24 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+      {/* Mobile: sheet-over-globe. Same column as HomeShell — see the note at
+          the top of the file, and the long one beside its copy. */}
+      <div className="pointer-events-none relative z-10 -mb-[calc(4rem+env(safe-area-inset-bottom))] flex min-h-[100dvh] flex-col lg:hidden">
+        <div className="h-[44vh] shrink-0" aria-hidden />
+        <div className="pointer-events-auto grow rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
+          <div className="mx-auto w-full max-w-2xl px-5">
+            <div className="flex justify-center pt-3">
+              <div className="h-1 w-9 rounded-full bg-drift-divider" />
             </div>
-          </div>
-          <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="space-y-1.5">
-                <div className="h-5 w-8 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
-                <div className="h-3 w-14 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+            <div className="mt-4 flex items-center gap-4">
+              <div className="h-16 w-16 shrink-0 animate-pulse rounded-full bg-aurora-glass2 motion-reduce:animate-none" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-6 w-44 animate-pulse rounded-md bg-aurora-glass2 motion-reduce:animate-none" />
+                <div className="h-3 w-24 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
               </div>
-            ))}
+            </div>
+            <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-1.5">
+                  <div className="h-5 w-8 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+                  <div className="h-3 w-14 animate-pulse rounded bg-aurora-glass2 motion-reduce:animate-none" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 h-6 w-28 animate-pulse rounded-md bg-aurora-glass2 motion-reduce:animate-none" />
+            <div className="mt-3 h-[220px] animate-pulse rounded-[14px] bg-aurora-glass2 motion-reduce:animate-none" />
+            <div className="mt-8 h-6 w-32 animate-pulse rounded-md bg-aurora-glass2 motion-reduce:animate-none" />
+            <div className="mt-3 h-[220px] animate-pulse rounded-[14px] bg-aurora-glass2 motion-reduce:animate-none" />
           </div>
-          <div className="mt-6 h-6 w-28 animate-pulse rounded-md bg-aurora-glass2 motion-reduce:animate-none" />
-          <div className="mt-3 h-[220px] animate-pulse rounded-[14px] bg-aurora-glass2 motion-reduce:animate-none" />
-          <div className="mt-8 h-6 w-32 animate-pulse rounded-md bg-aurora-glass2 motion-reduce:animate-none" />
-          <div className="mt-3 h-[220px] animate-pulse rounded-[14px] bg-aurora-glass2 motion-reduce:animate-none" />
         </div>
       </div>
     </div>

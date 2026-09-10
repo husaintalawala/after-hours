@@ -139,8 +139,14 @@ export default function HomeShell({
           still the ground and still the brand; it just stops owning two
           thirds of every desktop. Capped rather than a bare percentage so an
           ultrawide does not stretch a reading column to 1200px. */}
-      <aside className="fixed left-[100px] top-6 z-10 hidden max-h-[calc(100vh-56px)] w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex xl:w-[54vw] xl:max-w-[860px]">
-        <div className="overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
+      {/* FULL HEIGHT, and that is the desktop half of the sheet fix below.
+          `max-h-[calc(100vh-56px)]` describes exactly the box `top-6 bottom-8`
+          gives you — but as a CAP, not a height, so the rail was content-tall:
+          an account with one trip got a panel down half the screen and bare
+          globe under it, and the skeleton (which DID span top to bottom)
+          collapsed into it on arrival. It is now the column iOS has. */}
+      <aside className="fixed bottom-8 left-[100px] top-6 z-10 hidden w-[380px] flex-col overflow-hidden rounded-[26px] border border-white/40 bg-aurora-glass/95 shadow-aurora-glow lg:flex xl:w-[54vw] xl:max-w-[860px]">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 [-ms-overflow-style:none] [scrollbar-width:thin]">
           {/* Header */}
           <div className="flex items-center gap-3.5">
             <Avatar url={data.avatarUrl} name={data.displayName} size={56} />
@@ -258,100 +264,114 @@ export default function HomeShell({
       )}
 
       {/* ---------- Mobile: iOS sheet-over-globe ---------- */}
-      {/* min-h is load-bearing, not padding. The sheet starts 44vh down over a
-          `fixed inset-0` globe and had no floor, so a profile with little in it
-          — a brand-new account being the obvious case — ended partway down the
-          screen and let the globe show through underneath, with the dock
-          floating over the seam. 56vh is exactly the remainder of the viewport
-          below the 44vh offset, so the sheet always reaches the bottom no matter
-          how empty it is. pb-28 stays: it clears the fixed dock. */}
-      <div className="relative z-10 mt-[44vh] min-h-[56vh] rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)] lg:hidden">
-        <div className="mx-auto w-full max-w-2xl px-5">
-          <div className="flex justify-center pt-3">
-            <div className="h-1 w-9 rounded-full bg-drift-divider" />
-          </div>
+      {/* A COLUMN, not a margin — and that is the whole fix.
+          `mt-[44vh] min-h-[56vh]` was right about the intent and wrong about
+          the mechanism. 44vh of MARGIN collapses: none of the three ancestors
+          between here and the protected layout has padding, a border or a
+          formatting context to stop it, so the 357px escaped all the way out
+          and offset the layout's own `min-h-screen` element by 357px. That
+          element still measured a full viewport from its new origin, so the
+          document ended 176px BELOW the sheet — an unfillable band of fixed
+          globe under the panel, with `min-h-[56vh]` unable to reach it because
+          it only ever described the FIRST screen.
+          Now the globe's window is a real box and the sheet `grow`s to the
+          bottom of a `100dvh` column, so its bottom edge IS the document's at
+          any content length. The negative margin cancels the protected
+          layout's dock padding, which would otherwise re-open the same band at
+          64px; the sheet's own pb-28 clears the dock from inside. */}
+      {/* pointer-events: the column now has a real box over the globe's 44vh
+          where a margin used to be nothing at all. Without this the panel
+          would silently swallow every drag and pinch on the planet. */}
+      <div className="pointer-events-none relative z-10 -mb-[calc(4rem+env(safe-area-inset-bottom))] flex min-h-[100dvh] flex-col lg:hidden">
+        <div className="h-[44vh] shrink-0" aria-hidden />
+        <div className="pointer-events-auto grow rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
+          <div className="mx-auto w-full max-w-2xl px-5">
+            <div className="flex justify-center pt-3">
+              <div className="h-1 w-9 rounded-full bg-drift-divider" />
+            </div>
 
-          <div className="mt-4 flex items-center gap-4">
-            <Avatar url={data.avatarUrl} name={data.displayName} size={64} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-drift-display text-[28px] font-bold leading-tight">
-                {data.displayName}
-              </p>
-              {data.username && (
-                <p className="text-[12px] text-drift-muted">@{data.username}</p>
+            <div className="mt-4 flex items-center gap-4">
+              <Avatar url={data.avatarUrl} name={data.displayName} size={64} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-drift-display text-[28px] font-bold leading-tight">
+                  {data.displayName}
+                </p>
+                {data.username && (
+                  <p className="text-[12px] text-drift-muted">@{data.username}</p>
+                )}
+              </div>
+              {/* Settings was reachable ONLY from the desktop AppRail, so on phone
+                  there was no route to it at all. Mirrors the gear in the iOS
+                  profile header. */}
+              {isSelf ? (
+                <>
+                  <Link
+                    href="/app/settings"
+                    aria-label="Settings"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-aurora-border bg-aurora-glass text-drift-muted transition-colors hover:text-drift-ink"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </Link>
+                  <SignOutButton />
+                </>
+              ) : (
+                follow
               )}
             </div>
-            {/* Settings was reachable ONLY from the desktop AppRail, so on phone
-                there was no route to it at all. Mirrors the gear in the iOS
-                profile header. */}
-            {isSelf ? (
-              <>
-                <Link
-                  href="/app/settings"
-                  aria-label="Settings"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-aurora-border bg-aurora-glass text-drift-muted transition-colors hover:text-drift-ink"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                  </svg>
-                </Link>
-                <SignOutButton />
-              </>
-            ) : (
-              follow
+
+            {/* The sheet's copy of the stat row — gap-8, not the aside's gap-7. */}
+            {hasStats && (
+              <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
+                <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
+                <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
+                <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
+              </div>
             )}
-          </div>
 
-          {/* The sheet's copy of the stat row — gap-8, not the aside's gap-7. */}
-          {hasStats && (
-            <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
-              <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
-              <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
-              <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
-            </div>
-          )}
+            {data.featured && data.featuredHeader && (
+              <>
+                <div className="mt-6 flex items-baseline gap-2">
+                  <h2 className="font-drift-display text-[22px] font-bold">
+                    {data.featuredHeader.title}
+                  </h2>
+                  <span className="text-[13px] font-semibold text-drift-muted">
+                    {data.featuredHeader.subtitle}
+                  </span>
+                </div>
+                <BigCard trip={data.featured} className="mt-3" />
+              </>
+            )}
 
-          {data.featured && data.featuredHeader && (
-            <>
-              <div className="mt-6 flex items-baseline gap-2">
-                <h2 className="font-drift-display text-[22px] font-bold">
-                  {data.featuredHeader.title}
+            {data.others.length > 0 && (
+              <>
+                <h2 className="mt-8 font-drift-display text-[22px] font-bold">
+                  Other trips
                 </h2>
-                <span className="text-[13px] font-semibold text-drift-muted">
-                  {data.featuredHeader.subtitle}
-                </span>
+                <div className="mt-3 space-y-4">
+                  {data.others.map((t) => (
+                    <BigCard key={t.id} trip={t} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {allTrips.length === 0 && !isSelf && (
+              <div className="py-12 text-center">
+                <p className="text-4xl opacity-30">🗺</p>
+                <p className="mt-3 text-[15px] text-drift-muted">No trips to show yet</p>
               </div>
-              <BigCard trip={data.featured} className="mt-3" />
-            </>
-          )}
+            )}
 
-          {data.others.length > 0 && (
-            <>
-              <h2 className="mt-8 font-drift-display text-[22px] font-bold">
-                Other trips
-              </h2>
-              <div className="mt-3 space-y-4">
-                {data.others.map((t) => (
-                  <BigCard key={t.id} trip={t} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {allTrips.length === 0 && !isSelf && (
-            <div className="py-12 text-center">
-              <p className="text-4xl opacity-30">🗺</p>
-              <p className="mt-3 text-[15px] text-drift-muted">No trips to show yet</p>
-            </div>
-          )}
-
-          {/* Parity with iOS (Drift ProfileTripsView.emptyTripsState), and the
-              two paths that work from zero. Someone else's empty profile keeps
-              the plain line above — these are actions only the owner can take.
-              The markup itself lives in StartHere, which the desktop rail draws
-              too, so the two cannot drift apart the way they did before. */}
-          {showStartHere && <StartHere promo={inspire} />}
+            {/* Parity with iOS (Drift ProfileTripsView.emptyTripsState), and the
+                two paths that work from zero. Someone else's empty profile keeps
+                the plain line above — these are actions only the owner can take.
+                The markup itself lives in StartHere, which the desktop rail draws
+                too, so the two cannot drift apart the way they did before. */}
+            {showStartHere && <StartHere promo={inspire} />}
+          </div>
         </div>
       </div>
     </div>
