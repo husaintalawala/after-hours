@@ -560,7 +560,10 @@ export default function DaybreakFlow({
           beneath it, for the moment before the shelf lands and for a shelf that
           never does. */}
       <DaybreakSky progress={skyProgress} />
-      <Backdrop plate={backdrop} deep={name === "shape" || name === "pick"} />
+      {/* No `deep` any more — see the note on Backdrop's gradient. It chose
+          between two mirror-image scrims rather than two depths, and left one
+          end of the text on bare photograph on all seven steps. */}
+      <Backdrop plate={backdrop} />
 
       {/* Back on the left, a hairline of progress, and a close that is always
           live. The bar is almost redundant — the sky already says how far in

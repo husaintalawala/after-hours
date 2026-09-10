@@ -12,7 +12,7 @@ import {
   type Coord,
   type TripLength,
 } from "@/lib/drift/daybreak"
-import { plateForTag, type Plate } from "@/lib/drift/daybreakArt"
+import { platesForTags, type Plate } from "@/lib/drift/daybreakArt"
 import { tripCover } from "@/lib/drift/tripCover"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import type { PlaceCandidate } from "@/lib/drift/chat"
@@ -38,15 +38,17 @@ import type { PlaceCandidate } from "@/lib/drift/chat"
  */
 export function Question({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="space-y-[7px]">
+    // The largest text in the flow was the only text in it with nothing between
+    // it and the picture: no shadow, no scrim of its own, on all seven screens.
+    // The note this replaces reasoned about a peach SKY that has never been
+    // visible behind this text — Backdrop covers DaybreakSky whenever there is
+    // a photograph, which is every step once the shelf has landed. The real
+    // ground is an arbitrary corpus photo.
+    <div className="space-y-[7px] [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
       <h1 className="whitespace-pre-line font-drift-display text-[30px] font-bold leading-[1.08] text-aurora-ink">
         {title}
       </h1>
       {subtitle && (
-        // ink2, NOT ink3. This line sits on a sky that ends the flow at
-        // #FFA96B, and ink3 (#7D8C98) is grey-on-peach by the last screen —
-        // legible in the first four and nearly gone in the sixth. Paired with
-        // the scrim in DaybreakSky.
         <p className="text-[13px] leading-snug text-aurora-ink2">{subtitle}</p>
       )}
     </div>
@@ -84,7 +86,10 @@ export function Skip({ label, onClick }: { label: string; onClick: () => void })
     <button
       type="button"
       onClick={onClick}
-      className="w-full py-2.5 text-[13.5px] font-semibold text-aurora-ink3 transition-colors hover:text-aurora-ink2"
+      // ink2, was ink3 — a mid grey on a photograph. On the pick screen this
+      // link is the ONLY way past three trips you do not want, so losing a
+      // contrast fight with a bright hero is a trap rather than a blemish.
+      className="w-full py-2.5 text-[13.5px] font-semibold text-aurora-ink2 transition-colors hover:text-aurora-ink [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]"
     >
       {label}
     </button>
@@ -142,23 +147,59 @@ function Footer({ children }: { children: React.ReactNode }) {
  * link, so it sits top-right the way iOS does, aligned to the reading column at
  * every width and above it in the stack.
  */
-export function Backdrop({ plate, deep = false }: { plate: Plate | null; deep?: boolean }) {
+export function Backdrop({ plate }: { plate: Plate | null }) {
   const cover = plate?.cover
   if (!cover?.url) return null
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
-        <TripCoverImg cover={cover} sizes="100vw" showCredit={false} priority />
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+        {/* THE PHOTOGRAPH BECOMES THE SKY.
+            Darkening could never fix this screen. The mosaic's own content is
+            seven photographs, and a sharp photograph behind them is picture on
+            picture — nothing tells the eye which layer is the subject, and the
+            answer to "which of these pulls you?" was competing with a wall of
+            red maple. Nor was the answer to drop the photo: this flow is named
+            for a sunrise, and DaybreakSky's ramp from midnight to daybreak has
+            been covered on every screen since the backdrop landed.
+            So the two become one thing. Blurred to 44px the corpus photo stops
+            being a picture and becomes a FIELD OF LIGHT — Vík's greens, Kyoto's
+            reds, the Aegean's blues — and at 0.88 it lets the sunrise through
+            underneath, so the ground is a real place's palette warming as you
+            advance. Saturated slightly because blur averages colour toward
+            grey, and the whole point of keeping it is the colour.
+            scale(1.12) because a blur samples past its own edges: without it
+            the viewport border shows a soft lighter frame where there is
+            nothing left to sample. */}
+        <div className="absolute inset-0 scale-[1.12] opacity-[0.92] [filter:blur(44px)_saturate(1.45)_brightness(0.62)]">
+          <TripCoverImg cover={cover} sizes="100vw" showCredit={false} priority />
+        </div>
+
+        {/* The pool the content sits in. A linear band darkens the top and the
+            bottom equally, which is right for the text at both ends and wrong
+            for the middle of the screen, where it reads as a stripe. A radial
+            falloff instead: clear where the answer is, closing in at the edges,
+            so the frame recedes rather than being banded. */}
         <div
           className="absolute inset-0"
           style={{
-            // Scrim.photoTop and Scrim.photoBottomDeep, the same two values
-            // GuideCard already uses. `deep` is for the screens whose content
-            // reaches the top of the frame — the mosaic and the three cards.
-            background: deep
-              ? "linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.70) 50%, rgba(0,0,0,0.45))"
-              : "linear-gradient(to bottom, rgba(0,0,0,0.45), transparent 50%, rgba(0,0,0,0.85))",
+            background:
+              "radial-gradient(125% 78% at 50% 38%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 54%, rgba(0,0,0,0.66) 100%)",
+          }}
+        />
+
+        {/* And the text veil, which is now the only job left for a linear
+            gradient: the question is pinned to the top of the column and the
+            Cta and Skip to the bottom, and both ends have to hold white type
+            over whatever colour the field happens to be. Lighter than it was —
+            the blur and the vignette have already done the calming, so this
+            only has to guarantee the two bands where words actually sit.
+            Mirrors DaybreakBackdrop on iOS; change the two together. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 26%, rgba(0,0,0,0.18) 70%, rgba(0,0,0,0.68) 100%)",
           }}
         />
       </div>
@@ -380,6 +421,13 @@ export function MosaicStep({
   onNext: () => void
   onSkip: () => void
 }) {
+  // ONE lookup for the whole mosaic, not one per tile: the rule that stops two
+  // tiles showing the same trip can only be applied to the tiles as a set. See
+  // platesForTags.
+  const plates = platesForTags(
+    categories.map((c) => c.slug),
+    shelf
+  )
   return (
     <>
       <Question
@@ -403,7 +451,7 @@ export function MosaicStep({
           <Tile
             key={c.slug}
             category={c}
-            shelf={shelf}
+            plate={plates.get(c.slug) ?? null}
             on={picked.has(c.slug)}
             onToggle={() => onToggle(c.slug)}
             tall={i % 3 === 0}
@@ -414,7 +462,7 @@ export function MosaicStep({
         <div className="mt-[7px]">
           <Tile
             category={categories[6]}
-            shelf={shelf}
+            plate={plates.get(categories[6].slug) ?? null}
             on={picked.has(categories[6].slug)}
             onToggle={() => onToggle(categories[6].slug)}
             tall={false}
@@ -423,9 +471,12 @@ export function MosaicStep({
       )}
 
       {/* The second half of the question, on the same screen rather than an
-          eighth. ink2 rather than ink3 for the label: this sits on a photograph
-          now, where the muted tertiary grey is very nearly gone. */}
-      <div className="mt-4">
+          eighth — and now on the Panel every other step puts its body content
+          on. This label and its pills were the one block of bare text left
+          sitting straight on the photograph, and at 9.5px it is the smallest
+          type in the flow over the brightest thing in it. Raising ink3 to ink2
+          was treating the symptom. */}
+      <Panel className="mt-4 p-[11px]">
         <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink2">
           HOW LONG HAVE YOU GOT?
         </p>
@@ -439,7 +490,7 @@ export function MosaicStep({
             />
           ))}
         </div>
-      </div>
+      </Panel>
 
       <Footer>
         {/* "Show me everything" is only honest when NEITHER half was answered.
@@ -475,18 +526,17 @@ export function MosaicStep({
  */
 function Tile({
   category,
-  shelf,
+  plate,
   on,
   onToggle,
   tall,
 }: {
   category: { slug: string; name: string }
-  shelf: readonly DaybreakGuide[]
+  plate: Plate | null
   on: boolean
   onToggle: () => void
   tall: boolean
 }) {
-  const plate = plateForTag(category.slug, shelf)
   // Rung 4 — the deterministic gradient with the category's initial on it. This
   // is what a slow network actually holds, and it is a designed state rather
   // than a hole: the tile stays readable, tappable and the same size.

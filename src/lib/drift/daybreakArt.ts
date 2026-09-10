@@ -10,10 +10,18 @@ import type { TripCoverResult } from "./tripCover"
  * corpus, is already credited, and is chosen by the same rule the shelf uses, so
  * nothing here is a new asset or a curator's decision baked into code.
  *
- * NOTHING IS HARDCODED. The tile for "Nature & wildlife" shows Reykjavík because
- * the highest-ranked guide tagged `wild` genuinely starts there — not because a
- * place name was typed into this file. Re-rank the shelf or retag a guide and
- * these follow, which is the only version of this that cannot go stale.
+ * NOTHING IS HARDCODED. A tile shows what it shows because a guide carrying that
+ * tag genuinely goes there — not because a place name was typed into this file.
+ * Re-rank the shelf or retag a guide and these follow, which is the only version
+ * of this that cannot go stale.
+ *
+ * THAT WAS NOT SUFFICIENT, and this note used to offer the counter-example as
+ * the proof: "the tile for Nature & wildlife shows Reykjavík because the
+ * highest-ranked guide tagged `wild` genuinely starts there". STARTS there — the
+ * arrival city, which every guide photographs and which is never what a category
+ * is named for. Not hardcoded and still wrong: the rule was derived, and derived
+ * the anti-correlation. Both halves of the fix are below and in
+ * buildDaybreakShelf; neither is visible from inside a single tile.
  *
  * CREDIT TRAVELS WITH THE PICTURE. Both licences bind attribution to the
  * DISPLAY, so a photo without its credit is not a styling choice. `Plate` is a
@@ -41,8 +49,8 @@ export interface Plate {
 export interface PlatedGuide {
   /** The shape tags the row stores (`wild`, `stones`, …). */
   tags: string[]
-  /** The face of this guide at tile size — its first photographed stop, or its
-   *  hero when no stop carries one. See buildDaybreakShelf. */
+  /** The face of this guide at tile size — a photographed stop it travels on
+   *  to, else its arrival, else its hero. See buildDaybreakShelf. */
   tile: Plate
   /** The hero at full-bleed width. */
   backdrop: Plate
@@ -64,6 +72,39 @@ export function plateForTag<T extends PlatedGuide>(
   shelf: readonly T[]
 ): Plate | null {
   return shelf.find((g) => g.tags.includes(tag))?.tile ?? null
+}
+
+/**
+ * One picture per tag, chosen TOGETHER, so no guide serves two tiles.
+ *
+ * The rule that made this necessary is invisible from inside a single tile: the
+ * shelf's top guides carry several shape tags each, so the same trip won
+ * `plateForTag` for several of them and three of the seven tiles came back as
+ * the identical Positano storm — "seven tiles all showing the same three covers
+ * would say less than seven words did", which is the failure the per-stop rule
+ * in buildDaybreakShelf was already trying to avoid.
+ *
+ * Tags are served in the order given and a guide is spent once. A tag whose
+ * every carrier is already spent falls back to its highest-ranked one rather
+ * than showing a hole; a tag nothing carries is simply absent, and the mosaic
+ * draws its own placeholder for that. Identity is the guide OBJECT rather than
+ * a trip id, so `PlatedGuide` still declares only what the picture-picking
+ * reads. Mirrors DaybreakArt.plates(forTags:in:).
+ */
+export function platesForTags<T extends PlatedGuide>(
+  tags: readonly string[],
+  shelf: readonly T[]
+): Map<string, Plate> {
+  const spent = new Set<T>()
+  const out = new Map<string, Plate>()
+  for (const tag of tags) {
+    const carriers = shelf.filter((g) => g.tags.includes(tag))
+    const guide = carriers.find((g) => !spent.has(g)) ?? carriers[0]
+    if (!guide) continue
+    spent.add(guide)
+    out.set(tag, guide.tile)
+  }
+  return out
 }
 
 /**
