@@ -1,15 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 // The top of the logged-in home: the mark, the reader, and one sentence in the
 // display serif that names the time of day and asks the only question this app
 // exists to answer.
-//
-// It replaces a 64px avatar over a 22px name at the head of a glass sheet —
-// which read as a profile page, not a home. The greeting is the difference:
-// a profile describes who you are, a home asks where you are going.
 
 /**
  * Which greeting, and it is answered in the BROWSER — never on the server.
@@ -17,12 +15,8 @@ import Link from "next/link"
  * "What time is it" is a question about the reader's clock, and the server
  * answers it in its own timezone: a machine in California renders "Good
  * evening" into HTML that a phone in Lisbon hydrates at breakfast. That is a
- * hydration mismatch on the largest sentence on the page.
- *
- * This is the same trap `daysUntil` in HomeShell already documents, and the
- * same fix — render nothing time-bound on the server, fill it in from an
- * effect. The first paint therefore carries the name but not the salutation,
- * which is why `part` starts null rather than at a guess.
+ * hydration mismatch on the largest sentence on the page — the same trap
+ * `daysUntil` in HomeShell already documents.
  */
 function greetingFor(hour: number): string {
   if (hour < 5) return "Still up"
@@ -38,7 +32,6 @@ export default function HomeHeader({
 }: {
   displayName: string
   avatarUrl: string | null
-  /** A stranger's profile gets the mark and their name, never "where are WE going". */
   isSelf: boolean
 }) {
   const [greeting, setGreeting] = useState<string | null>(null)
@@ -47,9 +40,6 @@ export default function HomeHeader({
     setGreeting(greetingFor(new Date().getHours()))
   }, [])
 
-  // FIRST NAME ONLY. "Good morning, Husain Saifuddin Talawala" is a form field
-  // read aloud; the whole point of the sentence is that it sounds like a person
-  // talking. Falls back to the whole string when there is no space to split on.
   const firstName = displayName.trim().split(/\s+/)[0] || displayName
 
   return (
@@ -60,25 +50,18 @@ export default function HomeHeader({
           <img src="/drift-icon.svg" alt="Drift" className="h-7 w-7" />
         </Link>
 
-        <Link
-          href={isSelf ? "/app/settings" : "#"}
-          aria-label={isSelf ? "Settings" : undefined}
-          className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
-          tabIndex={isSelf ? undefined : -1}
-        >
+        {isSelf ? (
+          <AvatarMenu url={avatarUrl} name={displayName} />
+        ) : (
           <Avatar url={avatarUrl} name={displayName} size={36} />
-        </Link>
+        )}
       </div>
 
-      {/* THE SENTENCE. Two clauses on two lines, the second in a lighter
-          italic — the salutation is the greeting, the question is the point,
-          and setting them at one weight makes neither. */}
       <h1 className="mt-5 font-drift-display text-[26px] font-bold leading-[1.12] tracking-[-0.03em] text-aurora-ink sm:text-[30px] lg:text-[40px]">
-        {/* The salutation occupies its line from the first paint even while
-            null, so the question below does not jump up and then back down
-            when the effect lands. */}
+        {/* The salutation holds its line from the first paint even while null,
+            so the question below does not jump when the effect lands. */}
         <span className="block min-h-[1.12em]">
-          {greeting ? `${greeting}, ${firstName}.` : ` `}
+          {greeting ? `${greeting}, ${firstName}.` : " "}
         </span>
         {isSelf && (
           <span className="block font-light italic text-aurora-ink2">
@@ -91,11 +74,91 @@ export default function HomeHeader({
 }
 
 /**
- * Shared with HomeShell's sheet copy — exported so the two cannot drift apart
- * the way the desktop and mobile stat rows once did.
+ * The avatar, and everything that used to be scattered around the page.
  *
- * The ring was `drift-coral/70`, which is a re-pointed token still NAMED for a
- * retired colour. Teal at the same weight, said in the token that means it.
+ * Sign out was a bare text link floating in the middle of the home — the only
+ * account action on the phone, sitting between a rail of trips and a rail of
+ * guides with nothing around it to say what it belonged to. Settings was
+ * reachable only from the desktop rail, so on a phone there was no route to it
+ * at all. Both are account actions and the avatar is what a person taps looking
+ * for account actions, so both live behind it.
+ */
+function AvatarMenu({ url, name }: { url: string | null; name: string }) {
+  const [open, setOpen] = useState(false)
+  const wrap = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+
+  // Close on an outside press and on Escape. A menu that can only be dismissed
+  // by choosing something from it is a trap on a touch screen.
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("mousedown", onDown)
+    document.addEventListener("touchstart", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("touchstart", onDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={wrap} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account menu"
+        className="block rounded-full outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
+      >
+        <Avatar url={url} name={name} size={36} />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-[46px] z-40 w-44 overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass2 py-1 shadow-[0_10px_34px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+        >
+          <Link
+            href="/app/settings"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2.5 text-[13.5px] font-medium text-aurora-ink transition-colors hover:bg-white/[0.06]"
+          >
+            Settings
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={async () => {
+              setOpen(false)
+              await createClient().auth.signOut()
+              router.push("/app/login")
+              router.refresh()
+            }}
+            className="block w-full px-4 py-2.5 text-left text-[13.5px] font-medium text-aurora-ink2 transition-colors hover:bg-white/[0.06] hover:text-aurora-ink"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The reader's own photograph when there is one, their initial when there is
+ * not — `url` comes from profiles.avatar_url through buildHomeData.
+ *
+ * The ring was `drift-coral/70`: a re-pointed token still NAMED for a retired
+ * colour. Teal at the same weight, said in the token that means it.
  */
 export function Avatar({
   url,

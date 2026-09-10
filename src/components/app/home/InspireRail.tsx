@@ -1,5 +1,6 @@
 import Link from "next/link"
 import TripCoverImg from "@/components/app/TripCoverImg"
+import CoverCredit from "@/components/app/CoverCredit"
 import { Section, Rail } from "@/components/app/home/HomeSection"
 import type { InspirePromo, InspirePromoCard } from "@/lib/drift/inspirePromo"
 
@@ -41,7 +42,23 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
       aria-label={card.aria}
       className="group relative block h-[218px] w-[164px] shrink-0 overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
     >
-      <TripCoverImg cover={card.cover} sizes="164px" />
+      {/* showCredit={false} and the chip re-hung at the TOP, because
+          CoverCredit's own "corner" placement is `absolute bottom-1.5
+          right-1.5` — directly underneath "Make it mine", which spans the full
+          width of this card's bottom. The two were drawn on top of each other.
+          The attribution cannot be the thing that moves off (Wikimedia's CC
+          BY-SA and Unsplash's terms both bind it to the display), so the button
+          keeps the bottom and the credit takes the top corner. */}
+      <TripCoverImg cover={card.cover} sizes="164px" showCredit={false} />
+      {card.cover.credit && (
+        <div className="absolute right-2 top-2 z-10 [&>*]:mt-0">
+          <CoverCredit
+            text={card.cover.credit.text}
+            href={card.cover.credit.href}
+            placement="inline"
+          />
+        </div>
+      )}
 
       {/* THE SCRIM. Every card on this page sits type over a photograph, and a
           photograph is whatever the photographer shot — a white-walled Santorini

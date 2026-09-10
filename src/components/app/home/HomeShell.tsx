@@ -2,26 +2,17 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import dynamic from "next/dynamic"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
-
-// mapbox-gl is ~1.7MB of JS — load it after the shell paints instead of
-// blocking first render.
-const GlobeHero = dynamic(() => import("@/components/app/GlobeHero"), {
-  ssr: false,
-  loading: () => <div className="h-full w-full" style={{ background: "rgb(4,4,8)" }} />,
-})
-import SignOutButton from "@/components/app/SignOutButton"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import BackLink from "@/components/app/BackLink"
 import FollowButton from "@/components/app/people/FollowButton"
 import StartHere from "@/components/app/home/StartHere"
 import HomeHeader, { Avatar } from "@/components/app/home/HomeHeader"
 import CtaRow from "@/components/app/home/CtaRow"
+import PassportPanel from "@/components/app/home/PassportPanel"
 import { Section, Rail } from "@/components/app/home/HomeSection"
 import InspireRail from "@/components/app/home/InspireRail"
 import DiscoverRail from "@/components/app/home/DiscoverRail"
-import AskDriftBar from "@/components/app/home/AskDriftBar"
 import type { DiscoverAnchor } from "@/lib/drift/discover"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
 import type { InspirePromo } from "@/lib/drift/inspirePromo"
@@ -45,8 +36,9 @@ import { countryFlagEmoji } from "@/lib/drift/flags"
  * The fix is not better spacing. It is more bands: three ways to start
  * something, your own trips, and the curated shelf — so a one-trip account and
  * a forty-trip account are the same page with a different amount in the middle
- * of it. The globe is now a CONTAINED desktop band rather than the room
- * everything floats in.
+ * of it. The globe is no longer the room everything floats in: it is contained
+ * inside PassportPanel, the one band on this page whose subject is actually
+ * where the reader has been. The full-screen planet lives on its own route.
  */
 
 export interface HomeTrip {
@@ -79,9 +71,10 @@ export interface HomeData {
  *
  * Someone else's profile is the SAME shell — it is the same question ("what are
  * this person's trips?"). Only the genuinely owner-bound affordances are gated:
- * sign out, settings, the CTA row, Ask Drift, the Inspire rail and the stat
- * links, which point at YOUR /app/people tabs and would silently mislead on
- * someone else's page.
+ * the CTA row, the Discover and Inspire rails, and the passport panel's link to
+ * the map — which is YOUR map and would silently mislead on someone else's
+ * page. Account actions (settings, sign out) live behind the avatar and are
+ * self-only for the same reason.
  */
 export type HomeViewer =
   | { kind: "self" }
@@ -125,15 +118,9 @@ export default function HomeShell({
    */
   inspire?: InspirePromo | null
 }) {
-  const [focusTripId, setFocusTripId] = useState<string | null>(null)
   const [daysOut, setDaysOut] = useState<number | null>(null)
   const isSelf = viewer.kind === "self"
   const allTrips = [...(data.featured ? [data.featured] : []), ...data.others]
-
-  // Zero, zero and zero is a scoreboard of everything the reader has not done,
-  // printed near the top of their first screen. It appears the moment any of
-  // the three means something.
-  const hasStats = data.countries > 0 || data.followers > 0 || data.following > 0
 
   const showStartHere = isSelf && allTrips.length === 0
 
@@ -161,10 +148,13 @@ export default function HomeShell({
     return null
   })()
 
-  // WHERE "NEAR HERE" IS, and the answer comes from the featured trip because
-  // nothing better exists. There is no home-city field on web at all — the
-  // first-run flow asks where you set out from, but nothing surfaces it here —
-  // so the next-best anchor is the place the reader is about to go.
+  // WHERE "NEAR HERE" IS: the featured trip's city.
+  //
+  // profiles.home_city DOES exist and is collected by the first-run flow — it
+  // is simply not carried in HomeData, so it is not reachable from here yet.
+  // Wiring it through is worth doing (it would give an account with no trips a
+  // Discover rail at all), and is deliberately left for the home-city work
+  // rather than smuggled into a layout change.
   //
   // Coordinates come off that trip's globe pin, which already carries them;
   // HomeTrip itself has only city and country. Events need real coordinates and
@@ -183,9 +173,6 @@ export default function HomeShell({
         }
       : null
 
-  // Stats link to the signed-in user's own tabs, so on another profile they are
-  // plain figures rather than links that quietly navigate to YOUR followers.
-  const statHref = (href: string) => (isSelf ? href : undefined)
 
   const follow =
     viewer.kind === "other" ? (
@@ -197,7 +184,7 @@ export default function HomeShell({
     ) : null
 
   return (
-    <div className="relative min-h-[100dvh] bg-aurora-midnight pb-40 lg:pb-24">
+    <div className="relative min-h-[100dvh] bg-aurora-midnight pb-24 lg:pb-20">
       {/* Back chip, only on someone else's profile — the signed-in home is a
           tab root and has no up-path. */}
       {viewer.kind === "other" && (
@@ -206,34 +193,12 @@ export default function HomeShell({
         </div>
       )}
 
-      {/* ---------- Desktop: the contained horizon ----------
-          `lg:` ONLY, and inside a real box with `overflow-hidden`. This is the
-          whole of the globe's presence on the page now.
-
-          The phone used to render this same map as `fixed inset-0` — a
-          viewport-filling planet that every band below had to be layered over.
-          A fixed element is not inside any of its ancestors, so it ignored the
-          page's own scroll box and bled through; the 44vh spacer that reserved
-          room for it is what left a dead gap under short content. Neither
-          problem has a spacing fix, so the phone simply does not draw it. */}
-      <div className="relative hidden h-[300px] overflow-hidden lg:block xl:h-[340px]">
-        <div className="absolute inset-x-0 top-0 h-[760px]">
-          <GlobeHero pins={pins} focusTripId={focusTripId} zoom={showStartHere ? 1.35 : 2.6} />
-        </div>
-        {/* The terminator — the band dissolving into the page ground so the
-            header below it does not start on a hard edge. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[190px] bg-gradient-to-t from-aurora-midnight via-aurora-midnight/75 to-transparent"
-        />
-      </div>
-
-      {/* The header overlaps the band on desktop so the greeting sits ON the
-          sky rather than under it — `lg:-mt-[124px]` — while on phone, where
-          there is no band, it is simply the top of the page. */}
-      <div className="relative z-10 lg:-mt-[124px]">
-        <HomeHeader displayName={data.displayName} avatarUrl={data.avatarUrl} isSelf={isSelf} />
-      </div>
+      {/* THE GLOBE IS NOT HERE ANY MORE. It was a full-viewport `fixed inset-0`
+          layer, then a contained desktop band; it is now the illustration
+          inside PassportPanel, which is the only place on this page whose
+          subject is actually "where you have been". The full-screen planet
+          lives on its own route. Nothing on the home bleeds. */}
+      <HomeHeader displayName={data.displayName} avatarUrl={data.avatarUrl} isSelf={isSelf} />
 
       <div className="relative z-10 mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1180px]">
         {/* Owner-only. A stranger's profile gets no "create a trip". */}
@@ -255,13 +220,19 @@ export default function HomeShell({
           </div>
         )}
 
-        {hasStats && (
-          <div className="mt-6 flex gap-8 border-b border-aurora-border px-5 pb-5 lg:px-10">
-            <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
-            <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
-            <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
-          </div>
-        )}
+        {/* The three figures used to be a bare row right here, in white, at
+            full size — "1 · 0 · 0" as the third thing on a new account's first
+            screen. They are now captions on the panel whose picture they
+            describe, and a zero is drawn muted rather than stark. */}
+        <div className="px-5 lg:px-10">
+          <PassportPanel
+            countries={data.countries}
+            followers={data.followers}
+            following={data.following}
+            pins={pins}
+            isSelf={isSelf}
+          />
+        </div>
 
         {/* ---------- Your trips, first ----------
             The reader's own work outranks anything curated, on every account.
@@ -281,7 +252,7 @@ export default function HomeShell({
               <div className="mt-3 px-5 lg:px-10">
                 <Rail>
                   {data.others.map((t) => (
-                    <RailTripCard key={t.id} trip={t} onHover={() => setFocusTripId(t.id)} />
+                    <RailTripCard key={t.id} trip={t} />
                   ))}
                 </Rail>
               </div>
@@ -295,7 +266,7 @@ export default function HomeShell({
             <div className="px-5 lg:px-10">
               <Rail>
                 {data.others.map((t) => (
-                  <RailTripCard key={t.id} trip={t} onHover={() => setFocusTripId(t.id)} />
+                  <RailTripCard key={t.id} trip={t} />
                 ))}
               </Rail>
             </div>
@@ -336,40 +307,11 @@ export default function HomeShell({
           </div>
         )}
 
-        {/* Sign out has no other home on phone — the desktop AppRail carries
-            settings, but the phone dock does not. */}
-        {isSelf && (
-          <div className="mt-12 flex justify-center px-5 lg:hidden">
-            <SignOutButton />
-          </div>
-        )}
+        {/* Sign out and Settings both live behind the avatar now — see
+            AvatarMenu in HomeHeader. A bare "Sign out" floating between two
+            rails belonged to nothing. */}
       </div>
-
-      {/* Owner-only, and fixed — see AskDriftBar. */}
-      {isSelf && <AskDriftBar />}
     </div>
-  )
-}
-
-// `href` is optional: the stat destinations are the signed-in user's own
-// /app/people tabs, so on someone else's profile the figure is shown without a
-// link rather than navigating to YOUR followers under THEIR count.
-function Stat({ value, label, href }: { value: number; label: string; href?: string }) {
-  const body = (
-    <>
-      <p className="text-[19px] font-bold leading-tight text-aurora-ink">{value}</p>
-      <p className="text-[12px] text-aurora-ink3">{label}</p>
-    </>
-  )
-  return href ? (
-    <Link
-      href={href}
-      className="rounded-lg outline-none transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-    >
-      {body}
-    </Link>
-  ) : (
-    <div>{body}</div>
   )
 }
 
@@ -412,12 +354,11 @@ function FeaturedCard({ trip, pill }: { trip: HomeTrip; pill: string | null }) {
 }
 
 /** A trip in the rail beside the featured one. */
-function RailTripCard({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
+function RailTripCard({ trip }: { trip: HomeTrip }) {
   const flag = countryFlagEmoji(trip.country)
   return (
     <Link
       href={`/app/trips/${trip.id}`}
-      onMouseEnter={onHover}
       className="group relative block h-[168px] w-[196px] shrink-0 overflow-hidden rounded-card border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
     >
       <CardCover trip={trip} sizes="196px" />
