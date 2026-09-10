@@ -147,31 +147,50 @@ function Footer({ children }: { children: React.ReactNode }) {
  * link, so it sits top-right the way iOS does, aligned to the reading column at
  * every width and above it in the stack.
  */
-export function Backdrop({ plate }: { plate: Plate | null }) {
+export function Backdrop({
+  plate,
+  behindPhotos = false,
+}: {
+  plate: Plate | null
+  /** True on the steps whose OWN CONTENT is photographs — the mosaic's seven
+   *  tiles and the pick screen's three guide cards. */
+  behindPhotos?: boolean
+}) {
   const cover = plate?.cover
   if (!cover?.url) return null
 
   return (
     <>
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-        {/* THE PHOTOGRAPH BECOMES THE SKY.
-            Darkening could never fix this screen. The mosaic's own content is
-            seven photographs, and a sharp photograph behind them is picture on
-            picture — nothing tells the eye which layer is the subject, and the
-            answer to "which of these pulls you?" was competing with a wall of
-            red maple. Nor was the answer to drop the photo: this flow is named
-            for a sunrise, and DaybreakSky's ramp from midnight to daybreak has
-            been covered on every screen since the backdrop landed.
-            So the two become one thing. Blurred to 44px the corpus photo stops
-            being a picture and becomes a FIELD OF LIGHT — Vík's greens, Kyoto's
-            reds, the Aegean's blues — and at 0.88 it lets the sunrise through
-            underneath, so the ground is a real place's palette warming as you
-            advance. Saturated slightly because blur averages colour toward
-            grey, and the whole point of keeping it is the colour.
-            scale(1.12) because a blur samples past its own edges: without it
-            the viewport border shows a soft lighter frame where there is
-            nothing left to sample. */}
-        <div className="absolute inset-0 scale-[1.12] opacity-[0.92] [filter:blur(44px)_saturate(1.45)_brightness(0.62)]">
+        {/* SHARP WHERE NOTHING COMPETES, A FIELD OF LIGHT WHERE SOMETHING DOES.
+            The clash was never the photograph. It was two photographic layers:
+            the mosaic's own content is seven tiles and the pick screen's is
+            three guide cards, and a sharp picture behind either is picture on
+            picture, with nothing to tell the eye which layer is the subject.
+            Blurring ALL SEVEN steps to fix those two threw away the reason the
+            backdrop exists — in an app whose whole asset is 108 photographed
+            places, a person could answer four screens before seeing one, and a
+            place rendered as colour is not seeing one.
+            So the ground follows the CONTENT. Where the answer is text and a
+            glass panel, the photograph stays sharp and legible as a place, held
+            back only by the gradients below. Where the answer is itself
+            photographs, it softens to a field of light — Vík's greens, Kyoto's
+            reds, still readable as a place but plainly out of focus — and lets DaybreakSky's sunrise through underneath at 0.92, so
+            those two screens still carry the place as palette while the tiles
+            are the only things in focus.
+            DARKENED DETERMINISTICALLY on that branch, because blur AVERAGES and
+            does not darken: a bright guide — snow, a white sky, a lemon terrace
+            at noon — blurs to a BRIGHT field, and trusting a light gradient
+            over it is the "legible only by luck" trap this component's own note
+            warned about. scale(1.12) because a blur samples past its own edges;
+            without it the frame shows a soft lighter border. */}
+        <div
+          className={
+            behindPhotos
+              ? "absolute inset-0 scale-[1.12] opacity-[0.92] [filter:blur(22px)_saturate(1.45)_brightness(0.62)]"
+              : "absolute inset-0"
+          }
+        >
           <TripCoverImg cover={cover} sizes="100vw" showCredit={false} priority />
         </div>
 
@@ -198,8 +217,9 @@ export function Backdrop({ plate }: { plate: Plate | null }) {
         <div
           className="absolute inset-0"
           style={{
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 26%, rgba(0,0,0,0.18) 70%, rgba(0,0,0,0.68) 100%)",
+            background: behindPhotos
+              ? "linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.18) 26%, rgba(0,0,0,0.18) 70%, rgba(0,0,0,0.68) 100%)"
+              : "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.34) 26%, rgba(0,0,0,0.34) 70%, rgba(0,0,0,0.82) 100%)",
           }}
         />
       </div>
