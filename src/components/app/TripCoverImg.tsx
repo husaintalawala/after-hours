@@ -51,6 +51,7 @@ export default function TripCoverImg({
     <>
       <OptimizedImg
         src={cover.url}
+        srcSet={cover.srcSet}
         alt={alt}
         fill
         sizes={sizes}

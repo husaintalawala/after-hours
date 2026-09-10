@@ -589,6 +589,73 @@ export function photoAt(url: string | null | undefined, width: number): string |
   return url
 }
 
+/**
+ * The same photo at several widths, as a `srcset`, so the BROWSER picks.
+ *
+ * WHY THIS EXISTS. `photoAt` bakes ONE width into the URL, and that width is
+ * chosen on the server, which cannot know the viewport or the device pixel
+ * ratio. On a phone that is fine — the constants were sized for one. On a
+ * laptop the full-bleed backdrop asked for 1200px and then stretched it across
+ * a 1500pt window at 2x, roughly a 2.5x upscale, which is exactly as grainy as
+ * it sounds. `sizes="100vw"` was already being passed and did nothing, because
+ * a single-candidate `<img>` has nothing to choose between.
+ *
+ * These hosts are deliberately NOT on OptimizedImg's allow-list — routing
+ * Unsplash or Wikimedia bytes through Vercel's optimizer would re-host them,
+ * which their terms forbid. So the resizing has to be asked of the photo's own
+ * host, which is what this does: every candidate is still the origin serving
+ * its own bytes, exactly as `photoAt` already does for one.
+ *
+ * Returns null for anything we cannot resize (the Google Places proxy, vendor
+ * URLs, unparseable strings) — the caller then renders the single `src` and is
+ * no worse off than before.
+ *
+ * DESCRIPTORS ARE THE REQUEST, NOT THE RESPONSE. Wikimedia snaps to whichever
+ * thumbnail it has: ask for 1600 on a 3840px original and you get 1920. That
+ * makes a candidate wider than its descriptor claims, so the browser may pick
+ * one slightly larger than it needed — sharper than asked for, never blurrier.
+ * The reverse (a small original) is the behaviour that already shipped.
+ */
+export function photoSrcSet(
+  url: string | null | undefined,
+  widths: number[]
+): string | null {
+  if (!url || widths.length < 2) return null
+  try {
+    const host = new URL(url).hostname
+    const resizable =
+      host.endsWith("wikimedia.org") ||
+      host.endsWith("wikipedia.org") ||
+      host.endsWith("unsplash.com")
+    if (!resizable) return null
+  } catch {
+    return null
+  }
+  // CAN this URL be sized at all? photoAt returns its input untouched for
+  // anything it cannot resize — a Wikimedia URL that is not a Special:FilePath,
+  // say — and identical candidates would be a srcset that lies about having
+  // choices. Probe with two widths rather than comparing against the input:
+  // the shelf stores hero_url ALREADY carrying `?width=1200`, so asking for
+  // 1200 legitimately returns a string equal to the input, and a guard written
+  // as `photoAt(url, w) === url` silently returned null for every real row
+  // while every test fixture — none of which carried a width — passed.
+  const probeA = photoAt(url, 100)
+  const probeB = photoAt(url, 200)
+  if (!probeA || !probeB || probeA === probeB) return null
+
+  const seen = new Set<number>()
+  const parts: string[] = []
+  for (const raw of widths) {
+    const w = Math.max(48, Math.round(raw))
+    if (seen.has(w)) continue
+    seen.add(w)
+    const at = photoAt(url, w)
+    if (!at) return null
+    parts.push(`${at} ${w}w`)
+  }
+  return parts.length >= 2 ? parts.join(", ") : null
+}
+
 // ---------------------------------------------------------------------------
 // Names
 // ---------------------------------------------------------------------------

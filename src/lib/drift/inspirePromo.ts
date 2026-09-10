@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { parseDestination, photoAt, type InspireDestination } from "@/lib/drift/inspire"
+import {
+  parseDestination,
+  photoAt,
+  photoSrcSet,
+  type InspireDestination,
+} from "@/lib/drift/inspire"
 import { tripCover, type TripCoverResult } from "@/lib/drift/tripCover"
 import type { Plate } from "@/lib/drift/daybreakArt"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
@@ -79,9 +84,10 @@ export interface DaybreakGuide extends InspirePromoCard {
    *  nameless stop (a bare number in the line reads as a rendering fault) and
    *  printing a nights-less stop as its bare name ("Tokyo 0" reads as one too). */
   shapeLine: string
-  /** This guide's face on a mosaic tile, with the credit bound to it. Its first
-   *  photographed STOP before its hero: seven tiles all showing the same three
-   *  covers would say less than the seven words they replaced. */
+  /** This guide's face on a mosaic tile, with the credit bound to it. A
+   *  photographed STOP it travels ON TO before its hero — never the arrival,
+   *  which every guide photographs and which is never what a category is
+   *  named for. See the note beside `shot` in `decode`. */
   tile: Plate
   /** The hero at full-bleed width, with the credit bound to it — the ground
    *  under one screen of the flow. */
@@ -100,8 +106,31 @@ const PIN_W = 96
 const CARD_W = 760
 /** A mosaic tile is ~200px wide on a phone; iOS asks for the same 420. */
 const MOSAIC_W = 420
-/** Full-bleed behind a whole screen. iOS's DaybreakArt.backdrop default. */
+/** Full-bleed behind a whole screen. iOS's DaybreakArt.backdrop default, and
+ *  the `src` a browser without srcset support falls back to — a phone-sized
+ *  default is the right floor for that. */
 const BACKDROP_W = 1200
+
+/**
+ * The backdrop is the one photo that covers the WHOLE window, so it is the one
+ * where a phone-sized constant shows. iOS can use a single width because a
+ * phone is one size; a browser cannot, and `BACKDROP_W` stretched across a
+ * laptop at 2x was roughly a 2.5x upscale — visibly grainy, and reported as
+ * exactly that.
+ *
+ * Paired with `sizes="100vw"`, the browser picks by window width times device
+ * pixel ratio, so a phone still fetches the smallest and only a large window
+ * pays for a large photo. Wikimedia snaps these to its own thumbnail sizes
+ * (1200 -> 1280, 1600 -> 1920, 2560 -> the 3840 original on a typical hero),
+ * which is why the top of the ladder is worth asking for at all.
+ */
+const BACKDROP_WIDTHS = [800, 1200, 1600, 2048, 2560, 3200]
+
+/** Three stacked cards, at most ~640pt wide even on a desktop layout. */
+const CARD_WIDTHS = [480, 760, 1100, 1520]
+
+/** Six small tiles in a grid; the seventh is full-width. */
+const MOSAIC_WIDTHS = [280, 420, 640, 840]
 
 interface PromoSource {
   tripId: string
@@ -122,8 +151,9 @@ interface PromoSource {
   budget: string | null
   stops: number
   shapeLine: string
-  /** The guide's first stop that carries its OWN photograph, with the
-   *  attribution that stop stores. Null when none of them do. */
+  /** A stop that carries its OWN photograph, with the attribution that stop
+   *  stores — preferring one the trip travels on to over the arrival. Null when
+   *  no stop carries one. */
   stopPhoto: {
     url: string | null
     attribution: string | null
@@ -180,7 +210,21 @@ function decode(raw: unknown): PromoSource | null {
   // coordinates: a mosaic tile is a picture, not a pin. Read from the same
   // `destinations` payload the projection already fetches, so seven tiles cost
   // no extra query — the fields were arriving and being thrown away.
-  const shot = destinations.find((d) => d.photo)
+  //
+  // A STOP YOU TRAVEL ON TO, NOT THE ARRIVAL. `destinations` is sorted by
+  // day_offset directly above, and every active guide carries a photo on its
+  // day-0 stop, so `find((d) => d.photo)` resolved to the arrival city on all
+  // forty — every time, by construction. A mosaic tile is labelled with what
+  // you travel TO SEE, and in an itinerary that is never day 0: "History &
+  // ruins" showed Tokyo Tower and "Nature & wildlife" a Reykjavík city
+  // panorama, while Machu Picchu and Petra sat photographed in the same corpus
+  // and unreachable by the rule. Label and picture were not uncorrelated, they
+  // were anti-correlated. A one-stop guide still falls back to its arrival —
+  // passing it over is a preference, not a prohibition, and a tile with no
+  // picture reads as one that failed to load. Mirrors DaybreakArt.plate(of:).
+  const shot =
+    destinations.find((d) => d.photo && d.day_offset > 0) ??
+    destinations.find((d) => d.photo)
 
   return {
     tripId,
@@ -225,7 +269,7 @@ function decode(raw: unknown): PromoSource | null {
   }
 }
 
-function card(src: PromoSource, width: number): InspirePromoCard {
+function card(src: PromoSource, width: number, widths?: number[]): InspirePromoCard {
   const kicker = `${src.days} ${src.days === 1 ? "day" : "days"}${src.place ? ` · ${src.place}` : ""}`
   return {
     tripId: src.tripId,
@@ -238,6 +282,7 @@ function card(src: PromoSource, width: number): InspirePromoCard {
       id: src.tripId,
       title: src.title,
       cover_fallback_url: photoAt(src.heroUrl, width),
+      cover_fallback_srcset: widths ? photoSrcSet(src.heroUrl, widths) : null,
       cover_fallback_attribution: src.heroAttribution,
       cover_fallback_link: src.heroLink,
     }),
@@ -258,13 +303,18 @@ function plate(
   id: string,
   title: string,
   photo: { url: string | null; attribution: string | null; link: string | null; place: string | null },
-  width: number
+  width: number,
+  widths?: number[]
 ): Plate {
   return {
     cover: tripCover({
       id,
       title,
       cover_fallback_url: photoAt(photo.url, width),
+      // The SAME photo at other widths. Null when the host cannot resize, and
+      // the single `url` above is then all there is — which is what every
+      // caller got before this existed.
+      cover_fallback_srcset: widths ? photoSrcSet(photo.url, widths) : null,
       cover_fallback_attribution: photo.attribution,
       cover_fallback_link: photo.link,
     }),
@@ -391,7 +441,7 @@ export async function buildDaybreakShelf(
       place: s.place,
     }
     return {
-      ...card(s, CARD_W),
+      ...card(s, CARD_W, CARD_WIDTHS),
       tags: s.tags,
       bestMonths: s.bestMonths,
       party: s.party,
@@ -401,8 +451,8 @@ export async function buildDaybreakShelf(
       pin: s.pin,
       stops: s.stops,
       shapeLine: s.shapeLine,
-      tile: plate(s.tripId, s.title, s.stopPhoto ?? hero, MOSAIC_W),
-      backdrop: plate(s.tripId, s.title, hero, BACKDROP_W),
+      tile: plate(s.tripId, s.title, s.stopPhoto ?? hero, MOSAIC_W, MOSAIC_WIDTHS),
+      backdrop: plate(s.tripId, s.title, hero, BACKDROP_W, BACKDROP_WIDTHS),
     }
   })
 }

@@ -25,6 +25,7 @@ function optimizable(src: string): boolean {
 
 export default function OptimizedImg({
   src,
+  srcSet,
   alt = "",
   className,
   sizes,
@@ -34,6 +35,9 @@ export default function OptimizedImg({
   height = 800,
 }: {
   src: string
+  /** Only meaningful on the non-allow-listed path, where the photo's own host
+   *  does the resizing. next/image builds its own for optimizable hosts. */
+  srcSet?: string | null
   alt?: string
   className?: string
   sizes?: string
@@ -61,6 +65,12 @@ export default function OptimizedImg({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
+        // WITH `sizes`, which was already being passed and was inert: a single
+        // candidate gives the browser nothing to choose between, so a
+        // full-bleed backdrop rendered its phone-sized source upscaled across a
+        // laptop. The pair is what makes it work; neither half does alone.
+        srcSet={srcSet || undefined}
+        sizes={srcSet ? sizes : undefined}
         alt={alt}
         className={className}
         style={

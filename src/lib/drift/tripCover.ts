@@ -32,6 +32,10 @@ export interface TripCoverInput {
   /** Oldest media row of type 'photo' for this trip, if any. */
   firstPhotoUrl?: string | null
   cover_fallback_url?: string | null
+  /** The same fallback photo at several widths (see photoSrcSet). Optional —
+   *  absent means the caller had nothing resizable and one `url` is all there
+   *  is. */
+  cover_fallback_srcset?: string | null
   cover_fallback_attribution?: string | null
   cover_fallback_link?: string | null
   countries?: string[] | null
@@ -39,6 +43,11 @@ export interface TripCoverInput {
 
 export interface TripCoverResult {
   url: string | null
+  /** Candidates for the SAME photo at other widths, for a plain `<img>` that
+   *  cannot go through the optimizer. Non-null only on rung 3: rungs 1 and 2
+   *  are our own CloudFront, which IS allow-listed, so next/image builds their
+   *  srcset itself. */
+  srcSet: string | null
   /** Non-null ONLY for rung 3. Must be rendered whenever url came from stock. */
   credit: { text: string; href: string | null } | null
   /** Always present, so a caller can paint rung 4 without branching on null. */
@@ -94,11 +103,13 @@ export function tripCover(t: TripCoverInput): TripCoverResult {
   const glyph = t.title?.trim() ? Array.from(t.title.trim())[0].toUpperCase() : "·"
   const placeholder = { from, to, glyph }
 
-  if (t.cover_url) return { url: t.cover_url, credit: null, placeholder, rung: 1 }
-  if (t.firstPhotoUrl) return { url: t.firstPhotoUrl, credit: null, placeholder, rung: 2 }
+  if (t.cover_url) return { url: t.cover_url, srcSet: null, credit: null, placeholder, rung: 1 }
+  if (t.firstPhotoUrl)
+    return { url: t.firstPhotoUrl, srcSet: null, credit: null, placeholder, rung: 2 }
   if (t.cover_fallback_url) {
     return {
       url: t.cover_fallback_url,
+      srcSet: t.cover_fallback_srcset ?? null,
       credit: t.cover_fallback_attribution
         ? { text: t.cover_fallback_attribution, href: t.cover_fallback_link || null }
         : null,
@@ -106,7 +117,7 @@ export function tripCover(t: TripCoverInput): TripCoverResult {
       rung: 3,
     }
   }
-  return { url: null, credit: null, placeholder, rung: 4 }
+  return { url: null, srcSet: null, credit: null, placeholder, rung: 4 }
 }
 
 /** The columns every cover query must select. One place to keep them honest. */

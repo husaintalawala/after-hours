@@ -1,6 +1,12 @@
 import { test, describe } from "node:test"
 import assert from "node:assert/strict"
-import { backdropAt, plateForTag, type Plate, type PlatedGuide } from "./daybreakArt.ts"
+import {
+  backdropAt,
+  plateForTag,
+  platesForTags,
+  type Plate,
+  type PlatedGuide,
+} from "./daybreakArt.ts"
 import {
   BUDGET_STYLES,
   DEFAULT_BUDGET,
@@ -24,6 +30,7 @@ function plate(url: string | null, place: string | null = null): Plate {
   return {
     cover: {
       url,
+      srcSet: null,
       credit: url ? { text: `${url} / CC BY-SA 4.0 · Wikimedia Commons`, href: null } : null,
       placeholder: { from: "#6D7CFF", to: "#DB34F2", glyph: "D" },
       rung: url ? 3 : 4,
@@ -35,6 +42,49 @@ function plate(url: string | null, place: string | null = null): Plate {
 function guide(name: string, tags: string[]): PlatedGuide {
   return { tags, tile: plate(`${name}-tile`), backdrop: plate(`${name}-hero`) }
 }
+
+describe("one guide, one tile", () => {
+  // The failure this exists to catch is invisible from inside a single tile: the
+  // shelf's top guides carry several tags each, so the same trip won the lookup
+  // for several of them and three of the seven tiles came back as the identical
+  // photograph.
+  test("a guide that carries three tags still serves only one of them", () => {
+    const shelf = [
+      guide("polymath", ["wild", "stones", "high"]),
+      guide("second", ["stones", "high"]),
+      guide("third", ["high"]),
+    ]
+    const plates = platesForTags(["wild", "stones", "high"], shelf)
+    assert.equal(plates.get("wild")?.cover.url, "polymath-tile")
+    assert.equal(plates.get("stones")?.cover.url, "second-tile")
+    assert.equal(plates.get("high")?.cover.url, "third-tile")
+    assert.equal(new Set([...plates.values()].map((p) => p.cover.url)).size, 3)
+  })
+
+  // A hole in a mosaic reads as a tile that failed to load rather than as
+  // layout, so spending a guide is a preference and not a prohibition.
+  test("a tag whose every carrier is spent falls back rather than showing a hole", () => {
+    const plates = platesForTags(["wild", "eat"], [guide("only", ["wild", "eat"])])
+    assert.equal(plates.get("wild")?.cover.url, "only-tile")
+    assert.equal(plates.get("eat")?.cover.url, "only-tile")
+  })
+
+  // Absent, not borrowed: the Tile component draws its own rung-4 placeholder
+  // for a tag with no guide, and an unrelated guide's photo under the wrong
+  // label is the bug this whole module is about.
+  test("a tag nothing carries is absent from the map", () => {
+    const plates = platesForTags(["wild", "islands"], [guide("iceland", ["wild"])])
+    assert.ok(plates.has("wild"))
+    assert.equal(plates.has("islands"), false)
+  })
+
+  // Same rank assumption plateForTag documents — the shelf arrives ordered and
+  // must not be re-sorted.
+  test("the first tag served takes the highest-ranked carrier", () => {
+    const shelf = [guide("top", ["eat"]), guide("lower", ["eat"])]
+    assert.equal(platesForTags(["eat"], shelf).get("eat")?.cover.url, "top-tile")
+  })
+})
 
 describe("the picture for a shape tag", () => {
   // Rank order IS shelf order — the same assumption the deck and the category
