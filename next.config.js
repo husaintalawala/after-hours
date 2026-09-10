@@ -1,4 +1,24 @@
 const nextConfig = {
+  // WHERE THE BUILD IS WRITTEN, and it is overridable for one reason.
+  //
+  // `next build` writes .next — the SAME directory a running `next dev` serves
+  // from. Building while a dev server is up clobbers it mid-flight: the browser
+  // keeps its old BUILD_ID, main-app.js 404s, and every click silently stops
+  // working with nothing in the console to say why. On a machine where several
+  // sessions share this checkout that is somebody else's afternoon.
+  //
+  // A verification build therefore sets NEXT_DIST_DIR to somewhere disposable
+  // and leaves the dev server's .next untouched. Unset — which is how Vercel
+  // and every ordinary local build run — the default is unchanged.
+  //
+  //   NEXT_DIST_DIR=.next-verify ./node_modules/.bin/next build
+  //   git checkout -- next-env.d.ts tsconfig.json     # ← ALWAYS
+  //
+  // THE SECOND LINE IS NOT OPTIONAL. Next rewrites next-env.d.ts and the
+  // tsconfig `include` globs to point at whatever distDir it just used, so a
+  // verify build leaves both files referencing .next-verify. Committing that
+  // breaks the Vercel build, which never creates that directory.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     // Vercel-native optimization (resize + WebP/AVIF + edge cache) is allowed
     // ONLY for Mapbox static maps and user-uploaded photos on our CloudFront
