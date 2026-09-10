@@ -195,7 +195,7 @@ export const BUDGET_STYLES: ReadonlyArray<{ value: string; label: string }> = [
  * Who's with you — THREE options against the column's four.
  *
  * `inspire_trips.party` is solo|couple|friends|family; the live shelf is
- * 11/15/13/**1**. Offering "family" would score 39 of 40 guides a miss and hand
+ * 10/15/14/**1**. Offering "family" would score 39 of 40 guides a miss and hand
  * back the one family guide padded out by whatever tied behind it — precisely
  * the "same three trips whatever you pick" fault that widening this vocabulary
  * was meant to fix, rebuilt on a fresh axis. The column keeps `family` for the
@@ -210,6 +210,20 @@ export const TRAVEL_PARTIES: ReadonlyArray<{ value: string; label: string }> = [
   { value: "friends", label: "A group" },
 ]
 
+/**
+ * WHY `splurge` SURVIVES A CENSUS `family` FAILED. It is 3 guides of 40, and
+ * measured over the whole answer space picking "No limit" lifts the share of
+ * genuinely-splurge guides shown from 7.5% to 8.1%. As a RANKING signal it is
+ * close to inert, and by the rule in TRAVEL_PARTIES above it would go.
+ *
+ * It stays because ranking is not all it does. `budget_style` and
+ * `travel_rhythm` are columns of user_travel_preferences that build-itinerary
+ * and refine-itinerary read server-side on every itinerary Drift builds this
+ * person — which is what the screen's subtitle promises. A party answer has no
+ * such column, so ranking the shelf is the whole of what it can do, and a
+ * bucket too thin to rank makes it worthless. These two earn their place
+ * elsewhere.
+ */
 export const DEFAULT_RHYTHM = "balanced"
 export const DEFAULT_BUDGET = "smart_mix"
 
