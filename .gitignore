@@ -6,3 +6,4 @@ node_modules
 # TypeScript incremental build info
 *.tsbuildinfo
 .next-verify
+.next-s2dev

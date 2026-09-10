@@ -19,6 +19,11 @@ const nextConfig = {
   // verify build leaves both files referencing .next-verify. Committing that
   // breaks the Vercel build, which never creates that directory.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Next writes an AGENTS.md and a CLAUDE.md into the repo root on dev start.
+  // Neither is tracked here, and the CLAUDE.md in particular is a filename this
+  // project uses for its OWN instructions — having the framework generate one
+  // on top is a collision waiting to happen. Off.
+  agentRules: false,
   images: {
     // Vercel-native optimization (resize + WebP/AVIF + edge cache) is allowed
     // ONLY for Mapbox static maps and user-uploaded photos on our CloudFront
