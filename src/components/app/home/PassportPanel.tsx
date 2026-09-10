@@ -111,17 +111,20 @@ export default function PassportPanel({
     "relative flex min-h-[142px] items-stretch gap-3 overflow-hidden rounded-hero " +
     "border border-aurora-border bg-aurora-glass px-4 py-4 sm:min-h-[160px] sm:px-5"
 
-  // The whole panel is the target, and it goes to the visited-world map.
+  // The whole panel is the target, and it opens the GLOBE — /app/map, the 3D
+  // planet with your trips on it as cover-photo pins.
   //
-  // NOT a "Map tab" — web has no such tab. Its four are Profile, Discover,
-  // Inspire and Chats. /app/countries is the screen that actually shows the
-  // world filling in, so that is where "open the full globe" means here.
+  // It used to point at /app/countries, which is a flat choropleth with two
+  // stat tiles and a Visited / Not-yet legend. That is a good page answering a
+  // different question ("how much of the world have I coloured in"), and it is
+  // not what anybody means by Drift's globe. The stats live on as a strip under
+  // the planet, one tap away.
   if (!isSelf) return <div className={shell}>{body}</div>
 
   return (
     <Link
-      href="/app/countries"
-      aria-label="Your passport — open the map"
+      href="/app/map"
+      aria-label="Your passport — open the globe"
       className={`${shell} outline-none transition-colors hover:border-aurora-border-strong focus-visible:ring-2 focus-visible:ring-aurora-teal/60`}
     >
       {body}
