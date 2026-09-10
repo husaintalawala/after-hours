@@ -43,7 +43,7 @@ export default function HomeHeader({
   const firstName = displayName.trim().split(/\s+/)[0] || displayName
 
   return (
-    <header className="px-5 pt-4 lg:px-10 lg:pt-8">
+    <header className="pt-4 lg:pt-8">
       <div className="flex items-center justify-between gap-4">
         <Link href="/app" aria-label="Drift home" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}

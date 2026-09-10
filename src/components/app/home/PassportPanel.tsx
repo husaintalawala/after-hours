@@ -108,7 +108,7 @@ export default function PassportPanel({
   )
 
   const shell =
-    "relative mt-6 flex min-h-[142px] items-stretch gap-3 overflow-hidden rounded-hero " +
+    "relative flex min-h-[142px] items-stretch gap-3 overflow-hidden rounded-hero " +
     "border border-aurora-border bg-aurora-glass px-4 py-4 sm:min-h-[160px] sm:px-5"
 
   // The whole panel is the target, and it goes to the visited-world map.

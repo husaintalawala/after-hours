@@ -20,26 +20,30 @@ export default function Loading() {
   return (
     <div className="min-h-[100dvh] bg-aurora-midnight pb-24 lg:pb-20">
       <div className="mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1180px]">
-        {/* Header — mark left, avatar right, then the two greeting lines. */}
-        <header className="px-5 pt-4 lg:px-10 lg:pt-8">
-          <div className="flex items-center justify-between">
-            <div className={`h-7 w-7 rounded-md ${shimmer}`} />
-            <div className={`h-9 w-9 rounded-full ${shimmer}`} />
+        {/* The top band — stacked on a phone, two columns across a laptop, the
+            same grid the shell uses. */}
+        <div className="px-5 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8 lg:px-10">
+          <div className="min-w-0">
+            {/* Header — mark left, avatar right, then the two greeting lines. */}
+            <header className="pt-4 lg:pt-8">
+              <div className="flex items-center justify-between">
+                <div className={`h-7 w-7 rounded-md ${shimmer}`} />
+                <div className={`h-9 w-9 rounded-full ${shimmer}`} />
+              </div>
+              <div className={`mt-5 h-[29px] w-[68%] rounded-md sm:h-[34px] lg:h-[45px] ${shimmer}`} />
+              <div className={`mt-2 h-[29px] w-[55%] rounded-md sm:h-[34px] lg:h-[45px] ${shimmer}`} />
+            </header>
+
+            {/* CTA rail — three 172×126 cards, the real size. */}
+            <div className="mt-6 flex gap-3 overflow-hidden">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={`h-[126px] w-[172px] shrink-0 rounded-hero ${shimmer}`} />
+              ))}
+            </div>
           </div>
-          <div className={`mt-5 h-[29px] w-[68%] rounded-md sm:h-[34px] lg:h-[45px] ${shimmer}`} />
-          <div className={`mt-2 h-[29px] w-[55%] rounded-md sm:h-[34px] lg:h-[45px] ${shimmer}`} />
-        </header>
 
-        {/* CTA rail — three 172×126 cards, the real size. */}
-        <div className="mt-6 flex gap-3 overflow-hidden px-5 lg:px-10">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`h-[126px] w-[172px] shrink-0 rounded-hero ${shimmer}`} />
-          ))}
-        </div>
-
-        {/* Passport panel. */}
-        <div className="px-5 lg:px-10">
-          <div className={`mt-6 h-[142px] rounded-hero sm:h-[160px] ${shimmer}`} />
+          {/* Passport panel. */}
+          <div className={`mt-6 h-[142px] rounded-hero sm:h-[160px] lg:mt-8 ${shimmer}`} />
         </div>
 
         {/* Your trips — heading, the featured cover at its real ratio, a rail. */}

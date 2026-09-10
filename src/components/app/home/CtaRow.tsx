@@ -83,7 +83,7 @@ export default function CtaRow() {
     // card at a legible width and lets a fourth be added later without a
     // relayout. `-mx-5 px-5` lets the rail bleed to the screen edge while its
     // first card still aligns with the greeting above it.
-    <div className="mt-6 -mx-5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:-mx-10 lg:px-10">
+    <div className="mt-6 -mx-5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0">
       <div className="flex w-max gap-3">
         {CTAS.map((c) => (
           <CtaCard key={c.key} cta={c} />

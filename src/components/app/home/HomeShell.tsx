@@ -198,40 +198,59 @@ export default function HomeShell({
           inside PassportPanel, which is the only place on this page whose
           subject is actually "where you have been". The full-screen planet
           lives on its own route. Nothing on the home bleeds. */}
-      <HomeHeader displayName={data.displayName} avatarUrl={data.avatarUrl} isSelf={isSelf} />
-
       <div className="relative z-10 mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1180px]">
-        {/* Owner-only. A stranger's profile gets no "create a trip". */}
-        {isSelf && (
-          <div className="px-5 lg:px-10">
-            <CtaRow />
-          </div>
-        )}
+        {/* ---------- The top band ----------
+            ONE COLUMN ON A PHONE, TWO ACROSS A LAPTOP.
 
-        {/* Someone else's identity line — the greeting says "Good morning,
-            <them>" but not "where are we going", so their handle and the follow
-            button live here instead. */}
-        {!isSelf && (
-          <div className="mt-4 flex items-center gap-3 px-5 lg:px-10">
-            {data.username && (
-              <p className="font-mono text-[12px] text-aurora-ink3">@{data.username}</p>
+            Stacked, the desktop home was the phone layout in a wider window:
+            a greeting, three cards, and a passport panel running down the left
+            of a 1180px column with the right half of the screen empty. The
+            three things at the top of this page are all short and none of them
+            wants the full width, which is the definition of a row.
+
+            So above lg the greeting and its CTA cards take the flexible
+            column and the passport takes a fixed 380px beside them. The rails
+            below stay full width, because a rail's whole job is to use it. */}
+        <div className="px-5 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8 lg:px-10">
+          <div className="min-w-0">
+            <HomeHeader
+              displayName={data.displayName}
+              avatarUrl={data.avatarUrl}
+              isSelf={isSelf}
+            />
+
+            {/* Owner-only. A stranger's profile gets no "create a trip". */}
+            {isSelf && <CtaRow />}
+
+            {/* Someone else's identity line — the greeting says "Good morning,
+                <them>" but not "where are we going", so their handle and the
+                follow button live here instead. */}
+            {!isSelf && (
+              <div className="mt-4 flex items-center gap-3">
+                {data.username && (
+                  <p className="font-mono text-[12px] text-aurora-ink3">@{data.username}</p>
+                )}
+                <div className="ml-auto">{follow}</div>
+              </div>
             )}
-            <div className="ml-auto">{follow}</div>
           </div>
-        )}
 
-        {/* The three figures used to be a bare row right here, in white, at
-            full size — "1 · 0 · 0" as the third thing on a new account's first
-            screen. They are now captions on the panel whose picture they
-            describe, and a zero is drawn muted rather than stark. */}
-        <div className="px-5 lg:px-10">
-          <PassportPanel
-            countries={data.countries}
-            followers={data.followers}
-            following={data.following}
-            pins={pins}
-            isSelf={isSelf}
-          />
+          {/* The three figures used to be a bare row under the greeting, in
+              white, at full size — "1 · 0 · 0" as the third thing on a new
+              account's first screen. They are captions on the panel whose
+              picture they describe now, and a zero is drawn muted.
+
+              `lg:mt-8` lines its top edge up with the greeting rather than the
+              mark above it, so the two columns start on the same line. */}
+          <div className="mt-6 lg:mt-8">
+            <PassportPanel
+              countries={data.countries}
+              followers={data.followers}
+              following={data.following}
+              pins={pins}
+              isSelf={isSelf}
+            />
+          </div>
         </div>
 
         {/* ---------- Your trips, first ----------
