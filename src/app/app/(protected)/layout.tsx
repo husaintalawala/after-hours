@@ -42,9 +42,13 @@ export default async function ProtectedLayout({
 
   return (
     <>
-      {/* Fraunces (display) — Inter is already loaded by the root layout. */}
+      {/* Fraunces (display) — Inter is already loaded by the root layout.
+          The `ital` axis is here for one line of copy (StartHere's accent, the
+          web half of iOS FirstTripDeck.headline) and is worth its own face:
+          a browser-synthesised oblique of a serif this high-contrast shears
+          the thin strokes and reads as a rendering fault. */}
       <link
-        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&display=swap"
         rel="stylesheet"
       />
       {/* Supabase user id only — no email; the provider is the signup's method. */}

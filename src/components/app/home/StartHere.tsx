@@ -32,7 +32,23 @@ export default function StartHere({
 
   return (
     <div className={dense ? "pb-4 pt-5" : "py-6"}>
-      <p className="mb-3 text-[13px] font-semibold text-aurora-ink">Start here</p>
+      {/* The same three lines iOS opens this deck with (FirstTripDeck.headline).
+          This was the bare label "Start here", which named the section without
+          making the offer — and the offer is the whole point of the screen.
+          No count in it, deliberately: the number below is READ from the shelf,
+          a sentence would have to be maintained in two codebases. */}
+      <div className="mb-3.5">
+        <p className="font-drift-display text-[23px] font-bold leading-tight text-aurora-ink">
+          Point. Tap. Go.
+        </p>
+        <p className="font-drift-display text-[23px] font-normal italic leading-tight text-aurora-teal">
+          The planning&rsquo;s already done.
+        </p>
+        <p className="mt-1.5 text-[12.5px] leading-snug text-aurora-ink3">
+          Real day-by-day trips from travelers who&rsquo;ve actually been. Yours
+          in one tap.
+        </p>
+      </div>
 
       <Hero card={promo.hero} dense={dense} />
 
