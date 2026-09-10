@@ -42,10 +42,24 @@ const ROUTE_COLORS = ["#37D6C4", "#F2A33C", "#4FA3D1", "#7BC47F", "#C77DD8", "#E
 export default function GlobeHero({
   pins,
   focusTripId,
+  zoom = 1.35,
 }: {
   pins: GlobeTripPin[]
   /** When set/changed, the globe flies to that trip's pin (desktop rail hover). */
   focusTripId?: string | null
+  /**
+   * Opening altitude. Read ONCE, at map creation — changing it later does not
+   * move the camera, which is deliberate: the map must not lurch because a
+   * parent re-rendered.
+   *
+   * The default is a world view, which is what the phone wants and what an
+   * empty account wants: forty Inspire pins scattered over a whole planet says
+   * something a close crop cannot. The desktop horizon passes a higher number,
+   * because an arc can never be wider than the sphere it is cut from — at 1.35
+   * the globe is about 490px across, which reads as a small dome in a 1400px
+   * band rather than as a horizon.
+   */
+  zoom?: number
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
@@ -84,7 +98,7 @@ export default function GlobeHero({
       style: "mapbox://styles/mapbox/standard-satellite",
       projection: "globe",
       center: first ? [first.lng, first.lat] : [-30, 25],
-      zoom: 1.35,
+      zoom,
       attributionControl: false,
       logoPosition: "bottom-left",
     })
