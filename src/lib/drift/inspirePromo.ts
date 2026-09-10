@@ -59,6 +59,12 @@ export interface DaybreakGuide extends InspirePromoCard {
    *  nothing. RANKED on, never filtered on — and absent editorial is not a
    *  claim that any month will do. See rankGuides. */
   bestMonths: number[]
+  /** The editorial columns screen 4's answers are matched against. Null is a
+   *  MISS: absent editorial has never been a claim that anything fits, which
+   *  is the stance bestMonths above already takes. */
+  party: string | null
+  pace: string | null
+  budget: string | null
   /** `snapshot.day_count`, which screen 3's length pills are matched against.
    *  Already on the card's kicker as prose; carried as a number because
    *  re-parsing "10 days" to sort by it is how a kicker becomes an API. */
@@ -108,6 +114,12 @@ interface PromoSource {
   pin: { lat: number; lng: number } | null
   tags: string[]
   bestMonths: number[]
+  /** Who the guide is shaped for / how much a day holds / what it costs, as
+   *  the editorial columns record them. Null is a MISS, not a wildcard — see
+   *  rankGuides. */
+  party: string | null
+  pace: string | null
+  budget: string | null
   stops: number
   shapeLine: string
   /** The guide's first stop that carries its OWN photograph, with the
@@ -190,6 +202,9 @@ function decode(raw: unknown): PromoSource | null {
     bestMonths: asArray(row.best_months)
       .map(asNumber)
       .filter((m): m is number => m !== null && m >= 1 && m <= 12),
+    party: asString(row.party),
+    pace: asString(row.pace),
+    budget: asString(row.budget),
     stopPhoto: shot
       ? {
           url: shot.photo,
@@ -290,10 +305,17 @@ async function readShelf(
   // in the projection the season term reads an array that is always empty, so
   // every guide scores out of season and the ranking silently does nothing —
   // which is exactly the class of bug this whole change exists to remove.
+  //
+  // `party`, `pace` and `budget` are here for the same reason and would fail
+  // the same silent way: unselected, every guide would decode them as null,
+  // null ranks as a miss, and three of the six components would go flat
+  // together — a ranker that consults nothing while looking like it consults
+  // everything.
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id,tags,best_months,hero_url,hero_attribution,hero_link," +
+      "trip_id,tags,best_months,party,pace,budget," +
+        "hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
         "destinations:snapshot->destinations"
@@ -372,6 +394,9 @@ export async function buildDaybreakShelf(
       ...card(s, CARD_W),
       tags: s.tags,
       bestMonths: s.bestMonths,
+      party: s.party,
+      pace: s.pace,
+      budget: s.budget,
       days: s.days,
       pin: s.pin,
       stops: s.stops,

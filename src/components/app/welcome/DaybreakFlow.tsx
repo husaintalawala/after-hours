@@ -149,6 +149,11 @@ export default function DaybreakFlow({
   // and refine-itinerary, so answering here is load-bearing immediately.
   // Seeded with the column defaults so a screen nobody touched writes back what
   // the row already holds.
+  // No default. Pace and budget can start on the middle option because every
+  // guide has one; party cannot, because pre-selecting "couple" would rank the
+  // shelf on an answer nobody gave. "" reads as not-asked all the way down to
+  // rankGuides' miss().
+  const [party, setParty] = useState("")
   const [rhythm, setRhythm] = useState(DEFAULT_RHYTHM)
   const [budget, setBudget] = useState(DEFAULT_BUDGET)
 
@@ -209,12 +214,15 @@ export default function DaybreakFlow({
       rankGuides(guides, {
         shapes,
         length,
+        party: party || null,
+        rhythm: rhythm || null,
+        budget: budget || null,
         // The month of firstDepartureDate — the month the copy will actually
         // start in, not the month it is today. Ranking for "now" would
         // recommend against a departure date nobody is ever offered.
         departureMonth: monthOf(firstDepartureDate()).month,
       }).slice(0, 3),
-    [guides, shapes, length]
+    [guides, shapes, length, party, rhythm, budget]
   )
   const chosenGuide = useMemo(
     () => guides.find((g) => g.tripId === chosenTripId) ?? null,
@@ -496,6 +504,10 @@ export default function DaybreakFlow({
    * UI claims the save succeeded. A failure here costs a preference, not a trip.
    */
   const saveStyle = useCallback(async (pace: string, spend: string) => {
+    // Empty means the traveller skipped and then came back through this screen
+    // without touching it. Writing "" would put a value the server's vocabulary
+    // has never heard of into a column build-itinerary compares with ===.
+    if (!pace || !spend) return
     try {
       const db = createClient()
       const {
@@ -642,6 +654,8 @@ export default function DaybreakFlow({
         )}
         {name === "style" && (
           <StyleStep
+            party={party}
+            onParty={setParty}
             rhythm={rhythm}
             onRhythm={setRhythm}
             budget={budget}
@@ -657,7 +671,17 @@ export default function DaybreakFlow({
             // Skip writes NOTHING. The column defaults are already what these
             // pills are showing, so a row is not created for an unanswered
             // question — and one that exists keeps whatever the phone put there.
-            onSkip={() => setStep(4)}
+            //
+            // It also CLEARS them. The pills arrive pre-selected, so leaving
+            // them would rank the shelf on two answers the traveller just
+            // declined to give — invisible, because the screen they declined is
+            // already behind them.
+            onSkip={() => {
+              setParty("")
+              setRhythm("")
+              setBudget("")
+              setStep(4)
+            }}
           />
         )}
         {name === "pick" && (

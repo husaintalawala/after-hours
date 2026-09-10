@@ -5,6 +5,7 @@ import {
   BUDGET_STYLES,
   DEFAULT_BUDGET,
   DEFAULT_RHYTHM,
+  TRAVEL_PARTIES,
   TRAVEL_RHYTHMS,
 } from "./daybreak.ts"
 
@@ -126,6 +127,26 @@ describe("how you travel", () => {
     assert.deepEqual(
       BUDGET_STYLES.map((b) => b.label),
       ["Careful", "Smart mix", "No limit"]
+    )
+  })
+
+  test("the party values are the column's, and family is left out on purpose", () => {
+    assert.deepEqual(
+      TRAVEL_PARTIES.map((p) => p.value),
+      ["solo", "couple", "friends"]
+    )
+    // The CHECK allows a fourth. The shelf carries ONE family guide of forty,
+    // and an answer only one guide can satisfy scores 39 misses and returns
+    // that guide padded out by ties — the "same three trips whatever you pick"
+    // fault, rebuilt. If a second family guide is ever seeded, this assertion
+    // is the thing to come back and delete.
+    assert.ok(
+      !TRAVEL_PARTIES.some((p) => p.value === "family"),
+      "family is not offered while the corpus has one guide behind it"
+    )
+    assert.deepEqual(
+      TRAVEL_PARTIES.map((p) => p.label),
+      ["Just me", "Two of us", "A group"]
     )
   })
 

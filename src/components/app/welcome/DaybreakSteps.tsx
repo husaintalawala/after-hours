@@ -6,6 +6,7 @@ import {
   BUDGET_STYLES,
   distanceText,
   spelledCount,
+  TRAVEL_PARTIES,
   TRAVEL_RHYTHMS,
   TRIP_LENGTHS,
   type Coord,
@@ -574,12 +575,17 @@ function PhotoPill({
  * The values written are NOT the labels shown; see TRAVEL_RHYTHMS in daybreak.ts
  * for why, and for what iOS gets wrong about it.
  *
- * "Who's usually with you" is deliberately ABSENT. There is no column for it,
- * and the corpus records who a trip is for only in prose — "Amalfi Coast —
- * Girls' Trip". Asking it would be a question with nothing behind it, which is
- * the mistake this flow has already made twice.
+ * "Who's usually with you" WAS absent, for the reason this file gives
+ * everywhere else: the corpus recorded who a trip is for only in prose —
+ * "Amalfi Coast — Girls' Trip" — so asking would have been a question with
+ * nothing behind it. `inspire_trips.party` now carries it as data, derived from
+ * the recorded traveller count rather than from reading titles, so the question
+ * has an answer and is asked. See TRAVEL_PARTIES for why it offers three
+ * options and not the column's four.
  */
 export function StyleStep({
+  party,
+  onParty,
   rhythm,
   onRhythm,
   budget,
@@ -587,6 +593,8 @@ export function StyleStep({
   onNext,
   onSkip,
 }: {
+  party: string
+  onParty: (v: string) => void
   rhythm: string
   onRhythm: (v: string) => void
   budget: string
@@ -606,6 +614,12 @@ export function StyleStep({
           of nothing. */}
       <div className="my-auto py-6">
         <Panel className="space-y-3.5 p-3.5">
+          <Choice
+            label="WHO'S WITH YOU"
+            options={TRAVEL_PARTIES}
+            value={party}
+            onChange={onParty}
+          />
           <Choice label="PACE" options={TRAVEL_RHYTHMS} value={rhythm} onChange={onRhythm} />
           <Choice label="BUDGET" options={BUDGET_STYLES} value={budget} onChange={onBudget} />
         </Panel>
@@ -827,13 +841,28 @@ export function CrewStep({
 
         {/* The empty seat, drawn as an empty seat. Without it the screen was a
             question about other people showing exactly one person, and the only
-            way to find out what "Send an invite" does was to press it. */}
-        <div className="flex items-center gap-[11px] rounded-[18px] border border-dashed border-aurora-teal/35 bg-aurora-glass p-[13px]">
+            way to find out what "Send an invite" does was to press it.
+
+            AND IT IS A BUTTON. It shipped as a plain div: a dashed border, a
+            plus, and a line of action text — by some distance the most inviting
+            thing on the screen — wired to nothing. Reported on iOS as "cannot
+            search anyone or generate a link", and pressing the row was the
+            natural way to try to do either. Same defect here, same fix: it does
+            what the CTA does, because the row and the CTA are one intention. */}
+        <button
+          type="button"
+          onClick={onInvite}
+          className="flex w-full items-center gap-[11px] rounded-[18px] border border-dashed border-aurora-teal/35 bg-aurora-glass p-[13px] text-left transition-colors hover:bg-white/[0.06]"
+        >
           <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-aurora-teal/[0.18] text-[15px] font-bold leading-none text-aurora-teal">
             +
           </span>
-          <span className="text-[13px] text-aurora-ink2">Invite by link, name or number</span>
-        </div>
+          {/* "…, name or number" promised three routes where one works: there
+              is no phone-number invite in the app at all, and the name search
+              (iOS only, and reading the people you follow) finds nobody for the
+              brand-new account this screen exists to serve. */}
+          <span className="text-[13px] text-aurora-ink2">Invite with a link</span>
+        </button>
 
         {guide && (
           <Panel className="p-[13px]">

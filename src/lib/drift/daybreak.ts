@@ -191,6 +191,25 @@ export const BUDGET_STYLES: ReadonlyArray<{ value: string; label: string }> = [
 
 /** The column defaults, so an untouched screen 4 writes what the row already
  *  holds rather than a second opinion about what "normal" is. */
+/**
+ * Who's with you — THREE options against the column's four.
+ *
+ * `inspire_trips.party` is solo|couple|friends|family; the live shelf is
+ * 11/15/13/**1**. Offering "family" would score 39 of 40 guides a miss and hand
+ * back the one family guide padded out by whatever tied behind it — precisely
+ * the "same three trips whatever you pick" fault that widening this vocabulary
+ * was meant to fix, rebuilt on a fresh axis. The column keeps `family` for the
+ * day the shelf earns a second one. Only ask what the corpus can answer.
+ *
+ * Unlike the two below, this is NOT written to user_travel_preferences — there
+ * is no column for it. It ranks the shelf and stays on the device.
+ */
+export const TRAVEL_PARTIES: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "solo", label: "Just me" },
+  { value: "couple", label: "Two of us" },
+  { value: "friends", label: "A group" },
+]
+
 export const DEFAULT_RHYTHM = "balanced"
 export const DEFAULT_BUDGET = "smart_mix"
 
@@ -203,6 +222,11 @@ export interface RankableGuide {
   bestMonths: number[]
   /** `snapshot.day_count`. */
   days: number
+  /** The editorial columns. Null = the row makes no claim, which ranks as a
+   *  miss rather than as a match. */
+  party: string | null
+  pace: string | null
+  budget: string | null
 }
 
 export interface RankingAnswers {
@@ -210,6 +234,13 @@ export interface RankingAnswers {
   shapes: ReadonlySet<string>
   /** Screen 3's pills. */
   length: TripLength
+  /** Screen 4. Null/absent means the traveller did not answer — an unasked
+   *  question cannot be got wrong and must not reorder anything. `party` is
+   *  solo|couple|friends, `rhythm` easy|balanced|full_days, `budget`
+   *  save|smart_mix|splurge: the SERVER's vocabulary, never the labels'. */
+  party?: string | null
+  rhythm?: string | null
+  budget?: string | null
   /** 1…12, the month of the date the copy will ACTUALLY start on — see
    *  departureMonth in DaybreakFlow. Never the current month. */
   departureMonth: number
@@ -220,17 +251,30 @@ export interface RankingAnswers {
  * product decision and a tuple states it plainly, where weights would bury it
  * in arithmetic nobody can argue with.
  *
- * 1. The shapes they picked — the only thing they chose explicitly.
- * 2. In season for the month they would actually leave in. NOT the current
+ * 1. The shapes they picked — the loudest thing they chose explicitly.
+ * 2. Who they travel with, against the guide's `party`.
+ * 3. The length they said they had.
+ * 4. Pace and budget SUMMED — matching one is better than matching neither.
+ * 5. In season for the month they would actually leave in. NOT the current
  *    month: you cannot leave today, and the trip is booked from the first of
  *    the next month you could go, so ranking for "now" would recommend for a
  *    departure date nobody is offered.
- * 3. The length they said they had.
- * 4. Editorial rank, as the incoming order — stable, so equal trips keep the
+ * 6. Editorial rank, as the incoming order — stable, so equal trips keep the
  *    shelf's own ordering rather than shuffling per visit.
  *
+ * SEASON SITS BELOW EVERY ANSWER, which is a change: it used to come second.
+ * It is DERIVED from a departure month nobody picked, so a guide that fits who
+ * you travel with and how should beat one that is merely in season.
+ *
+ * Pace and budget share a component because iOS cannot spend two — Swift
+ * defines `<` on tuples only up to six elements. An array key here has no such
+ * ceiling, but parity is the point: the two platforms must return the same
+ * three guides for the same answers, so this matches the shape iOS is forced
+ * into rather than the shape TypeScript would allow. It is also the honest
+ * grouping — two halves of one screen, neither obviously above the other.
+ *
  * The index is carried explicitly rather than leaning on a stable `sort`: it is
- * the fourth key of the comparison iOS states in a tuple, and writing it down
+ * the last key of the comparison iOS states in a tuple, and writing it down
  * is what makes that tie-break a decision rather than a property of whichever
  * engine is running.
  */
@@ -271,7 +315,25 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
   // is not a claim that any month will do.
   const seasonMiss = guide.bestMonths.includes(a.departureMonth) ? 0 : 1
   const lengthMiss = lengthFits(a.length, guide.days) ? 0 : 1
-  return [shapeMiss, seasonMiss, lengthMiss, index]
+  const partyMiss = miss(a.party, guide.party)
+  // Summed, not binary: a guide matching one of the two is strictly better
+  // than one matching neither. Binary here would leave them tied and let the
+  // shelf order decide — the same fault the shape component had.
+  const styleMiss = miss(a.rhythm, guide.pace) + miss(a.budget, guide.budget)
+  return [shapeMiss, partyMiss, lengthMiss, styleMiss, seasonMiss, index]
+}
+
+/**
+ * 0 when the traveller did not answer. An unasked question cannot be got
+ * wrong, so it must not reorder anything.
+ *
+ * A NULL COLUMN, though, counts as a miss — the same stance `bestMonths` takes
+ * two lines up. A guide seeded without these sinks below one that answered,
+ * rather than being promoted for having said nothing.
+ */
+function miss(answer: string | null | undefined, guide: string | null): number {
+  if (!answer) return 0
+  return guide === answer ? 0 : 1
 }
 
 // ---------------------------------------------------------------------------

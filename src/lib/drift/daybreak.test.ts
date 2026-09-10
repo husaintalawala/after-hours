@@ -23,16 +23,29 @@ import {
 // `node:test`, and `--experimental-strip-types` runs the TypeScript directly.
 // A test that cannot be run by `npm test` is a note, not a gate.
 
-/** Ordering-only fixture: the ranking reads exactly these three fields. */
+/** Ordering-only fixture: the ranking reads exactly these six fields. */
 function guide(
   id: string,
-  opts: { days?: number; tags?: string[]; months?: number[] } = {}
+  opts: {
+    days?: number
+    tags?: string[]
+    months?: number[]
+    party?: string
+    pace?: string
+    budget?: string
+  } = {}
 ): RankableGuide & { id: string } {
   const g = {
     id,
     tags: opts.tags ?? ["wild"],
     bestMonths: opts.months ?? [6],
     days: opts.days ?? 10,
+    // Absent by DEFAULT, so every pre-existing test proves the new components
+    // stay silent when nothing was asked. A fixture that defaulted these to a
+    // value would have made three of six components always fire.
+    party: opts.party ?? null,
+    pace: opts.pace ?? null,
+    budget: opts.budget ?? null,
   }
   // The Swift fixtures had to assert their own round-trip: a tolerant decoder
   // and a malformed fixture make a silent no-op, and two tests once failed
@@ -48,11 +61,23 @@ function guide(
 
 const ids = (gs: ReadonlyArray<{ id: string }>) => gs.map((g) => g.id)
 
-function answers(o: Partial<{ shapes: string[]; length: TripLength; month: number }> = {}) {
+function answers(
+  o: Partial<{
+    shapes: string[]
+    length: TripLength
+    month: number
+    party: string
+    rhythm: string
+    budget: string
+  }> = {}
+) {
   return {
     shapes: new Set(o.shapes ?? []),
     length: o.length ?? ("any" as TripLength),
     departureMonth: o.month ?? 6,
+    party: o.party ?? null,
+    rhythm: o.rhythm ?? null,
+    budget: o.budget ?? null,
   }
 }
 
@@ -248,5 +273,72 @@ describe("the seen marker", () => {
   test("a raw cookie header is read as well as a bare value", () => {
     assert.deepEqual(readSeen(`foo=1; drift_daybreak=${a}.${b}; bar=2`), [a, b])
     assert.equal(hasSeenDaybreak(`foo=1; drift_daybreak=${a}; bar=2`, a), true)
+  })
+})
+
+describe("party, pace and budget", () => {
+  test("who you travel with reorders the shelf", () => {
+    // `couple` is first in, so only the answer can flip them.
+    const shelf = [
+      guide("couple", { tags: [], party: "couple" }),
+      guide("friends", { tags: [], party: "friends" }),
+    ]
+    assert.equal(ids(rankGuides(shelf, answers({ party: "friends" })))[0], "friends")
+    assert.equal(
+      ids(rankGuides(shelf, answers()))[0],
+      "couple",
+      "an unasked question must not reorder anything"
+    )
+  })
+
+  test("pace and budget are summed, not binary", () => {
+    // Matching one is strictly better than matching neither. Binary would tie
+    // `half` with `neither` and let the shelf order decide — the fault the
+    // shape component already had.
+    const out = rankGuides(
+      [
+        guide("neither", { tags: [], pace: "easy", budget: "save" }),
+        guide("half", { tags: [], pace: "full_days", budget: "save" }),
+        guide("both", { tags: [], pace: "full_days", budget: "splurge" }),
+      ],
+      answers({ rhythm: "full_days", budget: "splurge" })
+    )
+    assert.deepEqual(ids(out), ["both", "half", "neither"])
+  })
+
+  test("a null column ranks as a miss, not a wildcard", () => {
+    // The stance bestMonths already takes. A guide seeded without these must
+    // not be promoted for having said nothing.
+    const out = rankGuides(
+      [guide("silent", { tags: [] }), guide("answers", { tags: [], party: "solo" })],
+      answers({ party: "solo" })
+    )
+    assert.equal(ids(out)[0], "answers")
+  })
+
+  test("an answer outranks the season", () => {
+    // Pins the precedence change: season is derived from a month nobody
+    // picked, so it loses to every answer actually given. Fails against the
+    // version where season came second.
+    const out = rankGuides(
+      [
+        guide("inSeason", { tags: [], months: [6], party: "couple" }),
+        guide("rightCrew", { tags: [], months: [1], party: "solo" }),
+      ],
+      answers({ party: "solo", month: 6 })
+    )
+    assert.equal(ids(out)[0], "rightCrew")
+  })
+
+  test("shapes still outrank style", () => {
+    // Two style answers must not outweigh the one thing picked by hand.
+    const out = rankGuides(
+      [
+        guide("rightStyle", { tags: ["eat"], pace: "full_days", budget: "splurge" }),
+        guide("rightShape", { tags: ["wild"], pace: "easy", budget: "save" }),
+      ],
+      answers({ shapes: ["wild"], rhythm: "full_days", budget: "splurge" })
+    )
+    assert.equal(ids(out)[0], "rightShape")
   })
 })
