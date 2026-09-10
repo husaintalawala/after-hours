@@ -82,20 +82,26 @@ async function Home({ userId, seenDaybreak }: { userId: string; seenDaybreak: bo
   // in buildHomeData so that someone else's profile at /app/people/[id] renders
   // from the SAME code. It used to be inline here, which is precisely why that
   // page had drifted into a thinner screen with no globe.
-  const data = await buildHomeData(supabase, userId)
-
-  // The Inspire deck + its globe pins, and ONLY for an account with nothing of
-  // its own yet.
   //
-  // Serial rather than parallel with the assembly above, on purpose. Whether it
-  // is needed is a fact about the trips, so a parallel fetch would run the
-  // corpus query on every home load for every established user to throw the
-  // answer away. The one round trip it costs is paid only by accounts whose
-  // home has almost nothing else to load, and it happens inside the Suspense
-  // boundary with the skeleton already on screen.
+  // NOW PARALLEL WITH THE SHELF, and the reason changed. The Inspire deck used
+  // to be fetched serially and ONLY for an account with nothing of its own —
+  // whether it was needed was a fact about the trips, so fetching it up front
+  // would have run the corpus query for every established user to throw the
+  // answer away.
+  //
+  // The shelf is no longer an empty-state consolation: it is a permanent band
+  // on the home, because forty finished, photographed guides are the single
+  // best answer to "what does a good trip look like" and hiding them the moment
+  // somebody makes their first trip was the wrong trade. Since it is now always
+  // needed, serial is pure latency and the two go together.
   //
   // ONLY FROM HERE. /app/people/[id] renders the same shell for a stranger's
   // profile and must never carry this.
+  const [data, inspire] = await Promise.all([
+    buildHomeData(supabase, userId),
+    buildInspirePromo(supabase),
+  ])
+
   const empty = !data.featured && data.others.length === 0
 
   // FIRST RUN. iOS decides with FirstRun.shouldLand(userID:) — "not seen
@@ -110,9 +116,10 @@ async function Home({ userId, seenDaybreak }: { userId: string; seenDaybreak: bo
   // user, who never has the cookie and so would pay it forever. The redirect
   // therefore streams: the skeleton is briefly on screen. That is the whole
   // cost, and it is paid only by accounts with nothing to show anyway.
+  // One wasted corpus query for a first-run account that bounces to /app/welcome
+  // — it rode along in the Promise.all above and cost no extra latency, and the
+  // alternative is paying a serial round trip on every other load forever.
   if (empty && !seenDaybreak) redirect("/app/welcome")
-
-  const inspire = empty ? await buildInspirePromo(supabase) : null
 
   return <HomeShell data={data} inspire={inspire} />
 }

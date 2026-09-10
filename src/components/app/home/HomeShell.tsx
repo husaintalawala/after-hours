@@ -12,19 +12,40 @@ const GlobeHero = dynamic(() => import("@/components/app/GlobeHero"), {
   loading: () => <div className="h-full w-full" style={{ background: "rgb(4,4,8)" }} />,
 })
 import SignOutButton from "@/components/app/SignOutButton"
-import OptimizedImg from "@/components/app/OptimizedImg"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import BackLink from "@/components/app/BackLink"
 import FollowButton from "@/components/app/people/FollowButton"
 import StartHere from "@/components/app/home/StartHere"
+import HomeHeader, { Avatar } from "@/components/app/home/HomeHeader"
+import CtaRow from "@/components/app/home/CtaRow"
+import { Section, Rail } from "@/components/app/home/HomeSection"
+import InspireRail from "@/components/app/home/InspireRail"
+import AskDriftBar from "@/components/app/home/AskDriftBar"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
 import type { InspirePromo } from "@/lib/drift/inspirePromo"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
-// Logged-in home. The globe is the room: it fills the entire viewport on
-// every breakpoint. Desktop (lg+) floats a glass trip rail on the left —
-// hovering a trip flies the planet to it — plus an Ask Drift pill bottom-
-// right. Mobile keeps the iOS sheet-over-globe layout.
+/**
+ * The logged-in home.
+ *
+ * ONE COMPOSITION, responsive — not a phone tree and a desktop tree.
+ *
+ * It used to be two: a viewport-filling globe with an iOS-style sheet floating
+ * over it on phone, and a cropped horizon band with a measured column on
+ * desktop. That split is what produced the three faults this replaces. The
+ * `fixed inset-0` globe bled through everything because a fixed element is not
+ * inside any of the boxes around it; the 44vh spacer that made room for it left
+ * a dead band under the sheet on any account without enough content to fill
+ * one; and an account with a single trip rendered one card and then several
+ * hundred pixels of nothing, because the page genuinely had nothing else to
+ * say.
+ *
+ * The fix is not better spacing. It is more bands: three ways to start
+ * something, your own trips, and the curated shelf — so a one-trip account and
+ * a forty-trip account are the same page with a different amount in the middle
+ * of it. The globe is now a CONTAINED desktop band rather than the room
+ * everything floats in.
+ */
 
 export interface HomeTrip {
   id: string
@@ -54,12 +75,11 @@ export interface HomeData {
 /**
  * Whose profile this is.
  *
- * Someone else's profile used to be a separate, much thinner screen — no
- * globe, no featured trip, a flat list of links. It is the same question
- * ("what are this person's trips?") so it is now the same shell, and only the
- * genuinely owner-bound affordances are gated: sign out, settings, the plan-a-
- * trip CTA, Ask Drift, and the stat links, which point at YOUR /app/people
- * tabs and would silently mislead on someone else's page.
+ * Someone else's profile is the SAME shell — it is the same question ("what are
+ * this person's trips?"). Only the genuinely owner-bound affordances are gated:
+ * sign out, settings, the CTA row, Ask Drift, the Inspire rail and the stat
+ * links, which point at YOUR /app/people tabs and would silently mislead on
+ * someone else's page.
  */
 export type HomeViewer =
   | { kind: "self" }
@@ -78,8 +98,7 @@ export type HomeViewer =
  * COMPUTED ON THE CLIENT ONLY, via the effect below. "How many days until" is
  * a question about the reader's calendar, and the server answers it in its own
  * timezone — so a trip 21 days out in Lisbon is 20 or 22 on a machine in
- * California, and the two renders disagree. That is a hydration mismatch on the
- * single largest glyph on the page.
+ * California, and the two renders disagree.
  */
 function daysUntil(iso: string | null): number | null {
   if (!iso) return null
@@ -99,75 +118,49 @@ export default function HomeShell({
   data: HomeData
   viewer?: HomeViewer
   /**
-   * The Inspire corpus, for somebody who has not made a trip yet.
-   *
-   * OPTIONAL, and supplied ONLY by the self route. A stranger's profile renders
-   * from this same shell, and "here are forty trips you could copy" on someone
-   * else's page is an advert wearing their name.
+   * The curated shelf. Supplied ONLY by the self route — "here are forty trips
+   * you could copy" on someone else's page is an advert wearing their name.
    */
   inspire?: InspirePromo | null
 }) {
   const [focusTripId, setFocusTripId] = useState<string | null>(null)
   const [daysOut, setDaysOut] = useState<number | null>(null)
   const isSelf = viewer.kind === "self"
-  const allTrips = [
-    ...(data.featured ? [data.featured] : []),
-    ...data.others,
-  ]
+  const allTrips = [...(data.featured ? [data.featured] : []), ...data.others]
 
   // Zero, zero and zero is a scoreboard of everything the reader has not done,
-  // printed at the top of their first screen. It appears the moment any of the
-  // three means something.
+  // printed near the top of their first screen. It appears the moment any of
+  // the three means something.
   const hasStats = data.countries > 0 || data.followers > 0 || data.following > 0
 
-  // A new account's globe is empty, so the forty Inspire guides are pinned on
-  // it — "watch your world fill in" has to be visible before there is anything
-  // of your own to fill it with.
-  //
-  // ONE ARRAY, and it must be assembled in the render that MOUNTS the globe:
-  // GlobeHero's marker effect has `[]` deps and captures `pins` exactly once, so
-  // a second set arriving later — a client fetch, a nested Suspense boundary —
-  // silently never draws.
   const showStartHere = isSelf && allTrips.length === 0
+
+  // A new account's globe is empty, so the curated guides are pinned on it.
+  //
+  // ONE ARRAY, assembled in the render that MOUNTS the globe: GlobeHero's
+  // marker effect has `[]` deps and captures `pins` exactly once, so a second
+  // set arriving later silently never draws.
   const pins = showStartHere && inspire ? [...data.pins, ...inspire.pins] : data.pins
 
-  // See daysUntil. The effect is what keeps the server out of the answer.
   useEffect(() => {
     setDaysOut(daysUntil(data.featured?.startDate ?? null))
   }, [data.featured?.startDate])
 
-  // THE ANCHOR. One enormous numeral, and the page is built on it — which is
-  // what stops an account with a single trip from reading as a broken one.
-  // Two states, one device: how long until you go, or how many finished trips
-  // are already waiting. When neither is true it is simply absent; a numeral
-  // with nothing true to count is the kind of decoration this app keeps
-  // removing.
-  const anchor: { n: string; unit: string } | null = (() => {
-    if (data.featured && daysOut !== null && !data.featured.isActive) {
-      if (daysOut > 0) return { n: String(daysOut), unit: daysOut === 1 ? "day out" : "days out" }
-      if (daysOut === 0) return { n: "0", unit: "you leave today" }
-    }
-    if (data.featured?.isActive) return { n: "\u2022", unit: "you are travelling" }
-    if (showStartHere && inspire) return { n: String(inspire.total), unit: "trips, already finished" }
+  // The pill on the featured cover — "Upcoming · in 21 days". Null until the
+  // effect lands (see daysUntil), and null when there is nothing true to say,
+  // which is what keeps it from being decoration.
+  const featuredPill: string | null = (() => {
+    if (!data.featured) return null
+    if (data.featured.isActive) return "You are travelling"
+    if (daysOut === null) return null
+    if (daysOut > 1) return `Upcoming · in ${daysOut} days`
+    if (daysOut === 1) return "Upcoming · tomorrow"
+    if (daysOut === 0) return "Upcoming · today"
     return null
   })()
 
-  // HOW HIGH THE CAMERA OPENS, and it is not one answer.
-  //
-  // GlobeHero is `dynamic(ssr:false)`, so this expression only ever decides
-  // anything in a browser; the server's value is never used, because the map
-  // does not render there.
-  //
-  // An empty account keeps the world view: the whole point of pinning forty
-  // finished trips is that they are scattered over a planet. Somebody with a
-  // trip gets a closer camera on desktop, where the map is a 470px horizon and
-  // a world-view sphere is a small dome floating in it.
-  const globeZoom =
-    typeof window !== "undefined" && window.innerWidth >= 1024 && !showStartHere ? 2.6 : 1.35
-
-  // Stats link to the signed-in user's own tabs, so on another profile they
-  // are rendered as plain figures rather than links that quietly navigate to
-  // YOUR followers while showing THEIR count.
+  // Stats link to the signed-in user's own tabs, so on another profile they are
+  // plain figures rather than links that quietly navigate to YOUR followers.
   const statHref = (href: string) => (isSelf ? href : undefined)
 
   const follow =
@@ -180,388 +173,164 @@ export default function HomeShell({
     ) : null
 
   return (
-    <div className="relative">
-      {/* ---------- Desktop: the horizon ---------- */}
-      {/* ONE GLOBE, POSITIONED TWO WAYS. The phone keeps `fixed inset-0` — a
-          viewport-filling planet with the sheet floating over it, which is the
-          iOS composition. Desktop crops that same map into a band.
-
-          The container moves; the map does not remount. A second <GlobeHero>
-          for the second layout would be a second Mapbox context, and mapbox-gl
-          is the most expensive thing on this page by an order of magnitude — it
-          is already `dynamic(ssr:false)` for exactly that reason. `hidden`
-          would not help either: a Mapbox canvas in a `display:none` box
-          measures 0x0 and comes back broken.
-
-          On phone the band is `h-0` and un-clipped, so it costs no space and a
-          `fixed` child ignores it — plain `overflow-hidden` does not clip a
-          fixed descendant, and it is only applied at lg anyway. */}
-      <div className="relative h-0 lg:h-[470px] lg:overflow-hidden">
-        {/* HOW MUCH GLOBE SHOWS THROUGH THE WINDOW, and it is two answers for
-            the same reason the zoom is.
-
-            On a globe projection the sphere's centre on screen IS the map's
-            centre, so a visible LIMB and a visible CENTRE are mutually
-            exclusive: cropping to an arc necessarily puts the focused pin
-            below the band. That is the trade taken for somebody with a trip —
-            1040px of globe behind a 470px window catches the top of a close
-            sphere, which is a horizon for the type to sit on.
-
-            An empty account is the opposite case. Its zoom is a world view, so
-            its sphere is small, and the same 1040px box would leave a narrow
-            sliver of arc floating in a wide band. A shorter box puts the whole
-            planet — and the forty pins scattered over it — inside the frame. */}
-        <div
-          className={`fixed inset-0 lg:absolute lg:inset-x-0 lg:bottom-auto lg:top-0 ${
-            showStartHere ? "lg:h-[640px]" : "lg:h-[1040px]"
-          }`}
-        >
-          <GlobeHero pins={pins} focusTripId={focusTripId} zoom={globeZoom} />
+    <div className="relative min-h-[100dvh] bg-aurora-midnight pb-40 lg:pb-24">
+      {/* Back chip, only on someone else's profile — the signed-in home is a
+          tab root and has no up-path. */}
+      {viewer.kind === "other" && (
+        <div className="absolute left-4 top-4 z-20 lg:left-10">
+          <BackLink href={viewer.backHref} label="People" />
         </div>
+      )}
 
-        {/* Everything from here down in this box is desktop-only chrome drawn
-            ON the planet. It is `hidden lg:*` rather than living in a separate
-            wrapper so it shares the band's clipping. */}
+      {/* ---------- Desktop: the contained horizon ----------
+          `lg:` ONLY, and inside a real box with `overflow-hidden`. This is the
+          whole of the globe's presence on the page now.
+
+          The phone used to render this same map as `fixed inset-0` — a
+          viewport-filling planet that every band below had to be layered over.
+          A fixed element is not inside any of its ancestors, so it ignored the
+          page's own scroll box and bled through; the 44vh spacer that reserved
+          room for it is what left a dead gap under short content. Neither
+          problem has a spacing fix, so the phone simply does not draw it. */}
+      <div className="relative hidden h-[300px] overflow-hidden lg:block xl:h-[340px]">
+        <div className="absolute inset-x-0 top-0 h-[760px]">
+          <GlobeHero pins={pins} focusTripId={focusTripId} zoom={showStartHere ? 1.35 : 2.6} />
+        </div>
+        {/* The terminator — the band dissolving into the page ground so the
+            header below it does not start on a hard edge. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-[210px] bg-gradient-to-t from-aurora-midnight via-aurora-midnight/70 to-transparent lg:block"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[190px] bg-gradient-to-t from-aurora-midnight via-aurora-midnight/75 to-transparent"
         />
+      </div>
 
-        {/* Who you are — small, top-left, on the sky. It was a 22px name at the
-            head of a glass slab; the slab is what made the page feel like a
-            phone blown up. */}
-        <div className="absolute left-10 top-9 hidden items-center gap-3 lg:flex">
-          <Avatar url={data.avatarUrl} name={data.displayName} size={38} />
-          <div className="min-w-0">
-            <p className="truncate text-[13.5px] font-semibold leading-tight text-white">
-              {data.displayName}
-            </p>
-            {data.username && (
-              <p className="truncate font-mono text-[11px] text-white/55">@{data.username}</p>
-            )}
-          </div>
-        </div>
+      {/* The header overlaps the band on desktop so the greeting sits ON the
+          sky rather than under it — `lg:-mt-[124px]` — while on phone, where
+          there is no band, it is simply the top of the page. */}
+      <div className="relative z-10 lg:-mt-[124px]">
+        <HomeHeader displayName={data.displayName} avatarUrl={data.avatarUrl} isSelf={isSelf} />
+      </div>
 
-        <div className="absolute right-10 top-9 hidden items-center gap-2.5 lg:flex">
-          {isSelf ? (
-            <>
-              <Link
-                href="/app/chats"
-                className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[12.5px] font-semibold text-white/90 backdrop-blur-md transition-colors hover:bg-white/[0.16]"
-              >
-                Ask Drift
-              </Link>
-              <Link
-                href="/app/trips/new"
-                className="rounded-full bg-gradient-to-r from-aurora-teal to-aurora-teal-end px-4 py-2 text-[12.5px] font-bold text-aurora-teal-ink transition-transform hover:scale-[1.02]"
-              >
-                Plan a trip
-              </Link>
-              <SignOutButton />
-            </>
-          ) : (
-            follow
-          )}
-        </div>
-
-        {/* THE ANCHOR — see `anchor` above. Set in the display serif at the
-            size of a headline, not in a badge: the difference between a page
-            that has a countdown on it and a page that is one. */}
-        {anchor && (
-          <div className="absolute bottom-8 right-10 hidden text-right leading-[0.78] lg:block">
-            <span className="block font-drift-display text-[150px] font-black tracking-[-0.06em] text-[#FFB27A] [text-shadow:0_0_90px_rgba(255,178,122,0.28)] xl:text-[172px]">
-              {anchor.n}
-            </span>
-            <span className="mr-1.5 mt-2.5 block font-mono text-[11px] uppercase tracking-[0.26em] text-white/70">
-              {anchor.unit}
-            </span>
+      <div className="relative z-10 mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1180px]">
+        {/* Owner-only. A stranger's profile gets no "create a trip". */}
+        {isSelf && (
+          <div className="px-5 lg:px-10">
+            <CtaRow />
           </div>
         )}
 
-        {/* The statement — bottom-left, over the terminator. */}
-        <div className="absolute inset-x-0 bottom-0 hidden px-10 pb-9 lg:block">
-          <div className="max-w-[610px]">
-            {data.featured && data.featuredHeader ? (
-              <>
-                <p className="flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-[0.22em] text-aurora-teal">
-                  {data.featuredHeader.title}
-                  <span className="hidden h-px max-w-[110px] flex-1 bg-gradient-to-r from-aurora-teal/55 to-transparent sm:block" />
-                </p>
-                <Link
-                  href={`/app/trips/${data.featured.id}`}
-                  onMouseEnter={() => setFocusTripId(data.featured!.id)}
-                  className="mt-3 block font-drift-display text-[52px] font-black leading-[0.94] tracking-[-0.042em] text-white transition-opacity hover:opacity-90 xl:text-[62px]"
-                >
-                  {data.featured.title}
-                </Link>
-                <p className="mt-4 font-mono text-[11.5px] text-white/75">
-                  {[data.featured.dateLabel, data.featured.country, data.featured.city]
-                    .filter(Boolean)
-                    .join("  ·  ")}
-                </p>
-              </>
-            ) : showStartHere ? (
-              <>
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-aurora-teal">
-                  Start here
-                </p>
-                <h2 className="mt-3 font-drift-display text-[52px] font-black leading-[0.94] tracking-[-0.042em] text-white xl:text-[62px]">
-                  Somebody already
-                  <span className="block font-light italic text-white/70">did the hard part.</span>
-                </h2>
-                <p className="mt-4 font-mono text-[11.5px] text-white/75">
-                  Every day in the order that worked  ·  Yours in one tap
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="font-drift-display text-[46px] font-black leading-[0.96] tracking-[-0.04em] text-white">
-                  {isSelf ? "Your map, so far." : `${data.displayName}'s map.`}
-                </h2>
-                {hasStats && (
-                  <p className="mt-4 font-mono text-[11.5px] text-white/75">
-                    {data.countries} {data.countries === 1 ? "country" : "countries"}
-                    {"  ·  "}
-                    {data.followers} {data.followers === 1 ? "follower" : "followers"}
-                    {"  ·  "}
-                    {data.following} following
-                  </p>
-                )}
-              </>
+        {/* Someone else's identity line — the greeting says "Good morning,
+            <them>" but not "where are we going", so their handle and the follow
+            button live here instead. */}
+        {!isSelf && (
+          <div className="mt-4 flex items-center gap-3 px-5 lg:px-10">
+            {data.username && (
+              <p className="font-mono text-[12px] text-aurora-ink3">@{data.username}</p>
             )}
+            <div className="ml-auto">{follow}</div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* ---------- Desktop: the measured column ---------- */}
-      {/* A CAP, NOT A PERCENTAGE. Running cards to the edge of a 1920px display
-          is what made this feel stretched — not the amount of content. The old
-          rail was `xl:w-[54vw] xl:max-w-[860px]` pinned left, which spent every
-          pixel to its right on an empty planet. */}
-      {/* LEFT-ALIGNED, not centred. Centring a 1180px column inside a 1920px
-          window pushes it ~330px right of the statement sitting directly above
-          it in the band, and two left edges that nearly agree read as a
-          mistake. Both now start at the same px-10 from the nav rail; the
-          numeral holds the right side of the composition. */}
-      <div className="hidden w-full max-w-[1180px] px-10 pb-20 lg:block">
-        {/* Stats keep their row here when the statement above did not take
-            them — see hasStats. Zero/zero/zero is a scoreboard of everything
-            the reader has not done, so it stays gated. */}
-        {hasStats && (data.featured || showStartHere) && (
-          <div className="flex gap-8 border-b border-white/10 pb-5 pt-7">
+        {hasStats && (
+          <div className="mt-6 flex gap-8 border-b border-aurora-border px-5 pb-5 lg:px-10">
             <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
             <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
             <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
           </div>
         )}
 
-        {data.others.length > 0 && (
-          <>
-            <div className="mb-4 mt-8 flex items-baseline justify-between">
-              <h3 className="font-drift-display text-[21px] font-bold tracking-[-0.015em]">
-                Also planned
-                <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.14em] text-drift-muted">
-                  {data.others.length} {data.others.length === 1 ? "trip" : "trips"}
-                </span>
-              </h3>
+        {/* ---------- Your trips, first ----------
+            The reader's own work outranks anything curated, on every account.
+            That ordering is the point: Discover and Inspire exist to fill a
+            thin page, not to sit above the trips someone actually made. */}
+        {data.featured && (
+          <Section
+            title={isSelf ? "Your trips" : `${data.displayName.split(/\s+/)[0]}'s trips`}
+            meta={allTrips.length > 1 ? `${allTrips.length} trips` : undefined}
+            action={allTrips.length > 1 && isSelf ? "All trips" : undefined}
+            actionHref={allTrips.length > 1 && isSelf ? "/app/trips" : undefined}
+          >
+            <div className="px-5 lg:px-10">
+              <FeaturedCard trip={data.featured} pill={featuredPill} />
             </div>
-            {/* ONE RATIO, NOT ONE HEIGHT. `h-[150px]` is correct in a 380px
-                column and a 4:1 letterbox at 1000px — which is the whole of
-                what "stretched" meant here. A ratio holds its shape at every
-                width and only the column count changes. */}
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-              {data.others.map((t) => (
-                <GridCard key={t.id} trip={t} onHover={() => setFocusTripId(t.id)} />
-              ))}
-            </div>
-          </>
+            {data.others.length > 0 && (
+              <div className="mt-3 px-5 lg:px-10">
+                <Rail>
+                  {data.others.map((t) => (
+                    <RailTripCard key={t.id} trip={t} onHover={() => setFocusTripId(t.id)} />
+                  ))}
+                </Rail>
+              </div>
+            )}
+          </Section>
         )}
 
-        {showStartHere && <StartHere promo={inspire} />}
+        {/* An account with trips but no featured pick still gets its rail. */}
+        {!data.featured && data.others.length > 0 && (
+          <Section title={isSelf ? "Your trips" : "Trips"} meta={`${data.others.length} trips`}>
+            <div className="px-5 lg:px-10">
+              <Rail>
+                {data.others.map((t) => (
+                  <RailTripCard key={t.id} trip={t} onHover={() => setFocusTripId(t.id)} />
+                ))}
+              </Rail>
+            </div>
+          </Section>
+        )}
+
+        {/* ---------- The curated shelf ----------
+            Owner-only, and now permanent rather than an empty-state
+            consolation. See InspireRail. */}
+        {isSelf && inspire && (
+          <div className="px-5 lg:px-10">
+            <InspireRail promo={inspire} />
+          </div>
+        )}
+
+        {/* The two paths that work from zero, shared with the desktop rail so
+            the two cannot drift apart the way they did before. */}
+        {showStartHere && (
+          <div className="mt-8 px-5 lg:px-10">
+            <StartHere promo={inspire} />
+          </div>
+        )}
 
         {allTrips.length === 0 && !isSelf && (
           <div className="py-16 text-center">
             <p className="text-3xl opacity-30">🗺</p>
-            <p className="mt-2 text-[14px] text-drift-muted">No trips to show yet.</p>
+            <p className="mt-2 text-[14px] text-aurora-ink3">No trips to show yet.</p>
           </div>
         )}
 
-        {isSelf && !showStartHere && (
-          <p className="mt-7 text-[13px] text-drift-muted">
-            Or{" "}
-            <Link href="/app/trips/new" className="text-drift-ink underline underline-offset-[3px]">
-              start a trip from scratch
-            </Link>
-            .
-          </p>
+        {/* Sign out has no other home on phone — the desktop AppRail carries
+            settings, but the phone dock does not. */}
+        {isSelf && (
+          <div className="mt-12 flex justify-center px-5 lg:hidden">
+            <SignOutButton />
+          </div>
         )}
       </div>
 
-      {/* Back chip, only when this is someone else's profile — the signed-in
-          home is a tab root and has no up-path. Sits above the globe. */}
-      {viewer.kind === "other" && (
-        <div className="fixed left-4 top-4 z-20 lg:left-[100px]">
-          <BackLink href={viewer.backHref} label="People" />
-        </div>
-      )}
-
-      {/* ---------- Mobile: iOS sheet-over-globe ---------- */}
-      {/* A COLUMN, not a margin — and that is the whole fix.
-          `mt-[44vh] min-h-[56vh]` was right about the intent and wrong about
-          the mechanism. 44vh of MARGIN collapses: none of the three ancestors
-          between here and the protected layout has padding, a border or a
-          formatting context to stop it, so the 357px escaped all the way out
-          and offset the layout's own `min-h-screen` element by 357px. That
-          element still measured a full viewport from its new origin, so the
-          document ended 176px BELOW the sheet — an unfillable band of fixed
-          globe under the panel, with `min-h-[56vh]` unable to reach it because
-          it only ever described the FIRST screen.
-          Now the globe's window is a real box and the sheet `grow`s to the
-          bottom of a `100dvh` column, so its bottom edge IS the document's at
-          any content length. The negative margin cancels the protected
-          layout's dock padding, which would otherwise re-open the same band at
-          64px; the sheet's own pb-28 clears the dock from inside. */}
-      {/* pointer-events: the column now has a real box over the globe's 44vh
-          where a margin used to be nothing at all. Without this the panel
-          would silently swallow every drag and pinch on the planet. */}
-      <div className="pointer-events-none relative z-10 -mb-[calc(4rem+env(safe-area-inset-bottom))] flex min-h-[100dvh] flex-col lg:hidden">
-        <div className="h-[44vh] shrink-0" aria-hidden />
-        <div className="pointer-events-auto grow rounded-t-[28px] bg-aurora-glass pb-28 shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
-          <div className="mx-auto w-full max-w-2xl px-5">
-            <div className="flex justify-center pt-3">
-              <div className="h-1 w-9 rounded-full bg-drift-divider" />
-            </div>
-
-            <div className="mt-4 flex items-center gap-4">
-              <Avatar url={data.avatarUrl} name={data.displayName} size={64} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-drift-display text-[28px] font-bold leading-tight">
-                  {data.displayName}
-                </p>
-                {data.username && (
-                  <p className="text-[12px] text-drift-muted">@{data.username}</p>
-                )}
-              </div>
-              {/* Settings was reachable ONLY from the desktop AppRail, so on phone
-                  there was no route to it at all. Mirrors the gear in the iOS
-                  profile header. */}
-              {isSelf ? (
-                <>
-                  <Link
-                    href="/app/settings"
-                    aria-label="Settings"
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-aurora-border bg-aurora-glass text-drift-muted transition-colors hover:text-drift-ink"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-[18px] w-[18px]">
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                    </svg>
-                  </Link>
-                  <SignOutButton />
-                </>
-              ) : (
-                follow
-              )}
-            </div>
-
-            {/* The sheet's copy of the stat row — gap-8, not the aside's gap-7. */}
-            {hasStats && (
-              <div className="mt-4 flex gap-8 border-b border-drift-divider pb-4">
-                <Stat value={data.countries} label="Countries" href={statHref("/app/countries")} />
-                <Stat value={data.followers} label="Followers" href={statHref("/app/people?tab=followers")} />
-                <Stat value={data.following} label="Following" href={statHref("/app/people?tab=following")} />
-              </div>
-            )}
-
-            {data.featured && data.featuredHeader && (
-              <>
-                <div className="mt-6 flex items-baseline gap-2">
-                  <h2 className="font-drift-display text-[22px] font-bold">
-                    {data.featuredHeader.title}
-                  </h2>
-                  <span className="text-[13px] font-semibold text-drift-muted">
-                    {data.featuredHeader.subtitle}
-                  </span>
-                </div>
-                <BigCard trip={data.featured} className="mt-3" />
-              </>
-            )}
-
-            {data.others.length > 0 && (
-              <>
-                <h2 className="mt-8 font-drift-display text-[22px] font-bold">
-                  Other trips
-                </h2>
-                <div className="mt-3 space-y-4">
-                  {data.others.map((t) => (
-                    <BigCard key={t.id} trip={t} />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {allTrips.length === 0 && !isSelf && (
-              <div className="py-12 text-center">
-                <p className="text-4xl opacity-30">🗺</p>
-                <p className="mt-3 text-[15px] text-drift-muted">No trips to show yet</p>
-              </div>
-            )}
-
-            {/* Parity with iOS (Drift ProfileTripsView.emptyTripsState), and the
-                two paths that work from zero. Someone else's empty profile keeps
-                the plain line above — these are actions only the owner can take.
-                The markup itself lives in StartHere, which the desktop rail draws
-                too, so the two cannot drift apart the way they did before. */}
-            {showStartHere && <StartHere promo={inspire} />}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Avatar({
-  url,
-  name,
-  size,
-}: {
-  url: string | null
-  name: string
-  size: number
-}) {
-  const style = { width: size, height: size }
-  return url ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={url}
-      alt=""
-      style={style}
-      className="rounded-full object-cover ring-2 ring-drift-coral/70"
-    />
-  ) : (
-    <div
-      style={style}
-      className="flex items-center justify-center rounded-full bg-drift-coral-50 font-drift-display text-xl font-bold text-drift-coral ring-2 ring-drift-coral/70"
-    >
-      {name.slice(0, 1).toUpperCase()}
+      {/* Owner-only, and fixed — see AskDriftBar. */}
+      {isSelf && <AskDriftBar />}
     </div>
   )
 }
 
 // `href` is optional: the stat destinations are the signed-in user's own
-// /app/people tabs, so on someone else's profile the figure is shown without
-// a link rather than navigating to YOUR followers under THEIR count.
+// /app/people tabs, so on someone else's profile the figure is shown without a
+// link rather than navigating to YOUR followers under THEIR count.
 function Stat({ value, label, href }: { value: number; label: string; href?: string }) {
   const body = (
     <>
-      <p className="text-[19px] font-bold leading-tight">{value}</p>
-      <p className="text-[12px] text-drift-muted">{label}</p>
+      <p className="text-[19px] font-bold leading-tight text-aurora-ink">{value}</p>
+      <p className="text-[12px] text-aurora-ink3">{label}</p>
     </>
   )
   return href ? (
     <Link
       href={href}
-      className="rounded-lg outline-none transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-drift-coral/50"
+      className="rounded-lg outline-none transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
     >
       {body}
     </Link>
@@ -570,35 +339,66 @@ function Stat({ value, label, href }: { value: number; label: string; href?: str
   )
 }
 
-// Desktop grid card — an ASPECT RATIO, never a height.
-//
-// It replaces FeaturedCard (`h-[150px]`) and TripRow (a 48px thumbnail in a
-// list). The height was the bug: correct in the 380px rail those were written
-// for, a 4:1 letterbox once the rail grew past 1000px, which is exactly what
-// "absurdly stretched" described. 4:3 holds at any column width, so widening
-// the window changes how MANY cards sit in a row and nothing about their shape.
-function GridCard({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
+/**
+ * The featured trip — one large cover, full column width.
+ *
+ * AN ASPECT RATIO, NEVER A HEIGHT. `h-[220px]` was correct in the 380px sheet
+ * it was written for and a letterbox once the column grew past 1000px, which is
+ * exactly what "stretched" meant on this page. A ratio holds its shape at every
+ * width.
+ */
+function FeaturedCard({ trip, pill }: { trip: HomeTrip; pill: string | null }) {
+  const flag = countryFlagEmoji(trip.country)
+  return (
+    <Link
+      href={`/app/trips/${trip.id}`}
+      className="group relative block aspect-[3/2] overflow-hidden rounded-hero border border-aurora-border sm:aspect-[16/9] lg:aspect-[21/9]"
+    >
+      <CardCover trip={trip} sizes="(max-width: 1024px) 100vw, 1120px" />
+
+      {pill && (
+        <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/45 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-md">
+          {pill}
+        </span>
+      )}
+      {flag && (
+        <span className="absolute right-4 top-4 text-[20px] drop-shadow">{flag}</span>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 p-4 lg:p-6">
+        <p className="font-drift-display text-[24px] font-black leading-[1.04] tracking-[-0.03em] text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)] sm:text-[30px] lg:text-[40px]">
+          {trip.title}
+        </p>
+        <p className="mt-2 font-mono text-[11px] text-white/80 [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
+          {[trip.dateLabel, trip.country, trip.city].filter(Boolean).join("  ·  ")}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
+/** A trip in the rail beside the featured one. */
+function RailTripCard({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
   const flag = countryFlagEmoji(trip.country)
   return (
     <Link
       href={`/app/trips/${trip.id}`}
       onMouseEnter={onHover}
-      className="group relative block aspect-[4/3] overflow-hidden rounded-[18px] border border-white/[0.08]"
+      className="group relative block h-[168px] w-[196px] shrink-0 overflow-hidden rounded-card border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
     >
-      <CardCover trip={trip} />
-      {trip.isActive && (
-        <span className="absolute left-3 top-3 rounded-full bg-drift-coral px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
-          NOW TRAVELING
+      <CardCover trip={trip} sizes="196px" />
+      {trip.isActive ? (
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-gradient-to-b from-aurora-teal to-aurora-teal-end px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wide text-aurora-teal-ink">
+          Travelling
         </span>
+      ) : (
+        flag && <span className="absolute right-2.5 top-2.5 text-[17px] drop-shadow">{flag}</span>
       )}
-      {flag && !trip.isActive && (
-        <span className="absolute right-3 top-3 text-[18px] drop-shadow">{flag}</span>
-      )}
-      <div className="absolute inset-x-0 bottom-0 p-4">
-        <p className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-aurora-teal">
+      <div className="absolute inset-x-0 bottom-0 p-3">
+        <p className="font-mono text-[9.5px] uppercase tracking-[0.15em] text-aurora-teal">
           {trip.dateLabel}
         </p>
-        <p className="mt-1.5 font-drift-display text-[16.5px] font-semibold leading-[1.1] tracking-[-0.015em] text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
+        <p className="mt-1 line-clamp-2 font-drift-display text-[14.5px] font-bold leading-[1.15] tracking-[-0.015em] text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
           {trip.title}
         </p>
       </div>
@@ -606,52 +406,25 @@ function GridCard({ trip, onHover }: { trip: HomeTrip; onHover: () => void }) {
   )
 }
 
-// Mobile 220px full-bleed cover card (same recipe as iOS staticTripCard).
-function BigCard({ trip, className = "" }: { trip: HomeTrip; className?: string }) {
-  const flag = countryFlagEmoji(trip.country)
-  return (
-    <Link
-      href={`/app/trips/${trip.id}`}
-      className={`relative block h-[220px] overflow-hidden rounded-[14px] ${className}`}
-    >
-      <CardCover trip={trip} />
-      {flag && (
-        <span className="absolute right-2.5 top-2.5 text-[20px] drop-shadow">{flag}</span>
-      )}
-      {trip.isActive && (
-        <span className="absolute left-3 top-3 rounded-full bg-drift-coral px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
-          NOW TRAVELING
-        </span>
-      )}
-      <CardCaption trip={trip} />
-    </Link>
-  )
-}
-
-function CardCover({ trip }: { trip: HomeTrip }) {
+/**
+ * Cover photo plus its scrim.
+ *
+ * The scrim is not a finish. Every card here sets type over a photograph the
+ * app did not choose, and a bright one renders white-on-white without it.
+ */
+function CardCover({ trip, sizes }: { trip: HomeTrip; sizes: string }) {
   return (
     <>
-      <TripCoverImg
-        cover={trip.cover}
-        sizes="(max-width: 1024px) 100vw, 420px"
-      />
+      <TripCoverImg cover={trip.cover} sizes={sizes} />
       <div
+        aria-hidden
         className="absolute inset-0"
-        style={{ background: "linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.65))" }}
+        style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.72))" }}
       />
     </>
   )
 }
 
-function CardCaption({ trip }: { trip: HomeTrip }) {
-  return (
-    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
-      <p className="font-drift-display text-[17px] font-bold leading-snug text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
-        {trip.title}
-      </p>
-      <p className="shrink-0 text-[11px] text-white/70 [text-shadow:0_1px_3px_rgba(0,0,0,0.5)]">
-        {trip.dateLabel}
-      </p>
-    </div>
-  )
-}
+// Re-exported so the people page and any future caller get the same avatar as
+// the header rather than a second copy.
+export { Avatar }
