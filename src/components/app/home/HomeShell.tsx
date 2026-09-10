@@ -20,7 +20,9 @@ import HomeHeader, { Avatar } from "@/components/app/home/HomeHeader"
 import CtaRow from "@/components/app/home/CtaRow"
 import { Section, Rail } from "@/components/app/home/HomeSection"
 import InspireRail from "@/components/app/home/InspireRail"
+import DiscoverRail from "@/components/app/home/DiscoverRail"
 import AskDriftBar from "@/components/app/home/AskDriftBar"
+import type { DiscoverAnchor } from "@/lib/drift/discover"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
 import type { InspirePromo } from "@/lib/drift/inspirePromo"
 import { countryFlagEmoji } from "@/lib/drift/flags"
@@ -159,6 +161,28 @@ export default function HomeShell({
     return null
   })()
 
+  // WHERE "NEAR HERE" IS, and the answer comes from the featured trip because
+  // nothing better exists. There is no home-city field on web at all — the
+  // first-run flow asks where you set out from, but nothing surfaces it here —
+  // so the next-best anchor is the place the reader is about to go.
+  //
+  // Coordinates come off that trip's globe pin, which already carries them;
+  // HomeTrip itself has only city and country. Events need real coordinates and
+  // return [] without them, but "for you" resolves from a city name, so a
+  // label-only anchor is still worth asking with.
+  const featuredPin = data.featured
+    ? (data.pins.find((p) => p.tripId === data.featured!.id) ?? null)
+    : null
+  const discoverAnchor: DiscoverAnchor | null =
+    data.featured && (data.featured.city || data.featured.country)
+      ? {
+          label: data.featured.city ?? data.featured.country ?? "",
+          country: data.featured.country,
+          lat: featuredPin?.lat ?? null,
+          lng: featuredPin?.lng ?? null,
+        }
+      : null
+
   // Stats link to the signed-in user's own tabs, so on another profile they are
   // plain figures rather than links that quietly navigate to YOUR followers.
   const statHref = (href: string) => (isSelf ? href : undefined)
@@ -276,6 +300,16 @@ export default function HomeShell({
               </Rail>
             </div>
           </Section>
+        )}
+
+        {/* ---------- Discover ----------
+            Owner-only and self-removing: it fetches after paint and renders
+            nothing at all if the lookup comes back empty, so it can never
+            leave a titled band with a hole under it. */}
+        {isSelf && discoverAnchor && (
+          <div className="px-5 lg:px-10">
+            <DiscoverRail anchor={discoverAnchor} />
+          </div>
         )}
 
         {/* ---------- The curated shelf ----------

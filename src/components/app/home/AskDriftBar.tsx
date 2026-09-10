@@ -14,14 +14,15 @@ export default function AskDriftBar() {
   const router = useRouter()
   const [q, setQ] = useState("")
 
-  // The typed question rides to /app/chats as `?q=`. The chats route seeds its
-  // composer from it; if that seeding is ever removed the reader still lands in
-  // chat with the question preserved in the URL rather than silently discarded,
-  // which is the failure mode this shape is chosen to avoid.
+  // `?ask=`, NOT a new parameter of this component's own invention. The trip
+  // page already carries a typed question into TripChat exactly this way
+  // (trips/[id] reads `ask` and hands it down as `prefill`), so the home uses
+  // the same name and the same prop and there is one convention rather than
+  // two that do the same job.
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const text = q.trim()
-    router.push(text ? `/app/chats?q=${encodeURIComponent(text)}` : "/app/chats")
+    router.push(text ? `/app/chats?ask=${encodeURIComponent(text)}` : "/app/chats")
   }
 
   return (

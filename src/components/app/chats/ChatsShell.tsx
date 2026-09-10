@@ -49,10 +49,21 @@ export default function ChatsShell({
   sessions,
   trips,
   me,
+  initialAsk = null,
 }: {
   sessions: ChatSessionVM[]
   trips: TripPickVM[]
   me: MeVM
+  /**
+   * A question typed into the home's composer, carried here as `?ask=`.
+   *
+   * HELD, not consumed on arrival. Chat here is trip-scoped, so somebody with
+   * no trip selected lands on the Picker — and dropping the draft at that
+   * moment is precisely the "typed it, lost it" failure the composer exists to
+   * avoid. It is handed to TripChat as `prefill` whenever one mounts, so
+   * picking a trip afterwards still finds the words waiting.
+   */
+  initialAsk?: string | null
 }) {
   const firstTripSession = sessions.find((s) => s.kind === "trip" && s.tripId)
   const initial: Selection = firstTripSession
@@ -62,6 +73,9 @@ export default function ChatsShell({
       : { mode: "picker" }
   const [sel, setSel] = useState<Selection>(initial)
   const [drawer, setDrawer] = useState(false)
+  // Cleared by TripChat's onPrefillConsumed the moment it lands in the input,
+  // so switching threads afterwards does not re-seed the same question.
+  const [ask, setAsk] = useState<string | null>(initialAsk)
 
   const openSession = (s: ChatSessionVM) => {
     if (s.kind === "trip" && s.tripId) {
@@ -332,6 +346,8 @@ export default function ChatsShell({
             country={sel.trip.country}
             destinations={sel.trip.destinations}
             bare
+            prefill={ask}
+            onPrefillConsumed={() => setAsk(null)}
           />
         </div>
       </div>

@@ -24,16 +24,32 @@ interface SessionRow {
   last_message_at: string
 }
 
-export default function ChatsPage() {
+export default async function ChatsPage({
+  searchParams,
+}: {
+  /**
+   * `?ask=` — a question typed somewhere else and carried here.
+   *
+   * The home's composer is the caller: it is pinned above the dock on every
+   * scroll position, and the whole point of typing into it is that the words
+   * survive the navigation. Same parameter name and same destination prop as
+   * trips/[id], which has carried a question into TripChat this way for a
+   * while — one convention, not two.
+   *
+   * A Promise, because searchParams is one from Next 15 onward.
+   */
+  searchParams?: Promise<{ ask?: string }>
+}) {
+  const { ask } = (await searchParams) ?? {}
   // Three waves of queries used to finish before the browser got anything on a hard load; loading.tsx only covers a soft navigation. Behind a boundary the document streams at once and the same skeleton holds the place.
   return (
     <Suspense fallback={<Skeleton />}>
-      <ChatsContent />
+      <ChatsContent ask={ask} />
     </Suspense>
   )
 }
 
-async function ChatsContent() {
+async function ChatsContent({ ask }: { ask?: string }) {
   const supabase = await createClient()
   const {
     data: { session },
@@ -190,7 +206,7 @@ async function ChatsContent() {
     avatarUrl: profile?.avatar_url ?? null,
   }
 
-  return <ChatsShell sessions={sessionVMs} trips={tripVMs} me={me} />
+  return <ChatsShell sessions={sessionVMs} trips={tripVMs} me={me} initialAsk={ask ?? null} />
 }
 
 function relativeTime(iso: string): string {

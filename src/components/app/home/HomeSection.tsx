@@ -31,8 +31,13 @@ export function Section({
       <div className="flex items-baseline justify-between gap-4 px-5 lg:px-10">
         <h2 className="font-drift-display text-[19px] font-bold tracking-[-0.02em] text-aurora-ink sm:text-[21px] lg:text-[24px]">
           {title}
+          {/* whitespace-nowrap, and it is load-bearing at 375px. "Trips worth
+              stealing" plus "90 guides" plus "See all" does not fit one phone
+              line, and without this the count breaks mid-phrase — "90" on one
+              line and "GUIDES" alone on the next. The title may wrap; the
+              count is two words that mean nothing apart. */}
           {meta && (
-            <span className="ml-2.5 font-mono text-[10.5px] font-normal uppercase tracking-[0.14em] text-aurora-ink3">
+            <span className="ml-2.5 whitespace-nowrap font-mono text-[10.5px] font-normal uppercase tracking-[0.14em] text-aurora-ink3">
               {meta}
             </span>
           )}
