@@ -18,6 +18,16 @@ export function Section({
   meta,
   children,
   className = "",
+  /**
+   * Keep the heading on a phone, drop it on a laptop.
+   *
+   * For the cockpit row, where the band holds three different subjects side by
+   * side — a trip, a globe, a chat list — and a heading reading "Your trips"
+   * would be labelling only the left third of what sits under it. Stacked on a
+   * phone the same heading is correct again, because there the trip really is
+   * the next thing down.
+   */
+  hideTitleOnDesktop = false,
 }: {
   title: string
   action?: string
@@ -25,10 +35,15 @@ export function Section({
   meta?: string
   children: ReactNode
   className?: string
+  hideTitleOnDesktop?: boolean
 }) {
   return (
     <section className={`mt-8 ${className}`}>
-      <div className="flex items-baseline justify-between gap-4 px-5 lg:px-10">
+      <div
+        className={`flex items-baseline justify-between gap-4 px-5 lg:px-10 ${
+          hideTitleOnDesktop ? "lg:hidden" : ""
+        }`}
+      >
         <h2 className="font-drift-display text-[19px] font-bold tracking-[-0.02em] text-aurora-ink sm:text-[21px] lg:text-[24px]">
           {title}
           {/* whitespace-nowrap, and it is load-bearing at 375px. "Trips worth
@@ -51,8 +66,37 @@ export function Section({
           </Link>
         )}
       </div>
-      <div className="mt-3">{children}</div>
+      <div className={hideTitleOnDesktop ? "mt-3 lg:mt-0" : "mt-3"}>{children}</div>
     </section>
+  )
+}
+
+/**
+ * The laptop answer to a rail: a grid that fills the width.
+ *
+ * A rail is the right shape on a phone — swipe is the native gesture and the
+ * cards are bigger than the screen. On a laptop it shows three and a half cards
+ * out of ninety behind a hidden scrollbar, which is the opposite of what all
+ * that width is for. Same cards, laid out rather than queued.
+ */
+export function RailOrGrid({
+  children,
+  cols = "lg:grid-cols-6",
+}: {
+  children: ReactNode
+  cols?: string
+}) {
+  return (
+    // ONE container that changes shape, not two that hide each other. Rendering
+    // the cards twice behind `lg:hidden` / `hidden lg:grid` would be the
+    // simpler JSX and would also put every cover in the DOM twice — `hidden`
+    // does not stop a browser fetching an image, so the laptop would pay for
+    // the phone's copy of all six photographs and vice versa.
+    <div
+      className={`-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:gap-3.5 lg:overflow-visible lg:px-10 lg:pb-0 ${cols}`}
+    >
+      {children}
+    </div>
   )
 }
 

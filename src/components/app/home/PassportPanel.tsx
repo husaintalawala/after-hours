@@ -54,7 +54,7 @@ export default function PassportPanel({
     <>
       <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-between py-1">
         <div className="min-w-0">
-          <h2 className="font-drift-display text-[18px] font-bold tracking-[-0.02em] text-aurora-ink sm:text-[20px]">
+          <h2 className="font-drift-display text-[18px] font-bold tracking-[-0.02em] text-aurora-ink sm:text-[20px] lg:text-[21px]">
             Your passport
           </h2>
           {/* A PERCENTAGE, not a ch measure. `max-w-[30ch]` is a fact about the
@@ -62,18 +62,39 @@ export default function PassportPanel({
               first line ran out over the globe's faded edge — still legible,
               but type over imagery it did not need to be over. Two thirds of
               the card leaves the illustration its own third at every width. */}
-          <p className="mt-1.5 max-w-[64%] text-[12.5px] leading-snug text-aurora-ink2 sm:max-w-[58%]">
+          <p className="mt-1.5 max-w-[64%] text-[12.5px] leading-snug text-aurora-ink2 sm:max-w-[58%] lg:max-w-[46%] lg:text-[13px]">
             {line}
           </p>
         </div>
 
         {/* Small, at the foot, and glanceable — the opposite of the row this
             replaces. */}
-        <dl className="mt-4 flex gap-5">
-          <Figure value={countries} label="Countries" />
-          <Figure value={followers} label="Followers" />
-          <Figure value={following} label="Following" />
-        </dl>
+        <div>
+          <dl className="mt-4 flex gap-5">
+            <Figure value={countries} label="Countries" />
+            <Figure value={followers} label="Followers" />
+            <Figure value={following} label="Following" />
+          </dl>
+
+          {/* THE DENOMINATOR IS THE WHOLE POINT. A single pin on a globe reads
+              as an empty planet; "1 of 195" reads as a start. Same fact, and
+              the second one is the true framing of it. Laptop only, where the
+              panel has the height to spare. */}
+          <div className="mt-4 hidden max-w-[46%] lg:block">
+            <div className="h-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-aurora-teal to-aurora-teal-end"
+                style={{
+                  width: `${Math.max(countries > 0 ? 2 : 0, Math.min(100, (countries / 195) * 100))}%`,
+                  boxShadow: "0 0 10px rgba(55,214,196,0.55)",
+                }}
+              />
+            </div>
+            <p className="mt-1.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-aurora-ink3">
+              <span className="text-aurora-teal">{countries}</span> of 195 countries
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* The globe, contained.
@@ -95,7 +116,7 @@ export default function PassportPanel({
           an illustration rather than a second window. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-5 top-1/2 h-[190px] w-[190px] -translate-y-1/2 opacity-90 [&_.mapboxgl-ctrl-group]:hidden [&_.mapboxgl-ctrl]:hidden sm:-right-2 sm:h-[210px] sm:w-[210px]"
+        className="pointer-events-none absolute -right-5 top-1/2 h-[190px] w-[190px] -translate-y-1/2 opacity-90 [&_.mapboxgl-ctrl-group]:hidden [&_.mapboxgl-ctrl]:hidden sm:-right-2 sm:h-[210px] sm:w-[210px] lg:-right-8 lg:h-[330px] lg:w-[330px]"
         style={{
           maskImage: "radial-gradient(circle at 62% 50%, #000 42%, rgba(0,0,0,0.55) 66%, transparent 82%)",
           WebkitMaskImage:
@@ -109,7 +130,12 @@ export default function PassportPanel({
 
   const shell =
     "relative flex min-h-[142px] items-stretch gap-3 overflow-hidden rounded-hero " +
-    "border border-aurora-border bg-aurora-glass px-4 py-4 sm:min-h-[160px] sm:px-5"
+    "border border-aurora-border bg-aurora-glass px-4 py-4 sm:min-h-[160px] sm:px-5 " +
+    // In the cockpit row this is one of three tiles of equal height, and the
+    // globe grows from a 210px illustration to a 330px one — which is the
+    // point. It was Drift's one irreplaceable image rendered at roughly
+    // favicon scale beside three numbers.
+    "lg:h-full lg:px-6 lg:py-6"
 
   // The whole panel is the target, and it opens the GLOBE — /app/map, the 3D
   // planet with your trips on it as cover-photo pins.

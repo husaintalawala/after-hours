@@ -3,7 +3,7 @@ import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import { tripCover } from "@/lib/drift/tripCover"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
-import type { HomeData, HomeTrip } from "@/components/app/home/HomeShell"
+import type { HomeData, HomeTrip, HomeChat } from "@/components/app/home/HomeShell"
 
 /**
  * Build the profile payload — globe pins, featured trip, trip list, stats —
@@ -30,7 +30,16 @@ import type { HomeData, HomeTrip } from "@/components/app/home/HomeShell"
 export async function buildHomeData(
   // The route's own server client, so RLS evaluates as the signed-in caller.
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  /**
+   * Who is LOOKING, which is not always whose page this is.
+   *
+   * Defaults to `userId` — the common case, and the one every existing caller
+   * already meant. Pass it explicitly from /app/people/[id], where the two
+   * differ and the self-only fields (home city, chat threads) must not be
+   * fetched at all.
+   */
+  viewerId: string = userId
 ): Promise<HomeData> {
   // Parallelize the independent lookups — every serial await here is felt as
   // navigation latency.
@@ -174,6 +183,64 @@ export async function buildHomeData(
     isActive: isNow(t),
   })
 
+  // Self-only extras. Both are asked for AFTER the main payload rather than in
+  // the parallel block above, because neither is on the critical path for
+  // someone else's profile and this function serves both pages.
+  //
+  // `viewerId` is the signed-in caller; when it differs from `userId` we are
+  // rendering a stranger's page, where a home city and a private chat list have
+  // no business being fetched at all — not merely hidden at render time.
+  const isSelf = viewerId === userId
+  const p = profile as (ProfileRow & HomeProfileExtras) | null
+  const home =
+    isSelf && (p?.home_city || p?.home_country)
+      ? {
+          city: p.home_city ?? null,
+          country: p.home_country ?? null,
+          lat: p.home_lat ?? null,
+          lng: p.home_lng ?? null,
+        }
+      : null
+
+  let chats: HomeChat[] = []
+  if (isSelf) {
+    // Same filters the Chats tab uses: merged-away duplicates and archived
+    // threads are not "recent", they are gone.
+    const { data: rows } = await supabase
+      .from("chat_sessions")
+      .select("id,title,anchor_type,anchor_id,anchor_label,last_message_at")
+      .eq("user_id", userId)
+      .is("merged_into", null)
+      .is("archived_at", null)
+      .order("last_message_at", { ascending: false })
+      .limit(3)
+      .returns<ChatSessionRow[]>()
+
+    // THE SAME NAME THE CHATS TAB USES, and that is the requirement rather than
+    // a nicety: a thread called "Barcelona" in one place and "Untitled chat" in
+    // the other is two names for one object. /app/chats resolves
+    //   trip title ?? anchor_label ?? session title ?? "Chat"
+    // and the trip half is what actually fires, because most threads hang off a
+    // trip and carry no title of their own — which is why the first cut of this
+    // panel rendered "Untitled chat" three times over. The trips are already
+    // loaded above, so resolving it here costs nothing.
+    const tripTitles = new Map(trips.map((t) => [t.id, t.title]))
+    chats = (rows ?? []).map((r) => {
+      const fromTrip =
+        r.anchor_type === "trip" && r.anchor_id ? tripTitles.get(r.anchor_id) : null
+      const name =
+        fromTrip?.trim() || r.anchor_label?.trim() || r.title?.trim() || "Chat"
+      return {
+        id: r.id,
+        title: name,
+        // The session's own title becomes the second line when it is not
+        // already doing duty as the first — the same split the tab makes.
+        anchorLabel: r.title?.trim() && r.title.trim() !== name ? r.title.trim() : null,
+        lastMessageAt: r.last_message_at ?? null,
+      }
+    })
+  }
+
   return {
     displayName: profile?.display_name || profile?.username || "traveler",
     username: profile?.username ?? null,
@@ -185,7 +252,26 @@ export async function buildHomeData(
     featured: featuredRow ? toHomeTrip(featuredRow) : null,
     featuredHeader,
     others: orderedTrips.slice(1).map(toHomeTrip),
+    home,
+    chats,
   }
+}
+
+/** The profile columns this file reads that `ProfileRow` does not yet name. */
+type HomeProfileExtras = {
+  home_city: string | null
+  home_country: string | null
+  home_lat: number | null
+  home_lng: number | null
+}
+
+type ChatSessionRow = {
+  id: string
+  title: string | null
+  anchor_type: string | null
+  anchor_id: string | null
+  anchor_label: string | null
+  last_message_at: string | null
 }
 
 /** Whether a profile row exists at all — /app/people/[id] 404s without one. */

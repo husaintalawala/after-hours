@@ -1,7 +1,7 @@
 import Link from "next/link"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import CoverCredit from "@/components/app/CoverCredit"
-import { Section, Rail } from "@/components/app/home/HomeSection"
+import { Section, RailOrGrid } from "@/components/app/home/HomeSection"
 import type { InspirePromo, InspirePromoCard } from "@/lib/drift/inspirePromo"
 
 // The curated shelf, as a rail on the home.
@@ -26,11 +26,14 @@ export default function InspireRail({ promo }: { promo: InspirePromo }) {
       action="See all"
       actionHref="/app/inspire"
     >
-      <Rail>
-        {cards.map((c) => (
+      {/* Six across on a laptop rather than three-and-a-half behind a hidden
+          scrollbar. Ninety guides is the largest thing this account has; a rail
+          shows it the least. */}
+      <RailOrGrid>
+        {cards.slice(0, 6).map((c) => (
           <InspireCard key={c.tripId} card={c} />
         ))}
-      </Rail>
+      </RailOrGrid>
     </Section>
   )
 }
@@ -40,7 +43,7 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
     <Link
       href={card.href}
       aria-label={card.aria}
-      className="group relative block h-[218px] w-[164px] shrink-0 overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
+      className="group relative block h-[218px] w-[164px] shrink-0 overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 lg:h-[262px] lg:w-auto"
     >
       {/* showCredit={false} and the chip re-hung at the TOP, because
           CoverCredit's own "corner" placement is `absolute bottom-1.5
@@ -49,7 +52,7 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
           The attribution cannot be the thing that moves off (Wikimedia's CC
           BY-SA and Unsplash's terms both bind it to the display), so the button
           keeps the bottom and the credit takes the top corner. */}
-      <TripCoverImg cover={card.cover} sizes="164px" showCredit={false} />
+      <TripCoverImg cover={card.cover} sizes="(max-width: 1024px) 164px, 200px" showCredit={false} />
       {card.cover.credit && (
         <div className="absolute right-2 top-2 z-10 [&>*]:mt-0">
           <CoverCredit

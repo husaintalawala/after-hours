@@ -43,8 +43,15 @@ export default function HomeHeader({
   const firstName = displayName.trim().split(/\s+/)[0] || displayName
 
   return (
-    <header className="pt-4 lg:pt-8">
-      <div className="flex items-center justify-between gap-4">
+    <header className="pt-4 lg:pt-6">
+      {/* THE MARK AND THE AVATAR ARE PHONE CHROME.
+          On a phone there is no rail, so this row is the only route to the
+          brand and to account actions. Above lg the rail carries BOTH — its
+          own Drift mark at the top and RailAvatar at its foot — so rendering
+          them again here was two logos (from two different files,
+          drift-icon.svg and drift-logo.png) and two account menus on one
+          screen. Hidden, not deleted: narrow viewports still need it. */}
+      <div className="flex items-center justify-between gap-4 lg:hidden">
         <Link href="/app" aria-label="Drift home" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/drift-icon.svg" alt="Drift" className="h-7 w-7" />
@@ -57,14 +64,24 @@ export default function HomeHeader({
         )}
       </div>
 
-      <h1 className="mt-5 font-drift-display text-[26px] font-bold leading-[1.12] tracking-[-0.03em] text-aurora-ink sm:text-[30px] lg:text-[40px]">
+      {/* On a laptop the question moved into AskBar, where it can be answered,
+          so the greeting alone is left here and drops to a single quiet line
+          rather than a 40px two-line headline over an input that repeats it. */}
+      <h1 className="mt-5 font-drift-display text-[26px] font-bold leading-[1.12] tracking-[-0.03em] text-aurora-ink sm:text-[30px] lg:mt-0 lg:text-[25px] lg:font-light lg:italic lg:text-aurora-ink2">
         {/* The salutation holds its line from the first paint even while null,
             so the question below does not jump when the effect lands. */}
         <span className="block min-h-[1.12em]">
-          {greeting ? `${greeting}, ${firstName}.` : " "}
+          {greeting ? (
+            <>
+              {greeting},{" "}
+              <span className="lg:font-black lg:not-italic lg:text-aurora-ink">{firstName}.</span>
+            </>
+          ) : (
+            " "
+          )}
         </span>
         {isSelf && (
-          <span className="block font-light italic text-aurora-ink2">
+          <span className="block font-light italic text-aurora-ink2 lg:hidden">
             Where are we going next?
           </span>
         )}

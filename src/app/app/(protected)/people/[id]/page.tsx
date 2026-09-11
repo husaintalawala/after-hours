@@ -33,7 +33,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   if (!(await profileExists(supabase, profileId))) notFound()
 
   const [data, { data: iFollowRow }] = await Promise.all([
-    buildHomeData(supabase, profileId),
+    // `me.id` as the viewer: this is someone else's page, so the self-only
+    // fields (home city, chat threads) must not be fetched, not merely hidden.
+    buildHomeData(supabase, profileId, me.id),
     supabase
       .from("follows")
       .select("follower_id")
