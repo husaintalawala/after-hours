@@ -130,10 +130,17 @@ export function hasSeenDaybreak(cookieValue: string | undefined | null,
 export type TripLength = "any" | "aboutAWeek" | "tenPlus"
 
 /** In pill order, with the copy iOS shows. */
-export const TRIP_LENGTHS: ReadonlyArray<{ id: TripLength; label: string }> = [
-  { id: "any", label: "Any length" },
-  { id: "aboutAWeek", label: "About a week" },
-  { id: "tenPlus", label: "Ten days or more" },
+/** Subtitles and icons so this asks like every other preference — iOS moved it
+ *  onto the same wizard rows rather than leaving it three truncating pills. */
+export const TRIP_LENGTHS: ReadonlyArray<{
+  id: TripLength
+  label: string
+  subtitle: string
+  icon: string
+}> = [
+  { id: "any", label: "Any length", subtitle: "Show me everything", icon: "sparkle" },
+  { id: "aboutAWeek", label: "About a week", subtitle: "The usual holiday", icon: "walk" },
+  { id: "tenPlus", label: "Ten days or more", subtitle: "Time to go properly", icon: "train" },
 ]
 
 export function lengthFits(length: TripLength, days: number): boolean {
@@ -177,17 +184,98 @@ export function lengthFits(length: TripLength, days: number): boolean {
  * with them is worse than one that asks nothing, because it implies a
  * personalisation that is not happening.
  */
-export const TRAVEL_RHYTHMS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "easy", label: "Easy" },
-  { value: "balanced", label: "Balanced" },
-  { value: "full_days", label: "Packed" },
+/**
+ * One option, as the wizard draws it.
+ *
+ * `label` alone was enough while these rendered as text capsules. iOS now asks
+ * every preference through PreferenceWizardKit, where an option is a card with
+ * an icon and a line of explanation under the title — and the explanations are
+ * the useful half: "One plan, two opinions" says what "Two of us" means in a
+ * way the label cannot. `icon` names a glyph in the web icon set rather than an
+ * SF Symbol, since the two platforms have no shared symbol vocabulary.
+ */
+export interface PrefOption {
+  value: string
+  label: string
+  subtitle: string
+  icon: string
+}
+
+/** Labels track iOS: "Unhurried" / "Full days", not "Easy" / "Packed". The
+ *  stored values are unchanged, so nothing downstream moves. */
+export const TRAVEL_RHYTHMS: ReadonlyArray<PrefOption> = [
+  { value: "easy", label: "Unhurried", subtitle: "One or two things a day, properly", icon: "tortoise" },
+  { value: "balanced", label: "Balanced", subtitle: "A full day with room in it", icon: "walk" },
+  { value: "full_days", label: "Full days", subtitle: "Out early, back late", icon: "bolt" },
 ]
 
-export const BUDGET_STYLES: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "save", label: "Careful" },
-  { value: "smart_mix", label: "Smart mix" },
-  { value: "splurge", label: "No limit" },
+export const BUDGET_STYLES: ReadonlyArray<PrefOption> = [
+  { value: "save", label: "Careful", subtitle: "Good value, nothing wasted", icon: "coin" },
+  { value: "smart_mix", label: "Smart mix", subtitle: "Save on some, spend on others", icon: "scales" },
+  { value: "splurge", label: "No limit", subtitle: "The best of it, when it counts", icon: "sparkle" },
 ]
+
+/**
+ * How Drift should route the trip.
+ *
+ * ASKED BECAUSE IT IS ALREADY BEING ANSWERED. `user_travel_preferences
+ * .mobility_style` is NOT NULL DEFAULT 'walkable', and the web flow's upsert
+ * creates that row — so a web traveller who means to hire a car has had
+ * "walkable first" recorded for them, silently, by the act of finishing
+ * onboarding. Showing the question is strictly more honest than writing the
+ * default behind their back, which is why this is a data gap and not a
+ * missing nicety.
+ */
+export const MOBILITY_STYLES: ReadonlyArray<PrefOption> = [
+  { value: "walkable", label: "Walkable first", subtitle: "Stay central, go on foot", icon: "walk" },
+  { value: "public_transit", label: "Public transit", subtitle: "Trains, trams and buses", icon: "train" },
+  { value: "rental_car", label: "Self-drive", subtitle: "A car, and the road between", icon: "car" },
+]
+
+/** Multi-select, and it reaches the itinerary: build-itinerary buckets the
+ *  day's meals off `food_moods`. */
+export const FOOD_MOODS: ReadonlyArray<PrefOption> = [
+  { value: "local_gems", label: "Local gems", subtitle: "Where the neighbourhood eats", icon: "pin" },
+  { value: "casual", label: "Casual", subtitle: "Markets, counters, no booking", icon: "bowl" },
+  { value: "fine_dining", label: "Worth dressing for", subtitle: "One proper dinner", icon: "sparkle" },
+  { value: "night_out", label: "A night out", subtitle: "Bars, music, late", icon: "moon" },
+]
+
+export const DEFAULT_MOBILITY = "walkable"
+
+/**
+ * The shape answer, turned into something the itinerary builder reads.
+ *
+ * THIS IS WHY SCREEN 3 IS NOT DECORATION. "What pulls you" was ranking the very
+ * next screen's shelf and then being discarded — the answer never left the
+ * browser. iOS derives `user_travel_preferences.priorities` from the same tags
+ * and persists it, and build-itinerary reads that column to rotate what it
+ * searches for each day (nature/views steer it scenic, history steers it to old
+ * towns). So the same answer shaped every future itinerary on iOS and none on
+ * web.
+ *
+ * `stay` maps to nothing on purpose: "one base, slow days" is a statement about
+ * pace, not about what you want to look at, and the pace question asks it
+ * directly one screen later. `arts_culture` is a valid column value that is
+ * deliberately never INFERRED here — nothing in the shape vocabulary means it,
+ * and guessing it would put a preference in the row the traveller never gave.
+ */
+const SHAPE_PRIORITIES: Readonly<Record<string, readonly string[]>> = {
+  eat: ["food"],
+  stones: ["history"],
+  wild: ["nature"],
+  high: ["nature", "views"],
+  islands: ["views"],
+  drive: ["views"],
+}
+
+/** Sorted and de-duplicated, matching the Swift `Set(...).sorted()`, so the two
+ *  platforms write byte-identical arrays for the same picks. */
+export function prioritiesForShapes(shapes: Iterable<string>): string[] {
+  const out = new Set<string>()
+  for (const tag of shapes) for (const p of SHAPE_PRIORITIES[tag] ?? []) out.add(p)
+  return [...out].sort()
+}
 
 /** The column defaults, so an untouched screen 4 writes what the row already
  *  holds rather than a second opinion about what "normal" is. */
@@ -204,10 +292,10 @@ export const BUDGET_STYLES: ReadonlyArray<{ value: string; label: string }> = [
  * Unlike the two below, this is NOT written to user_travel_preferences — there
  * is no column for it. It ranks the shelf and stays on the device.
  */
-export const TRAVEL_PARTIES: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "solo", label: "Just me" },
-  { value: "couple", label: "Two of us" },
-  { value: "friends", label: "A group" },
+export const TRAVEL_PARTIES: ReadonlyArray<PrefOption> = [
+  { value: "solo", label: "Just me", subtitle: "Your pace, nobody to negotiate with", icon: "person" },
+  { value: "couple", label: "Two of us", subtitle: "One plan, two opinions", icon: "people2" },
+  { value: "friends", label: "A group", subtitle: "Plans that survive a group chat", icon: "people3" },
 ]
 
 /**

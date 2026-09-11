@@ -28,8 +28,10 @@ import {
 import { CATEGORY_ORDER } from "@/lib/drift/inspire"
 import {
   DEFAULT_BUDGET,
+  DEFAULT_MOBILITY,
   DEFAULT_RHYTHM,
   markDaybreakSeen,
+  prioritiesForShapes,
   rankGuides,
   type Coord,
   type TripLength,
@@ -143,9 +145,11 @@ export default function DaybreakFlow({
   const [homeCoord, setHomeCoord] = useState<Coord | null>(profile.homeCoord)
   const searchSeq = useRef(0)
 
-  // 03 — local, deliberately. Nothing on `profiles` holds shape tags or a trip
-  // length and inventing columns is a migration; the answers' real job is to
-  // rank the very next screen, which they do without persisting anywhere.
+  // 03 — the trip length stays local (nothing holds it, and its job is to rank
+  // the very next screen). The SHAPES no longer do: they are mapped to
+  // `user_travel_preferences.priorities` when screen 4 advances, the same
+  // derivation iOS makes, so "what pulls you" reaches the itinerary builder
+  // instead of ending at the browser's edge. See prioritiesForShapes.
   const [shapes, setShapes] = useState<ReadonlySet<string>>(new Set())
   const [length, setLength] = useState<TripLength>("any")
 
@@ -161,6 +165,14 @@ export default function DaybreakFlow({
   const [party, setParty] = useState("")
   const [rhythm, setRhythm] = useState(DEFAULT_RHYTHM)
   const [budget, setBudget] = useState(DEFAULT_BUDGET)
+  /** Seeded to the column default, because the column has one: mobility_style
+   *  is NOT NULL DEFAULT 'walkable', so finishing this flow recorded "walkable
+   *  first" for every web traveller whether or not they meant it. Asking is
+   *  what makes the stored value theirs. */
+  const [mobility, setMobility] = useState(DEFAULT_MOBILITY)
+  /** Multi-select, no default — build-itinerary buckets the day's meals off
+   *  this, and an unasked question should leave it empty rather than guess. */
+  const [food, setFood] = useState<ReadonlySet<string>>(new Set())
 
   // 05
   const [chosenTripId, setChosenTripId] = useState<string | null>(null)
@@ -514,14 +526,21 @@ export default function DaybreakFlow({
       }
       // Only after the write lands. Setting the label first shows a city the
       // row does not have, which is the bug Settings › Home city already had.
-      setHomeCity(c.name)
-      // And the coordinates with it, so the cards two screens later measure
-      // from the city just picked rather than waiting for the next page load.
-      // A city with no coordinates simply means no distance on the cards — not
-      // a fabricated one, and not a stale one from a previous answer.
+      setHomeCity(picked.name)
+      // FROM `picked`, NOT `c`. The row above is written from the RESOLVED
+      // place; `c` is the autocomplete prediction that produced it, and a
+      // prediction carries no coordinates — selectPlace is the call that
+      // fetches them. Seeding local state from `c` therefore left homeCoord
+      // null for everyone who answered this question in-session, so the guide
+      // cards two screens on never showed their "2,900 KM AWAY" leg. The
+      // database had the coordinates the whole time; only this screen did not.
+      //
+      // A city that genuinely resolves without coordinates still means no
+      // distance on the cards — not a fabricated one, and not a stale one from
+      // a previous answer.
       setHomeCoord(
-        c.latitude != null && c.longitude != null
-          ? { lat: c.latitude, lng: c.longitude }
+        picked.latitude != null && picked.longitude != null
+          ? { lat: picked.latitude, lng: picked.longitude }
           : null
       )
       setCityResults([])
@@ -553,34 +572,63 @@ export default function DaybreakFlow({
    * nothing downstream in this session reads the answer back, and no part of the
    * UI claims the save succeeded. A failure here costs a preference, not a trip.
    */
-  const saveStyle = useCallback(async (pace: string, spend: string) => {
-    // Empty means the traveller skipped and then came back through this screen
-    // without touching it. Writing "" would put a value the server's vocabulary
-    // has never heard of into a column build-itinerary compares with ===.
-    if (!pace || !spend) return
-    try {
-      const db = createClient()
-      const {
-        data: { session },
-      } = await db.auth.getSession()
-      const uid = session?.user?.id
-      if (!uid) return
-      await db
-        .from("user_travel_preferences")
-        .upsert(
-          {
-            user_id: uid,
-            travel_rhythm: pace,
-            budget_style: spend,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        )
-        .throwOnError()
-    } catch {
-      // Optional and skippable, and the next screen is already on its way.
-    }
-  }, [])
+  const saveStyle = useCallback(
+    async (
+      pace: string,
+      spend: string,
+      mobility: string,
+      food: ReadonlySet<string>,
+      shapes: ReadonlySet<string>
+    ) => {
+      // PER FIELD, NOT ALL-OR-NOTHING. This was `if (!pace || !spend) return`,
+      // which threw away a whole screen because half of it was blank: skip the
+      // style step (which clears every answer), come back into it from the pick
+      // screen, choose a pace only, press Continue — and the pace just chosen
+      // was discarded along with the empty budget. iOS guards per field for
+      // exactly this reason. Empty still never reaches the column, because ""
+      // is a value build-itinerary's `===` comparisons have never heard of.
+      const priorities = prioritiesForShapes(shapes)
+      // Typed, not Record<string, unknown>: this is the column set of
+      // user_travel_preferences, and a typo in a key here would otherwise be
+      // accepted at compile time and silently ignored by PostgREST at runtime.
+      const answers: {
+        travel_rhythm?: string
+        budget_style?: string
+        mobility_style?: string
+        food_moods?: string[]
+        priorities?: string[]
+      } = {}
+      if (pace) answers.travel_rhythm = pace
+      if (spend) answers.budget_style = spend
+      if (mobility) answers.mobility_style = mobility
+      if (food.size) answers.food_moods = [...food].sort()
+      // The shape answer, which used to end at the browser's edge — see
+      // prioritiesForShapes. build-itinerary rotates the day's searches on it.
+      if (priorities.length) answers.priorities = priorities
+      // Nothing to say is not the same as saying nothing: if every answer is
+      // blank, write no row rather than an `updated_at` that claims a fresh
+      // opinion the traveller never gave.
+      if (Object.keys(answers).length === 0) return
+      try {
+        const db = createClient()
+        const {
+          data: { session },
+        } = await db.auth.getSession()
+        const id = session?.user?.id
+        if (!id) return
+        await db
+          .from("user_travel_preferences")
+          .upsert(
+            { ...answers, user_id: id, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" }
+          )
+          .throwOnError()
+      } catch {
+        // Optional and skippable, and the next screen is already on its way.
+      }
+    },
+    []
+  )
 
   async function shareInvite() {
     if (!inviteUrl) return
@@ -713,12 +761,23 @@ export default function DaybreakFlow({
             onRhythm={setRhythm}
             budget={budget}
             onBudget={setBudget}
+            mobility={mobility}
+            onMobility={setMobility}
+            food={food}
+            onFood={(v) =>
+              setFood((prev) => {
+                const next = new Set(prev)
+                if (next.has(v)) next.delete(v)
+                else next.add(v)
+                return next
+              })
+            }
             onNext={() => {
               // Arguments, not the state — this handler's closure still holds
               // the values from the render it was built in, and the pair the
               // pills are showing is exactly what those are. Same trap `build`
               // documents below, where reading state cost the invite entirely.
-              void saveStyle(rhythm, budget)
+              void saveStyle(rhythm, budget, mobility, food, shapes)
               setStep(4)
             }}
             // Skip writes NOTHING. The column defaults are already what these
@@ -733,6 +792,11 @@ export default function DaybreakFlow({
               setParty("")
               setRhythm("")
               setBudget("")
+              // Cleared for the same reason as the three above: these arrive
+              // pre-selected, and leaving them would record a routing
+              // preference the traveller has just declined to give.
+              setMobility("")
+              setFood(new Set())
               setStep(4)
             }}
           />

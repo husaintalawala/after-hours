@@ -146,13 +146,15 @@ describe("the ground under a screen", () => {
 })
 
 describe("how you travel", () => {
-  // THE VALUES ARE THE SERVER'S, THE LABELS ARE iOS'S. build-itinerary and
-  // refine-itinerary both branch on `travel_rhythm === "full_days"`, and
-  // refine-itinerary's budget phrasing is keyed on save|smart_mix|splurge. iOS's
-  // DaybreakStyleStep writes `packed`, `careful` and `no_limit`, which those
-  // reads miss entirely — so aligning these strings to the phone would make the
-  // screen a survey. If that alignment is ever wanted, it belongs in a change
-  // that moves the server too, and this is the test that will say so.
+  // THE VALUES ARE THE SERVER'S, AND iOS NOW AGREES. build-itinerary and
+  // refine-itinerary branch on `travel_rhythm === "full_days"` and key the
+  // budget phrasing on save|smart_mix|splurge.
+  //
+  // This note used to warn that iOS wrote `packed`, `careful` and `no_limit`,
+  // which those reads missed entirely. That is no longer true — the phone's
+  // DaybreakPreferenceSteps writes easy|balanced|full_days and
+  // save|smart_mix|splurge, the same ids as here — so the divergence this test
+  // was guarding against is closed on both sides rather than merely watched.
   test("the pace values are the ones the itinerary functions read", () => {
     assert.deepEqual(
       TRAVEL_RHYTHMS.map((r) => r.value),
@@ -167,12 +169,13 @@ describe("how you travel", () => {
     )
   })
 
-  // The words on the pills stay iOS's — the two platforms are one product and
-  // must not ask the same question in different language.
+  // The words stay iOS's — the two platforms are one product and must not ask
+  // the same question in different language. "Easy"/"Packed" were web's own
+  // invention and are now "Unhurried"/"Full days", which is what the phone says.
   test("the labels are the words the phone shows", () => {
     assert.deepEqual(
       TRAVEL_RHYTHMS.map((r) => r.label),
-      ["Easy", "Balanced", "Packed"]
+      ["Unhurried", "Balanced", "Full days"]
     )
     assert.deepEqual(
       BUDGET_STYLES.map((b) => b.label),
@@ -207,5 +210,33 @@ describe("how you travel", () => {
     assert.ok(BUDGET_STYLES.some((b) => b.value === DEFAULT_BUDGET))
     assert.equal(DEFAULT_RHYTHM, "balanced")
     assert.equal(DEFAULT_BUDGET, "smart_mix")
+  })
+})
+
+/**
+ * The subtitles are not decoration: they are the line that says what the label
+ * means, and web had none of them while iOS showed one under every option. A
+ * missing subtitle here is the gap re-opening, so it is asserted rather than
+ * left to a screenshot.
+ */
+describe("every preference option explains itself", () => {
+  test("each option carries a non-empty subtitle and an icon", () => {
+    for (const set of [TRAVEL_RHYTHMS, BUDGET_STYLES, TRAVEL_PARTIES]) {
+      for (const o of set) {
+        assert.ok(o.subtitle.length > 0, `${o.value} has no subtitle`)
+        assert.ok(o.icon.length > 0, `${o.value} has no icon`)
+      }
+    }
+  })
+
+  test("the party subtitles are the phone's words", () => {
+    assert.deepEqual(
+      TRAVEL_PARTIES.map((p) => p.subtitle),
+      [
+        "Your pace, nobody to negotiate with",
+        "One plan, two opinions",
+        "Plans that survive a group chat",
+      ]
+    )
   })
 })

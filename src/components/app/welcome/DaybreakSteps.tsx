@@ -1,16 +1,20 @@
 "use client"
 
+import { useState } from "react"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import CoverCredit from "@/components/app/CoverCredit"
 import {
   BUDGET_STYLES,
-  distanceText,
-  spelledCount,
+  type Coord,
+  FOOD_MOODS,
+  MOBILITY_STYLES,
+  type PrefOption,
   TRAVEL_PARTIES,
   TRAVEL_RHYTHMS,
   TRIP_LENGTHS,
-  type Coord,
   type TripLength,
+  distanceText,
+  spelledCount,
 } from "@/lib/drift/daybreak"
 import { platesForTags, type Plate } from "@/lib/drift/daybreakArt"
 import { tripCover } from "@/lib/drift/tripCover"
@@ -36,7 +40,18 @@ import type { PlaceCandidate } from "@/lib/drift/chat"
  * column is phone-width by design and "Where do you / set out from?" is a
  * chosen break, not an accident of wrapping.
  */
-export function Question({ title, subtitle }: { title: string; subtitle?: string }) {
+export function Question({
+  title,
+  subtitle,
+  /** The teal, tracked, uppercase line iOS sets above the headline
+   *  (PreferenceWizardKit's PrefQuestionPage). Optional, because the first
+   *  three screens are statements rather than a numbered wizard. */
+  eyebrow,
+}: {
+  title: string
+  subtitle?: string
+  eyebrow?: string
+}) {
   return (
     // The largest text in the flow was the only text in it with nothing between
     // it and the picture: no shadow, no scrim of its own, on all seven screens.
@@ -45,6 +60,11 @@ export function Question({ title, subtitle }: { title: string; subtitle?: string
     // a photograph, which is every step once the shelf has landed. The real
     // ground is an arbitrary corpus photo.
     <div className="space-y-[7px] [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
+      {eyebrow && (
+        <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-aurora-teal">
+          {eyebrow}
+        </p>
+      )}
       <h1 className="whitespace-pre-line font-drift-display text-[30px] font-bold leading-[1.08] text-aurora-ink">
         {title}
       </h1>
@@ -451,66 +471,51 @@ export function MosaicStep({
   return (
     <>
       <Question
-        title="What pulls you?"
+        eyebrow="What pulls you"
+        title={"What kind of trip\nare you after?"}
         subtitle={
           picked.size ? `${picked.size} picked. Pick as many as fit.` : "Pick as many as fit."
         }
       />
 
-      {/* Two columns, deliberately uneven heights: a flat grid of seven equal
-          rectangles reads as a form, which is the thing this screen exists to
-          stop being. `items-start` is what keeps it uneven — CSS grid stretches
-          a short cell to its row by default, which would quietly flatten the
-          mosaic back into the form.
-
-          Six in the grid, the seventh full width beneath it. Seven items in two
-          columns leaves the last one beside a hole, and a hole in a mosaic reads
-          as a tile that failed to load rather than as layout. */}
-      <div className="mt-3 grid grid-cols-2 items-start gap-[7px]">
-        {categories.slice(0, 6).map((c, i) => (
+      {/* ONE EVEN GRID. This was a deliberately uneven mosaic — every third
+          tile taller, `items-start` to stop the grid flattening it, six tiles
+          plus a seventh full-width beneath — on the reasoning that seven equal
+          rectangles read as a form. iOS tried the same thing and went back:
+          PrefPhotoGrid gives every tile the same frame, and accepts the empty
+          half-cell in the last row rather than promoting one category to a
+          banner it did not earn. The unevenness also made the tall tiles look
+          chosen before anything was, which is the opposite of what a question
+          should do. */}
+      <div className="mt-3 grid grid-cols-2 gap-[10px]">
+        {categories.map((c) => (
           <Tile
             key={c.slug}
             category={c}
             plate={plates.get(c.slug) ?? null}
             on={picked.has(c.slug)}
             onToggle={() => onToggle(c.slug)}
-            tall={i % 3 === 0}
           />
         ))}
       </div>
-      {categories[6] && (
-        <div className="mt-[7px]">
-          <Tile
-            category={categories[6]}
-            plate={plates.get(categories[6].slug) ?? null}
-            on={picked.has(categories[6].slug)}
-            onToggle={() => onToggle(categories[6].slug)}
-            tall={false}
-          />
-        </div>
-      )}
 
       {/* The second half of the question, on the same screen rather than an
-          eighth — and now on the Panel every other step puts its body content
-          on. This label and its pills were the one block of bare text left
-          sitting straight on the photograph, and at 9.5px it is the smallest
-          type in the flow over the brightest thing in it. Raising ink3 to ink2
-          was treating the symptom. */}
-      <Panel className="mt-4 p-[11px]">
-        <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink2">
-          HOW LONG HAVE YOU GOT?
-        </p>
-        <div className="mt-1.5 flex gap-1.5">
-          {TRIP_LENGTHS.map((option) => (
-            <PhotoPill
-              key={option.id}
-              label={option.label}
-              on={length === option.id}
-              onClick={() => onLength(option.id)}
-            />
-          ))}
-        </div>
-      </Panel>
+          eighth. Was a label over three truncating pills; iOS asks it with the
+          same wizard rows as every other preference, so the three lengths get
+          the one line of explanation that tells you what they mean. */}
+      <div className="mt-5">
+        <Choice
+          label="How long have you got?"
+          options={TRIP_LENGTHS.map((o) => ({
+            value: o.id,
+            label: o.label,
+            subtitle: o.subtitle,
+            icon: o.icon,
+          }))}
+          value={length}
+          onChange={(v) => onLength(v as TripLength)}
+        />
+      </div>
 
       <Footer>
         {/* "Show me everything" is only honest when NEITHER half was answered.
@@ -549,13 +554,11 @@ function Tile({
   plate,
   on,
   onToggle,
-  tall,
 }: {
   category: { slug: string; name: string }
   plate: Plate | null
   on: boolean
   onToggle: () => void
-  tall: boolean
 }) {
   // Rung 4 — the deterministic gradient with the category's initial on it. This
   // is what a slow network actually holds, and it is a designed state rather
@@ -563,7 +566,7 @@ function Tile({
   const cover = plate?.cover ?? tripCover({ id: category.slug, title: category.name })
 
   return (
-    <div className={`relative ${tall ? "h-[118px]" : "h-[82px]"}`}>
+    <div className="relative h-[118px]">
       <div
         className={`relative h-full overflow-hidden rounded-[13px] border-2 ${
           on ? "border-aurora-teal" : "border-transparent"
@@ -660,6 +663,10 @@ export function StyleStep({
   onRhythm,
   budget,
   onBudget,
+  mobility,
+  onMobility,
+  food,
+  onFood,
   onNext,
   onSkip,
 }: {
@@ -669,72 +676,242 @@ export function StyleStep({
   onRhythm: (v: string) => void
   budget: string
   onBudget: (v: string) => void
+  mobility: string
+  onMobility: (v: string) => void
+  food: ReadonlySet<string>
+  onFood: (v: string) => void
   onNext: () => void
   onSkip: () => void
 }) {
+  const [page, setPage] = useState(0)
+
+  // The five questions, in iOS's order, each with its own eyebrow and headline
+  // the way PrefQuestionPage gives them. A question deserves a headline of its
+  // own rather than one banner over a stack of unrelated pickers.
+  const PAGES = [
+    {
+      eyebrow: "Who's with you",
+      title: "Who are you\ntravelling with?",
+      subtitle: "It changes which trips fit.",
+      options: TRAVEL_PARTIES,
+      value: party,
+      onChange: onParty,
+      multi: false,
+    },
+    {
+      eyebrow: "Pace",
+      title: "How full should\nthe days be?",
+      subtitle: "Drift builds to this on every trip, not just this one.",
+      options: TRAVEL_RHYTHMS,
+      value: rhythm,
+      onChange: onRhythm,
+      multi: false,
+    },
+    {
+      eyebrow: "Budget",
+      title: "And what are\nyou spending?",
+      subtitle: "Rough is fine — it steers where the money goes, not how much.",
+      options: BUDGET_STYLES,
+      value: budget,
+      onChange: onBudget,
+      multi: false,
+    },
+    {
+      // Asked because it is already being answered: mobility_style is NOT NULL
+      // DEFAULT 'walkable', so finishing this flow recorded a routing
+      // preference for every web traveller whether or not they meant it.
+      eyebrow: "Getting around",
+      title: "How should Drift\nroute the trip?",
+      subtitle: "Walkable days and self-drive days are built differently.",
+      options: MOBILITY_STYLES,
+      value: mobility,
+      onChange: onMobility,
+      multi: false,
+    },
+    {
+      eyebrow: "Food",
+      title: "What should\ndinner look like?",
+      subtitle: "Pick as many as fit.",
+      options: FOOD_MOODS,
+      value: "",
+      onChange: undefined,
+      multi: true,
+    },
+  ] as const
+  const q = PAGES[page]
+  const last = page === PAGES.length - 1
+
   return (
     <>
-      <Question
-        title={"And how do\nyou travel?"}
-        subtitle="This shapes every itinerary Drift builds you, not just this one."
-      />
+      {/* ONE QUESTION AT A TIME, which stopped being optional when this screen
+          grew from three questions to five. Stacked, the five ran well past a
+          laptop fold and turned a thirty-second answer into a scroll. iOS pages
+          them with dots and advances on the tap, so this does too — and the
+          step machine outside is untouched, because StyleStep still answers to
+          one onNext and one onSkip and only the last page calls them. */}
+      <Question eyebrow={q.eyebrow} title={q.title} subtitle={q.subtitle} />
 
-      {/* Floated into the space between the question and the button. Pinned to
-          the top it rendered as a header, a small box, and two thirds of a phone
-          of nothing. */}
-      <div className="my-auto py-6">
-        <Panel className="space-y-3.5 p-3.5">
+      <div className="my-auto w-full py-5">
+        {q.multi ? (
+          <Choice options={q.options} picked={food} onToggle={onFood} />
+        ) : (
           <Choice
-            label="WHO'S WITH YOU"
-            options={TRAVEL_PARTIES}
-            value={party}
-            onChange={onParty}
+            options={q.options}
+            value={q.value}
+            onChange={(v) => {
+              q.onChange?.(v)
+              // Advance on the answer, not on a second tap at the foot of the
+              // screen. The last page waits: "Continue" there leaves the step
+              // entirely, and a mis-tap would cost the answer just given.
+              if (!last) setPage((n) => n + 1)
+            }}
           />
-          <Choice label="PACE" options={TRAVEL_RHYTHMS} value={rhythm} onChange={onRhythm} />
-          <Choice label="BUDGET" options={BUDGET_STYLES} value={budget} onChange={onBudget} />
-        </Panel>
+        )}
       </div>
 
+      <Dots count={PAGES.length} at={page} />
+
       <Footer>
-        <Cta label="Continue" onClick={onNext} />
-        <Skip label="Skip for now" onClick={onSkip} />
+        <Cta label={last ? "Continue" : "Next"} onClick={() => (last ? onNext() : setPage((n) => n + 1))} />
+        <Skip
+          label={page > 0 ? "Back" : "Skip for now"}
+          onClick={() => (page > 0 ? setPage((n) => n - 1) : onSkip())}
+        />
       </Footer>
     </>
   )
 }
 
+/** Which of the wizard's questions you are on — iOS's PrefProgressDots. */
+function Dots({ count, at }: { count: number; at: number }) {
+  return (
+    <div className="flex justify-center gap-1.5 pb-1" aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 rounded-full transition-all ${
+            i === at ? "w-4 bg-aurora-teal" : "w-1.5 bg-white/20"
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * One question, as the wizard asks it.
+ *
+ * WAS A ROW OF TEXT CAPSULES, 34px tall, label only. iOS asks every preference
+ * through PreferenceWizardKit, where an option is a card: an icon in a teal
+ * disc, the title, and a line underneath saying what the title means. Those
+ * subtitles are the useful half and web had none of them — "Two of us" tells
+ * you nothing that "One plan, two opinions" does not tell you better, and three
+ * truncating capsules in a row told you least of all.
+ *
+ * Single-select passes `value`/`onChange` and draws a radio; multi-select
+ * passes `picked`/`onToggle` and draws a check. One component because they are
+ * the same card with a different mark, which is how iOS draws them too.
+ */
 function Choice({
   label,
   options,
   value,
   onChange,
+  picked,
+  onToggle,
 }: {
-  label: string
-  options: ReadonlyArray<{ value: string; label: string }>
-  value: string
-  onChange: (v: string) => void
+  /** Optional: inside the paged wizard the question's own eyebrow names it, so
+   *  repeating the label above the cards would say it twice. */
+  label?: string
+  options: ReadonlyArray<PrefOption>
+  value?: string
+  onChange?: (v: string) => void
+  picked?: ReadonlySet<string>
+  onToggle?: (v: string) => void
 }) {
+  const multi = !!onToggle
   return (
     <div>
-      <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink3">{label}</p>
-      <div className="mt-1.5 flex gap-1.5">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            aria-pressed={value === o.value}
-            onClick={() => onChange(o.value)}
-            className={`h-[34px] flex-1 truncate rounded-full px-2 text-[12px] font-semibold transition-colors ${
-              value === o.value
-                ? "bg-aurora-teal text-aurora-teal-ink"
-                : "bg-white/10 text-aurora-ink2"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
+      {label && (
+        <p className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-aurora-teal">
+          {label}
+        </p>
+      )}
+      <div className="space-y-2">
+        {options.map((o) => {
+          const on = multi ? !!picked?.has(o.value) : value === o.value
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role={multi ? "checkbox" : "radio"}
+              aria-checked={on}
+              onClick={() => (multi ? onToggle!(o.value) : onChange!(o.value))}
+              className={`flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-colors ${
+                on
+                  ? "border-aurora-teal/55 bg-aurora-teal/[0.10]"
+                  : "border-aurora-border bg-white/[0.05] hover:border-aurora-border-strong"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
+                  on ? "bg-aurora-teal/20 text-aurora-teal" : "bg-white/[0.07] text-aurora-ink3"
+                }`}
+              >
+                <PrefIcon name={o.icon} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-bold text-aurora-ink">
+                  {o.label}
+                </span>
+                <span className="mt-0.5 block truncate text-[12px] leading-tight text-aurora-ink3">
+                  {o.subtitle}
+                </span>
+              </span>
+              <span
+                aria-hidden
+                className={`grid h-[19px] w-[19px] shrink-0 place-items-center rounded-${
+                  multi ? "[6px]" : "full"
+                } border-2 ${on ? "border-aurora-teal bg-aurora-teal" : "border-white/25"}`}
+              >
+                {on && (
+                  <svg viewBox="0 0 24 24" className="h-3 w-3 stroke-aurora-teal-ink" fill="none" strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12.5l5.5 5.5L20 7" />
+                  </svg>
+                )}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
+  )
+}
+
+/** The wizard glyphs. Named rather than imported per-icon so the vocabularies
+ *  in daybreak.ts can stay plain data and never import React. */
+function PrefIcon({ name }: { name: string }) {
+  const p: Record<string, string> = {
+    person: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1",
+    people2: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1M17 5.5a3 3 0 0 1 0 6M22 21v-1a5 5 0 0 0-3-4.6",
+    people3: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM1 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1M16 6a3 3 0 0 1 0 6M23 21v-1a5 5 0 0 0-3-4.6",
+    tortoise: "M3 16h18M5 16a7 7 0 0 1 14 0M21 16l1 3M3 16l-1 3M8 16V9M16 16V9",
+    walk: "M13 4.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM11 22l2-6-3-3 1-5 3 2 3 1M10 13l-3 3-1 6",
+    bolt: "M13 2L4 14h7l-1 8 9-12h-7l1-8z",
+    coin: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M9.5 9.5h5M9.5 14.5h5",
+    scales: "M12 3v18M6 8h12M4 8l-2 6h4l-2-6zM20 8l-2 6h4l-2-6zM8 21h8",
+    sparkle: "M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z",
+    train: "M6 3h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM4 9h16M8 20l-2 2M16 20l2 2M9 13h.01M15 13h.01",
+    car: "M5 13l1.5-5h11L19 13M4 13h16v5h-2.5M4 13v5h2.5M6.5 18a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0zM14.5 18a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0z",
+    pin: "M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+    bowl: "M3 11h18a9 9 0 0 1-18 0zM12 11V6M9 6h6M2 21h20",
+    moon: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z",
+  }
+  return (
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <path d={p[name] ?? p.pin} />
+    </svg>
   )
 }
 

@@ -1,6 +1,7 @@
 import { test, describe } from "node:test"
 import assert from "node:assert/strict"
 import {
+  prioritiesForShapes,
   rankGuides,
   lengthFits,
   metresFromHome,
@@ -340,5 +341,41 @@ describe("party, pace and budget", () => {
       answers({ shapes: ["wild"], rhythm: "full_days", budget: "splurge" })
     )
     assert.equal(ids(out)[0], "rightShape")
+  })
+})
+
+/**
+ * The shape answer has to reach the itinerary builder, and has to reach it in
+ * exactly the shape iOS writes — the two platforms upsert the same column on
+ * the same account, so a different ordering or a different vocabulary means one
+ * platform silently rewrites the other's answer on the traveller's next visit.
+ */
+describe("prioritiesForShapes", () => {
+  test("maps each shape tag the way iOS does", () => {
+    assert.deepEqual(prioritiesForShapes(["eat"]), ["food"])
+    assert.deepEqual(prioritiesForShapes(["stones"]), ["history"])
+    assert.deepEqual(prioritiesForShapes(["wild"]), ["nature"])
+    assert.deepEqual(prioritiesForShapes(["high"]), ["nature", "views"])
+    assert.deepEqual(prioritiesForShapes(["islands"]), ["views"])
+    assert.deepEqual(prioritiesForShapes(["drive"]), ["views"])
+  })
+
+  test("`stay` contributes nothing — it is a statement about pace", () => {
+    assert.deepEqual(prioritiesForShapes(["stay"]), [])
+  })
+
+  test("de-duplicates and sorts, matching Swift's Set(...).sorted()", () => {
+    assert.deepEqual(prioritiesForShapes(["high", "islands", "wild"]), ["nature", "views"])
+    assert.deepEqual(prioritiesForShapes(["stones", "eat"]), ["food", "history"])
+  })
+
+  test("never infers arts_culture, which nothing in the vocabulary means", () => {
+    const all = prioritiesForShapes(["eat", "stones", "wild", "high", "islands", "drive", "stay"])
+    assert.equal(all.includes("arts_culture"), false)
+    assert.deepEqual(all, ["food", "history", "nature", "views"])
+  })
+
+  test("an empty pick writes nothing rather than a default", () => {
+    assert.deepEqual(prioritiesForShapes([]), [])
   })
 })
