@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import { checkTripActivated } from "@/lib/drift/activation"
-import { isCityish, resolvePlaceCandidates, type PlaceCandidate } from "@/lib/drift/chat"
+import { type PlaceCandidate } from "@/lib/drift/chat"
+import {
+  suggestPlaces,
+  selectPlace,
+  isCityishSuggestion,
+} from "@/lib/drift/placesAutocomplete"
 import {
   attemptKey,
   categoriesWithCounts,
@@ -389,30 +394,68 @@ export default function DaybreakFlow({
    * ignoring the last thing typed. Only the newest request is allowed to write.
    * Same `seq` counter as Settings › Home city, for the same reason.
    */
+  /**
+   * The billing session for the origin field.
+   *
+   * N `suggest` calls sharing one token are free when the session is TERMINATED
+   * by a `select` carrying that same token — see placesAutocomplete. Held in a
+   * ref rather than state because changing it must never re-render: it is
+   * bookkeeping, not something the screen draws.
+   */
+  const placeSession = useRef<string | null>(null)
+
+  /**
+   * One lookup, whoever asked for it — the debounce below or an explicit Enter.
+   *
+   * NOW AUTOCOMPLETE, NOT THE RESOLVER. This used to POST to
+   * /api/drift/resolve-place, which is a resolver rather than a prefix
+   * predictor: measured live it answered "Lis" with Li's Chinese Kitchen,
+   * "Lisb" with two wadis in Oman and "Kyo" with a sushi bar, in 1.9s to 5.7s.
+   * The cities-only filter below then turned those wrong answers into NO
+   * answers, which is exactly the "spinner and nothing" this screen was
+   * reported for twice. iOS has called places-autocomplete all along.
+   *
+   * SEQUENCED, not just awaited. Type-ahead means several of these are in
+   * flight and they do not return in order: "Lis" landing after "Lisbon" would
+   * replace the right list with a staler one. Only the newest may write.
+   */
   const lookUpCity = useCallback(async (raw: string, citiesOnly: boolean) => {
     const q = raw.trim()
     if (!q) return
     const s = ++searchSeq.current
     setSearching(true)
-    // City-search mode: no destinationName (that biases resolve-place to POIs
-    // near the place — the "Hotel & Casino" bug); then keep only city-ish hits.
-    // A failed call answers [] rather than throwing, so a lookup that does not
-    // land leaves the dropdown empty instead of half-drawn.
-    const cands = await resolvePlaceCandidates(q)
+
+    const { sessionToken, suggestions } = await suggestPlaces(q, placeSession.current)
     if (searchSeq.current !== s) return
+    placeSession.current = sessionToken
     setSearching(false)
-    const withCoords = cands.filter((c) => c.latitude != null && c.longitude != null)
-    const cities = withCoords.filter(isCityish)
-    // CITIES ONLY WHILE TYPING. `resolve-place` is a resolver, not a prefix
-    // predictor — iOS's autocomplete answers "Kyo" with Kyoto, this answers it
-    // with a sushi bar in Salem, Oregon and two clinics, because half a word
-    // matches a business name long before it matches a city. Falling back to
-    // whatever came back is right for a query somebody deliberately submitted
-    // and wrong for one they are still halfway through: on this screen it fills
-    // the answer to "where do you set out from" with places nobody lives.
-    // Quiet until it has a city to offer.
-    const shown = citiesOnly ? cities : cities.length ? cities : withCoords
-    setCityResults(shown.slice(0, 6))
+
+    // Types, not name-shape guesswork. Autocomplete returns Google place types,
+    // so "is this somewhere a person lives" is answerable rather than inferred.
+    // CITIES FIRST, BUT NEVER AN EMPTY LIST. The old cities-only gate existed
+    // because the resolver's fallback was a sushi bar, so showing it was worse
+    // than showing nothing. Autocomplete's predictions are good enough that the
+    // trade reverses: measured, "Lis" returns five sensible predictions of
+    // which none is typed as a locality, and hiding all five leaves the reader
+    // staring at the empty dropdown this screen was reported for. Prefer
+    // cities; fall back to whatever it offered.
+    const cities = suggestions.filter(isCityishSuggestion)
+    const shown = cities.length ? cities : suggestions
+    void citiesOnly
+
+    // Mapped into the shape OriginStep already draws. Coordinates are absent
+    // here on purpose — a prediction has none, and resolving every row to get
+    // them would spend a Place Details call per keystroke. pickCity resolves
+    // the ONE the reader chose, which is also what terminates the session.
+    setCityResults(
+      shown.slice(0, 6).map((sg) => ({
+        id: sg.placeId,
+        name: sg.primary,
+        address: sg.secondary,
+        latitude: null,
+        longitude: null,
+      })) as unknown as PlaceCandidate[]
+    )
   }, [])
 
   /**
@@ -445,6 +488,13 @@ export default function DaybreakFlow({
     setSearching(false)
     setSavingCity(true)
     try {
+      // Resolve the prediction to a real place — and TERMINATE the billing
+      // session while doing it. A prediction carries no coordinates, and this
+      // one call is what makes every suggest before it free.
+      const full = await selectPlace(c.id, placeSession.current)
+      placeSession.current = null
+      const picked = full ?? c
+
       const db = createClient()
       const {
         data: { session },
@@ -454,10 +504,10 @@ export default function DaybreakFlow({
         await db
           .from("profiles")
           .update({
-            home_city: c.name,
-            home_country: (c.address ?? "").split(",").pop()?.trim() || null,
-            home_lat: c.latitude ?? null,
-            home_lng: c.longitude ?? null,
+            home_city: picked.name,
+            home_country: (picked.address ?? "").split(",").pop()?.trim() || null,
+            home_lat: picked.latitude ?? null,
+            home_lng: picked.longitude ?? null,
           })
           .eq("id", uid)
           .throwOnError()
