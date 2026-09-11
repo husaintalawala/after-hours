@@ -240,7 +240,17 @@ export default function HomeShell({
           inside PassportPanel, which is the only place on this page whose
           subject is actually "where you have been". The full-screen planet
           lives on its own route. Nothing on the home bleeds. */}
-      <div className="relative z-10 mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1180px]">
+      {/* THE CAP WAS 1180px, AND A LAPTOP IS NOT.
+          A measure exists to stop running text getting too wide to read, and
+          this page has no running text — it is cards, a globe and a shelf, all
+          of which want width. On a 2000px display 1180 left roughly seven
+          hundred pixels of ground doing nothing down the right-hand side while
+          the guide shelf showed six of ninety.
+
+          1760 is still a cap rather than `none`: past it the cockpit's middle
+          column turns into a letterbox again, which is the fault this layout
+          was built to fix. */}
+      <div className="relative z-10 mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1760px]">
         {/* ---------- The top band ----------
             ONE COLUMN ON A PHONE, TWO ACROSS A LAPTOP.
 
@@ -316,7 +326,7 @@ export default function HomeShell({
                describing only the left third of what is under it. */
             hideTitleOnDesktop
           >
-            <div className="px-5 lg:grid lg:grid-cols-[296px_minmax(0,1fr)_400px] lg:items-stretch lg:gap-4 lg:px-10">
+            <div className="px-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_380px] lg:items-stretch lg:gap-4 lg:px-10">
               <FeaturedCard trip={data.featured} pill={featuredPill} />
 
               <div className="mt-6 lg:mt-0">
@@ -329,7 +339,11 @@ export default function HomeShell({
                 />
               </div>
 
-              {isSelf && data.chats.length > 0 && (
+              {/* NOT gated on chats.length any more. The panel owns its own
+                  empty state, because a column that disappears when you have
+                  no threads leaves a hole next to the globe and reads as a
+                  missing feature rather than an empty one. */}
+              {isSelf && (
                 <div className="mt-6 lg:mt-0">
                   <ChatsPanel chats={data.chats} />
                 </div>
@@ -358,7 +372,7 @@ export default function HomeShell({
               pins={pins}
               isSelf={isSelf}
             />
-            {isSelf && data.chats.length > 0 && (
+            {isSelf && (
               <div className="mt-6 lg:mt-0">
                 <ChatsPanel chats={data.chats} />
               </div>
@@ -446,7 +460,7 @@ function FeaturedCard({ trip, pill }: { trip: HomeTrip; pill: string | null }) {
   return (
     <Link
       href={`/app/trips/${trip.id}`}
-      className="group relative block aspect-[3/2] overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 sm:aspect-[16/9] lg:aspect-auto lg:h-[338px]"
+      className="group relative block aspect-[3/2] overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 sm:aspect-[16/9] lg:aspect-auto lg:h-[392px]"
     >
       <CardCover trip={trip} sizes="(max-width: 1024px) 100vw, 296px" />
 

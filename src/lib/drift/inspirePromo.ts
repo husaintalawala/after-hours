@@ -94,8 +94,12 @@ export interface DaybreakGuide extends InspirePromoCard {
   backdrop: Plate
 }
 
-/** How many cards the deck draws. The rest of the corpus is behind "see all". */
-const DECK_SIZE = 5
+/** How many cards the deck draws. The rest of the corpus is behind "see all".
+ *
+ *  Was 5, which is a phone rail's worth: at that size a 1760px laptop grid drew
+ *  five covers out of ninety and left half the row empty. Eight fills the wide
+ *  grid and still fits the phone, where the rail scrolls and always did. */
+const DECK_SIZE = 8
 
 // Photo widths, negotiated with the photo's OWN host (see photoAt) — these are
 // Wikimedia and Unsplash URLs and must never touch our optimizer.

@@ -62,7 +62,7 @@ export default function PassportPanel({
               first line ran out over the globe's faded edge — still legible,
               but type over imagery it did not need to be over. Two thirds of
               the card leaves the illustration its own third at every width. */}
-          <p className="mt-1.5 max-w-[64%] text-[12.5px] leading-snug text-aurora-ink2 sm:max-w-[58%] lg:max-w-[46%] lg:text-[13px]">
+          <p className="mt-1.5 max-w-[64%] text-[12.5px] leading-snug text-aurora-ink2 sm:max-w-[58%] lg:max-w-[42%] lg:text-[13px] xl:max-w-[38%]">
             {line}
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function PassportPanel({
               as an empty planet; "1 of 195" reads as a start. Same fact, and
               the second one is the true framing of it. Laptop only, where the
               panel has the height to spare. */}
-          <div className="mt-4 hidden max-w-[46%] lg:block">
+          <div className="mt-4 hidden max-w-[42%] lg:block xl:max-w-[38%]">
             <div className="h-1 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-aurora-teal to-aurora-teal-end"
@@ -116,7 +116,7 @@ export default function PassportPanel({
           an illustration rather than a second window. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-5 top-1/2 h-[190px] w-[190px] -translate-y-1/2 opacity-90 [&_.mapboxgl-ctrl-group]:hidden [&_.mapboxgl-ctrl]:hidden sm:-right-2 sm:h-[210px] sm:w-[210px] lg:-right-8 lg:h-[330px] lg:w-[330px]"
+        className="pointer-events-none absolute -right-5 top-1/2 h-[190px] w-[190px] -translate-y-1/2 opacity-90 [&_.mapboxgl-ctrl-group]:hidden [&_.mapboxgl-ctrl]:hidden sm:-right-2 sm:h-[210px] sm:w-[210px] lg:-right-6 lg:h-[380px] lg:w-[380px] xl:-right-2 xl:h-[500px] xl:w-[500px]"
         style={{
           maskImage: "radial-gradient(circle at 62% 50%, #000 42%, rgba(0,0,0,0.55) 66%, transparent 82%)",
           WebkitMaskImage:

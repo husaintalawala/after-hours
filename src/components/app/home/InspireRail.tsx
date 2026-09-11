@@ -29,8 +29,8 @@ export default function InspireRail({ promo }: { promo: InspirePromo }) {
       {/* Six across on a laptop rather than three-and-a-half behind a hidden
           scrollbar. Ninety guides is the largest thing this account has; a rail
           shows it the least. */}
-      <RailOrGrid>
-        {cards.slice(0, 6).map((c) => (
+      <RailOrGrid cols="lg:grid-cols-6 xl:grid-cols-8">
+        {cards.slice(0, 8).map((c) => (
           <InspireCard key={c.tripId} card={c} />
         ))}
       </RailOrGrid>
@@ -43,7 +43,7 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
     <Link
       href={card.href}
       aria-label={card.aria}
-      className="group relative block h-[218px] w-[164px] shrink-0 overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 lg:h-[262px] lg:w-auto"
+      className="group relative block h-[218px] w-[164px] shrink-0 overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 lg:h-[288px] lg:w-auto"
     >
       {/* showCredit={false} and the chip re-hung at the TOP, because
           CoverCredit's own "corner" placement is `absolute bottom-1.5
@@ -52,7 +52,7 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
           The attribution cannot be the thing that moves off (Wikimedia's CC
           BY-SA and Unsplash's terms both bind it to the display), so the button
           keeps the bottom and the credit takes the top corner. */}
-      <TripCoverImg cover={card.cover} sizes="(max-width: 1024px) 164px, 200px" showCredit={false} />
+      <TripCoverImg cover={card.cover} sizes="(max-width: 1024px) 164px, (max-width: 1280px) 220px, 190px" showCredit={false} />
       {card.cover.credit && (
         <div className="absolute right-2 top-2 z-10 [&>*]:mt-0">
           <CoverCredit

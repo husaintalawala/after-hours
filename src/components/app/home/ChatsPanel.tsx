@@ -10,13 +10,17 @@ import type { HomeChat } from "@/components/app/home/HomeShell"
  * this panel has no composer of its own: the bar starts something, this
  * resumes something. Two inputs for one job is how you get two half-used ones.
  *
- * Renders nothing at all when there are no threads. An empty titled box with
- * "no chats yet" under it is the dead band this layout exists to remove — and
- * the account that has no chats is exactly the account being invited to start
- * one, by the bar directly above.
+ * IT DOES NOT SELF-REMOVE, and the first cut of this was wrong to. The
+ * reasoning then was that an empty titled box is a dead band — true of a
+ * full-width band stacked under others, and false here. This is one of three
+ * columns in a fixed row, so rendering nothing leaves a 380px hole beside the
+ * globe and the answer to "where is chat?" becomes "it looks broken". An
+ * account with no threads is also exactly the account that has never found the
+ * feature, so the empty state is the only version of this panel it will ever
+ * see: it gets a sentence and a way in, not a blank.
  */
 export default function ChatsPanel({ chats }: { chats: HomeChat[] }) {
-  if (chats.length === 0) return null
+  if (chats.length === 0) return <EmptyChats />
 
   return (
     <section className="flex flex-col overflow-hidden rounded-hero border border-aurora-border bg-aurora-glass lg:h-full">
@@ -88,6 +92,53 @@ export default function ChatsPanel({ chats }: { chats: HomeChat[] }) {
             )}
           </Link>
         ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The panel before there is anything in it.
+ *
+ * Holds the column so the cockpit stays three across, and spends the space on
+ * the one thing worth saying to somebody who has never opened Chats: what it
+ * is for, in the app's own examples rather than a feature description.
+ */
+function EmptyChats() {
+  return (
+    <section className="flex flex-col overflow-hidden rounded-hero border border-aurora-border bg-aurora-glass lg:h-full">
+      <header className="flex items-baseline gap-2.5 px-5 pb-3 pt-5">
+        <h2 className="font-drift-display text-[18px] font-bold tracking-[-0.02em] text-aurora-ink">
+          Chats
+        </h2>
+        <Link
+          href="/app/chats"
+          className="ml-auto text-[12.5px] font-semibold text-aurora-teal outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+        >
+          Open →
+        </Link>
+      </header>
+
+      <div className="flex flex-1 flex-col justify-center gap-3 border-t border-aurora-border px-5 py-5">
+        <p className="text-[13px] leading-relaxed text-aurora-ink2">
+          Ask Drift anything about a trip and the thread stays here — it already
+          knows your dates and your stops.
+        </p>
+        <div className="flex flex-col gap-2">
+          {[
+            "What's open on a Monday?",
+            "Add a rest day before Samarkand",
+            "Somewhere warm in March",
+          ].map((q) => (
+            <Link
+              key={q}
+              href={`/app/chats?ask=${encodeURIComponent(q)}`}
+              className="truncate rounded-xl border border-aurora-border bg-aurora-glass2 px-3 py-2 font-drift-display text-[13px] font-light italic text-aurora-ink2 outline-none transition-colors hover:border-aurora-teal/40 hover:text-aurora-ink focus-visible:ring-2 focus-visible:ring-aurora-teal/40"
+            >
+              {q}
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )
