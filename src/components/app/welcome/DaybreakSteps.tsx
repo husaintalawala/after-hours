@@ -362,8 +362,16 @@ export function OriginStep({
         subtitle="So we can measure how far you've gone — and stop asking where you're flying out of."
       />
 
+      {/* A BARE FIELD, like iOS, but still a form.
+          The visible "Search" button offered a second way to ask a question the
+          field was already answering as you typed, and made a type-ahead read
+          as submit-driven. It is gone.
+          The <form> is not: submitting is how a two-letter city name gets past
+          the three-character type-ahead gate, so Enter still asks whatever was
+          typed. The spinner moves onto the field's own edge, where it describes
+          the thing that is actually working. */}
       <form
-        className="mt-4 flex gap-2"
+        className="relative mt-4"
         onSubmit={(e) => {
           e.preventDefault()
           onSearch()
@@ -376,15 +384,15 @@ export function OriginStep({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          className="min-w-0 flex-1 rounded-[18px] border border-aurora-border bg-aurora-glass px-3.5 py-3.5 text-[16px] text-aurora-ink outline-none placeholder:text-aurora-ink3 focus:border-aurora-teal"
+          enterKeyHint="search"
+          className="w-full rounded-[18px] border border-aurora-border bg-aurora-glass px-3.5 py-3.5 pr-11 text-[16px] text-aurora-ink outline-none placeholder:text-aurora-ink3 focus:border-aurora-teal"
         />
-        <button
-          type="submit"
-          disabled={searching || !query.trim()}
-          className="shrink-0 rounded-[18px] border border-aurora-border bg-aurora-glass px-4 text-[13.5px] font-semibold text-aurora-ink2 disabled:opacity-45"
-        >
-          {searching ? "…" : "Search"}
-        </button>
+        {searching && (
+          <span
+            aria-hidden
+            className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-[1.5px] border-white/25 border-t-aurora-teal"
+          />
+        )}
       </form>
 
       {/* Filled as you type — DaybreakFlow debounces the lookup and drops
@@ -1152,6 +1160,8 @@ export function BuildStep({
   stage,
   failed,
   inviteUrl,
+  inviteError,
+  invitePending,
   copied,
   onShareInvite,
   onOpen,
@@ -1163,6 +1173,10 @@ export function BuildStep({
   stage: number
   failed: string | null
   inviteUrl: string | null
+  /** Set when the mint failed — the panel says so rather than never appearing. */
+  inviteError: string | null
+  /** The traveller asked to bring somebody and the link is still in flight. */
+  invitePending: boolean
   copied: boolean
   onShareInvite: () => void
   onOpen: () => void
@@ -1215,20 +1229,49 @@ export function BuildStep({
       )}
 
       {/* The link only exists once the trip does, which is why it lands here
-          rather than on the screen that asked for it. */}
-      {!failed && inviteUrl && (
+          rather than on the screen that asked for it.
+
+          THE PANEL APPEARS THE MOMENT IT WAS ASKED FOR, not the moment it
+          arrives. It used to render only on a truthy `inviteUrl`, so between
+          "Open my trip" going live and the token landing there was nothing on
+          screen to say a link was coming — and if the mint failed there never
+          would be, silently. Three states now, and all three are visible. */}
+      {!failed && (invitePending || inviteUrl || inviteError) && (
         <Panel className="mt-3 p-[13px]">
           <p className="text-[9.5px] font-bold tracking-[0.11em] text-aurora-ink3">
             YOUR INVITE LINK
           </p>
-          <p className="mt-1 truncate text-[12.5px] text-aurora-ink2">{inviteUrl}</p>
-          <button
-            type="button"
-            onClick={onShareInvite}
-            className="mt-2 rounded-full border border-aurora-border px-3.5 py-1.5 text-[12.5px] font-semibold text-aurora-teal"
-          >
-            {copied ? "Copied" : "Share it"}
-          </button>
+
+          {inviteUrl ? (
+            <>
+              {/* Selectable, and a real link: the button is the fast path, but
+                  a URL you cannot select is one you cannot use when the
+                  clipboard is refused. */}
+              <a
+                href={inviteUrl}
+                className="mt-1 block truncate text-[12.5px] text-aurora-ink2 underline decoration-white/20 underline-offset-2"
+              >
+                {inviteUrl}
+              </a>
+              <button
+                type="button"
+                onClick={onShareInvite}
+                className="mt-2 rounded-full border border-aurora-border px-3.5 py-1.5 text-[12.5px] font-semibold text-aurora-teal"
+              >
+                {copied ? "Copied" : "Share it"}
+              </button>
+            </>
+          ) : inviteError ? (
+            <p className="mt-1 text-[12.5px] leading-snug text-aurora-warn">{inviteError}</p>
+          ) : (
+            <p className="mt-1 flex items-center gap-2 text-[12.5px] text-aurora-ink3">
+              <span
+                aria-hidden
+                className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-white/25 border-t-aurora-teal"
+              />
+              Making your link…
+            </p>
+          )}
         </Panel>
       )}
 

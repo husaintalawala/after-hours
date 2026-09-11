@@ -1,3 +1,4 @@
+import { deriveProfileIdentity } from "@/lib/drift/handleDerivation"
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import type { Database } from "@/lib/database.types"
@@ -80,12 +81,26 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
     return NextResponse.redirect(
       `${origin}/app/login?error=${encodeURIComponent(error.message)}`
     )
   }
+
+  // Name the account from the identity it just signed in with, before anything
+  // renders. iOS does this at launch (HandleDerivation.assign) and the first-run
+  // flow depends on it — without it the "Is this you?" card asks a brand-new
+  // Google user to confirm "Traveler" and "@drift", and agreeing writes nothing,
+  // so the row keeps username = null for the life of the account.
+  //
+  // Awaited rather than fired off, because the very next thing that happens is
+  // the welcome page reading that row. It no-ops in a millisecond once a
+  // username exists, which is every sign-in after the first, and it fails
+  // closed — a derivation that cannot run must never block a sign-in.
+  const uid = data?.user?.id
+  if (uid) await deriveProfileIdentity(supabase, uid)
+
   return response
 }
 

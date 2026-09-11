@@ -1,4 +1,5 @@
 import { cookies } from "next/headers"
+import { deriveProfileIdentity } from "@/lib/drift/handleDerivation"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { buildDaybreakShelf } from "@/lib/drift/inspirePromo"
@@ -52,6 +53,14 @@ export default async function WelcomePage({
   // written all three and only the label was ever read back — the coordinates
   // are what puts "2,900 km away" on a guide card for someone who answered
   // this question on a previous visit.
+  // BEFORE the row is read, not after. The callback derives a name for anyone
+  // signing in fresh, but this route is also reachable by an account created
+  // before that existed and by the email-confirm path, which does not pass
+  // through the callback at all. It returns in a millisecond once a username is
+  // set, so the common case pays a single indexed lookup for the guarantee that
+  // this screen never asks somebody to confirm "Traveler" and "@drift".
+  await deriveProfileIdentity(supabase, user.id)
+
   const [profileRes, guides] = await Promise.all([
     supabase
       .from("profiles")

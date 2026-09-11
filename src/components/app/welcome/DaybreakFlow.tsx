@@ -185,6 +185,8 @@ export default function DaybreakFlow({
   const [buildError, setBuildError] = useState<string | null>(null)
   const [landedTripId, setLandedTripId] = useState<string | null>(null)
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
+  /** Null while it is coming or has arrived; a sentence when the mint failed. */
+  const [inviteError, setInviteError] = useState<string | null>(null)
   const [copiedInvite, setCopiedInvite] = useState(false)
   const tickers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -300,6 +302,9 @@ export default function DaybreakFlow({
         return
       }
       setBuildError(null)
+      // A retry re-asks for the link, so last attempt's failure must not
+      // outlive it on screen.
+      setInviteError(null)
       setBuildStage(0)
       tickers.current.forEach(clearTimeout)
       // Paced, not measured — copy-trip is ONE call that returns when the whole
@@ -366,6 +371,14 @@ export default function DaybreakFlow({
           if (token) {
             capture(AnalyticsEvent.InviteLinkCreated)
             setInviteUrl(`${PUBLIC_ORIGIN}/join/${token}`)
+          } else {
+            // SAYS SO. mintInvite swallows every RPC error and returns null, and
+            // this branch used not to exist — so a traveller who asked to bring
+            // somebody watched the trip land with no link and nothing to explain
+            // it, and no way to tell "still coming" from "never coming". iOS
+            // raises an alert here; this is the same sentence in the panel that
+            // would have held the link.
+            setInviteError("Couldn't create an invite link — check your connection and try again.")
           }
         }
       } catch {
@@ -632,7 +645,14 @@ export default function DaybreakFlow({
 
   async function shareInvite() {
     if (!inviteUrl) return
-    const text = "Come travel with me — here's the plan:"
+    // NAMES THE TRIP. iOS builds "Come with me to {title} — here's the plan:"
+    // and keeps the generic line only for a title that has not loaded; web
+    // hardcoded the fallback, so the recipient was invited somewhere unnamed
+    // while the title sat two lines above on the sender's own screen.
+    const title = guides.find((g) => g.tripId === chosenTripId)?.title?.trim()
+    const text = title
+      ? `Come with me to ${title} — here's the plan:`
+      : "Come travel with me — here's the plan:"
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ text, url: inviteUrl })
@@ -826,6 +846,9 @@ export default function DaybreakFlow({
             stage={buildStage}
             failed={buildError}
             inviteUrl={inviteUrl}
+            inviteError={inviteError}
+            // Asked for, and not yet answered either way.
+            invitePending={wantsToInvite && !inviteUrl && !inviteError}
             copied={copiedInvite}
             onShareInvite={() => void shareInvite()}
             onOpen={() => finish(landedTripId)}
