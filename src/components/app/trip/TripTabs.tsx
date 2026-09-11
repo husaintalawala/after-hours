@@ -446,7 +446,9 @@ export default function TripTabs({
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
                   {tripMeta.title} {tripMeta.flag ?? ""} · {dest.dateRange}
                 </p>
-                <h1 className="mt-0.5 font-drift-display text-[36px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] md:text-[50px]">
+                {/* Same correction as the trip hero, one step down: this is the
+                    destination inside a trip, so it stays below its parent. */}
+                <h1 className="mt-0.5 font-drift-display text-[28px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[33px] md:text-[50px]">
                   {dest.label}
                 </h1>
                 <p className="mt-1 text-[14px] text-white/90">
@@ -553,7 +555,13 @@ export default function TripTabs({
               </div>
             </div>
             <div>
-              <h1 className="font-drift-display text-[40px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] md:text-[54px]">
+              {/* 30px on the phone, not 40. The 40/54 pair was a desktop design
+                  with one breakpoint bolted on: at 375px "Barcelona 🇪🇸" already
+                  ran the full width, and any longer title ("San Francisco Bay
+                  Area") wrapped to three crowded lines over the photo. 30px is
+                  the home greeting's scale — the one phone hero size the redesign
+                  settled on — and the laptop size is untouched. */}
+              <h1 className="font-drift-display text-[30px] font-semibold leading-[1.02] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.35)] sm:text-[36px] md:text-[54px]">
                 {tripMeta.title} {tripMeta.flag ?? ""}
               </h1>
               <p className="mt-1.5 text-[15px] text-white/90">{tripMeta.dateRange}</p>
@@ -673,11 +681,16 @@ export default function TripTabs({
             {!inDest ? (
               /* -------- Your stops (trip level) -------- */
               <div>
+                {/* A SECTION HEADER, sized like one. At 26px this was as large
+                    as the home screen's hero greeting, so a mere label for the
+                    list below it outshouted the page title above it. These are
+                    HomeSection's numbers verbatim, because "Your stops" and
+                    "Your trips" are the same thing on two screens. */}
                 <div className="flex items-baseline gap-2.5">
-                  <h2 className="font-drift-display text-[26px] font-semibold tracking-tight">
+                  <h2 className="font-drift-display text-[19px] font-semibold tracking-tight sm:text-[21px] lg:text-[24px]">
                     Your stops
                   </h2>
-                  <span className="text-[17px] font-semibold text-drift-text-tertiary">
+                  <span className="text-[14px] font-semibold text-drift-text-tertiary sm:text-[15px]">
                     {destinations.length}
                   </span>
                 </div>
