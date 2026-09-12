@@ -74,7 +74,19 @@ export async function GET(request: Request) {
         .order("created_at", { ascending: true })
         .limit(1)
         .returns<Array<{ url: string }>>(),
-      supabase.from("trip_buddies").select("id").eq("trip_id", trip.id),
+      // `user_id`, not `id` — trip_buddies has no id column (its key is
+      // trip_id + user_id), so asking for one is a 400 that fails the whole
+      // query. `buddyRaw` came back null, and the traveler-count fallback
+      // below reads `buddyRaw?.length ?? 0`, so every group trip without
+      // recorded traveler counts has been exporting its PDF as 1 traveler.
+      //
+      // Filtered to accepted, matching trips/[id]/page.tsx: a pending invite
+      // is not somebody on the trip, and there are pending rows in production.
+      supabase
+        .from("trip_buddies")
+        .select("user_id")
+        .eq("trip_id", trip.id)
+        .eq("status", "accepted"),
     ])
 
   const steps = (stepsRaw ?? []) as StepRow[]
