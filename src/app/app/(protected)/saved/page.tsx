@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import Loading from "./loading"
 import { createClient } from "@/lib/supabase/server"
 import { readSavedGuideIds } from "@/lib/drift/savedGuides"
 import { buildSavedGuides } from "@/lib/drift/inspirePromo"
@@ -18,7 +20,11 @@ import SavedShell from "@/components/app/saved/SavedShell"
 
 export const metadata = { title: "Saved · Drift" }
 
-export default async function SavedPage() {
+export default function SavedPage() {
+  return <Suspense fallback={<Loading />}><SavedContent /></Suspense>
+}
+
+async function SavedContent() {
   const supabase = await createClient()
   // Middleware already verified this request's user; the cookie read is enough,
   // the same as the home.
@@ -28,9 +34,11 @@ export default async function SavedPage() {
   if (!session?.user) return null
 
   const ids = await readSavedGuideIds(supabase)
+  if (ids === null) throw new Error("Saved guides unavailable")
   // Newest saved first — `readSavedGuideIds` orders by created_at desc and
   // buildSavedGuides preserves that rather than reimposing the curated rank.
   const cards = await buildSavedGuides(supabase, ids)
+  if (cards === null) throw new Error("Saved guide shelf unavailable")
 
   // `ids.length`, not `cards.length`: a guide that has been de-listed since it
   // was saved drops out of `cards` and the difference is what the empty state

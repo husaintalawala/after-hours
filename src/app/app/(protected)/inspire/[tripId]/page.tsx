@@ -111,7 +111,7 @@ export default async function InspirePatternPage({
     <PatternView
       pattern={pattern}
       months={months}
-      saved={savedIds.includes(pattern.tripId)}
+      saved={savedIds === null ? null : savedIds.includes(pattern.tripId)}
     />
   )
 }

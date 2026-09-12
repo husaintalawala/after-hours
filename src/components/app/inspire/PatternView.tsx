@@ -71,7 +71,7 @@ export default function PatternView({
   pattern: InspirePattern
   months: YearMonth[]
   /** Whether this account has hearted this guide, read on the server. */
-  saved?: boolean
+  saved?: boolean | null
 }) {
   // The tailor is a state of this screen, not a route: the pattern is what you
   // are altering, and going "back" from the alteration must return you to it
@@ -79,6 +79,7 @@ export default function PatternView({
   const [tailoring, setTailoring] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const [saved, setSaved] = useState(initiallySaved)
+  const savePending = useRef(false)
   const [shareNote, setShareNote] = useState<string | null>(null)
   const mapRef = useRef<HTMLDivElement>(null)
   const s = pattern.snapshot
@@ -205,12 +206,22 @@ export default function PatternView({
   /// before filling the heart makes every click feel broken on a slow
   /// connection; showing a failed write as success is worse than either.
   async function onToggleSave() {
+    if (saved === null) {
+      note("Couldn't load saved status. Reload to try again.")
+      return
+    }
+    if (savePending.current) return
+    savePending.current = true
     const next = !saved
     setSaved(next)
-    const ok = await toggleSavedGuide(createClient(), pattern.tripId, next)
-    if (!ok) {
+    try {
+      const ok = await toggleSavedGuide(createClient(), pattern.tripId, next)
+      if (!ok) throw new Error("Save failed")
+    } catch {
       setSaved(!next)
-      note("Couldn't save that just now")
+      note("Couldn't update that just now")
+    } finally {
+      savePending.current = false
     }
   }
 
@@ -266,8 +277,8 @@ export default function PatternView({
               </RoundButton>
             )}
             <RoundButton
-              label={saved ? "Saved — tap to remove" : "Save this trip"}
-              pressed={saved}
+              label={saved === null ? "Saved status unavailable — reload to retry" : saved ? "Saved — tap to remove" : "Save this trip"}
+              pressed={saved ?? undefined}
               onClick={onToggleSave}
             >
               <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

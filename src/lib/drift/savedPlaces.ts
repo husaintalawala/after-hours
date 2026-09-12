@@ -26,7 +26,8 @@ import type { DiscoverAnchor, DiscoverResult } from "@/lib/drift/discover"
 
 /** One shared set for the whole page. */
 let cache: Set<string> | null = null
-let inflight: Promise<Set<string>> | null = null
+let inflight: Promise<Set<string> | null> | null = null
+const pendingWrites = new Set<string>()
 const listeners = new Set<() => void>()
 
 function emit() {
@@ -49,8 +50,9 @@ async function loadIds(): Promise<Set<string> | null> {
   const db = createClient()
   const {
     data: { user },
+    error: authError,
   } = await db.auth.getUser()
-  if (!user) return new Set()
+  if (authError || !user) return null
 
   const { data, error } = await db
     .from("saved_places")
@@ -61,6 +63,20 @@ async function loadIds(): Promise<Set<string> | null> {
   return new Set(
     (data ?? []).map((r) => r.place_id).filter((id): id is string => !!id)
   )
+}
+
+/** All consumers share the read; a rejected request must release it for retry. */
+function ensureLoaded(): Promise<Set<string> | null> {
+  if (cache) return Promise.resolve(cache)
+  if (!inflight) {
+    inflight = loadIds().catch(() => null).then((ids) => {
+      if (ids) cache = ids
+      inflight = null
+      emit()
+      return ids
+    })
+  }
+  return inflight
 }
 
 /**
@@ -130,15 +146,7 @@ export function useSavedPlaces() {
   useEffect(() => {
     const listener = () => bump((n) => n + 1)
     listeners.add(listener)
-    if (!cache && !inflight) {
-      inflight = loadIds().then((s) => {
-        // null = the read failed; leave the cache empty so a later mount retries.
-        if (s) cache = s
-        inflight = null
-        emit()
-        return s ?? new Set<string>()
-      })
-    }
+    void ensureLoaded()
     return () => {
       listeners.delete(listener)
     }
@@ -152,20 +160,29 @@ export function useSavedPlaces() {
       anchor: DiscoverAnchor | null,
       category: string
     ): Promise<boolean> => {
-      const was = cache?.has(place.id) ?? false
-      const next = !was
-      if (!cache) cache = new Set()
-      if (next) cache.add(place.id)
-      else cache.delete(place.id)
-      emit()
-
-      const ok = await write(place, anchor, category, next)
-      if (!ok) {
-        if (was) cache.add(place.id)
-        else cache.delete(place.id)
+      // Row and sheet can toggle the same place. Serialize their writes and
+      // finish the initial read before deriving the next state.
+      if (pendingWrites.has(place.id)) return false
+      pendingWrites.add(place.id)
+      try {
+        const ids = await ensureLoaded()
+        if (!ids) return false
+        const was = ids.has(place.id)
+        const next = !was
+        if (next) ids.add(place.id)
+        else ids.delete(place.id)
         emit()
+
+        const ok = await write(place, anchor, category, next).catch(() => false)
+        if (!ok) {
+          if (was) ids.add(place.id)
+          else ids.delete(place.id)
+          emit()
+        }
+        return ok
+      } finally {
+        pendingWrites.delete(place.id)
       }
-      return ok
     },
     []
   )

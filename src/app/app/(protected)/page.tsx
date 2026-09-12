@@ -105,8 +105,11 @@ async function Home({ userId, seenDaybreak }: { userId: string; seenDaybreak: bo
     buildInspirePromo(supabase),
     readSavedGuideIds(supabase),
   ])
-  const savedGuides = savedIds.length
-    ? { cards: (await buildSavedGuides(supabase, savedIds)).slice(0, 8), total: savedIds.length }
+  const savedCards = savedIds?.length
+    ? await buildSavedGuides(supabase, savedIds).catch(() => null)
+    : null
+  const savedGuides = savedIds && savedCards
+    ? { cards: savedCards.slice(0, 8), total: savedIds.length }
     : null
 
   const empty = !data.featured && data.others.length === 0

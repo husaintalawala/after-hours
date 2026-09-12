@@ -22,20 +22,25 @@ interface SavedRow {
   trip_id: string
 }
 
-/** The guide ids this account has kept, newest save first. */
-export async function readSavedGuideIds(db: SupabaseClient): Promise<string[]> {
-  const {
-    data: { user },
-  } = await db.auth.getUser()
-  if (!user) return []
+/** Newest save first. null means unavailable, never an empty collection. */
+export async function readSavedGuideIds(db: SupabaseClient): Promise<string[] | null> {
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await db.auth.getUser()
+    if (authError || !user) return null
 
-  const { data, error } = await db
-    .from("saved_guides" as never)
-    .select("trip_id")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-  if (error) return []
-  return ((data ?? []) as unknown as SavedRow[]).map((r) => r.trip_id)
+    const { data, error } = await db
+      .from("saved_guides" as never)
+      .select("trip_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+    if (error) return null
+    return ((data ?? []) as unknown as SavedRow[]).map((r) => r.trip_id)
+  } catch {
+    return null
+  }
 }
 
 /**

@@ -499,7 +499,7 @@ async function readShelf(
   if (rows.length > 0 && sources.length === 0) {
     console.error(`[${label}] every inspire shelf row failed to decode`, { rows: rows.length })
   }
-  if (!sources.length) return null
+  if (!sources.length) return rows.length > 0 ? null : []
   // Only a real answer is kept — see the note on SHELF_TTL_MS.
   shelfMemo = { at: Date.now(), sources }
   return sources
@@ -510,7 +510,7 @@ export async function buildInspirePromo(
   supabase: SupabaseClient
 ): Promise<InspirePromo | null> {
   const sources = await readShelf(supabase, "home")
-  if (!sources) return null
+  if (!sources?.length) return null
 
   const [hero, ...rest] = sources
   return {
@@ -552,10 +552,10 @@ export async function buildSavedGuides(
   supabase: SupabaseClient,
   ids: string[],
   width: number = TILE_W
-): Promise<InspirePromoCard[]> {
+): Promise<InspirePromoCard[] | null> {
   if (ids.length === 0) return []
   const sources = await readShelf(supabase, "saved")
-  if (!sources) return []
+  if (!sources) return null
   const byId = new Map(sources.map((s) => [s.tripId, s]))
   return ids.flatMap((id) => {
     const src = byId.get(id)
