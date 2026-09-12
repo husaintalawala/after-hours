@@ -58,6 +58,7 @@ export default function TripChat({
   prefill,
   onPrefillConsumed,
   initialSend,
+  prompts,
 }: {
   tripId: string
   tripTitle: string
@@ -74,6 +75,10 @@ export default function TripChat({
   onPrefillConsumed?: () => void
   /** When set, auto-sends this message once on mount (docked-composer handoff). */
   initialSend?: string | null
+  /** Questions written for THIS reader, from `homeChatPrompts`. Rendered in the
+   *  empty state; tapping one sends it. Empty or absent falls back to the line
+   *  this used to show and nothing is lost. */
+  prompts?: string[]
 }) {
   const router = useRouter()
   // start_chat is a funnel step ("the user engaged Ask Drift"), so it fires on
@@ -433,9 +438,34 @@ export default function TripChat({
         }
       >
         {messages.length === 0 && streaming === null && (
-          <p className="text-sm text-drift-text-tertiary">
-            Ask about the trip, or add a place to a day.
-          </p>
+          /* THE PHONE SAW NO PROMPTS AT ALL. homeChatPrompts has existed and
+             been written from the reader's own trip and preferences, but both
+             of its render sites are `hidden lg:block` — so on a phone, where
+             the only way in is a bare /app/chats, this screen offered one grey
+             sentence. These are the same questions the desktop home offers, in
+             the place a phone actually reaches.
+
+             `send(q)` directly, not a router.push with `?ask=` — that would put
+             an SSR query wave between the tap and the answer for a message this
+             component can already deliver. */
+          <div className="space-y-3">
+            <p className="text-sm text-drift-text-tertiary">
+              Ask about the trip, or add a place to a day.
+            </p>
+            {prompts && prompts.length > 0 && (
+              <div className="flex flex-col items-start gap-2">
+                {prompts.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => void send(q)}
+                    className="rounded-2xl border border-aurora-border bg-aurora-glass px-3.5 py-2.5 text-left text-[13.5px] leading-snug text-drift-ink transition-colors hover:border-aurora-teal/50 hover:bg-aurora-glass2"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {messages.map((m) => (

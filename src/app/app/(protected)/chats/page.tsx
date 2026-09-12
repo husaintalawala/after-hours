@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import Skeleton from "./loading"
 import { createClient } from "@/lib/supabase/server"
+import { homeChatPrompts } from "@/lib/drift/homePrompts"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import { tripCover } from "@/lib/drift/tripCover"
@@ -63,7 +64,13 @@ async function ChatsContent({ ask }: { ask?: string }) {
   const user = session?.user
   if (!user) return null
 
-  const [{ data: sessionsRaw }, { data: profile }, { data: tripsRaw }, { data: buddyRows }] =
+  const [
+    { data: sessionsRaw },
+    { data: profile },
+    { data: tripsRaw },
+    { data: buddyRows },
+    { data: prefsRow },
+  ] =
     await Promise.all([
       // Exclude merged-away duplicate threads (see chat_session_merge_backup).
       supabase.from("chat_sessions")
@@ -75,9 +82,15 @@ async function ChatsContent({ ask }: { ask?: string }) {
         .limit(100),
       supabase
         .from("profiles")
-        .select("display_name,username,avatar_url")
+        // home_city rides along for the chat prompts — this select already runs.
+        .select("display_name,username,avatar_url,home_city")
         .eq("id", user.id)
-        .maybeSingle<{ display_name: string | null; username: string | null; avatar_url: string | null }>(),
+        .maybeSingle<{
+          display_name: string | null
+          username: string | null
+          avatar_url: string | null
+          home_city: string | null
+        }>(),
       supabase.from("trips").select("*").eq("user_id", user.id).returns<TripRow[]>(),
       supabase
         .from("trip_buddies")
@@ -85,6 +98,21 @@ async function ChatsContent({ ask }: { ask?: string }) {
         .eq("user_id", user.id)
         .eq("status", "accepted")
         .returns<{ trip_id: string }[]>(),
+      // The five first-run answers. IN THE EXISTING WAVE, not after it: this
+      // page is already a server component running four queries in parallel, so
+      // a fifth costs no latency — which is the whole reason the prompts are
+      // computed here rather than in the browser the way iOS has to.
+      supabase
+        .from("user_travel_preferences")
+        .select("travel_rhythm,budget_style,mobility_style,food_moods,priorities")
+        .eq("user_id", user.id)
+        .maybeSingle<{
+          travel_rhythm: string | null
+          budget_style: string | null
+          mobility_style: string | null
+          food_moods: string[] | null
+          priorities: string[] | null
+        }>(),
     ])
   const sessions = (sessionsRaw ?? []) as SessionRow[]
 
@@ -183,6 +211,56 @@ async function ChatsContent({ ask }: { ask?: string }) {
   }))
   const tripVMById = new Map(tripVMs.map((t) => [t.id, t]))
 
+  // The questions this reader is offered when a thread is empty.
+  //
+  // SAME GENERATOR AS THE HOME — homePrompts.ts, not a second set of rules. The
+  // home's are computed inside buildHomeData, which this page does not call, so
+  // the featured trip is picked here on the same basis homeData uses: today
+  // inside [start, end] first, then the soonest start ahead, then the most
+  // recent behind. Date-only string compares, because these are stored at UTC
+  // midnight and a local parse west of Greenwich lands on the previous day.
+  const today = new Date().toISOString().slice(0, 10)
+  const promptTrip = [...trips]
+    .sort((a, b) => {
+      const rank = (t: TripRow) => {
+        const s0 = t.start_date?.slice(0, 10) ?? ""
+        const e0 = (t.end_date ?? t.start_date)?.slice(0, 10) ?? ""
+        if (s0 && e0 && s0 <= today && today <= e0) return 0
+        return s0 > today ? 1 : 2
+      }
+      const ra = rank(a)
+      const rb = rank(b)
+      if (ra !== rb) return ra - rb
+      const sa = a.start_date?.slice(0, 10) ?? ""
+      const sb = b.start_date?.slice(0, 10) ?? ""
+      return ra === 1 ? sa.localeCompare(sb) : sb.localeCompare(sa)
+    })[0]
+
+  const prompts = homeChatPrompts({
+    homeCity: profile?.home_city ?? null,
+    trip: promptTrip
+      ? {
+          title: promptTrip.title || "your trip",
+          city: promptTrip.cities?.[0] ?? null,
+          country: promptTrip.countries?.[0] ?? null,
+          startDate: promptTrip.start_date,
+          isActive:
+            !!promptTrip.start_date &&
+            promptTrip.start_date.slice(0, 10) <= today &&
+            (promptTrip.end_date ?? promptTrip.start_date)!.slice(0, 10) >= today,
+        }
+      : null,
+    prefs: prefsRow
+      ? {
+          travelRhythm: prefsRow.travel_rhythm,
+          budgetStyle: prefsRow.budget_style,
+          mobilityStyle: prefsRow.mobility_style,
+          foodMoods: prefsRow.food_moods ?? [],
+          priorities: prefsRow.priorities ?? [],
+        }
+      : null,
+  })
+
   const liveSessions = sessions
     // Drop orphaned trip chats whose trip no longer exists — otherwise they
     // render as stale duplicate rows by their old label (e.g. several "Türkiye"
@@ -245,7 +323,15 @@ async function ChatsContent({ ask }: { ask?: string }) {
     avatarUrl: profile?.avatar_url ?? null,
   }
 
-  return <ChatsShell sessions={sessionVMs} trips={tripVMs} me={me} initialAsk={ask ?? null} />
+  return (
+    <ChatsShell
+      sessions={sessionVMs}
+      trips={tripVMs}
+      me={me}
+      initialAsk={ask ?? null}
+      prompts={prompts}
+    />
+  )
 }
 
 function relativeTime(iso: string): string {

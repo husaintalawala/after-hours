@@ -51,6 +51,7 @@ export default function ChatsShell({
   trips,
   me,
   initialAsk = null,
+  prompts = [],
 }: {
   sessions: ChatSessionVM[]
   trips: TripPickVM[]
@@ -65,6 +66,9 @@ export default function ChatsShell({
    * picking a trip afterwards still finds the words waiting.
    */
   initialAsk?: string | null
+  /** Questions written for this reader (homePrompts.ts), shown when a thread is
+   *  empty. Tapping one sends it. */
+  prompts?: string[]
 }) {
   const firstTripSession = sessions.find((s) => s.kind === "trip" && s.tripId)
   const initial: Selection = firstTripSession
@@ -345,6 +349,7 @@ export default function ChatsShell({
             country={sel.trip.country}
             destinations={sel.trip.destinations}
             bare
+            prompts={prompts}
             // SENT, not typed. A question arriving as `?ask=` has already been
             // chosen — the reader tapped it on the home screen, or pressed send
             // in the composer there — so landing in a thread with it sitting

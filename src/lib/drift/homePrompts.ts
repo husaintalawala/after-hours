@@ -141,18 +141,29 @@ function idlePrompts(ctx: PromptContext): string[] {
     }
   }
 
-  // Their own first-pick shape, asked back to them.
-  const shape = (ctx.prefs?.priorities ?? [])[0]
-  const byShape: Record<string, string> = {
-    islands: "Plan me a week of coast and slow sun",
-    high: "Plan me a week of trails and big views",
-    stones: "Plan me a week of old towns and museums",
-    wild: "Plan me a week of parks and wildlife",
-    drive: "Plan me a road trip worth the drive",
-    eat: "Plan me a trip built around the food",
-    stay: "One base for a week — somewhere I can go deep",
+  // What they said they travel for, asked back to them.
+  //
+  // KEYED ON PRIORITIES, NOT SHAPES, and that is a fix rather than a rename.
+  // This map used to be keyed `islands | high | stones | wild | drive | eat |
+  // stay` — the trip SHAPES the first-run flow shows. Those are never stored:
+  // `prioritiesForShapes` in daybreak.ts folds them into a four-word vocabulary
+  // (eat→food, stones→history, wild→nature, high→nature+views, islands and
+  // drive→views) and only that reaches the column. The two sets are disjoint, so
+  // the lookup was always undefined and this prompt has never rendered for
+  // anybody.
+  //
+  // `priorities` arrives sorted, so `[0]` is alphabetical rather than a
+  // first pick — which is why these read as "what you travel for" rather than
+  // "your top answer".
+  const priority = (ctx.prefs?.priorities ?? [])[0]
+  const byPriority: Record<string, string> = {
+    food: "Plan me a trip built around the food",
+    history: "Plan me a week of old towns and museums",
+    nature: "Plan me a week of trails and open country",
+    views: "Plan me a week of coast, ridgelines and long views",
+    arts_culture: "Plan me a week of galleries, music and good rooms",
   }
-  if (shape && byShape[shape]) out.push(byShape[shape])
+  if (priority && byPriority[priority]) out.push(byPriority[priority])
 
   return out
 }
