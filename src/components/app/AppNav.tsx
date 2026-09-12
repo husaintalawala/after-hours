@@ -17,10 +17,17 @@ const icons = {
   discover: (
     <path d="M12 2l2.2 5.8L20 10l-5.8 2.2L12 18l-2.2-5.8L4 10l5.8-2.2L12 2z" />
   ),
-  // A folded map — a trip somebody already walked. Solid silhouette, because
-  // this dock's icons are filled rather than stroked.
+  // A STACK OF TRIPS, not a folded map — and the map is why this tab was
+  // reported missing. It has been in the dock the whole time; the glyph was a
+  // folded map, the dock carries no text labels, so the only thing naming the
+  // tab was an aria-label no sighted reader hears. "You / Discover / Map /
+  // Chat" is exactly what four icons and no words say, and Drift has a real
+  // full-screen map elsewhere, so the one icon in the dock that looks like one
+  // is the tab that is not it.
+  // Three sheets: the shelf of finished guides this tab actually opens. Solid
+  // silhouette, because this dock's icons are filled rather than stroked.
   inspire: (
-    <path d="M9 3.5L3 6v14.5l6-2.5 6 2.5 6-2.5V3.5l-6 2.5-6-2.5z" />
+    <path d="M12 2.5l9.5 5-9.5 5-9.5-5 9.5-5zM3.6 12.1l1.9-1 6.5 3.4 6.5-3.4 1.9 1L12 16.5 3.6 12.1zM3.6 16.4l1.9-1 6.5 3.4 6.5-3.4 1.9 1L12 20.8 3.6 16.4z" />
   ),
   chats: (
     <path d="M4 4h11a3 3 0 013 3v5a3 3 0 01-3 3H9l-4 3v-3H4a2 2 0 01-2-2V6a2 2 0 012-2z" />
