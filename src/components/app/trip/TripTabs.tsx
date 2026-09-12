@@ -408,7 +408,14 @@ export default function TripTabs({
       <div className="min-w-0">
         {/* ---------- Hero: destination (drill-in) or trip ---------- */}
       {inDest && dest ? (
-        <div className="relative mt-3 h-[240px] overflow-hidden rounded-[26px] shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:h-[300px] lg:mt-0">
+        /* FULL-BLEED ON A PHONE, like the trip cover it drills in from.
+           This was `mt-3 h-[240px] rounded-[26px]` at every width: an inset
+           card with the page's own 20pt gutter down both sides and dark padding
+           above it, so a photograph of Arusha was rendered in a letterbox while
+           the cover one tap above it ran edge to edge. Same negative margins
+           the trip hero uses, and the rounded card comes back at md+ where
+           there is a page margin for it to sit in. */
+        <div className="relative -mx-5 -mt-4 min-h-[240px] overflow-hidden shadow-[0_24px_60px_-24px_rgba(31,31,36,0.35)] md:mx-0 md:mt-3 md:min-h-[300px] md:rounded-[26px] lg:mt-0">
           {heroFor(dest) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={heroFor(dest)!} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
@@ -417,9 +424,23 @@ export default function TripTabs({
           )}
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
+            style={{ background: "linear-gradient(to top, rgba(12,10,9,.74) 0%, rgba(12,10,9,.34) 45%, rgba(12,10,9,.50) 100%)" }}
           />
-          <div className="absolute inset-0 flex flex-col justify-between p-5 md:p-7">
+          {/* Melts into the Aurora ground now that it is full-bleed, so there
+              is no hard edge where the photograph stops. Phone only — md+ keeps
+              its rounded card. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-24 md:hidden"
+            style={{ background: "linear-gradient(to bottom, rgba(8,19,29,0) 35%, #08131D 100%)" }}
+          />
+          {/* IN FLOW, not `absolute inset-0` over a fixed h-[240px]. The trip
+              hero was changed away from exactly this shape and its note says
+              why: content that cannot affect the height of its own box gets
+              clipped by it. Four things stack here — an ALL-CAPS breadcrumb
+              carrying the trip's title AND the date range, a 28px destination
+              name, "Tanzania · 1 night", and a scrolling row of day pills — and
+              on a 390px phone the breadcrumb alone wraps to two lines. */}
+          <div className="relative flex min-h-[240px] flex-col justify-between p-5 md:min-h-[300px] md:p-7">
             <div className="flex items-start justify-between gap-3">
               <button
                 onClick={() => setSelectedDestId(null)}
@@ -441,7 +462,13 @@ export default function TripTabs({
               </button>
               {segmented(true)}
             </div>
-            <div className="flex flex-wrap items-end justify-between gap-3">
+            {/* STACKED, not `justify-between` on one wrapping row. The pills and
+                the destination's name were siblings in a flex row, so at phone
+                width the pill rail sat beside "Arusha" and the two fought for
+                350 points; `flex-wrap` then dropped it to a second line only
+                sometimes, depending on how many days the stop has. Its own row,
+                always. */}
+            <div className="flex flex-col gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/75">
                   {tripMeta.title} {tripMeta.flag ?? ""} · {dest.dateRange}
