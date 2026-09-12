@@ -508,8 +508,14 @@ function FeaturedCard({ trip, pill }: { trip: HomeTrip; pill: string | null }) {
   )
 }
 
-/** A trip in the rail beside the featured one. */
-function RailTripCard({ trip }: { trip: HomeTrip }) {
+/** A trip in the rail beside the featured one.
+ *
+ *  EXPORTED for /app/trips, the archive behind this page's "All trips" link —
+ *  which, until that page existed, was a link to a 404. The archive lays the
+ *  same card out in a grid rather than a rail; copying it there would have left
+ *  two cards to keep in step, and this one already owns the cover chain, the
+ *  Travelling pill and the flag. */
+export function RailTripCard({ trip }: { trip: HomeTrip }) {
   const flag = countryFlagEmoji(trip.country)
   return (
     <Link
