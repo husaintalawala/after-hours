@@ -192,17 +192,31 @@ export default function HomeShell({
     return null
   })()
 
-  // WHERE "NEAR HERE" IS: where the reader LIVES, and only then their trip.
+  // WHERE "NEAR HERE" IS: where the reader is TODAY, then where they live.
   //
-  // It used to be the featured trip's city unconditionally, which put "near
-  // Tashkent" directly beneath a card that opens Tashkent — the rail repeated
-  // the thing above it, and was the weakest band on the page for exactly that
-  // reason. profiles.home_city has been collected by the first-run flow all
-  // along and is now carried in HomeData, so the rail can ask the one question
-  // nothing else here answers: what is near you tonight.
+  // THE TRIP IN PROGRESS COMES FIRST, and that reverses what this comment used
+  // to argue. The objection was real — anchoring on the featured trip put "near
+  // Tashkent" directly beneath a card that opens Tashkent, so the rail repeated
+  // the thing above it — and the answer was to lead with the stored home city.
+  // That held right up until somebody travelled, at which point a heading
+  // reading "Near New York" to a reader standing in Tokyo is not a duplicate,
+  // it is false.
   //
-  // The trip city stays as the fallback, because an account that has not set a
-  // home city should still get a rail rather than a hole.
+  // The duplication objection now has an answer rather than a workaround: the
+  // gate is `isActive`, not "has a trip". When the card above says "You are
+  // travelling", the rail underneath is answering what is around me TONIGHT,
+  // which is a different question from where am I going.
+  //
+  // `isActive` is date-derived — today inside [start, end], see homeData's
+  // `isNow` — deliberately not the stale trips.is_active flag. So this is free:
+  // no permission, no prompt, no new query, and it renders correctly on the
+  // server on first paint. It is the same tier-2 rule the phone uses, and the
+  // one that matters most in practice, because it works for a reader who has
+  // never granted location.
+  //
+  // A stored home city still wins over a trip that has not started, and the
+  // featured trip remains the floor, so an account with no home city set still
+  // gets a rail rather than a hole.
   //
   // Coordinates: home_lat/lng when the profile has them, otherwise the featured
   // trip's globe pin. Events need real coordinates and return [] without them,
@@ -211,7 +225,18 @@ export default function HomeShell({
   const featuredPin = data.featured
     ? (data.pins.find((p) => p.tripId === data.featured!.id) ?? null)
     : null
-  const discoverAnchor: DiscoverAnchor | null = data.home?.city || data.home?.country
+  const travellingNow =
+    data.featured?.isActive && (data.featured.city || data.featured.country)
+      ? data.featured
+      : null
+  const discoverAnchor: DiscoverAnchor | null = travellingNow
+    ? {
+        label: travellingNow.city ?? travellingNow.country ?? "",
+        country: travellingNow.country,
+        lat: featuredPin?.lat ?? null,
+        lng: featuredPin?.lng ?? null,
+      }
+    : data.home?.city || data.home?.country
     ? {
         label: data.home.city ?? data.home.country ?? "",
         country: data.home.country,
