@@ -29,9 +29,7 @@ export function Section({
    */
   hideTitleOnDesktop = false,
 }: {
-  /** A node, not just a string: the home's Discover rail makes its own
-   *  heading the place picker, so the title has to be able to be a control. */
-  title: ReactNode
+  title: string
   action?: string
   actionHref?: string
   meta?: string

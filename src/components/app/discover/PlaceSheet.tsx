@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import type { DiscoverAnchor, DiscoverResult } from "@/lib/drift/discover"
-import { useSavedPlaces } from "@/lib/drift/savedPlaces"
+import type { DiscoverResult } from "@/lib/drift/discover"
 import {
   fetchPlaceDetailsClient,
   placePhotoUrlClient,
@@ -21,18 +20,10 @@ export default function PlaceSheet({
   distanceLabel,
   onClose,
   onAdd,
-  saveAnchor = null,
-  saveCategory = "spot",
 }: {
   poi: DiscoverResult
   distanceLabel: string | null
   onClose: () => void
-  /** Where the reader was looking when they opened this, so a save records the
-   *  destination the phone's rows carry. Null where the caller has no anchor. */
-  saveAnchor?: DiscoverAnchor | null
-  /** The step-type a save is filed under (spot|food|activity|stay), matching
-   *  iOS's `category.stepType`. Defaults to the generic one. */
-  saveCategory?: string
   /** Omitted where there is no day to add to — the destination guide opens this
    *  sheet to READ a place, and an Add button with nowhere to put it is a lie. */
   onAdd?: () => void
@@ -101,11 +92,7 @@ export default function PlaceSheet({
   const scrim = Math.max(0, Math.min(0.55, 0.55 * (1 - (ty - offFull) / (offPeek - offFull))))
 
   // ----- resolved content (details override the card's fields when present) -----
-  // PERSISTED NOW. This was `useState(false)` with a click handler that only
-  // flipped it, so the heart filled and nothing was ever written — see
-  // lib/drift/savedPlaces.
-  const { isSaved, toggle } = useSavedPlaces()
-  const saved = isSaved(poi.id)
+  const [saved, setSaved] = useState(false)
   const photos = details?.photoNames?.length
     ? details.photoNames.map((n) => placePhotoUrlClient(n, 900))
     : poi.photo
@@ -171,11 +158,7 @@ export default function PlaceSheet({
         <path d="M12 2l4 8-4-2-4 2z" />
         <path d="M12 8v14" />
       </ActionBtn>
-      <ActionBtn
-        label={saved ? "Saved" : "Save"}
-        onClick={() => { void toggle(poi, saveAnchor, saveCategory) }}
-        active={saved}
-      >
+      <ActionBtn label={saved ? "Saved" : "Save"} onClick={() => setSaved((v) => !v)} active={saved}>
         <path d="M12 21s-7-4.6-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z" />
       </ActionBtn>
       {onAdd && (

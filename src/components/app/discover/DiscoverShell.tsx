@@ -1,15 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import dynamic from "next/dynamic"
 import { useSearchParams } from "next/navigation"
-import { useSavedPlaces } from "@/lib/drift/savedPlaces"
 import {
   CATEGORY_META,
   fetchPlaceBlurbs,
   loadCategory,
-  rememberAnchor,
   reverseGeocodeHere,
   safeHttpUrl,
   type DiscoverAnchor,
@@ -75,22 +72,6 @@ export default function DiscoverShell({
   // Deep-link params (e.g. from the Guide's "Where to stay" → all stays for this
   // trip's city): ?cat=stays&label=&country=&lat=&lng= overrides the featured-trip
   // anchor + default category so the tab opens straight on the intended view.
-  // Scopes the shared recents key only — never used to authorise anything,
-  // which is what makes reading the session here safe. See recentAnchors.
-  const [userId, setUserId] = useState<string | null>(null)
-  useEffect(() => {
-    let off = false
-    createClient()
-      .auth.getSession()
-      .then(({ data }) => {
-        if (!off) setUserId(data.session?.user?.id ?? null)
-      })
-      .catch(() => {})
-    return () => {
-      off = true
-    }
-  }, [])
-
   const params = useSearchParams()
   const paramCat = params.get("cat")
   const initialCat: DiscoverCategory =
@@ -169,11 +150,6 @@ export default function DiscoverShell({
   function selectAnchor(a: DiscoverAnchor) {
     setOverride(null)
     setAnchor(a)
-    // ONE history, written from both ends. The home rail's picker offers
-    // "Recent" from this same store, so a place chosen here is offered there —
-    // two pickers with two private histories would be indistinguishable from a
-    // broken one.
-    rememberAnchor(userId, a)
   }
 
   // Re-search the current category at a new map center (from the map pill).
@@ -406,10 +382,7 @@ function CarouselCard({
   onAdd: () => void
   onOpen: () => void
 }) {
-  // PERSISTED NOW. This was `useState(false)` whose only job was to fill the
-  // icon — no row was ever written. See lib/drift/savedPlaces.
-  const { isSaved, toggle } = useSavedPlaces()
-  const saved = isSaved(r.id)
+  const [saved, setSaved] = useState(false)
   const category = r.subtitle ? humanize(r.subtitle) : null
   const dist = distanceMi(anchor, r)
   const metaLine = [category, dist].filter(Boolean).join(" · ")
@@ -445,7 +418,7 @@ function CarouselCard({
         {/* Actions: save (heart) + add. */}
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
-            onClick={() => { void toggle(r, anchor, saveCategory) }}
+            onClick={() => setSaved((v) => !v)}
             aria-label={saved ? "Saved" : "Save"}
             aria-pressed={saved}
             className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
