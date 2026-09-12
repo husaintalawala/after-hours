@@ -46,6 +46,11 @@ const SHELF: Guide[] = SHELF_FIXTURE.map((g) => ({
   cityCount: g.cityCount,
   shapeWeights: { ...g.shapeWeights },
   shapePrimary: g.shapePrimary,
+  // The frozen shelf predates month_scores, so it exercises the fallback — the
+  // path every client takes until the backfill is applied. Graded season is
+  // pinned with synthetic guides in daybreak.test.ts.
+  monthScores: [],
+  blackoutMonths: [],
   bestMonths: [...g.bestMonths],
   party: g.party,
   pace: g.pace,

@@ -69,9 +69,11 @@ export interface DaybreakGuide extends InspirePromoCard {
   setting: string[]
   /** Stops the trip sleeps in. Read only by the `stay` shape. */
   cityCount: number
-  /** See RankableGuide.shapeWeights / shapePrimary. */
+  /** See RankableGuide.shapeWeights / shapePrimary / monthScores / blackoutMonths. */
   shapeWeights: Record<string, number>
   shapePrimary: string | null
+  monthScores: number[]
+  blackoutMonths: number[]
   /** Months 1…12 the guide is editorially at its best, empty when the row says
    *  nothing. RANKED on, never filtered on — and absent editorial is not a
    *  claim that any month will do. See rankGuides. */
@@ -169,6 +171,8 @@ interface PromoSource {
   cityCount: number
   shapeWeights: Record<string, number>
   shapePrimary: string | null
+  monthScores: number[]
+  blackoutMonths: number[]
   bestMonths: number[]
   /** Who the guide is shaped for / how much a day holds / what it costs, as
    *  the editorial columns record them. Null is a MISS, not a wildcard — see
@@ -219,6 +223,13 @@ function usableCoord(d: InspireDestination): d is InspireDestination & { latitud
 
 /** A jsonb object of numbers. Anything else reads as no weights — the ranker
  *  then falls back to the tier alone, exactly as it did before this column. */
+/** Twelve numbers or nothing. A partial array would score the missing months
+ *  as undefined, so anything but exactly twelve falls back to bestMonths. */
+function asMonthScores(v: unknown): number[] {
+  const out = asArray(v).map(asNumber)
+  return out.length === 12 && out.every((n): n is number => n !== null) ? (out as number[]) : []
+}
+
 function asWeights(v: unknown): Record<string, number> {
   const r = asRecord(v)
   if (!r) return {}
@@ -295,6 +306,10 @@ function decode(raw: unknown): PromoSource | null {
     cityCount: asArray(row.cities).length,
     shapeWeights: asWeights(row.shape_weights),
     shapePrimary: asString(row.shape_primary),
+    monthScores: asMonthScores(row.month_scores),
+    blackoutMonths: asArray(row.blackout_months)
+      .map(asNumber)
+      .filter((m): m is number => m !== null && m >= 1 && m <= 12),
     // Months, not month names: the column is int[] and a row that carries a 13
     // or a null would otherwise rank as a month nobody can depart in.
     bestMonths: asArray(row.best_months)
@@ -458,7 +473,7 @@ async function readShelf(
       // every array decodes empty, every guide ties, and all seven chips return
       // the same three guides.
       "trip_id,tags,best_months,party,pace,budget," +
-        "interests,optimize_for,setting,shape_weights,shape_primary," +
+        "interests,optimize_for,setting,shape_weights,shape_primary,month_scores,blackout_months," +
         "hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
@@ -577,6 +592,8 @@ export async function buildDaybreakShelf(
       cityCount: s.cityCount,
       shapeWeights: s.shapeWeights,
       shapePrimary: s.shapePrimary,
+      monthScores: s.monthScores,
+      blackoutMonths: s.blackoutMonths,
       bestMonths: s.bestMonths,
       party: s.party,
       pace: s.pace,

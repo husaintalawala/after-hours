@@ -4,6 +4,8 @@ import {
   prioritiesForShapes,
   rankGuides,
   SHAPE_INTERESTS,
+  seasonScore,
+  shelfFor,
   lengthFits,
   metresFromHome,
   distanceText,
@@ -38,6 +40,8 @@ function guide(
     cityCount?: number
     shapeWeights?: Record<string, number>
     shapePrimary?: string | null
+    monthScores?: number[]
+    blackoutMonths?: number[]
     months?: number[]
     party?: string
     pace?: string
@@ -67,6 +71,8 @@ function guide(
     // the order these older tests assert is exactly what it was.
     shapeWeights: opts.shapeWeights ?? {},
     shapePrimary: opts.shapePrimary ?? null,
+    monthScores: opts.monthScores ?? [],
+    blackoutMonths: opts.blackoutMonths ?? [],
     bestMonths: opts.months ?? [6],
     days: opts.days ?? 10,
     // Absent by DEFAULT, so every pre-existing test proves the new components
@@ -408,3 +414,27 @@ describe("prioritiesForShapes", () => {
     assert.deepEqual(prioritiesForShapes([]), [])
   })
 })
+
+describe("graded season", () => {
+  test("a shoulder month outranks an off-season one once month_scores exist", () => {
+    const shoulder = guide("shoulder", { monthScores: [15, 15, 15, 15, 15, 15, 15, 15, 65, 90, 65, 15] })
+    const off = guide("off", { monthScores: [90, 65, 15, 15, 15, 15, 15, 15, 15, 15, 15, 65] })
+    assert.deepEqual(ids(rankGuides([off, shoulder], answers({ shapes: ["wild"], month: 9 }))), [
+      "shoulder",
+      "off",
+    ])
+  })
+
+  test("without month_scores it is exactly the old in-or-out test", () => {
+    const g = guide("g", { months: [6] })
+    assert.equal(seasonScore(g, 6), 90)
+    assert.equal(seasonScore(g, 7), 15)
+  })
+
+  test("a blackout month removes the guide from the shelf", () => {
+    const closed = guide("closed", { blackoutMonths: [9] })
+    const open = guide("open")
+    assert.deepEqual(ids(shelfFor([closed, open], answers({ shapes: ["wild"], month: 9 })).guides), ["open"])
+  })
+})
+

@@ -444,6 +444,12 @@ export interface RankableGuide {
    *  structurally and may carry a weight of 0 — being the primary counts as
    *  full strength, never as absence. Null when absent. */
   shapePrimary: string | null
+  /** 12 scores, 0…100, index 0 = January (20260912230000). Empty when the
+   *  column has not landed — `seasonScore` then falls back to bestMonths. */
+  monthScores: number[]
+  /** Months 1…12 the guide must NOT be offered — a park closed, a dated event
+   *  that IS the trip. Hand-authored only. Removes, never scores. */
+  blackoutMonths: number[]
   /** Months 1…12 the guide is editorially at its best. May be empty. */
   bestMonths: number[]
   /** `snapshot.day_count`. */
@@ -622,6 +628,25 @@ export function shapeMissFor(guide: RankableGuide, shape: string): number {
  * when its nights weight is 0, because drive and stay are derived from what
  * kind of trip it is rather than from where it sleeps.
  */
+/**
+ * How good a guide is in a month, 0…100.
+ *
+ * GRADED, because in-or-out threw information away: a guide whose best window
+ * opens one month after you leave scored exactly as badly as one at its worst,
+ * which is how Rio — the one defensible result in the reported shelf — was
+ * demoted below a Highland rail journey. `month_scores` lets a shoulder month
+ * rank as a shoulder month.
+ *
+ * Without that column this is EXACTLY the old test (90 in bestMonths, 15 out),
+ * so shipping the reader ahead of the backfill changes no ordering.
+ */
+export function seasonScore(guide: RankableGuide, month: number): number {
+  if (guide.monthScores.length === 12 && month >= 1 && month <= 12) {
+    return Math.min(Math.max(guide.monthScores[month - 1], 0), 100)
+  }
+  return guide.bestMonths.includes(month) ? 90 : 15
+}
+
 export function shapeFit(guide: RankableGuide, shape: string): number {
   if (guide.shapePrimary === shape) return 1
   const w = guide.shapeWeights[shape] ?? 0
@@ -674,7 +699,10 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
     : [...a.shapes].sort().reduce((n, s) => n + (4 - Math.floor(shapeFit(guide, s) * 4)), 0)
   // An empty `bestMonths` ranks with the out-of-season group: absent editorial
   // is not a claim that any month will do.
-  const seasonMiss = guide.bestMonths.includes(a.departureMonth) ? 0 : 1
+  // Graded 0…3 from seasonScore — best / shoulder / edge / off. Without
+  // month_scores it is 0 or 3, which orders exactly as the old 0 or 1 did.
+  const season = seasonScore(guide, a.departureMonth)
+  const seasonMiss = season >= 90 ? 0 : season >= 65 ? 1 : season >= 40 ? 2 : 3
   const lengthMiss = lengthFits(a.length, guide.days) ? 0 : 1
   const partyMiss = miss(a.party, guide.party)
   // Summed, not binary: a guide matching one of the two is strictly better
@@ -837,7 +865,15 @@ export function shelfFor<T extends RankableGuide>(
   answers: RankingAnswers,
   size = 3
 ): Shelf<T> {
-  const ranked = rankGuides(guides, answers)
+  // BLACKOUTS REMOVE, before anything else is decided. A park that is closed in
+  // the month you leave is not a lower-ranked answer, it is not an answer. Only
+  // if that empties the corpus entirely — it cannot with hand-authored
+  // blackouts on ninety guides — does the unfiltered order come back, because a
+  // dead end in a reader's first minute is worse still.
+  const open = rankGuides(guides, answers).filter(
+    (g) => !g.blackoutMonths.includes(answers.departureMonth)
+  )
+  const ranked = open.length ? open : rankGuides(guides, answers)
   const clean = ranked.filter((g) => clearsTheFloor(g, answers))
   if (clean.length > 0) return { guides: clean.slice(0, size), relaxed: null }
 
@@ -882,7 +918,7 @@ export function reasonFor(
   if (present) return labelFor(present)
   // Nothing about the shape fired, so say the next truest thing rather than
   // inventing a reason. Season is the only remaining term the reader chose.
-  if (guide.bestMonths.includes(answers.departureMonth)) return "In season"
+  if (seasonScore(guide, answers.departureMonth) >= 90) return "In season"
   return null
 }
 
