@@ -1,6 +1,6 @@
 import { test, describe } from "node:test"
 import assert from "node:assert/strict"
-import { normalizeHandle } from "./handleDerivation"
+import { normalizeHandle } from "./handleDerivation.ts"
 
 /**
  * The handle a web signup gets must be the handle the same person would have

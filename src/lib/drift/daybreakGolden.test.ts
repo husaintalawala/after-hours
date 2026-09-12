@@ -8,8 +8,8 @@ import {
   shapeFit,
   type RankableGuide,
   type TripLength,
-} from "./daybreak"
-import { SHELF_FIXTURE } from "./__fixtures__/shelf"
+} from "./daybreak.ts"
+import { SHELF_FIXTURE } from "./__fixtures__/shelf.ts"
 
 /**
  * The golden set: twenty readers, and the guides they must never be shown.
