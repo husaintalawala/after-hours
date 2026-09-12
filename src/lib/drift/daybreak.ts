@@ -160,19 +160,94 @@ export const TRIP_LENGTHS: ReadonlyArray<{
  * nothing), and this decides their ORDER and their words. Mirrors
  * DaybreakPrefCatalog.shapes.
  */
+/** A curated photograph pinned to one category tile.
+ *
+ *  PINNED, which is the entire point. The first version looked the picture up
+ *  by keyword at render time and drew a BLUEPRINT on "Islands & beaches", a
+ *  stock laptop on another tile and a map of Yellowstone on a third. A keyword
+ *  search is a lottery run once per reader, on the first question a new account
+ *  is asked. Each of these seven was chosen by looking at the photograph, at
+ *  the real tile crop with the scrim on it.
+ *
+ *  The id rather than a finished URL, so each surface can ask for the width it
+ *  needs. Unsplash's `ixid`/`ixlib` parameters are search-session tokens rather
+ *  than part of the address, and a URL built from the id alone resolves.
+ *
+ *  ATTRIBUTION IS NOT OPTIONAL — the licence binds credit to the display, so
+ *  the photographer travels in the same value as the id.
+ *
+ *  The same seven ids are pinned in iOS's DaybreakPrefCatalog.shapes. One set,
+ *  changed together. */
+export interface PrefArt {
+  /** The Unsplash path segment, e.g. `photo-1588434090257-532797c6c298`. */
+  photoId: string
+  photographer: string
+  photographerUrl: string
+  unsplashUrl: string
+}
+
+/** This photograph at a given width. `fit=crop` because a tile is much wider
+ *  than it is tall, which is what the curation selected for. */
+export function unsplashTile(art: PrefArt, width: number): string {
+  return `https://images.unsplash.com/${art.photoId}?auto=format&fit=crop&w=${width}&q=80`
+}
+
 export const TRIP_SHAPES: ReadonlyArray<{
   slug: string
   label: string
   subtitle: string
   icon: string
+  art: PrefArt
 }> = [
-  { slug: "wild", label: "Nature & wildlife", subtitle: "Parks, animals, big landscapes", icon: "leaf" },
-  { slug: "stones", label: "History & ruins", subtitle: "Old towns, temples, museums", icon: "columns" },
-  { slug: "drive", label: "Road trip", subtitle: "The route is half the trip", icon: "car" },
-  { slug: "eat", label: "Food & drink", subtitle: "Markets, long dinners, bars", icon: "bowl" },
-  { slug: "islands", label: "Islands & beaches", subtitle: "Coast, swimming, slow sun", icon: "umbrella" },
-  { slug: "high", label: "Mountains & hiking", subtitle: "Trails, altitude, big views", icon: "mountain" },
-  { slug: "stay", label: "One base, slow days", subtitle: "Unpack once and go deep", icon: "house" },
+  { slug: "wild", label: "Nature & wildlife", subtitle: "Parks, animals, big landscapes", icon: "leaf",
+    art: {
+      photoId: "photo-1588434090257-532797c6c298",
+      photographer: "Markus Sandhofer",
+      photographerUrl: "https://unsplash.com/@sandhofer?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/brown-and-black-giraffe-on-brown-grass-field-during-daytime-S5ea9W6ualI?utm_source=drift&utm_medium=referral",
+    } },
+  { slug: "stones", label: "History & ruins", subtitle: "Old towns, temples, museums", icon: "columns",
+    art: {
+      photoId: "photo-1677838062758-848c5c25156d",
+      photographer: "Mario La Pergola",
+      photographerUrl: "https://unsplash.com/@mlapergolaphoto?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/a-large-group-of-stone-buildings-surrounded-by-trees-T2-G15zcH2M?utm_source=drift&utm_medium=referral",
+    } },
+  { slug: "drive", label: "Road trip", subtitle: "The route is half the trip", icon: "car",
+    art: {
+      photoId: "photo-1770816149208-60206f8527aa",
+      photographer: "K. K.",
+      photographerUrl: "https://unsplash.com/@korner_kosmos?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/desert-road-leading-through-sandstone-rock-formations-QqafmkbCDXQ?utm_source=drift&utm_medium=referral",
+    } },
+  { slug: "eat", label: "Food & drink", subtitle: "Markets, long dinners, bars", icon: "bowl",
+    art: {
+      photoId: "photo-1775769386688-589512f012af",
+      photographer: "Vanessa Zhu",
+      photographerUrl: "https://unsplash.com/@vanessazhu777?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/spices-and-soaps-displayed-at-an-outdoor-market-_tkLeiYcxnI?utm_source=drift&utm_medium=referral",
+    } },
+  { slug: "islands", label: "Islands & beaches", subtitle: "Coast, swimming, slow sun", icon: "umbrella",
+    art: {
+      photoId: "photo-1599837139010-617a01b35781",
+      photographer: "Matheen Faiz",
+      photographerUrl: "https://unsplash.com/@matheenfaiz?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/green-trees-near-body-of-water-under-blue-sky-during-daytime-z9-FjHZvh5g?utm_source=drift&utm_medium=referral",
+    } },
+  { slug: "high", label: "Mountains & hiking", subtitle: "Trails, altitude, big views", icon: "mountain",
+    art: {
+      photoId: "photo-1778994549970-d9a5470cf5d1",
+      photographer: "Steve Gribble",
+      photographerUrl: "https://unsplash.com/@steve_g_?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/snow-capped-mountains-under-a-hazy-sunset-sky-U5SHfCTwCPs?utm_source=drift&utm_medium=referral",
+    } },
+  { slug: "stay", label: "One base, slow days", subtitle: "Unpack once and go deep", icon: "house",
+    art: {
+      photoId: "photo-1771830916703-8288dcc093da",
+      photographer: "Elist Nguyen",
+      photographerUrl: "https://unsplash.com/@hieuanhcauam?utm_source=drift&utm_medium=referral",
+      unsplashUrl: "https://unsplash.com/photos/courtyard-with-chairs-table-and-potted-plants-Ev-tfJZ9DD8?utm_source=drift&utm_medium=referral",
+    } },
 ]
 
 export function lengthFits(length: TripLength, days: number): boolean {

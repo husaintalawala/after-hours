@@ -13,6 +13,7 @@ import {
   TRAVEL_RHYTHMS,
   TRIP_LENGTHS,
   TRIP_SHAPES,
+  unsplashTile,
   type TripLength,
   distanceText,
   spelledCount,
@@ -508,16 +509,35 @@ export function MosaicStep({
         }
       />
 
-      {/* ICON CARDS, NOT PHOTOGRAPHS — see TRIP_SHAPES for what the pictures
-          actually turned out to be. What survives from the photo version is the
-          geometry: one even grid, every cell the same, and a seventh that simply
-          takes the left half of the last row rather than being promoted to a
-          banner it did not earn. `items-stretch` is the grid default and
-          `h-full` on the card is what makes two cards in a row match when one
-          subtitle wraps to two lines and the other does not. */}
+      {/* PHOTOGRAPHS AGAIN — but CURATED ones, which is the whole difference.
+          What failed before was never "a photograph on this tile", it was
+          DERIVING the photograph from whatever guide happened to rank first for
+          the tag: "Islands & beaches" drew a technical blueprint, another tile a
+          stock laptop, another a map of Yellowstone. Icons fixed that by giving
+          up, and a symbol of a mountain is at least a mountain — it is also not
+          a reason to want to go to one.
+          So the pictures come back and the lottery does not: seven editorial
+          photographs pinned by id in TRIP_SHAPES, each chosen by looking at it
+          at this tile's real crop with this scrim on it.
+          THE GEOMETRY IS UNCHANGED and that is deliberate — one even grid,
+          every cell the same, a fixed aspect so a wrapping subtitle can no
+          longer make two cards in a row differ, and the seventh takes the left
+          half of the last row rather than being promoted to a banner it did not
+          earn. Label and check are guaranteed on every tile. */}
       <div className="mt-3 grid grid-cols-2 gap-[10px]">
-        {shapes.map((s) => {
+        {shapes.map((s, i) => {
           const on = picked.has(s.slug)
+          // THE LAST ONE TAKES THE WHOLE ROW when the count is odd. Seven tags
+          // in two columns leaves a single tile beside a hole, and a hole in a
+          // grid of photographs reads as a tile that failed to load.
+          //
+          // The icon version deliberately refused this — a wide icon card is a
+          // banner the seventh category did not earn. A wide PHOTOGRAPH is not
+          // a promotion, it is how an editorial grid closes: same height as
+          // every other row, more of the picture. The aspect is the arithmetic
+          // of that — a full-width tile at 23/8 lands within a point of a
+          // half-width tile at 7/5, so all four rows stay level.
+          const wide = i === shapes.length - 1 && shapes.length % 2 === 1
           return (
             <button
               key={s.slug}
@@ -525,46 +545,58 @@ export function MosaicStep({
               role="checkbox"
               aria-checked={on}
               onClick={() => onToggle(s.slug)}
-              className={`flex h-full flex-col items-start gap-2.5 rounded-2xl border p-3 text-left transition-colors ${
-                on
-                  ? "border-aurora-teal/55 bg-aurora-teal/[0.10]"
-                  : "border-aurora-border bg-white/[0.05] hover:border-aurora-border-strong"
-              }`}
+              className={`relative flex w-full flex-col justify-end overflow-hidden rounded-2xl border text-left transition-colors ${
+                wide ? "col-span-2 aspect-[23/8]" : "aspect-[7/5]"
+              } ${on ? "border-aurora-teal" : "border-white/20 hover:border-white/35"}`}
             >
-              <span className="flex w-full items-start justify-between gap-2">
-                <span
-                  aria-hidden
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-                    on ? "bg-aurora-teal/20 text-aurora-teal" : "bg-white/[0.07] text-aurora-ink3"
-                  }`}
-                >
-                  <PrefIcon name={s.icon} />
-                </span>
-                <span
-                  aria-hidden
-                  className={`grid h-[19px] w-[19px] shrink-0 place-items-center rounded-[6px] border-2 ${
-                    on ? "border-aurora-teal bg-aurora-teal" : "border-white/25"
-                  }`}
-                >
-                  {on && (
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-3 w-3 stroke-aurora-teal-ink"
-                      fill="none"
-                      strokeWidth={3.4}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M4 12.5l5.5 5.5L20 7" />
-                    </svg>
-                  )}
-                </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={unsplashTile(s.art, wide ? 1100 : 640)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              {/* Bottom-weighted, because that is where the words are. Reaching
+                  0.88 rather than the 0.65 a cover photo uses: this is 11.5px
+                  type on a ~165px tile, and it has to hold over white sand and a
+                  turquoise lagoon as well as over a dark ridgeline. */}
+              <span
+                aria-hidden
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent 38%, rgba(0,0,0,0.18) 46%, rgba(0,0,0,0.62) 72%, rgba(0,0,0,0.88) 100%)",
+                }}
+              />
+              {/* NO ICON CHIP on a photographed tile. On the flat card the glyph
+                  in its teal disc was the only thing carrying the idea; over a
+                  photograph of a lone giraffe at golden hour it is a second,
+                  worse drawing of the same idea sitting on top of the first. */}
+              <span
+                aria-hidden
+                className={`absolute right-2 top-2 grid h-[21px] w-[21px] place-items-center rounded-[6px] border-2 ${
+                  on ? "border-aurora-teal bg-aurora-teal" : "border-white/70 bg-black/35 backdrop-blur-sm"
+                }`}
+              >
+                {on && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-3 w-3 stroke-aurora-teal-ink"
+                    fill="none"
+                    strokeWidth={3.4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 12.5l5.5 5.5L20 7" />
+                  </svg>
+                )}
               </span>
-              <span className="min-w-0">
-                <span className="block text-[14px] font-bold leading-tight text-aurora-ink">
+              <span className="relative min-w-0 px-3 pb-2.5 [text-shadow:0_1px_6px_rgba(0,0,0,0.55)]">
+                <span className="block text-[14px] font-bold leading-tight text-white">
                   {s.label}
                 </span>
-                <span className="mt-1 block text-[11.5px] leading-snug text-aurora-ink3">
+                <span className="mt-0.5 block truncate text-[11px] leading-snug text-white/80">
                   {s.subtitle}
                 </span>
               </span>
@@ -572,6 +604,29 @@ export function MosaicStep({
           )
         })}
       </div>
+
+      {/* The licence binds credit to the DISPLAY, so the seven photographers
+          are named under the seven photographs. One line rather than a chip per
+          tile: seven credit chips on a 2x4 grid is more attribution furniture
+          than photography, and this still names every one of them, each linking
+          back to its photographer as the licence asks. */}
+      <p className="mt-2 text-[10.5px] leading-snug text-aurora-ink3">
+        Photographs{" "}
+        {shapes.map((s, i) => (
+          <span key={s.slug}>
+            {i > 0 && " · "}
+            <a
+              href={s.art.photographerUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="underline-offset-2 hover:text-aurora-ink2 hover:underline"
+            >
+              {s.art.photographer}
+            </a>
+          </span>
+        ))}{" "}
+        on Unsplash
+      </p>
 
       {/* The second half of the question, on the same screen rather than an
           eighth. Was a label over three truncating pills; iOS asks it with the
