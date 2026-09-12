@@ -425,8 +425,18 @@ export const DEFAULT_BUDGET = "smart_mix"
 /** Everything the sort reads, and nothing else — so the shelf's own row shape
  *  can grow without this file knowing about it. */
 export interface RankableGuide {
-  /** The shape tags the row stores (`wild`, `stones`, …). */
+  /** The shape tags the row stores (`wild`, `stones`, …).
+   *
+   *  NO LONGER SCORED — kept because the shelf's category rails and free-text
+   *  search read it. See `shapeMissFor` for what replaced it and why. */
   tags: string[]
+  /** What the guide is FOR, ordered by prominence. Position 0 is the primary
+   *  and is what the shape answer is actually scored on. */
+  interests: string[]
+  optimizeFor: string[]
+  setting: string[]
+  /** Stops the trip sleeps in. Read only by the `stay` shape. */
+  cityCount: number
   /** Months 1…12 the guide is editorially at its best. May be empty. */
   bestMonths: number[]
   /** `snapshot.day_count`. */
@@ -503,6 +513,103 @@ export function rankGuides<T extends RankableGuide>(
 }
 
 /** All components ascending: 0 is the better answer. */
+/**
+ * What counts as evidence for each shape, in three tiers of decreasing
+ * confidence. Censused from the live corpus — every value here exists on real
+ * rows; none is invented.
+ *
+ * WHY THIS EXISTS AT ALL. The shape answer used to be scored by asking whether
+ * the guide's `tags` array contained the picked slug. Thirty of the ninety
+ * active guides carry `islands`, so a reader who picked "Islands & beaches"
+ * tied thirty guides at zero, the only thing they had said about scenery bought
+ * nothing, and the decision fell through to party, pace, budget and editorial
+ * rank. A Highland rail journey won that contest outright, and a safari took
+ * third from the Maldives on a budget column.
+ *
+ * `interests` is a near 1:1 with the seven chips and its position 0 is 94%
+ * consistent with the row's own tags — it is the signal that separates a beach
+ * trip from a safari that ends at a beach. It was populated on all ninety rows
+ * the entire time and neither platform selected it.
+ *
+ * WHAT IS DELIBERATELY ABSENT, because each would rebuild the original bug at a
+ * larger scale: `nature_views` (57 of 90) and `adventure` (42, and it predicts
+ * `high` and `wild` equally); `must_sees` (39); setting `city` (45) and
+ * `countryside` (31); `meals` and `party_fit`, which carry identical values on
+ * all ninety rows.
+ *
+ * KNOWN GAP: `cities_culture` sits on 44 guides, 8 of them as the primary
+ * interest, and maps to no chip at all. A reader who wants a city break has
+ * nothing to pick and falls through the shape question entirely — the same path
+ * as the reported bug, reached by a missing option rather than a tie. That is a
+ * product decision, not a ranking one.
+ */
+export const SHAPE_INTERESTS: Readonly<Record<string, readonly string[]>> = {
+  wild: ["nature_wildlife", "wildlife_safari"],
+  stones: ["history_ruins"],
+  drive: ["road_trip"],
+  eat: ["food_drink"],
+  islands: ["islands_beaches"],
+  high: ["mountains_hiking"],
+  stay: ["one_base_slow", "wellness"],
+}
+const SHAPE_OPTIMIZE: Readonly<Record<string, readonly string[]>> = {
+  wild: [],
+  stones: ["culture_history"],
+  drive: [],
+  eat: ["food_local", "nightlife"],
+  islands: ["beach_relax"],
+  high: [],
+  stay: ["soft_luxury", "neighborhood"],
+}
+const SHAPE_SETTING: Readonly<Record<string, readonly string[]>> = {
+  wild: ["safari", "jungle", "arctic"],
+  stones: [],
+  drive: [],
+  eat: [],
+  islands: ["islands", "beach"],
+  high: ["mountains", "lakes"],
+  stay: [],
+}
+
+/**
+ * How badly one guide misses one picked shape. 0 is a direct hit, 4 is no
+ * evidence at all.
+ *
+ * FIRST MATCH WINS — the clauses return, they do not accumulate. A guide whose
+ * primary interest is the shape scores 0 even though its setting would also
+ * have matched at tier 3.
+ *
+ * PRESENCE ALONE IS NOT ENOUGH, and this is the part that is easy to get wrong.
+ * A flat "does `interests` contain it" test was simulated against all ninety
+ * rows and reproduces the original bug on five of the seven chips — it returns
+ * the Highland rail journey first for both "Road trip" and "Mountains &
+ * hiking", because 35 to 56 guides tie at zero and the tail decides again. The
+ * tier is the fix, not the column.
+ */
+export function shapeMissFor(guide: RankableGuide, shape: string): number {
+  const known = SHAPE_INTERESTS[shape]
+  // An unknown shape scores a uniform miss rather than throwing: a chip added
+  // to the survey before the tables are updated must not empty the shelf.
+  if (!known) return 4
+
+  // THE ONE STRUCTURAL CLAUSE, and it is `stay` only. In this corpus
+  // `one_base_slow` means "unhurried", not "one base" — it sits on a six-city
+  // river journey and on a guide whose own title is "Lodge to Lodge". The chip
+  // says "One base, slow days", and the only column that actually says you do
+  // not move is the stop count.
+  //
+  // TIER 1, NOT 0, deliberately: it must join an editorially-slow guide, never
+  // outrank one. At tier 0 the chip becomes city-breaks-only and a guide
+  // authored for families floats into a couple's top three.
+  if (shape === "stay" && guide.cityCount <= 1) return 1
+
+  if (guide.interests.length > 0 && known.includes(guide.interests[0])) return 0
+  if (guide.interests.some((i) => known.includes(i))) return 1
+  if (guide.optimizeFor.some((o) => (SHAPE_OPTIMIZE[shape] ?? []).includes(o))) return 2
+  if (guide.setting.some((t) => (SHAPE_SETTING[shape] ?? []).includes(t))) return 3
+  return 4
+}
+
 function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number[] {
   // HOW MANY of the picked shapes it misses, not merely whether it misses any.
   // Binary was the reason the same three guides came back whatever was picked:
@@ -517,9 +624,19 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
   // wildlife now gets the trip that is both, ahead of the popular one that is
   // merely one of them — while a single pick is still fully satisfied by a
   // single matching tag, so a narrow guide is not penalised against a broad one.
+  //
+  // COUNTING WAS ONLY HALF THE FIX. The note above is still true and the sum is
+  // kept — but counting one thing is binary, so for a reader who picks a SINGLE
+  // shape the term went back to being the very thing it was meant to stop. That
+  // is the unfixed half, and it is what returned a safari for a beach.
+  //
+  // Each pick now scores 0…4 by how directly the guide is that kind of trip
+  // (see shapeMissFor) instead of 0…1 by whether a tag is present. Sorted
+  // before summing so a shared fixture prints the same per-shape tiers on both
+  // platforms; addition commutes, but a test that reports them does not.
   const shapeMiss = !a.shapes.size
     ? 0
-    : [...a.shapes].reduce((n, s) => n + (guide.tags.includes(s) ? 0 : 1), 0)
+    : [...a.shapes].sort().reduce((n, s) => n + shapeMissFor(guide, s), 0)
   // An empty `bestMonths` ranks with the out-of-season group: absent editorial
   // is not a claim that any month will do.
   const seasonMiss = guide.bestMonths.includes(a.departureMonth) ? 0 : 1

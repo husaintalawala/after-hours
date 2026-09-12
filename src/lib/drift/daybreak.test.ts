@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import {
   prioritiesForShapes,
   rankGuides,
+  SHAPE_INTERESTS,
   lengthFits,
   metresFromHome,
   distanceText,
@@ -30,15 +31,36 @@ function guide(
   opts: {
     days?: number
     tags?: string[]
+    /** Override the derived interests directly, for tier tests. */
+    interests?: string[]
+    optimizeFor?: string[]
+    setting?: string[]
+    cityCount?: number
     months?: number[]
     party?: string
     pace?: string
     budget?: string
   } = {}
 ): RankableGuide & { id: string } {
+  const tags = opts.tags ?? ["wild"]
   const g = {
     id,
-    tags: opts.tags ?? ["wild"],
+    tags,
+    // DERIVED FROM `tags` BY DEFAULT, so the twenty tests written before the
+    // shape term moved off `tags` still mean what they meant. They were
+    // written as "this guide is a `wild` trip", and the ranker now asks that
+    // question of `interests` — so the fixture answers it there, at tier 0.
+    //
+    // Mapped through the ranker's OWN table rather than a literal copy: a
+    // fixture with its own idea of what `wild` means would pass while the
+    // product ranked on something else, which is the exact failure mode this
+    // file exists to catch.
+    interests:
+      opts.interests ?? tags.flatMap((t) => (SHAPE_INTERESTS[t] ?? []).slice(0, 1)),
+    optimizeFor: opts.optimizeFor ?? [],
+    setting: opts.setting ?? [],
+    // Three, so the `stay` structural clause does not fire unasked.
+    cityCount: opts.cityCount ?? 3,
     bestMonths: opts.months ?? [6],
     days: opts.days ?? 10,
     // Absent by DEFAULT, so every pre-existing test proves the new components
@@ -56,6 +78,7 @@ function guide(
   // the equivalent guarantee — but the shape is still checked so the file
   // cannot drift into asserting nothing.
   assert.ok(Array.isArray(g.tags) && Array.isArray(g.bestMonths))
+  assert.ok(Array.isArray(g.interests), "the fixture must carry interests — the shape term reads them, not tags")
   assert.equal(typeof g.days, "number")
   return g
 }

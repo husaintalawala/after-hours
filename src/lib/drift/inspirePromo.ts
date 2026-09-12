@@ -57,9 +57,18 @@ export interface InspirePromo {
  * query would be a second place for the tie-break to be forgotten.
  */
 export interface DaybreakGuide extends InspirePromoCard {
-  /** The shape tags the row stores (`wild`, `stones`, …). Screen 3's answer is
-   *  matched against these to choose what screen 4 offers. */
+  /** The shape tags the row stores (`wild`, `stones`, …).
+   *
+   *  NO LONGER WHAT THE SHAPE ANSWER IS SCORED ON — see `shapeMissFor`. Kept
+   *  because the shelf's category rails and its search read it. */
   tags: string[]
+  /** What the guide is FOR, ordered by prominence. Position 0 is the primary,
+   *  and it is what screen 3's answer is matched against now. */
+  interests: string[]
+  optimizeFor: string[]
+  setting: string[]
+  /** Stops the trip sleeps in. Read only by the `stay` shape. */
+  cityCount: number
   /** Months 1…12 the guide is editorially at its best, empty when the row says
    *  nothing. RANKED on, never filtered on — and absent editorial is not a
    *  claim that any month will do. See rankGuides. */
@@ -146,6 +155,15 @@ interface PromoSource {
   heroLink: string | null
   pin: { lat: number; lng: number } | null
   tags: string[]
+  /** What the guide is FOR, ordered by prominence — position 0 is 94%
+   *  consistent with the row's own tags and is the single signal that
+   *  separates a beach trip from a safari that ends at a beach. `tags` is kept
+   *  for free-text search and is no longer scored. */
+  interests: string[]
+  optimizeFor: string[]
+  setting: string[]
+  /** Stops the trip sleeps in. Only `stay` reads it — see shapeMissFor. */
+  cityCount: number
   bestMonths: number[]
   /** Who the guide is shaped for / how much a day holds / what it costs, as
    *  the editorial columns record them. Null is a MISS, not a wildcard — see
@@ -245,6 +263,18 @@ function decode(raw: unknown): PromoSource | null {
     tags: asArray(row.tags)
       .map(asString)
       .filter((t): t is string => t !== null),
+    // ORDER PRESERVED. `interests[0]` is the primary, and the whole fix rests
+    // on it, so these must not be sorted or de-duplicated on the way in.
+    interests: asArray(row.interests)
+      .map(asString)
+      .filter((t): t is string => t !== null),
+    optimizeFor: asArray(row.optimize_for)
+      .map(asString)
+      .filter((t): t is string => t !== null),
+    setting: asArray(row.setting)
+      .map(asString)
+      .filter((t): t is string => t !== null),
+    cityCount: asArray(row.cities).length,
     // Months, not month names: the column is int[] and a row that carries a 13
     // or a null would otherwise rank as a month nobody can depart in.
     bestMonths: asArray(row.best_months)
@@ -397,7 +427,18 @@ async function readShelf(
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
+      // `interests`, `optimize_for` and `setting` are what the shape answer is
+      // scored on now. They were populated on all 90 rows the whole time and
+      // NEITHER platform selected them, which is why a beach pick could return
+      // a Highland rail journey: the ranker was matching `tags`, where 30 of 90
+      // guides carry `islands`, so one pick tied thirty guides at zero and the
+      // decision fell through to party, pace and budget.
+      //
+      // Shipping the ranker without this line is STRICTLY WORSE than today —
+      // every array decodes empty, every guide ties, and all seven chips return
+      // the same three guides.
       "trip_id,tags,best_months,party,pace,budget," +
+        "interests,optimize_for,setting," +
         "hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
@@ -510,6 +551,10 @@ export async function buildDaybreakShelf(
     return {
       ...card(s, CARD_W, CARD_WIDTHS),
       tags: s.tags,
+      interests: s.interests,
+      optimizeFor: s.optimizeFor,
+      setting: s.setting,
+      cityCount: s.cityCount,
       bestMonths: s.bestMonths,
       party: s.party,
       pace: s.pace,
