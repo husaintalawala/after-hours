@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Section, RailOrGrid, SeeAllCard } from "@/components/app/home/HomeSection"
-import { loadCategory, type DiscoverAnchor, type DiscoverResult } from "@/lib/drift/discover"
+import {
+  loadCategory,
+  reverseGeocodeHere,
+  type DiscoverAnchor,
+  type DiscoverResult,
+} from "@/lib/drift/discover"
 
 /**
  * "Near <somewhere>" — a rail of real places, fetched AFTER the page paints.
@@ -46,7 +51,65 @@ const MAX_ATTEMPTS = 3
  */
 const STUCK_MS = 11_000
 
-export default function DiscoverRail({ anchor }: { anchor: DiscoverAnchor }) {
+/**
+ * WHERE YOU ARE, at the granularity you are standing in.
+ *
+ * The anchor arriving as a prop is derived on the server from the trip you are
+ * on, then your home city, then a featured trip — none of which is where the
+ * phone is. Somebody who lives in New York and is standing in Lisbon got "Near
+ * New York", and somebody standing on the Upper East Side got the whole of New
+ * York, which returns the Statue of Liberty to a person looking for lunch.
+ *
+ * So the device gets the first say when it can. Two rules, and both matter:
+ *
+ * IT NEVER PROMPTS ON LOAD. `permissions.query` is asked first and the position
+ * is only requested when the answer is already "granted" — a permission sheet
+ * thrown at somebody who just opened their home screen is how a site teaches
+ * people to press Never Allow, and a denied permission is permanent. The prompt
+ * belongs to a deliberate tap, which is what the Discover page's own "Use
+ * current location" already is.
+ *
+ * IT FAILS BACK TO THE PROP. Denied, unavailable, a geocoder that returns
+ * nothing, or a browser with no Permissions API — every one of those leaves the
+ * server's anchor exactly as it was, so this can only ever improve the rail.
+ */
+export default function DiscoverRail({ anchor: serverAnchor }: { anchor: DiscoverAnchor }) {
+  const [hereAnchor, setHereAnchor] = useState<DiscoverAnchor | null>(null)
+  const anchor = hereAnchor ?? serverAnchor
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (typeof navigator === "undefined" || !("geolocation" in navigator)) return
+      try {
+        // No Permissions API (Safari until recently) means we cannot tell
+        // "granted" from "will prompt", and guessing wrong is the prompt we
+        // refuse to throw. Stay with the server anchor.
+        const perm = await navigator.permissions?.query({ name: "geolocation" as PermissionName })
+        if (perm?.state !== "granted") return
+      } catch {
+        return
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude: lat, longitude: lng } = pos.coords
+          const { label, country } = await reverseGeocodeHere(lat, lng)
+          // "Nearby" is reverseGeocodeHere's own way of saying it failed, and
+          // "Near Nearby" is not a heading.
+          if (cancelled || !label || label === "Nearby") return
+          setHereAnchor({ label, country, lat, lng })
+        },
+        () => {},
+        // maximumAge: a five-minute-old fix is the same neighbourhood, and
+        // re-acquiring costs battery on every home visit.
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      )
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const [places, setPlaces] = useState<DiscoverResult[] | null>(null)
   const [attempt, setAttempt] = useState(0)
 

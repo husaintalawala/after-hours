@@ -7,6 +7,7 @@ import {
   CATEGORY_META,
   fetchPlaceBlurbs,
   loadCategory,
+  reverseGeocodeHere,
   safeHttpUrl,
   type DiscoverAnchor,
   type DiscoverCategory,
@@ -153,7 +154,7 @@ export default function DiscoverShell({
 
   // Re-search the current category at a new map center (from the map pill).
   async function searchArea(c: { lat: number; lng: number; radiusKm: number }) {
-    const { label, country } = await reverseGeocodeCity(c.lat, c.lng)
+    const { label, country } = await reverseGeocodeHere(c.lat, c.lng)
     setOverride({ label, country, lat: c.lat, lng: c.lng, radiusKm: c.radiusKm })
   }
 
@@ -710,7 +711,7 @@ function LocationPicker({
         // text-based (resolvePlaceCandidates uses the label), so an anchor
         // labelled "Current location" returns an unscoped/nation-wide spread
         // and the map can't zoom to a city. Reverse-geocode first.
-        const { label, country } = await reverseGeocodeCity(lat, lng)
+        const { label, country } = await reverseGeocodeHere(lat, lng)
         setGeoState("idle")
         onSelect({ label, country, lat, lng })
         setOpen(false)
@@ -981,30 +982,6 @@ function ResultCard({
 // Reverse-geocode coords → nearest city name + country via Mapbox (the token is
 // already loaded for the map). Falls back to a generic label so search still
 // runs. `place` = city-level feature.
-async function reverseGeocodeCity(
-  lat: number,
-  lng: number
-): Promise<{ label: string; country: string | null }> {
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-  if (!token) return { label: "Nearby", country: null }
-  try {
-    const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place&limit=1&access_token=${token}`
-    )
-    if (!res.ok) return { label: "Nearby", country: null }
-    const json = (await res.json()) as {
-      features?: { text?: string; context?: { id?: string; text?: string }[] }[]
-    }
-    const f = json.features?.[0]
-    const label = f?.text ?? "Nearby"
-    const country =
-      f?.context?.find((c) => c.id?.startsWith("country"))?.text ?? null
-    return { label, country }
-  } catch {
-    return { label: "Nearby", country: null }
-  }
-}
-
 function compact(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
 }

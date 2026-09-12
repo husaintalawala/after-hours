@@ -264,3 +264,66 @@ function dedupe(results: DiscoverResult[]): DiscoverResult[] {
     return true
   })
 }
+
+/**
+ * Where the reader is, at the finest granularity the map knows.
+ *
+ * NEIGHBOURHOOD, NOT CITY. This asked Mapbox for `types=place`, which is
+ * Mapbox's word for a city — so somebody standing on the Upper East Side was
+ * told "New York" and Discover searched a city of eight million for "top
+ * attractions", which returns the Statue of Liberty to a person who wants
+ * somewhere to have lunch.
+ *
+ * Mapbox orders its types coarse to fine: place (city) -> locality ->
+ * neighborhood. Asking for all three and preferring the finest present is the
+ * whole change, plus the fact that most of the world HAS no neighbourhood — a
+ * village, a national park, most of Europe outside the big cities — so the
+ * city remains the answer there rather than a hole.
+ *
+ * `city` comes back separately because callers compare it against the reader's
+ * home city to decide whether they are somewhere new, and "Upper East Side" is
+ * never equal to "New York". Mirrors ChatLocationProbe on iOS.
+ */
+export async function reverseGeocodeHere(
+  lat: number,
+  lng: number
+): Promise<{ label: string; city: string | null; country: string | null }> {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  if (!token) return { label: "Nearby", city: null, country: null }
+  try {
+    const res = await fetch(
+      // NO `limit`. Mapbox rejects it outright when reverse geocoding with more
+      // than one type — "limit must be combined with a single type parameter",
+      // HTTP 422 — and this function answers a failed request with the string
+      // "Nearby", so getting that wrong does not break loudly. It quietly
+      // labels every reader "Nearby" and is worse than the city it replaced.
+      // Without it Mapbox returns one feature per type, finest first.
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json` +
+        `?types=neighborhood,locality,place&access_token=${token}`
+    )
+    if (!res.ok) return { label: "Nearby", city: null, country: null }
+    const json = (await res.json()) as {
+      features?: {
+        text?: string
+        place_type?: string[]
+        context?: { id?: string; text?: string }[]
+      }[]
+    }
+    const feats = json.features ?? []
+    const of = (t: string) => feats.find((f) => f.place_type?.includes(t))
+    // Finest first. `locality` sits between the two — Mapbox uses it for
+    // boroughs and for towns inside a larger metro.
+    const finest = of("neighborhood") ?? of("locality") ?? of("place") ?? feats[0]
+    const cityFeat = of("place")
+    const label = finest?.text ?? "Nearby"
+    const city =
+      cityFeat?.text ??
+      finest?.context?.find((c) => c.id?.startsWith("place"))?.text ??
+      null
+    const country =
+      finest?.context?.find((c) => c.id?.startsWith("country"))?.text ?? null
+    return { label, city, country }
+  } catch {
+    return { label: "Nearby", city: null, country: null }
+  }
+}
