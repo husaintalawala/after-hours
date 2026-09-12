@@ -39,7 +39,12 @@ export default function SavedRail({
 
   return (
     <Section
-      title="Saved"
+      // "Back pocket", matching the phone's CTA card. "Saved" named what the
+      // app had done with something, in the flattest word available; a back
+      // pocket is where you put the thing you mean to come back to, which is
+      // what keeping a guide actually is. The count stays literal underneath it
+      // so the heading can be warm without the row becoming vague.
+      title="Back pocket"
       meta={`${total} ${total === 1 ? "guide" : "guides"}`}
       // Only when there is more than this band is showing — the same
       // conditional-action idiom the trips band uses, so the link never
