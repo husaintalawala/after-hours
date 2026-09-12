@@ -291,7 +291,13 @@ export default function ChatsShell({
         )}
       </div>
 
-      <div className="flex items-center gap-2.5 border-t border-aurora-border p-3">
+      {/* PHONE ONLY. On a laptop the rail already carries this exact avatar at
+          its foot, so the two sat one above the other in the bottom-left corner
+          — the same face twice, six pixels apart, one of them linking to
+          Settings and one of them linking nowhere. The rail's is the one that
+          does something, so this is the one that goes. The drawer on a phone
+          has no rail beside it and still needs to say whose chats these are. */}
+      <div className="flex items-center gap-2.5 border-t border-aurora-border p-3 lg:hidden">
         {me.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={me.avatarUrl} alt="" className="h-[30px] w-[30px] rounded-full object-cover" />
@@ -363,7 +369,7 @@ export default function ChatsShell({
     ) : sel.mode === "history" ? (
       <HistoryThread session={sel.session} />
     ) : (
-      <Picker trips={trips} onPick={(t) => setSel({ mode: "trip", trip: t })} />
+      <Picker trips={trips} prompts={prompts} onPick={(t) => setSel({ mode: "trip", trip: t })} />
     )
 
   return (
@@ -512,23 +518,91 @@ function HistoryThread({ session }: { session: ChatSessionVM }) {
 }
 
 // New chat → pick the trip it's about.
-function Picker({ trips, onPick }: { trips: TripPickVM[]; onPick: (t: TripPickVM) => void }) {
+//
+// AND WHEN THERE IS NO TRIP, this screen used to be a closed door: the heading,
+// then "No trips yet — plan one from Home first." A brand-new account arriving
+// in Chats — the tab the home's Ask Drift panel sends them to — was told the
+// feature is unavailable and pointed back where it came from. It is the one
+// screen a new user is most likely to open first and the only one that offered
+// them nothing.
+//
+// The questions this account would have asked are already written (homePrompts,
+// from their home city and their first-run answers), so they become the way in:
+// each one starts the trip it implies. Which is the honest route on web, where
+// chat is trip-scoped — `/api/drift/ask` requires a tripId and forwards it to
+// ask-drift-chat as `trip_id`. iOS can hold a trip-less `general` thread through
+// a different backend that web has no proxy for; matching that properly is an
+// edge-function change, not a copy change, so this does not pretend to.
+function Picker({
+  trips,
+  prompts = [],
+  onPick,
+}: {
+  trips: TripPickVM[]
+  prompts?: string[]
+  onPick: (t: TripPickVM) => void
+}) {
+  const empty = trips.length === 0
   return (
     <div className="mx-auto w-full max-w-[640px] px-5 py-10">
       <h2 className="font-drift-display text-[26px] font-semibold tracking-tight">
         Start a chat
       </h2>
       <p className="mt-1 text-[14px] text-drift-muted">
-        Drift plans best with a trip in mind — pick one.
+        {empty
+          ? "Drift plans around a trip. Start one of these and it will pick up from there."
+          : "Drift plans best with a trip in mind — pick one."}
       </p>
-      {trips.length === 0 && (
-        <p className="mt-6 text-drift-muted">
-          No trips yet —{" "}
-          <Link href="/app" className="font-semibold text-drift-coral">
-            plan one from Home
-          </Link>{" "}
-          first.
-        </p>
+
+      {empty && (
+        <div className="mt-6">
+          {prompts.length > 0 && (
+            <ul className="space-y-2.5">
+              {prompts.map((q) => (
+                <li key={q}>
+                  <Link
+                    href="/app/trips/new"
+                    className="group flex items-center gap-3 rounded-[18px] border border-aurora-border bg-aurora-glass px-4 py-3.5 outline-none transition-colors hover:border-aurora-teal/45 focus-visible:ring-2 focus-visible:ring-aurora-teal/40"
+                  >
+                    <span
+                      aria-hidden
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-aurora-teal/15 text-aurora-teal"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </span>
+                    <span className="min-w-0 flex-1 font-drift-display text-[14px] font-light italic leading-snug text-aurora-ink2 transition-colors group-hover:text-aurora-ink">
+                      {q}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="shrink-0 text-[14px] text-aurora-ink3 transition-transform group-hover:translate-x-0.5"
+                    >
+                      &rarr;
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <Link
+            href="/app/trips/new"
+            className="mt-4 inline-flex items-center gap-2 text-[13px] font-semibold text-aurora-teal outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+          >
+            Or start a trip from scratch
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
+        </div>
       )}
       <ul className="mt-5 space-y-2.5">
         {trips.map((t) => (
