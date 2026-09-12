@@ -54,11 +54,12 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
     >
       {/* showCredit={false} and the chip re-hung at the TOP, because
           CoverCredit's own "corner" placement is `absolute bottom-1.5
-          right-1.5` — directly underneath "Make it mine", which spans the full
-          width of this card's bottom. The two were drawn on top of each other.
-          The attribution cannot be the thing that moves off (Wikimedia's CC
-          BY-SA and Unsplash's terms both bind it to the display), so the button
-          keeps the bottom and the credit takes the top corner. */}
+          right-1.5` — inside the block that spans the full width of this card's
+          bottom, so the two were drawn on top of each other. The attribution
+          cannot be the thing that moves off (Wikimedia's CC BY-SA and Unsplash's
+          terms both bind it to the display), so the copy keeps the bottom and
+          the credit takes the top corner. Still true with the pill gone: the
+          kicker and title occupy that corner on their own. */}
       <TripCoverImg cover={card.cover} sizes="(max-width: 1024px) 164px, (max-width: 1280px) 220px, 190px" showCredit={false} />
       {card.cover.credit && (
         <div className="absolute right-2 top-2 z-10 [&>*]:mt-0">
@@ -87,16 +88,12 @@ function InspireCard({ card }: { card: InspirePromoCard }) {
         <p className="mt-1 line-clamp-2 font-drift-display text-[14.5px] font-bold leading-[1.15] tracking-[-0.015em] text-white">
           {card.title}
         </p>
-        {/* The affordance, not a second button: the whole card already goes to
-            the guide, and that guide is where the copy actually happens. A real
-            <button> here would either duplicate the link or need a copy
-            endpoint this rail has no business owning. */}
-        <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/[0.14] px-2.5 py-1 text-[10.5px] font-bold text-white backdrop-blur-sm transition-colors group-hover:bg-aurora-teal group-hover:text-aurora-teal-ink">
-          Make it mine
-          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h13M12 5l7 7-7 7" />
-          </svg>
-        </span>
+        {/* NO "Make it mine" PILL. It was stamped on every card in the rail,
+            which is where it stopped being an invitation and became wallpaper —
+            the same four words repeated across a scrolling row, under headline
+            copy already doing the selling. It was never the thing you tapped
+            either: the whole card is the link and the guide carries the real
+            action, so it only looked like a button. */}
       </div>
     </Link>
   )
