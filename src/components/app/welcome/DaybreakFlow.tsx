@@ -751,7 +751,6 @@ export default function DaybreakFlow({
         {name === "shape" && (
           <MosaicStep
             categories={categories}
-            shelf={guides}
             picked={shapes}
             onToggle={(slug) =>
               setShapes((prev) => {

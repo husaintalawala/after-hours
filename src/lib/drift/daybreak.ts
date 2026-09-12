@@ -143,6 +143,38 @@ export const TRIP_LENGTHS: ReadonlyArray<{
   { id: "tenPlus", label: "Ten days or more", subtitle: "Time to go properly", icon: "train" },
 ]
 
+/**
+ * The seven shapes, with the copy and glyph iOS shows for each.
+ *
+ * WHY THIS IS A VOCABULARY AND NOT A PHOTOGRAPH. This question used to draw a
+ * real picture per tag — the hero of the highest-ranked guide carrying it — on
+ * the reasoning that in an app made of photographed places, a picture of a
+ * mountain beats a symbol of one. True, and it did not survive contact with the
+ * shelf: "Islands & beaches" drew a technical blueprint, "Mountains & hiking"
+ * drew a Yellowstone park MAP, "Road trip" drew a shed. The picker has no way
+ * to know whether a guide's hero depicts its tag, so the tile was a coin toss
+ * between a beach and a schematic.
+ *
+ * `slug` is the tag the rows carry; the server sends which of these are live
+ * (a shape with no guides behind it is a question whose answer changes
+ * nothing), and this decides their ORDER and their words. Mirrors
+ * DaybreakPrefCatalog.shapes.
+ */
+export const TRIP_SHAPES: ReadonlyArray<{
+  slug: string
+  label: string
+  subtitle: string
+  icon: string
+}> = [
+  { slug: "wild", label: "Nature & wildlife", subtitle: "Parks, animals, big landscapes", icon: "leaf" },
+  { slug: "stones", label: "History & ruins", subtitle: "Old towns, temples, museums", icon: "columns" },
+  { slug: "drive", label: "Road trip", subtitle: "The route is half the trip", icon: "car" },
+  { slug: "eat", label: "Food & drink", subtitle: "Markets, long dinners, bars", icon: "bowl" },
+  { slug: "islands", label: "Islands & beaches", subtitle: "Coast, swimming, slow sun", icon: "umbrella" },
+  { slug: "high", label: "Mountains & hiking", subtitle: "Trails, altitude, big views", icon: "mountain" },
+  { slug: "stay", label: "One base, slow days", subtitle: "Unpack once and go deep", icon: "house" },
+]
+
 export function lengthFits(length: TripLength, days: number): boolean {
   switch (length) {
     case "any":

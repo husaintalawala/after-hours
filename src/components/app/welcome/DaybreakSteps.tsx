@@ -12,11 +12,12 @@ import {
   TRAVEL_PARTIES,
   TRAVEL_RHYTHMS,
   TRIP_LENGTHS,
+  TRIP_SHAPES,
   type TripLength,
   distanceText,
   spelledCount,
 } from "@/lib/drift/daybreak"
-import { platesForTags, type Plate } from "@/lib/drift/daybreakArt"
+import { type Plate } from "@/lib/drift/daybreakArt"
 import { tripCover } from "@/lib/drift/tripCover"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import type { PlaceCandidate } from "@/lib/drift/chat"
@@ -211,7 +212,26 @@ export function Backdrop({
               : "absolute inset-0"
           }
         >
-          <TripCoverImg cover={cover} sizes="100vw" showCredit={false} priority />
+          {/* `100vw` IS THE WRONG NUMBER FOR A COVER, and it is why this photo
+              was grainy. The srcset ladder is fine — six rungs up to 3200 — but
+              `sizes` is what the browser picks with, and it was describing the
+              BOX (375px on a phone) rather than the IMAGE. This box is portrait
+              and full-bleed, the photo is landscape, and `object-cover` scales
+              by the constraining edge: a 2.74:1 panorama covering 375x812 is
+              drawn 2,223px wide, of which all but 375 is cropped off-screen.
+              So the browser was told to fetch 375 CSS px, dutifully chose the
+              800 rung, and stretched it 5.6x.
+              Height times a typical hero's aspect is what cover actually
+              consumes, so that is what we ask for: `150vh` covers a 1.5:1 hero
+              exactly and gets a panorama most of the way, landing on the 2560
+              rung for a phone instead of 800. Landscape windows are back to
+              being width-bound, which is what `100vw` was always right for. */}
+          <TripCoverImg
+            cover={cover}
+            sizes="(orientation: portrait) 150vh, 100vw"
+            showCredit={false}
+            priority
+          />
         </div>
 
         {/* The pool the content sits in. A linear band darkens the top and the
@@ -441,17 +461,23 @@ export function OriginStep({
 // MARK: - 03 · What pulls you (the mosaic)
 
 /**
- * Seven chips become seven photographs.
+ * Seven chips became seven photographs, and are now seven cards.
  *
  * The words were reported as simply not understood — "Old stones", "Up high" —
- * and renaming them helped, but the deeper fault was asking in WORDS what this
- * app can ask in PICTURES. Each tile is a real destination from the highest-
- * ranked guide carrying that tag (see daybreakArt.ts), so the answer looks like
- * what it means, and nothing here is a place name typed into a source file.
+ * and renaming them helped. The next answer was to stop asking in words at all:
+ * each tile drew a real destination from the highest-ranked guide carrying that
+ * tag, so the answer would look like what it meant. It was the right instinct
+ * and the wrong mechanism, because the picker cannot tell whether a guide's
+ * hero actually DEPICTS its tag — "Islands & beaches" drew a technical
+ * blueprint, "Mountains & hiking" a Yellowstone park map, "Road trip" a shed.
+ *
+ * So the fix is the naming one carried further: a glyph and a one-line gloss,
+ * which say "Parks, animals, big landscapes" without gambling on the shelf. See
+ * TRIP_SHAPES. This is also how every other preference in the flow asks, so the
+ * question no longer looks like a different screen from the four after it.
  */
 export function MosaicStep({
   categories,
-  shelf,
   picked,
   onToggle,
   length,
@@ -460,8 +486,6 @@ export function MosaicStep({
   onSkip,
 }: {
   categories: ReadonlyArray<{ slug: string; name: string }>
-  /** In rank order — plateForTag reads "highest ranked" as "first". */
-  shelf: readonly DaybreakGuide[]
   picked: ReadonlySet<string>
   onToggle: (slug: string) => void
   length: TripLength
@@ -469,13 +493,11 @@ export function MosaicStep({
   onNext: () => void
   onSkip: () => void
 }) {
-  // ONE lookup for the whole mosaic, not one per tile: the rule that stops two
-  // tiles showing the same trip can only be applied to the tiles as a set. See
-  // platesForTags.
-  const plates = platesForTags(
-    categories.map((c) => c.slug),
-    shelf
-  )
+  // The CATALOGUE decides order and words; the SERVER decides which are live.
+  // Offering a shape with no guides behind it is a question whose answer
+  // changes nothing. Mirrors DaybreakMosaicPrefStep.options.
+  const live = new Set(categories.map((c) => c.slug))
+  const shapes = TRIP_SHAPES.filter((s) => live.has(s.slug))
   return (
     <>
       <Question
@@ -486,25 +508,69 @@ export function MosaicStep({
         }
       />
 
-      {/* ONE EVEN GRID. This was a deliberately uneven mosaic — every third
-          tile taller, `items-start` to stop the grid flattening it, six tiles
-          plus a seventh full-width beneath — on the reasoning that seven equal
-          rectangles read as a form. iOS tried the same thing and went back:
-          PrefPhotoGrid gives every tile the same frame, and accepts the empty
-          half-cell in the last row rather than promoting one category to a
-          banner it did not earn. The unevenness also made the tall tiles look
-          chosen before anything was, which is the opposite of what a question
-          should do. */}
+      {/* ICON CARDS, NOT PHOTOGRAPHS — see TRIP_SHAPES for what the pictures
+          actually turned out to be. What survives from the photo version is the
+          geometry: one even grid, every cell the same, and a seventh that simply
+          takes the left half of the last row rather than being promoted to a
+          banner it did not earn. `items-stretch` is the grid default and
+          `h-full` on the card is what makes two cards in a row match when one
+          subtitle wraps to two lines and the other does not. */}
       <div className="mt-3 grid grid-cols-2 gap-[10px]">
-        {categories.map((c) => (
-          <Tile
-            key={c.slug}
-            category={c}
-            plate={plates.get(c.slug) ?? null}
-            on={picked.has(c.slug)}
-            onToggle={() => onToggle(c.slug)}
-          />
-        ))}
+        {shapes.map((s) => {
+          const on = picked.has(s.slug)
+          return (
+            <button
+              key={s.slug}
+              type="button"
+              role="checkbox"
+              aria-checked={on}
+              onClick={() => onToggle(s.slug)}
+              className={`flex h-full flex-col items-start gap-2.5 rounded-2xl border p-3 text-left transition-colors ${
+                on
+                  ? "border-aurora-teal/55 bg-aurora-teal/[0.10]"
+                  : "border-aurora-border bg-white/[0.05] hover:border-aurora-border-strong"
+              }`}
+            >
+              <span className="flex w-full items-start justify-between gap-2">
+                <span
+                  aria-hidden
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
+                    on ? "bg-aurora-teal/20 text-aurora-teal" : "bg-white/[0.07] text-aurora-ink3"
+                  }`}
+                >
+                  <PrefIcon name={s.icon} />
+                </span>
+                <span
+                  aria-hidden
+                  className={`grid h-[19px] w-[19px] shrink-0 place-items-center rounded-[6px] border-2 ${
+                    on ? "border-aurora-teal bg-aurora-teal" : "border-white/25"
+                  }`}
+                >
+                  {on && (
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-3 w-3 stroke-aurora-teal-ink"
+                      fill="none"
+                      strokeWidth={3.4}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M4 12.5l5.5 5.5L20 7" />
+                    </svg>
+                  )}
+                </span>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-bold leading-tight text-aurora-ink">
+                  {s.label}
+                </span>
+                <span className="mt-1 block text-[11.5px] leading-snug text-aurora-ink3">
+                  {s.subtitle}
+                </span>
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* The second half of the question, on the same screen rather than an
@@ -537,111 +603,6 @@ export function MosaicStep({
         <Skip label="Skip for now" onClick={onSkip} />
       </Footer>
     </>
-  )
-}
-
-/**
- * One photographed tile.
- *
- * STRETCHED BUTTON, NOT A WRAPPER, and the button carries NO z-index — the same
- * shape, and the same reason, as GuideCard below. The photo credit is itself a
- * button, so it cannot sit inside the selection control and has to stay
- * clickable through it; TripCoverImg draws it at z-10 inside the photo box,
- * which is `relative` with z-index auto and therefore starts no stacking context
- * of its own, so the credit is compared against the stretched button directly
- * and wins. Giving the button any z-index at all would bury it — and a button
- * nested inside a button is invalid markup besides.
- *
- * ONE CREDIT PER TILE, which is stricter than the phone: iOS's mosaic draws
- * these photographs bare. Both licences bind attribution to the display and
- * every one of these is a display, so on web the obligation rides along for free
- * — TripCoverImg cannot render a stock photo without it.
- */
-function Tile({
-  category,
-  plate,
-  on,
-  onToggle,
-}: {
-  category: { slug: string; name: string }
-  plate: Plate | null
-  on: boolean
-  onToggle: () => void
-}) {
-  // Rung 4 — the deterministic gradient with the category's initial on it. This
-  // is what a slow network actually holds, and it is a designed state rather
-  // than a hole: the tile stays readable, tappable and the same size.
-  const cover = plate?.cover ?? tripCover({ id: category.slug, title: category.name })
-
-  return (
-    <div className="relative h-[118px]">
-      <div
-        className={`relative h-full overflow-hidden rounded-[13px] border-2 ${
-          on ? "border-aurora-teal" : "border-transparent"
-        }`}
-      >
-        <TripCoverImg cover={cover} sizes="(max-width: 480px) 50vw, 220px" />
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: "linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.85))" }}
-        />
-        {/* Cleared to the left of the credit chip, exactly as GuideCard is. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-2 pr-[74px]">
-          <p className="line-clamp-2 text-[12px] font-bold leading-tight text-white">
-            {category.name}
-          </p>
-          {plate?.place && (
-            <p className="truncate text-[8px] font-semibold uppercase tracking-[0.06em] text-white/70">
-              {plate.place}
-            </p>
-          )}
-        </div>
-        {/* Selection reads on a photograph only if it has its own ground. */}
-        <span
-          aria-hidden="true"
-          className={`pointer-events-none absolute right-[7px] top-[7px] flex h-[18px] w-[18px] items-center justify-center rounded-full ${
-            on ? "bg-aurora-teal text-aurora-teal-ink" : "border-[1.4px] border-white/80"
-          }`}
-        >
-          {on && <CheckGlyph className="h-2.5 w-2.5" />}
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-pressed={on}
-        aria-label={category.name}
-        className="absolute inset-0 rounded-[13px] outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-      />
-    </div>
-  )
-}
-
-/** A small pill that has to read on a photograph. The glass fill the rest of the
- *  flow uses disappears over one, so selection is a solid teal fill and the rest
- *  is white at 14%. `bg-aurora-teal` is the house gradient — the same filled
- *  teal GuideCard's selection dot uses. */
-function PhotoPill({
-  label,
-  on,
-  onClick,
-}: {
-  label: string
-  on: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={`h-8 flex-1 truncate rounded-full px-2 text-[11.5px] font-semibold transition-colors ${
-        on ? "bg-aurora-teal text-aurora-teal-ink" : "bg-white/[0.14] text-aurora-ink"
-      }`}
-    >
-      {label}
-    </button>
   )
 }
 
@@ -915,6 +876,12 @@ function PrefIcon({ name }: { name: string }) {
     pin: "M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zM12 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
     bowl: "M3 11h18a9 9 0 0 1-18 0zM12 11V6M9 6h6M2 21h20",
     moon: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z",
+    // The seven trip shapes — see TRIP_SHAPES.
+    leaf: "M4 20c0-8 6-14.5 16-15 1 10.5-5 16.5-13 16M4 20c4.5-.5 7.5-2.5 9.5-5.5",
+    columns: "M3 9h18L12 3.5 3 9zM5 9v10M9.5 9v10M14.5 9v10M19 9v10M3.5 19h17",
+    umbrella: "M12 12.5v6.5a2 2 0 0 0 4 0M2.5 12.5a9.5 9.5 0 0 1 19 0zM12 3v1.5",
+    mountain: "M2 20h20L14.5 6.5l-4 7-2.5-3.5L2 20z",
+    house: "M3 10.5L12 3.5l9 7M5.5 9.5V20h13V9.5M10 20v-5.5h4V20",
   }
   return (
     <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
