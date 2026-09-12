@@ -53,8 +53,14 @@ export default function HomeHeader({
           screen. Hidden, not deleted: narrow viewports still need it. */}
       <div className="flex items-center justify-between gap-4 lg:hidden">
         <Link href="/app" aria-label="Drift home" className="shrink-0">
+          {/* THE LOGO, not a paper-plane. drift-icon.svg is a generic teal
+              navigation arrow on a rounded square — a placeholder that read as
+              a map pin rather than as Drift. This is the real mark, cropped out
+              of drift-logo.png (which is a 1024px canvas that is 88% empty, so
+              dropping it into a 28px box straight would have rendered the comet
+              at about ten pixels, off-centre). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/drift-icon.svg" alt="Drift" className="h-7 w-7" />
+          <img src="/brand/drift-mark.png" alt="Drift" className="h-7 w-7 object-contain" />
         </Link>
 
         {isSelf ? (

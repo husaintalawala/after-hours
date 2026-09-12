@@ -352,12 +352,14 @@ export default function HomeShell({
                 />
               </div>
 
-              {/* NOT gated on chats.length any more. The panel owns its own
-                  empty state, because a column that disappears when you have
-                  no threads leaves a hole next to the globe and reads as a
-                  missing feature rather than an empty one. */}
+              {/* LAPTOP ONLY. This is the third column of the cockpit row, and
+                  it exists because that row has the width for it. On a phone
+                  there is no row — the panel became a fourth stacked band of
+                  suggestions between the passport and the trips, competing with
+                  the Ask bar pinned directly above it, which is the same job
+                  done twice on a screen with no room to do it once. */}
               {isSelf && (
-                <div className="mt-6 lg:mt-0">
+                <div className="hidden lg:mt-0 lg:block">
                   <ChatsPanel prompts={data.prompts} />
                 </div>
               )}
@@ -386,8 +388,9 @@ export default function HomeShell({
               pins={pins}
               isSelf={isSelf}
             />
+            {/* Laptop only — see the note on the other call site. */}
             {isSelf && (
-              <div className="mt-6 lg:mt-0">
+              <div className="hidden lg:mt-0 lg:block">
                 <ChatsPanel prompts={data.prompts} />
               </div>
             )}

@@ -6,6 +6,11 @@ import { updateSession } from "@/lib/supabase/middleware";
 // drift.after-hours.app subdomain, while after-hours.app itself is untouched.
 // Clean URLs: "/" -> /drift/index.html, "/privacy" -> /drift/privacy.html,
 // "/styles.css" -> /drift/styles.css.
+
+/** Directories under /public that belong to the LOGGED-IN APP, not to the
+ *  marketing site — exempt from the rewrite below. Add one here the moment you
+ *  add one to /public, or its files will 404 as HTML. */
+const APP_ASSET_DIRS = ["/cta/", "/brand/"];
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const pathname = req.nextUrl.pathname;
@@ -63,10 +68,20 @@ export async function middleware(req: NextRequest) {
   // favicon metadata). They must be served from Next's /public, not swallowed
   // by the marketing rewrite below — otherwise the logo shows a broken image
   // and the tab has no favicon on drift.after-hours.app.
+  //
+  // AND THE DIRECTORIES BELOW THEM. The rewrite rewrites EVERYTHING on this
+  // host, and an extension only saves a path from having `.html` glued on — it
+  // still gets the `/drift` prefix. So /cta/create-trip.png was asked of the
+  // marketing site as /drift/cta/create-trip.png and came back as a 404 page
+  // with `content-type: text/html`, which a browser renders as a broken image
+  // rather than an error anybody would notice in a log. Every asset the logged
+  // -in app serves out of /public needs to be listed here or it will disappear
+  // exactly this quietly.
   if (
     pathname === "/drift-logo.png" ||
     pathname === "/drift-icon.svg" ||
-    pathname === "/favicon.svg"
+    pathname === "/favicon.svg" ||
+    APP_ASSET_DIRS.some((dir) => pathname.startsWith(dir))
   ) {
     return NextResponse.next();
   }

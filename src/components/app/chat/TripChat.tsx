@@ -130,6 +130,11 @@ export default function TripChat({
     if (msg && !initialSentRef.current) {
       initialSentRef.current = true
       void send(msg)
+      // Tell the caller it is spent. The ref above only guards THIS mount, and
+      // ChatsShell remounts this component on every trip switch (`key`), so a
+      // question left live in the parent would be asked again the moment the
+      // reader picked another thread.
+      onPrefillConsumed?.()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSend])

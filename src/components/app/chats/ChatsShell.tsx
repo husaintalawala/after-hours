@@ -346,7 +346,12 @@ export default function ChatsShell({
             country={sel.trip.country}
             destinations={sel.trip.destinations}
             bare
-            prefill={ask}
+            // SENT, not typed. A question arriving as `?ask=` has already been
+            // chosen — the reader tapped it on the home screen, or pressed send
+            // in the composer there — so landing in a thread with it sitting
+            // unsent in the input asks them to send a second time for something
+            // they already asked. `initialSend` fires it once on mount.
+            initialSend={ask}
             onPrefillConsumed={() => setAsk(null)}
           />
         </div>
