@@ -4,6 +4,12 @@ import { createClient } from "@/lib/supabase/server"
 import type { StepRow, TripRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import { tripCover } from "@/lib/drift/tripCover"
+import {
+  firstUserMessages,
+  MAX_OPENER_ROWS,
+  needsFirstMessage,
+  resolveChatName,
+} from "@/lib/drift/chatName"
 import ChatsShell, {
   type ChatSessionVM,
   type MeVM,
@@ -177,11 +183,39 @@ async function ChatsContent({ ask }: { ask?: string }) {
   }))
   const tripVMById = new Map(tripVMs.map((t) => [t.id, t]))
 
-  const sessionVMs: ChatSessionVM[] = sessions
+  const liveSessions = sessions
     // Drop orphaned trip chats whose trip no longer exists — otherwise they
     // render as stale duplicate rows by their old label (e.g. several "Türkiye"
     // sessions left behind by deleted/re-created trips).
     .filter((s) => !(s.anchor_type === "trip" && s.anchor_id && !tripVMById.has(s.anchor_id)))
+
+  // The threads with nothing to be called — see chatName.ts. One query for the
+  // lot of them, and none at all when every thread here hangs off a trip.
+  const unnamedIds = liveSessions
+    .filter((s) =>
+      needsFirstMessage({
+        tripTitle:
+          s.anchor_type === "trip" && s.anchor_id ? tripVMById.get(s.anchor_id)?.title : null,
+        anchorLabel: s.anchor_label,
+        sessionTitle: s.title,
+      })
+    )
+    .map((s) => s.id)
+  const openers = unnamedIds.length
+    ? await firstUserMessages(
+        (ids) =>
+          supabase
+            .from("trip_chat_messages")
+            .select("session_id,text")
+            .in("session_id", ids)
+            .eq("role", "user")
+            .order("created_at", { ascending: true })
+            .limit(MAX_OPENER_ROWS),
+        unnamedIds
+      )
+    : new Map<string, string>()
+
+  const sessionVMs: ChatSessionVM[] = liveSessions
     .map((s) => {
     const kind =
       s.anchor_type === "trip" ? "trip" : s.anchor_type === "place" ? "place" : "general"
@@ -193,7 +227,12 @@ async function ChatsContent({ ask }: { ask?: string }) {
       id: s.id,
       kind,
       tripId: kind === "trip" ? s.anchor_id : null,
-      title: trip?.title ?? s.anchor_label ?? s.title ?? "Chat",
+      title: resolveChatName({
+        tripTitle: trip?.title,
+        anchorLabel: s.anchor_label,
+        sessionTitle: s.title,
+        firstMessage: openers.get(s.id) ?? null,
+      }),
       subtitle: s.title,
       when: relativeTime(s.last_message_at),
       photo,

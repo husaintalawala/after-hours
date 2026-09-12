@@ -2,6 +2,24 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import { tripCover } from "@/lib/drift/tripCover"
+import {
+  firstUserMessages,
+  MAX_OPENER_ROWS,
+  needsFirstMessage,
+  resolveChatName,
+} from "@/lib/drift/chatName"
+
+/**
+ * How many threads the home panel lists.
+ *
+ * SIX, because the panel is a full column beside the globe on a laptop and
+ * three rows of content left two thirds of the tile empty — which is what drove
+ * the rows to stretch to 110px each and read as blank bands. Filling that space
+ * with more threads is better than filling it with more padding, and on a phone
+ * the panel is in normal flow where a six-item list is simply a list.
+ * `All →` still goes to the full history.
+ */
+const HOME_CHAT_ROWS = 6
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
 import type { HomeData, HomeTrip, HomeChat } from "@/components/app/home/HomeShell"
 
@@ -213,29 +231,67 @@ export async function buildHomeData(
       .is("merged_into", null)
       .is("archived_at", null)
       .order("last_message_at", { ascending: false })
-      // SIX, because the panel is a full column on a laptop and three rows of
-      // content in it left two thirds of the tile empty — which is what drove
-      // the rows to stretch to 110px each and read as blank bands. Filling that
-      // space with more threads is better than filling it with more padding,
-      // and on a phone the panel is in normal flow where a six-item list is
-      // simply a list. `All →` still goes to the full history.
-      .limit(6)
+      // SIX SURVIVE — see HOME_CHAT_ROWS — but more are fetched, because the
+      // orphan filter below drops rows and asking for exactly six would show
+      // four.
+      .limit(HOME_CHAT_ROWS * 3)
       .returns<ChatSessionRow[]>()
 
     // THE SAME NAME THE CHATS TAB USES, and that is the requirement rather than
-    // a nicety: a thread called "Barcelona" in one place and "Untitled chat" in
-    // the other is two names for one object. /app/chats resolves
-    //   trip title ?? anchor_label ?? session title ?? "Chat"
-    // and the trip half is what actually fires, because most threads hang off a
-    // trip and carry no title of their own — which is why the first cut of this
-    // panel rendered "Untitled chat" three times over. The trips are already
-    // loaded above, so resolving it here costs nothing.
+    // a nicety: a thread called "Barcelona" in one place and something else in
+    // the other is two names for one object. The rule lives in chatName.ts
+    // precisely so there is one copy of it; both this and /app/chats call it.
+    // The trips are already loaded above, so the trip half costs nothing.
     const tripTitles = new Map(trips.map((t) => [t.id, t.title]))
-    chats = (rows ?? []).map((r) => {
-      const fromTrip =
-        r.anchor_type === "trip" && r.anchor_id ? tripTitles.get(r.anchor_id) : null
-      const name =
-        fromTrip?.trim() || r.anchor_label?.trim() || r.title?.trim() || "Chat"
+
+    // ORPHANS ARE NOT THREADS. A chat anchored to a trip that no longer exists
+    // cannot be named — its title comes from the trip, and the trip is gone —
+    // so it rendered as the bare word "Chat", and a deleted-and-recreated trip
+    // leaves several of them at once. That is exactly the row the Chats tab has
+    // always dropped ("stale duplicate rows by their old label"); the home
+    // panel simply never learned the rule, which is why the tab and the panel
+    // disagreed about how many threads this account has.
+    const parts = (rows ?? [])
+      .filter((r) => !(r.anchor_type === "trip" && r.anchor_id && !tripTitles.has(r.anchor_id)))
+      .slice(0, HOME_CHAT_ROWS)
+      .map((r) => ({
+        row: r,
+        tripTitle:
+          r.anchor_type === "trip" && r.anchor_id ? tripTitles.get(r.anchor_id) ?? null : null,
+      }))
+
+    // Only the threads that would otherwise read "Chat" cost a second query,
+    // and they share one — see firstUserMessages.
+    const unnamed = parts
+      .filter((p) =>
+        needsFirstMessage({
+          tripTitle: p.tripTitle,
+          anchorLabel: p.row.anchor_label,
+          sessionTitle: p.row.title,
+        })
+      )
+      .map((p) => p.row.id)
+    const openers = unnamed.length
+      ? await firstUserMessages(
+          (ids) =>
+            supabase
+              .from("trip_chat_messages")
+              .select("session_id,text")
+              .in("session_id", ids)
+              .eq("role", "user")
+              .order("created_at", { ascending: true })
+              .limit(MAX_OPENER_ROWS),
+          unnamed
+        )
+      : new Map<string, string>()
+
+    chats = parts.map(({ row: r, tripTitle }) => {
+      const name = resolveChatName({
+        tripTitle,
+        anchorLabel: r.anchor_label,
+        sessionTitle: r.title,
+        firstMessage: openers.get(r.id) ?? null,
+      })
       return {
         id: r.id,
         title: name,
