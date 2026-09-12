@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react"
 import { renderRich } from "@/lib/drift/richText"
+import ItineraryCard from "@/components/app/chat/ItineraryCard"
 import {
   askGeneral,
   flattenTurns,
   generalSystemPrompt,
+  type ChatItinerary,
   type GeneralTrip,
 } from "@/lib/drift/generalChat"
 import { createGeneralSession, loadSessionMessages, saveMessage } from "@/lib/drift/chatStore"
@@ -21,11 +23,15 @@ import { createGeneralSession, loadSessionMessages, saveMessage } from "@/lib/dr
  * hydration and its add-to-trip flow — four branches through the most
  * load-bearing component in the app, to serve the case that has none of them.
  *
- * So this is the smaller surface for the smaller contract: one turn in, prose
- * out, no cards and no tools. What it shares with iOS is the part that matters —
- * the same system prompt, seeded with the same trips digest, so the assistant
- * knows the account's trips by name and answers "do I have a Lisbon trip?"
- * instead of recommending another app.
+ * So this is the smaller surface for the smaller contract: one turn in, an
+ * answer out, and — when the answer carries a plan — the itinerary drawn as days
+ * with a button that saves it. No streaming and no trip tools, because neither
+ * exists without a trip to run them against.
+ *
+ * What it shares with iOS is the part that matters: the same system prompt,
+ * seeded with the same trips digest, so the assistant knows the account's trips
+ * by name and answers "do I have a Lisbon trip?" instead of recommending
+ * another app.
  */
 export default function GeneralChat({
   trips,
@@ -40,7 +46,9 @@ export default function GeneralChat({
   /** Offered when the thread is empty; tapping one sends it. */
   prompts?: string[]
 }) {
-  const [messages, setMessages] = useState<Array<{ id: string; role: "user" | "assistant"; text: string }>>([])
+  const [messages, setMessages] = useState<
+    Array<{ id: string; role: "user" | "assistant"; text: string; itinerary?: ChatItinerary | null }>
+  >([])
   const [input, setInput] = useState("")
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -71,18 +79,28 @@ export default function GeneralChat({
     const sid = sessionRef.current
     if (sid) void saveMessage(sid, null, "user", text)
 
-    const { text: answer, error } = await askGeneral(
+    const { text: answer, itinerary, error } = await askGeneral(
       generalSystemPrompt({ trips, homeCity }),
       flattenTurns(history)
     )
 
-    if (!answer) {
+    // A turn that is ONLY a plan is still a turn. When the model follows the
+    // instruction to keep the intro short it sometimes emits nothing but the
+    // block, and treating an empty prose half as a failure threw away the very
+    // itinerary the reader asked for.
+    if (!answer && !itinerary) {
       setFailed(true)
       setBusy(false)
       return
     }
-    setMessages((m) => [...m, { id: `${Date.now()}-a`, role: "assistant", text: answer }])
-    if (sid) void saveMessage(sid, null, "assistant", answer)
+    const shown =
+      answer ||
+      "Here's a day-by-day plan — create the trip to save it, or ask me to change a day."
+    setMessages((m) => [
+      ...m,
+      { id: `${Date.now()}-a`, role: "assistant", text: shown, itinerary },
+    ])
+    if (sid) void saveMessage(sid, null, "assistant", shown)
     setBusy(false)
     if (error) setFailed(false)
   }
@@ -172,6 +190,7 @@ export default function GeneralChat({
                 }
               >
                 {m.role === "assistant" ? renderRich(m.text) : m.text}
+                {m.itinerary && <ItineraryCard itin={m.itinerary} />}
               </div>
             </div>
           ))}

@@ -8,6 +8,33 @@
  * comments say where.
  */
 
+/** One place inside a chat-proposed day. */
+export interface ItineraryPlace {
+  name: string
+  why: string
+}
+
+export interface ItineraryDay {
+  title: string
+  places: ItineraryPlace[]
+}
+
+/**
+ * A multi-day plan the model laid out, parsed out of its machine block.
+ *
+ * Mirrors iOS's ChatItinerary. `startDate` is the wall-clock string the model
+ * emitted, kept as a string rather than a Date deliberately — it is a calendar
+ * day, and turning it into an instant here is how a trip starting on the 1st
+ * becomes one starting on the 31st for anyone west of Greenwich.
+ */
+export interface ChatItinerary {
+  destination: string
+  country: string | null
+  title: string
+  startDate: string | null
+  days: ItineraryDay[]
+}
+
 export interface GeneralTrip {
   title: string
   city: string | null
@@ -99,7 +126,7 @@ export function flattenTurns(turns: Array<{ role: string; text: string }>): stri
  */
 export function stripItineraryBlock(answer: string): {
   text: string
-  itinerary: unknown | null
+  itinerary: ChatItinerary | null
 } {
   const start = answer.indexOf("<<DRIFT_ITINERARY>>")
   if (start === -1) return { text: answer.trim(), itinerary: null }
@@ -108,9 +135,9 @@ export function stripItineraryBlock(answer: string): {
     end === -1
       ? answer.slice(start + "<<DRIFT_ITINERARY>>".length)
       : answer.slice(start + "<<DRIFT_ITINERARY>>".length, end)
-  let itinerary: unknown | null = null
+  let itinerary: ChatItinerary | null = null
   try {
-    itinerary = JSON.parse(raw.trim())
+    itinerary = coerceItinerary(JSON.parse(raw.trim()))
   } catch {
     // A truncated block is the common failure — the prose above it is still a
     // real answer, so it is kept rather than the whole turn being discarded.
@@ -121,12 +148,56 @@ export function stripItineraryBlock(answer: string): {
   return { text, itinerary }
 }
 
+/**
+ * Shape whatever parsed into something renderable, or nothing.
+ *
+ * TOLERANT BY DESIGN. This is model output crossing a JSON boundary, and a
+ * strict decode that throws on one unexpected field loses an entire itinerary
+ * over a stray key — the "LLM-JSON silent blank" failure this codebase has hit
+ * before. Anything with a destination and at least one day with one place is
+ * worth drawing; everything else falls back to prose, which is never wrong.
+ */
+function coerceItinerary(raw: unknown): ChatItinerary | null {
+  if (!raw || typeof raw !== "object") return null
+  const o = raw as Record<string, unknown>
+  const destination = typeof o.destination === "string" ? o.destination.trim() : ""
+  const daysRaw = Array.isArray(o.days) ? o.days : []
+  const days: ItineraryDay[] = daysRaw
+    .map((d): ItineraryDay | null => {
+      if (!d || typeof d !== "object") return null
+      const dd = d as Record<string, unknown>
+      const placesRaw = Array.isArray(dd.places) ? dd.places : []
+      const places = placesRaw
+        .map((pl): ItineraryPlace | null => {
+          if (!pl || typeof pl !== "object") return null
+          const pp = pl as Record<string, unknown>
+          const name = typeof pp.name === "string" ? pp.name.trim() : ""
+          if (!name) return null
+          return { name, why: typeof pp.why === "string" ? pp.why.trim() : "" }
+        })
+        .filter((x): x is ItineraryPlace => x !== null)
+      if (!places.length) return null
+      return { title: typeof dd.title === "string" ? dd.title.trim() : "", places }
+    })
+    .filter((x): x is ItineraryDay => x !== null)
+
+  if (!destination || !days.length) return null
+  const start = typeof o.start_date === "string" ? o.start_date.slice(0, 10) : null
+  return {
+    destination,
+    country: typeof o.country === "string" ? o.country.trim() || null : null,
+    title: typeof o.title === "string" && o.title.trim() ? o.title.trim() : `${destination} trip`,
+    startDate: start && /^\d{4}-\d{2}-\d{2}$/.test(start) ? start : null,
+    days,
+  }
+}
+
 /** One turn against claude-complete. Resolves to the prose, already cleaned. */
 export async function askGeneral(
   system: string,
   transcript: string,
   signal?: AbortSignal
-): Promise<{ text: string; itinerary: unknown | null; error?: string }> {
+): Promise<{ text: string; itinerary: ChatItinerary | null; error?: string }> {
   try {
     const res = await fetch("/api/drift/complete", {
       method: "POST",
