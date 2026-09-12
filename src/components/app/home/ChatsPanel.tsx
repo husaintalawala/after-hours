@@ -39,15 +39,23 @@ export default function ChatsPanel({ chats }: { chats: HomeChat[] }) {
         </Link>
       </header>
 
-      {/* flex-1 on the list and on each row: the panel is one of three tiles in
-          a fixed-height row on a laptop, so the rows share whatever height is
-          left rather than the tile growing a gap under the last one. */}
+      {/* A ROW IS THE HEIGHT OF A ROW. This list used to put `flex-1` on every
+          row as well as on itself, so three threads divided the whole column
+          between them: measured at 1440, each row was 110px tall to carry a
+          34px icon and one line of text, and the panel read as three empty
+          bands with a label adrift in each. The intent was to avoid a gap under
+          the last row — but a gap at the bottom of a short list is what every
+          list in the world does, and three 110px voids is a much stranger thing
+          to look at than one piece of quiet space.
+          The column is filled with CONTENT instead: homeData asks for six
+          recent threads rather than three, so on a laptop the space goes to
+          more chat rather than to more padding. */}
       <div className="flex flex-1 flex-col">
         {chats.map((c) => (
           <Link
             key={c.id}
             href={`/app/chats?session=${encodeURIComponent(c.id)}`}
-            className="flex flex-1 items-center gap-3 border-t border-aurora-border px-5 py-3 outline-none transition-colors hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-aurora-teal/40"
+            className="flex items-center gap-3 border-t border-aurora-border px-5 py-3 outline-none transition-colors hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-aurora-teal/40"
           >
             <span
               aria-hidden
@@ -82,10 +90,14 @@ export default function ChatsPanel({ chats }: { chats: HomeChat[] }) {
               )}
             </span>
 
+            {/* Beside the title, not pinned to the ceiling. `self-start` was
+                right when a row was 110px and the content sat at the top; on a
+                row that is the height of its content it just reads as
+                misaligned. */}
             {c.lastMessageAt && (
               <time
                 dateTime={c.lastMessageAt}
-                className="shrink-0 self-start pt-0.5 font-mono text-[9.5px] text-aurora-ink3"
+                className="shrink-0 font-mono text-[9.5px] text-aurora-ink3"
               >
                 {shortAgo(c.lastMessageAt)}
               </time>

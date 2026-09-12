@@ -213,7 +213,13 @@ export async function buildHomeData(
       .is("merged_into", null)
       .is("archived_at", null)
       .order("last_message_at", { ascending: false })
-      .limit(3)
+      // SIX, because the panel is a full column on a laptop and three rows of
+      // content in it left two thirds of the tile empty — which is what drove
+      // the rows to stretch to 110px each and read as blank bands. Filling that
+      // space with more threads is better than filling it with more padding,
+      // and on a phone the panel is in normal flow where a six-item list is
+      // simply a list. `All →` still goes to the full history.
+      .limit(6)
       .returns<ChatSessionRow[]>()
 
     // THE SAME NAME THE CHATS TAB USES, and that is the requirement rather than
