@@ -330,6 +330,7 @@ async function ChatsContent({ ask }: { ask?: string }) {
       me={me}
       initialAsk={ask ?? null}
       prompts={prompts}
+      homeCity={profile?.home_city ?? null}
     />
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import TripChat from "@/components/app/chat/TripChat"
+import GeneralChat from "@/components/app/chat/GeneralChat"
 import { renderRich } from "@/lib/drift/richText"
 import BackLink from "@/components/app/BackLink"
 import AppNav from "@/components/app/AppNav"
@@ -43,6 +44,8 @@ export interface MeVM {
 
 type Selection =
   | { mode: "picker" }
+  /** A thread about no trip in particular — see GeneralChat. */
+  | { mode: "general" }
   | { mode: "trip"; trip: TripPickVM }
   | { mode: "history"; session: ChatSessionVM }
 
@@ -52,6 +55,7 @@ export default function ChatsShell({
   me,
   initialAsk = null,
   prompts = [],
+  homeCity = null,
 }: {
   sessions: ChatSessionVM[]
   trips: TripPickVM[]
@@ -69,13 +73,18 @@ export default function ChatsShell({
   /** Questions written for this reader (homePrompts.ts), shown when a thread is
    *  empty. Tapping one sends it. */
   prompts?: string[]
+  /** Seeds the general thread's "near me" answers. */
+  homeCity?: string | null
 }) {
   const firstTripSession = sessions.find((s) => s.kind === "trip" && s.tripId)
+  // NO TRIPS → a general thread, not the picker. The picker's whole job is to
+  // choose which trip a chat is about, and an account with none cannot answer
+  // it — which is how this screen came to greet new accounts with a refusal.
   const initial: Selection = firstTripSession
     ? { mode: "trip", trip: trips.find((t) => t.id === firstTripSession.tripId) ?? tripStub(firstTripSession) }
     : trips.length
       ? { mode: "picker" }
-      : { mode: "picker" }
+      : { mode: "general" }
   const [sel, setSel] = useState<Selection>(initial)
   const [drawer, setDrawer] = useState(false)
   // Cleared by TripChat's onPrefillConsumed the moment it lands in the input,
@@ -161,7 +170,9 @@ export default function ChatsShell({
       <div className="p-3 pb-1.5">
         <button
           onClick={() => {
-            setSel({ mode: "picker" })
+            // A general thread, the way iOS's "New chat" opens one. Picking a
+            // trip is still there — every trip in the list below is one tap.
+            setSel({ mode: "general" })
             setDrawer(false)
           }}
           className="flex w-full items-center gap-2.5 rounded-[14px] bg-aurora-glass2 px-3.5 py-2.5 text-[14px] font-semibold text-drift-coral"
@@ -368,6 +379,18 @@ export default function ChatsShell({
       </div>
     ) : sel.mode === "history" ? (
       <HistoryThread session={sel.session} />
+    ) : sel.mode === "general" ? (
+      <GeneralChat
+        trips={trips.map((t) => ({
+          title: t.title,
+          city: null,
+          country: t.country,
+          startDate: t.start,
+        }))}
+        homeCity={homeCity}
+        prompts={prompts}
+        initialSend={ask}
+      />
     ) : (
       <Picker trips={trips} prompts={prompts} onPick={(t) => setSel({ mode: "trip", trip: t })} />
     )

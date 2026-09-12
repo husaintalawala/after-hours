@@ -95,6 +95,44 @@ export async function ensureTripSession(tripId: string): Promise<string | null> 
   }
 }
 
+/**
+ * Open a NEW general thread — one that is about no trip in particular.
+ *
+ * ALWAYS FRESH, never find-or-create, which is the opposite of
+ * ensureTripSession and is deliberate. iOS carries the same rule and the same
+ * reason: "a general chat must NOT resume the single reused general session —
+ * otherwise 'plan a new trip' lands in the last general thread with its stale
+ * title." A trip thread is about a thing that persists, so reopening it is
+ * right; a general one is about whatever was just asked.
+ */
+export async function createGeneralSession(): Promise<string | null> {
+  try {
+    const supabase = db()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: created } = await supabase
+      .from("chat_sessions")
+      .insert({
+        user_id: user.id,
+        anchor_type: "general",
+        anchor_id: null,
+        last_message_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single()
+      .throwOnError()
+    return created?.id ?? null
+  } catch (e) {
+    // Same contract as ensureTripSession: null means "no session", and the
+    // conversation carries on unsaved rather than refusing to happen.
+    console.error("[chatStore] could not open a general chat session", e)
+    return null
+  }
+}
+
 export async function loadSessionMessages(sessionId: string): Promise<StoredMessage[]> {
   try {
     const supabase = db()
