@@ -5,6 +5,7 @@ import Link from "next/link"
 import TripChat from "@/components/app/chat/TripChat"
 import { renderRich } from "@/lib/drift/richText"
 import BackLink from "@/components/app/BackLink"
+import AppNav from "@/components/app/AppNav"
 import { loadSessionMessages, type StoredMessage } from "@/lib/drift/chatStore"
 
 // Chats — sidebar-and-thread layout (Husain-approved mockup). Desktop: the
@@ -98,10 +99,13 @@ export default function ChatsShell({
         ? sel.session.photo
         : null
 
-  // Deep-link-safe exit from the full-screen mobile chat surface (which sits
-  // at z-[60], covering the dock). A trip chat backs out to its trip studio;
-  // any other chat backs out to Home. Always a real route — never
-  // history.back() — so it resolves even on a cold load of /app/chats.
+  // Deep-link-safe exit to the chat's PARENT, which the tab bar cannot offer.
+  //
+  // This used to exist because the full-screen panel covered the dock; the dock
+  // is in the panel now, so Home is a tab away. The chip stays for the case the
+  // tabs do not cover: a trip chat's parent is `/app/trips/<id>`, which is not
+  // one of the four. Always a real route — never history.back() — so it
+  // resolves even on a cold load of /app/chats.
   const backHref = sel.mode === "trip" ? `/app/trips/${sel.trip.id}` : "/app"
   const backLabel = sel.mode === "trip" ? "trip" : "Home"
 
@@ -301,15 +305,10 @@ export default function ChatsShell({
             <p className="truncate text-[11.5px] text-drift-text-tertiary">@{me.username}</p>
           )}
         </div>
-        {/* The mobile chat surface covers the dock, so the drawer needs its
-            own route back into the app. Hidden on desktop (top nav handles it). */}
-        <Link
-          href="/app"
-          aria-label="Back to Home"
-          className="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-aurora-border bg-aurora-glass px-3 py-1.5 text-[12.5px] font-semibold text-drift-ink lg:hidden"
-        >
-          ‹ Home
-        </Link>
+        {/* The drawer's own "‹ Home" link is gone: the tab bar is now IN this
+            panel (see the inline AppNav below the thread), so Home is one tap
+            away on every chat screen and a link here was a third route to the
+            same place. It only ever existed because the panel covered the dock. */}
       </div>
     </>
   )
@@ -399,6 +398,14 @@ export default function ChatsShell({
           </button>
         </div>
         <div className="min-h-0 flex-1">{thread}</div>
+        {/* The tab bar, in the flow, as the last thing in the panel.
+            This route used to have NO navigation on a phone: the panel is
+            `fixed inset-0 z-[60]` and AppNav is fixed at z-50, so the dock was
+            covered — which is the whole reason the header above carries a back
+            chip and the drawer carries a "‹ Home" link. The composer is the last
+            element inside `thread`, so this lands directly under it: composer on
+            top, tabs beneath, one continuous band. */}
+        <AppNav inline />
 
         {drawer && (
           <>

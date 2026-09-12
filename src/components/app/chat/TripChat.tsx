@@ -564,7 +564,7 @@ export default function TripChat({
             setAtBottom(true)
           }}
           aria-label="Jump to latest"
-          className="absolute bottom-[86px] left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-aurora-border bg-aurora-glass text-drift-ink shadow-[0_8px_24px_-8px_rgba(31,31,36,0.35)] transition-transform hover:scale-105"
+          className="absolute bottom-[74px] lg:bottom-[86px] left-1/2 z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-aurora-border bg-aurora-glass text-drift-ink shadow-[0_8px_24px_-8px_rgba(31,31,36,0.35)] transition-transform hover:scale-105"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m6 9 6 6 6-6" />
@@ -575,7 +575,22 @@ export default function TripChat({
       <div
         className={
           bare
-            ? "mx-auto mb-5 flex w-[calc(100%-40px)] max-w-[780px] shrink-0 flex-col gap-2 rounded-[24px] border border-aurora-border bg-aurora-glass px-4 py-3 shadow-aurora-glow"
+            ? // FLUSH ON A PHONE, floating on a laptop.
+              //
+              // `bare` serves both the phone chat panel and the desktop Chats
+              // pane, so this is breakpoint-scoped rather than a second prop.
+              // On a phone the tab bar now sits directly beneath this, and a
+              // rounded, bordered, glowing pill inset 20px on top of a
+              // full-width bar is the same "one control cut in half" the iOS
+              // chat tab had. Below lg it becomes the top of that bar; from lg
+              // up — where the app has a left rail and no bottom dock — it is
+              // exactly the capsule it has always been.
+              //
+              // The phone variant also drops `mb-5`, which was doing the
+              // safe-area job badly: 20px against a 34px home indicator. The
+              // inline AppNav's `pb-[env(safe-area-inset-bottom)]` does it
+              // properly now.
+              "flex shrink-0 flex-col gap-2 border-t border-aurora-border bg-aurora-glass px-3 py-2.5 lg:mx-auto lg:mb-5 lg:w-[calc(100%-40px)] lg:max-w-[780px] lg:rounded-[24px] lg:border lg:px-4 lg:py-3 lg:shadow-aurora-glow"
             : "flex shrink-0 flex-col gap-2 border-t border-aurora-border px-4 py-3.5"
         }
         style={bare ? undefined : { background: "#0B1A25" }}

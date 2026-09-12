@@ -42,17 +42,43 @@ const tabs: TabDef[] = [
   // { href: "/app/activity", label: "Activity", icon: icons.activity },
 ]
 
-export default function AppNav() {
+export default function AppNav({
+  /**
+   * Render in the flow instead of fixed to the viewport.
+   *
+   * THE CHAT ROUTE HAD NO NAVIGATION AT ALL. ChatsShell's phone surface is a
+   * `fixed inset-0 z-[60]` panel and this nav sits at z-50, so on /app/chats the
+   * tab bar was simply covered — which is why that screen grew two bespoke
+   * escapes (a back chip and a "‹ Home" link in the drawer) that no other route
+   * needs. Rendered inline as the last child of that panel, the same bar lands
+   * directly beneath the composer: one continuous bottom band, which is what the
+   * phone is supposed to have and what iOS just got.
+   *
+   * Everything that makes it read as the same bar — the hairline, the glass, the
+   * blur, the safe-area padding — stays. Only the positioning goes.
+   */
+  inline = false,
+}: {
+  inline?: boolean
+} = {}) {
   const pathname = usePathname()
 
   const isActive = (href: string) =>
     href === "/app" ? pathname === "/app" : pathname.startsWith(href)
 
+  // The fixed instance would sit UNDER the chat panel that now hosts an inline
+  // copy of it. Two navs on one route is worse than none.
+  if (!inline && pathname.startsWith("/app/chats")) return null
+
   return (
     // Attached to the bottom edge, full-width, flush — matching the native iOS
     // tab bar (not a floating pill). Content is 56px tall; env() adds the home-
     // indicator safe area below it.
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-drift-divider bg-aurora-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+    <nav
+      className={`border-t border-drift-divider bg-aurora-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl ${
+        inline ? "shrink-0" : "fixed inset-x-0 bottom-0 z-50"
+      }`}
+    >
       <div className="flex h-14 items-center gap-1 px-3">
         {tabs.map((tab) => {
           const active = isActive(tab.href)

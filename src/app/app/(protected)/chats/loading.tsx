@@ -55,6 +55,25 @@ export default function Loading() {
         <div className="min-h-0 flex-1">
           <Bubbles />
         </div>
+        {/* The bottom band the real screen now has: composer, then the tab bar.
+            Without it the skeleton is 113px taller than what replaces it and
+            the thread jumps on swap — which is the exact thing this file's
+            header comment says it exists to prevent. */}
+        <div className="flex shrink-0 items-center gap-2.5 border-t border-aurora-border bg-aurora-glass px-3 py-2.5">
+          <div className="h-[46px] w-[46px] shrink-0 animate-pulse rounded-full bg-aurora-midnight motion-reduce:animate-none" />
+          <div className="h-[46px] min-w-0 flex-1 animate-pulse rounded-full bg-aurora-midnight motion-reduce:animate-none" />
+          <div className="h-[46px] w-[46px] shrink-0 animate-pulse rounded-full bg-aurora-midnight motion-reduce:animate-none" />
+        </div>
+        <div className="flex h-14 shrink-0 items-center gap-1 border-t border-drift-divider bg-aurora-glass/95 px-3 pb-[env(safe-area-inset-bottom)]">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-11 flex-1 animate-pulse rounded-2xl bg-aurora-midnight motion-reduce:animate-none"
+            />
+          ))}
+          <span className="mx-1 h-7 w-px bg-drift-ink/10" />
+          <div className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-aurora-midnight motion-reduce:animate-none" />
+        </div>
       </div>
     </>
   )
