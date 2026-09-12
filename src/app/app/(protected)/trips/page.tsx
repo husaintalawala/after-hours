@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { buildHomeData } from "@/lib/drift/homeData"
 import { RailTripCard, type HomeTrip } from "@/components/app/home/HomeShell"
 import BackLink from "@/components/app/BackLink"
+import TripsGlobePane from "@/components/app/trips/TripsGlobePane"
 
 /**
  * Every trip on the account.
@@ -76,38 +77,51 @@ export default async function AllTripsPage() {
   ]
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-16 pt-6 lg:max-w-[1400px] lg:px-10">
-      <div className="flex items-center gap-4">
-        <BackLink href="/app" label="home" />
-        <h1 className="font-drift-display text-[24px] font-bold tracking-[-0.02em] text-aurora-ink lg:text-[30px]">
-          All trips
-          <span className="ml-3 whitespace-nowrap font-mono text-[11px] font-normal uppercase tracking-[0.14em] text-aurora-ink3">
-            {all.length} {all.length === 1 ? "trip" : "trips"}
-          </span>
-        </h1>
+    // TWO PANES ON A LAPTOP: the archive scrolls on the left, the planet holds
+    // the right. The grid version of this page put every trip in a wide
+    // auto-fill grid and left the widest screens showing eight covers and a
+    // great deal of midnight — an archive is READ down a column, and the space
+    // that bought is better spent on the one view that makes a list of trips
+    // feel like a life rather than a table.
+    //
+    // `h-[100dvh]` with each pane owning its own overflow, so the globe stays
+    // put while the list moves past it. A phone gets neither — one column, page
+    // scroll, and no 1.7MB map for a pane it has no room to show.
+    <div className="lg:grid lg:h-[100dvh] lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:overflow-hidden">
+      <div className="mx-auto w-full max-w-2xl px-5 pb-16 pt-6 lg:mx-0 lg:max-w-none lg:overflow-y-auto lg:px-8 lg:pb-10">
+        <div className="flex items-center gap-4">
+          <BackLink href="/app" label="home" />
+          <h1 className="font-drift-display text-[24px] font-bold tracking-[-0.02em] text-aurora-ink lg:text-[28px]">
+            All trips
+            <span className="ml-3 whitespace-nowrap font-mono text-[11px] font-normal uppercase tracking-[0.14em] text-aurora-ink3">
+              {all.length} {all.length === 1 ? "trip" : "trips"}
+            </span>
+          </h1>
+        </div>
+
+        {groups.map(([label, trips]) => (
+          <section key={label} className="mt-9">
+            <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-aurora-teal">
+              {label}
+            </h2>
+            {/* Two tracks in the left pane rather than the old auto-fill across
+                the whole page: at 560px a third column would crop the titles,
+                which is exactly what the cards were already doing. */}
+            <div className="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3.5 lg:grid-cols-2">
+              {trips.map((trip) => (
+                <div key={trip.id} className="[&>a]:w-full">
+                  <RailTripCard trip={trip} sizes="(max-width: 1024px) 100vw, 260px" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
 
-      {groups.map(([label, trips]) => (
-        <section key={label} className="mt-9">
-          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-aurora-teal">
-            {label}
-          </h2>
-          {/* A GRID, not the home's rail. A rail is right on the home, where
-              these are a preview beside two other tiles; here they are the
-              whole page, and queueing an account's entire history behind a
-              horizontal scroll is the shape this page exists to replace. */}
-          <div className="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3.5">
-            {trips.map((trip) => (
-              <div key={trip.id} className="[&>a]:w-full">
-                {/* One full-width column on a phone — two 180px tracks plus
-                    the gap do not fit inside `max-w-2xl px-5` — then roughly
-                    a seventh of the 1400px container on a laptop. */}
-                <RailTripCard trip={trip} sizes="(max-width: 1024px) 100vw, 200px" />
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+      {/* The planet. Rendered only above lg — see TripsGlobePane. */}
+      <div className="hidden lg:block">
+        <TripsGlobePane pins={data.pins} />
+      </div>
     </div>
   )
 }
