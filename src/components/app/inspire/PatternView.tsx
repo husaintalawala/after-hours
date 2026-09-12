@@ -19,6 +19,8 @@ import {
   type InspirePattern,
   type YearMonth,
 } from "@/lib/drift/inspire"
+import { createClient } from "@/lib/supabase/client"
+import { toggleSavedGuide } from "@/lib/drift/savedGuides"
 import type { TripMapPoint } from "@/components/app/trip/TripMap"
 
 // The block pattern, as a GUIDE.
@@ -46,22 +48,6 @@ import type { TripMapPoint } from "@/components/app/trip/TripMap"
 // the same way.
 const TripMap = dynamic(() => import("@/components/app/trip/TripMap"), { ssr: false })
 
-/** localStorage key for saved patterns. There is no saved-inspire table, and
- *  inventing one to make a bookmark button light up would be a schema for a
- *  feature nobody has asked for yet. This keeps the promise it can keep: this
- *  browser remembers what you starred. */
-const SAVED_KEY = "drift.inspire.saved"
-
-function readSaved(): string[] {
-  try {
-    const raw = window.localStorage.getItem(SAVED_KEY)
-    const parsed: unknown = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : []
-  } catch {
-    return []
-  }
-}
-
 /** One stop plus the days inside it. */
 interface GuideDay {
   /** 1-based POSITION in the trip. Never a date. */
@@ -80,25 +66,22 @@ interface GuideStop {
 export default function PatternView({
   pattern,
   months,
+  saved: initiallySaved = false,
 }: {
   pattern: InspirePattern
   months: YearMonth[]
+  /** Whether this account has hearted this guide, read on the server. */
+  saved?: boolean
 }) {
   // The tailor is a state of this screen, not a route: the pattern is what you
   // are altering, and going "back" from the alteration must return you to it
   // rather than to wherever you came from.
   const [tailoring, setTailoring] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState(initiallySaved)
   const [shareNote, setShareNote] = useState<string | null>(null)
   const mapRef = useRef<HTMLDivElement>(null)
   const s = pattern.snapshot
-
-  // Read on the client only. Rendering a saved state on the server would be a
-  // hydration mismatch on a control whose whole job is to look pressed.
-  useEffect(() => {
-    setSaved(readSaved().includes(pattern.tripId))
-  }, [pattern.tripId])
 
   const stops: GuideStop[] = useMemo(() => {
     const dests = [...s.destinations].sort((a, b) => a.day_offset - b.day_offset)
@@ -214,16 +197,20 @@ export default function PatternView({
     }
   }
 
-  function onToggleSave() {
+  /// THE SAVE NOW GOES SOMEWHERE. This wrote a JSON array into localStorage,
+  /// under a different key from the one iOS used, so a saved guide was invisible
+  /// on the shelf, on the home, on the phone, and in any other browser.
+  ///
+  /// Optimistic, then put back when the write fails. Waiting for the round trip
+  /// before filling the heart makes every click feel broken on a slow
+  /// connection; showing a failed write as success is worse than either.
+  async function onToggleSave() {
     const next = !saved
     setSaved(next)
-    try {
-      const list = readSaved().filter((id) => id !== pattern.tripId)
-      if (next) list.push(pattern.tripId)
-      window.localStorage.setItem(SAVED_KEY, JSON.stringify(list))
-    } catch {
-      // A browser refusing storage (private mode, quota) must not break the
-      // page — the star simply does not persist.
+    const ok = await toggleSavedGuide(createClient(), pattern.tripId, next)
+    if (!ok) {
+      setSaved(!next)
+      note("Couldn't save that just now")
     }
   }
 
@@ -284,7 +271,11 @@ export default function PatternView({
               onClick={onToggleSave}
             >
               <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z" />
+                {/* A HEART, not the bookmark ribbon this used to draw. iOS
+                    draws heart.fill and the standing rule is that iOS leads —
+                    two different glyphs for one control is two features as far
+                    as anybody using both is concerned. */}
+                <path d="M20.8 5.6a5.2 5.2 0 0 0-7.4 0L12 7l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4l1.4 1.4L12 22l7.4-7.6 1.4-1.4a5.2 5.2 0 0 0 0-7.4z" />
               </svg>
             </RoundButton>
           </div>

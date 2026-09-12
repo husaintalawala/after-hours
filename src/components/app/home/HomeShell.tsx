@@ -14,10 +14,11 @@ import ChatsPanel from "@/components/app/home/ChatsPanel"
 import PassportPanel from "@/components/app/home/PassportPanel"
 import { Section, Rail } from "@/components/app/home/HomeSection"
 import InspireRail from "@/components/app/home/InspireRail"
+import SavedRail from "@/components/app/home/SavedRail"
 import DiscoverRail from "@/components/app/home/DiscoverRail"
 import type { DiscoverAnchor } from "@/lib/drift/discover"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
-import type { InspirePromo } from "@/lib/drift/inspirePromo"
+import type { InspirePromo, InspirePromoCard } from "@/lib/drift/inspirePromo"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
 /**
@@ -133,6 +134,7 @@ export default function HomeShell({
   data,
   viewer = { kind: "self" },
   inspire = null,
+  savedGuides = null,
 }: {
   data: HomeData
   viewer?: HomeViewer
@@ -141,6 +143,13 @@ export default function HomeShell({
    * you could copy" on someone else's page is an advert wearing their name.
    */
   inspire?: InspirePromo | null
+  /**
+   * The guides this reader kept. Supplied ONLY by the self route, for a
+   * stronger version of the reason `inspire` is: a curated shelf on somebody
+   * else's profile is an advert wearing their name, and what THEY saved is
+   * nobody else's business. /app/people/[id] renders this same shell.
+   */
+  savedGuides?: { cards: InspirePromoCard[]; total: number } | null
 }) {
   const [daysOut, setDaysOut] = useState<number | null>(null)
   const isSelf = viewer.kind === "self"
@@ -506,6 +515,17 @@ export default function HomeShell({
               </Rail>
             </div>
           </Section>
+        )}
+
+        {/* ---------- Saved ----------
+            Directly above Discover, because the page's laptop reading order is
+            cockpit (yours) → Discover (near you) → Inspire (curated), and Saved
+            is yours. Self-removing when empty; see SavedRail for the placements
+            that were rejected. */}
+        {isSelf && savedGuides && savedGuides.cards.length > 0 && (
+          <div className="px-5 lg:px-10">
+            <SavedRail cards={savedGuides.cards} total={savedGuides.total} />
+          </div>
         )}
 
         {/* ---------- Discover ----------

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { readSavedGuideIds } from "@/lib/drift/savedGuides"
 import PatternView from "@/components/app/inspire/PatternView"
 import {
   hasUsableSnapshot,
@@ -100,5 +101,17 @@ export default async function InspirePatternPage({
   const today = new Date().toISOString().slice(0, 10)
   const months = monthsYouCouldGo(today)
 
-  return <PatternView pattern={pattern} months={months} />
+  // Read on the SERVER, so the heart renders pressed on the first paint. The
+  // client used to read localStorage in an effect for exactly the hydration
+  // reason the comment above gives — now the server knows, so the flicker and
+  // the effect both go.
+  const savedIds = await readSavedGuideIds(supabase)
+
+  return (
+    <PatternView
+      pattern={pattern}
+      months={months}
+      saved={savedIds.includes(pattern.tripId)}
+    />
+  )
 }

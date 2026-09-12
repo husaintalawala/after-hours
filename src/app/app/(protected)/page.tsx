@@ -8,7 +8,8 @@ import { GUIDE_COOKIE, isGuideSlug, claimPendingGuide } from "@/lib/drift/inspir
 import { DAYBREAK_COOKIE, hasSeenDaybreak } from "@/lib/drift/daybreak"
 import HomeShell from "@/components/app/home/HomeShell"
 import { buildHomeData } from "@/lib/drift/homeData"
-import { buildInspirePromo } from "@/lib/drift/inspirePromo"
+import { buildInspirePromo, buildSavedGuides } from "@/lib/drift/inspirePromo"
+import { readSavedGuideIds } from "@/lib/drift/savedGuides"
 
 // Logged-in home — server data loader for HomeShell (full-viewport globe +
 // desktop trip rail / mobile sheet). See HomeShell for the layout.
@@ -97,10 +98,16 @@ async function Home({ userId, seenDaybreak }: { userId: string; seenDaybreak: bo
   //
   // ONLY FROM HERE. /app/people/[id] renders the same shell for a stranger's
   // profile and must never carry this.
-  const [data, inspire] = await Promise.all([
+  // The saved ids ride along the same way the shelf does, and for the same
+  // reason the comment above gives: always needed, so serial is pure latency.
+  const [data, inspire, savedIds] = await Promise.all([
     buildHomeData(supabase, userId),
     buildInspirePromo(supabase),
+    readSavedGuideIds(supabase),
   ])
+  const savedGuides = savedIds.length
+    ? { cards: (await buildSavedGuides(supabase, savedIds)).slice(0, 8), total: savedIds.length }
+    : null
 
   const empty = !data.featured && data.others.length === 0
 
@@ -121,5 +128,5 @@ async function Home({ userId, seenDaybreak }: { userId: string; seenDaybreak: bo
   // alternative is paying a serial round trip on every other load forever.
   if (empty && !seenDaybreak) redirect("/app/welcome")
 
-  return <HomeShell data={data} inspire={inspire} />
+  return <HomeShell data={data} inspire={inspire} savedGuides={savedGuides} />
 }
