@@ -146,6 +146,20 @@ export default function HomeShell({
   const isSelf = viewer.kind === "self"
   const allTrips = [...(data.featured ? [data.featured] : []), ...data.others]
 
+  /** "Amalfi Coast · Bali · +32 more" — the places behind the count. Cities
+   *  rather than titles, because a title runs to "Bhutan in Crane Season:
+   *  Thimphu, Punakha, Phobjikha and Paro" and two of those truncate to
+   *  nothing legible. */
+  const tripsPeek = (() => {
+    const rest = data.others
+    if (!rest.length) return null
+    const names = rest
+      .slice(0, 2)
+      .map((t) => t.city?.trim() || t.country?.trim() || t.title.trim())
+    const extra = rest.length - names.length
+    return extra > 0 ? `${names.join(" · ")} · +${extra} more` : names.join(" · ")
+  })()
+
   const showStartHere = isSelf && allTrips.length === 0
 
   // A new account's globe is empty, so the curated guides are pinned on it.
@@ -331,13 +345,50 @@ export default function HomeShell({
                     no way at all to reach the other thirty-four. Sitting in the
                     trip column it is visible at every width, and it is next to
                     the one trip it is offering an alternative to. */}
-                {allTrips.length > 1 && isSelf && (
+                {/* SHOWN WITH ONE TRIP TOO. The gate used to be `> 1`, on the reasoning
+                    that there is nothing to "see all" of when the home is already
+                    showing your only trip. But this is the single door to the
+                    archive on a laptop — the section header that would otherwise
+                    carry it is `hideTitleOnDesktop` — so a one-trip account had no
+                    route to /app/trips at all, and the account that most needs to
+                    find where trips live is the one that has just made its first.
+                    The copy changes rather than the link disappearing. */}
+                {allTrips.length > 0 && isSelf && (
                   <Link
                     href="/app/trips"
-                    className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full border border-aurora-border bg-aurora-glass px-4 py-2 font-drift-display text-[13.5px] font-semibold text-aurora-teal outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+                    className="group mt-3 flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3 outline-none transition-colors hover:border-aurora-teal/45 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
                   >
-                    See all {allTrips.length} trips
-                    <span aria-hidden="true">→</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-drift-display text-[14px] font-bold leading-tight tracking-[-0.01em] text-aurora-ink">
+                        {allTrips.length === 1
+                          ? "All your trips"
+                          : `See all ${allTrips.length} trips`}
+                      </span>
+                      {/* NAMES THE PLACES, not just the count. "See all 35
+                          trips" is a number; "Amalfi Coast · Bali · +32 more"
+                          is a reason to press it, and it costs a line the
+                          column already had. Cities rather than titles because
+                          a title runs to "Bhutan in Crane Season: Thimphu,
+                          Punakha, Phobjikha and Paro" and two of those would
+                          truncate into nothing legible.
+                          NOT COVER THUMBNAILS, which was the first idea and is
+                          the wrong one here: every photo in this app carries an
+                          attribution obligation that travels with the display,
+                          and a 28px circle has nowhere to put it — see
+                          TripCoverImg, which exists so that cannot be
+                          forgotten. */}
+                      {tripsPeek && (
+                        <span className="mt-0.5 block truncate text-[11.5px] leading-snug text-aurora-ink3">
+                          {tripsPeek}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 text-[15px] text-aurora-teal transition-transform group-hover:translate-x-0.5"
+                    >
+                      →
+                    </span>
                   </Link>
                 )}
               </div>

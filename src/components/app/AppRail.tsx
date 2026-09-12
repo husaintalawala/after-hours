@@ -12,6 +12,21 @@ type Item = { href: string; label: string; exact?: boolean; icon: React.ReactNod
 const NAV: Item[] = [
   { href: "/app", label: "Home", exact: true, icon: <path d="M3 11.5l9-8 9 8M5 10v10h5v-6h4v6h5V10" /> },
   {
+    // A SUITCASE — the one thing on this rail that is yours rather than
+    // somewhere to look. The home only ever shows the next trip and a door to
+    // the rest, so without this the archive was reachable from exactly one link
+    // on one page. Deliberately not a map or a compass: Discover and Inspire
+    // own those, and this is not exploration, it is your own shelf.
+    href: "/app/trips",
+    label: "Trips",
+    icon: (
+      <>
+        <rect x="3" y="7.5" width="18" height="13" rx="2.5" />
+        <path d="M9 7.5V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2.5M3 12.5h18" />
+      </>
+    ),
+  },
+  {
     href: "/app/discover",
     label: "Discover",
     icon: (
@@ -35,20 +50,21 @@ const NAV: Item[] = [
     ),
   },
   { href: "/app/chats", label: "Chats", icon: <path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z" /> },
-  // Activity is off the nav for now to de-congest it — five tabs plus the
-  // create button left nothing room to breathe, and Activity is the one whose
-  // permanent home is undecided. The route, its page and its icon all stay;
-  // restoring it is uncommenting this entry.
-  // {
-  //   href: "/app/activity",
-  //   label: "Activity",
-  //   icon: (
-  //     <>
-  //       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-  //       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-  //     </>
-  //   ),
-  // },
+  // BACK ON THE RAIL. It was commented out to de-congest a five-item nav on a
+  // phone-sized dock — but this is the LAPTOP rail, which is a full-height
+  // column with room to spare, and the dock (AppNav) is a separate component
+  // that keeps its own shorter list. The page, the route and the icon never
+  // went anywhere; only the entry did.
+  {
+    href: "/app/activity",
+    label: "Activity",
+    icon: (
+      <>
+        <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+      </>
+    ),
+  },
 ]
 
 export default function AppRail({
@@ -64,9 +80,11 @@ export default function AppRail({
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-[76px] flex-col items-center border-r border-white/[0.07] bg-aurora-midnight py-4">
       <Link href="/app" aria-label="Drift home" className="mb-3 outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50">
-        {/* Real Drift comet mark. eslint-disable-next-line @next/next/no-img-element */}
+        {/* The CROPPED mark, same as the phone header. drift-logo.png is a
+            1024px canvas whose art occupies 655x462 in the middle, so asking
+            for 38px here drew the comet at about 24 and sitting low. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/drift-logo.png" alt="Drift" width={38} height={38} className="h-[38px] w-[38px] object-contain" />
+        <img src="/brand/drift-mark.png" alt="Drift" width={38} height={38} className="h-[38px] w-[38px] object-contain" />
       </Link>
 
       <Link
