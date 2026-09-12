@@ -920,6 +920,9 @@ function PrefIcon({ name }: { name: string }) {
     person: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1",
     people2: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1M17 5.5a3 3 0 0 1 0 6M22 21v-1a5 5 0 0 0-3-4.6",
     people3: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM1 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1M16 6a3 3 0 0 1 0 6M23 21v-1a5 5 0 0 0-3-4.6",
+    // Two adults and a smaller figure between them — distinct from people3 at a
+    // glance, which is the whole job of a glyph on a four-way choice.
+    family: "M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM2 20v-2a4 4 0 0 1 4-4h2M22 20v-2a4 4 0 0 0-4-4h-2M12 15a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9 21v-1a3 3 0 0 1 6 0v1",
     tortoise: "M3 16h18M5 16a7 7 0 0 1 14 0M21 16l1 3M3 16l-1 3M8 16V9M16 16V9",
     walk: "M13 4.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM11 22l2-6-3-3 1-5 3 2 3 1M10 13l-3 3-1 6",
     bolt: "M13 2L4 14h7l-1 8 9-12h-7l1-8z",

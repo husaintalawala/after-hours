@@ -438,3 +438,23 @@ describe("graded season", () => {
   })
 })
 
+describe("flexible", () => {
+  test("no month takes the season out of the ranking", () => {
+    const inSeason = guide("in", { months: [6] })
+    const offSeason = guide("off", { months: [1] })
+    const withMonth = answers({ shapes: ["wild"], month: 6 })
+    assert.deepEqual(ids(rankGuides([offSeason, inSeason], withMonth)), ["in", "off"])
+    // Flexible: nothing to be out of season FOR, so shelf order decides.
+    assert.deepEqual(ids(rankGuides([offSeason, inSeason], { ...withMonth, departureMonth: null })), [
+      "off",
+      "in",
+    ])
+  })
+
+  test("no month means no blackout either", () => {
+    const closed = guide("closed", { blackoutMonths: [9] })
+    const flex = { ...answers({ shapes: ["wild"], month: 9 }), departureMonth: null }
+    assert.deepEqual(ids(shelfFor([closed], flex).guides), ["closed"])
+  })
+})
+

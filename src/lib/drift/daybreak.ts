@@ -387,22 +387,24 @@ export function prioritiesForShapes(shapes: Iterable<string>): string[] {
 /** The column defaults, so an untouched screen 4 writes what the row already
  *  holds rather than a second opinion about what "normal" is. */
 /**
- * Who's with you — THREE options against the column's four.
+ * Who's with you — all four of the column's values.
  *
- * `inspire_trips.party` is solo|couple|friends|family; the live shelf is
- * 10/15/14/**1**. Offering "family" would score 39 of 40 guides a miss and hand
- * back the one family guide padded out by whatever tied behind it — precisely
- * the "same three trips whatever you pick" fault that widening this vocabulary
- * was meant to fix, rebuilt on a fresh axis. The column keeps `family` for the
- * day the shelf earns a second one. Only ask what the corpus can answer.
+ * `family` was withheld while the shelf held one family guide in forty: offering
+ * it would have scored 39 guides a miss and handed back that one guide padded
+ * out by whatever tied behind it — the "same three trips whatever you pick"
+ * fault rebuilt on a fresh axis. The shelf now carries twelve family guides of
+ * ninety, well clear of the five-guide floor, so the same rule that kept it out
+ * now lets it in. Only ask what the corpus can answer.
  *
- * Unlike the two below, this is NOT written to user_travel_preferences — there
- * is no column for it. It ranks the shelf and stays on the device.
+ * Written to user_travel_preferences.party (Drift 20260912190000) as well as
+ * ranking the shelf, so the answer that shapes the shelf most is no longer
+ * thrown away on unmount.
  */
 export const TRAVEL_PARTIES: ReadonlyArray<PrefOption> = [
   { value: "solo", label: "Just me", subtitle: "Your pace, nobody to negotiate with", icon: "person" },
   { value: "couple", label: "Two of us", subtitle: "One plan, two opinions", icon: "people2" },
   { value: "friends", label: "A group", subtitle: "Plans that survive a group chat", icon: "people3" },
+  { value: "family", label: "With kids", subtitle: "Naps built in, one big thing a day", icon: "family" },
 ]
 
 /**
@@ -475,7 +477,9 @@ export interface RankingAnswers {
   budget?: string | null
   /** 1…12, the month of the date the copy will ACTUALLY start on — see
    *  departureMonth in DaybreakFlow. Never the current month. */
-  departureMonth: number
+  /** Null = "I'm flexible": every trip can be taken at its best, so the
+   *  season does not rank and blackouts do not apply. */
+  departureMonth: number | null
 }
 
 /**
@@ -701,7 +705,8 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
   // is not a claim that any month will do.
   // Graded 0…3 from seasonScore — best / shoulder / edge / off. Without
   // month_scores it is 0 or 3, which orders exactly as the old 0 or 1 did.
-  const season = seasonScore(guide, a.departureMonth)
+  // Null month = flexible: nothing to be out of season FOR, so this is silent.
+  const season = a.departureMonth === null ? 90 : seasonScore(guide, a.departureMonth)
   const seasonMiss = season >= 90 ? 0 : season >= 65 ? 1 : season >= 40 ? 2 : 3
   const lengthMiss = lengthFits(a.length, guide.days) ? 0 : 1
   const partyMiss = miss(a.party, guide.party)
@@ -871,7 +876,7 @@ export function shelfFor<T extends RankableGuide>(
   // blackouts on ninety guides — does the unfiltered order come back, because a
   // dead end in a reader's first minute is worse still.
   const open = rankGuides(guides, answers).filter(
-    (g) => !g.blackoutMonths.includes(answers.departureMonth)
+    (g) => answers.departureMonth === null || !g.blackoutMonths.includes(answers.departureMonth)
   )
   const ranked = open.length ? open : rankGuides(guides, answers)
   const clean = ranked.filter((g) => clearsTheFloor(g, answers))
@@ -918,7 +923,9 @@ export function reasonFor(
   if (present) return labelFor(present)
   // Nothing about the shape fired, so say the next truest thing rather than
   // inventing a reason. Season is the only remaining term the reader chose.
-  if (seasonScore(guide, answers.departureMonth) >= 90) return "In season"
+  if (answers.departureMonth !== null && seasonScore(guide, answers.departureMonth) >= 90) {
+    return "In season"
+  }
   return null
 }
 

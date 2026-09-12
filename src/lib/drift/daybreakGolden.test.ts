@@ -128,6 +128,12 @@ describe("P1 — the reported case: coast, and only coast", () => {
     assert.ok(rankOf(a, "scotland-west-highland-line") > 20)
   })
 
+  test("a family picking islands is led by a family guide", () => {
+    // `family` joined the survey once the shelf carried twelve family guides.
+    const fam = ask({ shapes: ["islands"], party: "family", month: 10 })
+    assert.equal(podium(fam)[0].party, "family", podium(fam).map((g) => g.slug).join(", "))
+  })
+
   test("how much of a trip is beach never outranks who is travelling", () => {
     // The regression the first weighting shipped: folded above party, it put
     // four family guides on a couple's islands podium.
