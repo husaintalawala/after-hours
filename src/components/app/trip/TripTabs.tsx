@@ -504,9 +504,15 @@ export default function TripTabs({
           ) : (
             <div className="absolute inset-0" style={{ background: "linear-gradient(135deg,#16222F,#0B1A25)" }} />
           )}
+          {/* The TOP of this gradient was 0.12, which was right when the title
+              sat at the bottom of the cover. It does not: the content column is
+              `justify-between` with a min-height, so a title that wraps to
+              three lines has no free space to be pushed down into and rises to
+              the top — where 0.12 of black is not a scrim, it is a hint, and
+              the 30px white serif was surviving on its text-shadow alone. */}
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to top, rgba(12,10,9,.72) 0%, rgba(12,10,9,.18) 45%, rgba(12,10,9,.12) 100%)" }}
+            style={{ background: "linear-gradient(to top, rgba(12,10,9,.74) 0%, rgba(12,10,9,.34) 45%, rgba(12,10,9,.50) 100%)" }}
           />
           {/* Bottom blend — melt the full-bleed mobile hero into the Aurora
               ground (#08131D) so there's no hard card edge. Desktop keeps its
@@ -515,11 +521,6 @@ export default function TripTabs({
             className="pointer-events-none absolute inset-x-0 bottom-0 h-28 md:hidden"
             style={{ background: "linear-gradient(to bottom, rgba(8,19,29,0) 35%, #08131D 100%)" }}
           />
-          {weatherDest && (
-            <div className="absolute right-5 top-[62px] z-10 md:right-7 md:top-[80px]">
-              <TripWeather lat={weatherDest.lat!} lng={weatherDest.lng!} place={weatherDest.label} />
-            </div>
-          )}
           {/* IN FLOW, not `absolute inset-0`. This hero was a fixed h-[300px] box
               with overflow-hidden and absolutely-positioned content, so the
               content could not affect its height — the moment the action row
@@ -567,6 +568,24 @@ export default function TripTabs({
               <p className="mt-1.5 text-[15px] text-white/90">{tripMeta.dateRange}</p>
               {tripMeta.statusLine && (
                 <p className="mt-0.5 text-[13.5px] text-white/75">{tripMeta.statusLine}</p>
+              )}
+
+              {/* IN FLOW ON A PHONE, floating only where there is room for it.
+                  This was `absolute right-5 top-[62px]` — a fixed offset chosen
+                  against a cover whose title sat lower down. Measured at 390px
+                  on "Serengeti River Crossings, then Zanzibar": the title
+                  occupied x20-370 from y64 and the widget x279-370 from y62, so
+                  they intersected by 91x74 points and the first two lines of
+                  the trip's name ran underneath "ARUSHA 68°".
+                  No offset fixes that, because the thing it collides with has no
+                  fixed height — the title wraps to one, two or three lines
+                  depending on the trip. A phone puts the widget after the meta
+                  where it cannot reach the title at all; md+ has the width to
+                  float it top-right and keeps doing so. */}
+              {weatherDest && (
+                <div className="mt-3 flex justify-start md:absolute md:right-7 md:top-[80px] md:mt-0">
+                  <TripWeather lat={weatherDest.lat!} lng={weatherDest.lng!} place={weatherDest.label} />
+                </div>
               )}
 
               {/* Travel buddies + Invite, ON THE COVER — where iOS puts them.
