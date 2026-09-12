@@ -69,6 +69,9 @@ export interface DaybreakGuide extends InspirePromoCard {
   setting: string[]
   /** Stops the trip sleeps in. Read only by the `stay` shape. */
   cityCount: number
+  /** See RankableGuide.shapeWeights / shapePrimary. */
+  shapeWeights: Record<string, number>
+  shapePrimary: string | null
   /** Months 1…12 the guide is editorially at its best, empty when the row says
    *  nothing. RANKED on, never filtered on — and absent editorial is not a
    *  claim that any month will do. See rankGuides. */
@@ -164,6 +167,8 @@ interface PromoSource {
   setting: string[]
   /** Stops the trip sleeps in. Only `stay` reads it — see shapeMissFor. */
   cityCount: number
+  shapeWeights: Record<string, number>
+  shapePrimary: string | null
   bestMonths: number[]
   /** Who the guide is shaped for / how much a day holds / what it costs, as
    *  the editorial columns record them. Null is a MISS, not a wildcard — see
@@ -210,6 +215,19 @@ function usableCoord(d: InspireDestination): d is InspireDestination & { latitud
   if (lat === null || lng === null) return false
   if (lat === 0 && lng === 0) return false
   return Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+}
+
+/** A jsonb object of numbers. Anything else reads as no weights — the ranker
+ *  then falls back to the tier alone, exactly as it did before this column. */
+function asWeights(v: unknown): Record<string, number> {
+  const r = asRecord(v)
+  if (!r) return {}
+  const out: Record<string, number> = {}
+  for (const [k, x] of Object.entries(r)) {
+    const n = asNumber(x)
+    if (n !== null) out[k] = n
+  }
+  return out
 }
 
 function decode(raw: unknown): PromoSource | null {
@@ -275,6 +293,8 @@ function decode(raw: unknown): PromoSource | null {
       .map(asString)
       .filter((t): t is string => t !== null),
     cityCount: asArray(row.cities).length,
+    shapeWeights: asWeights(row.shape_weights),
+    shapePrimary: asString(row.shape_primary),
     // Months, not month names: the column is int[] and a row that carries a 13
     // or a null would otherwise rank as a month nobody can depart in.
     bestMonths: asArray(row.best_months)
@@ -438,7 +458,7 @@ async function readShelf(
       // every array decodes empty, every guide ties, and all seven chips return
       // the same three guides.
       "trip_id,tags,best_months,party,pace,budget," +
-        "interests,optimize_for,setting," +
+        "interests,optimize_for,setting,shape_weights,shape_primary," +
         "hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
@@ -555,6 +575,8 @@ export async function buildDaybreakShelf(
       optimizeFor: s.optimizeFor,
       setting: s.setting,
       cityCount: s.cityCount,
+      shapeWeights: s.shapeWeights,
+      shapePrimary: s.shapePrimary,
       bestMonths: s.bestMonths,
       party: s.party,
       pace: s.pace,

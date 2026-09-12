@@ -52,7 +52,14 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 16
+    "days": 16,
+    "shapeWeights": {
+      "eat": 0.46,
+      "high": 0.27,
+      "wild": 0.27,
+      "drive": 0
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "alaska-railroad-with-teenagers",
@@ -86,7 +93,13 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 14
+    "days": 14,
+    "shapeWeights": {
+      "wild": 0.69,
+      "drive": 0.08,
+      "stones": 0.23
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "big-island-belt-road-with-kids",
@@ -123,7 +136,13 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "wild": 0.29,
+      "drive": 0.14,
+      "islands": 0.57
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "tetons-yellowstone-with-kids",
@@ -158,7 +177,11 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "wild": 1
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "canadian-rockies-lodge-to-lodge",
@@ -192,11 +215,16 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "high": 0.29,
+      "wild": 0.71
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "galapagos-small-ship-quito",
-    "title": "Gal\u00e1pagos by Small Ship, via Quito",
+    "title": "Galápagos by Small Ship, via Quito",
     "tags": [
       "wild",
       "islands",
@@ -228,7 +256,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "wild": 0.78,
+      "stones": 0.22
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "bolivia-la-paz-uyuni-sucre",
@@ -264,7 +297,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "full_days",
     "budget": "save",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "wild": 0.38,
+      "stones": 0.62
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "belize-caye-caulker-san-ignacio",
@@ -300,11 +338,16 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 7
+    "days": 7,
+    "shapeWeights": {
+      "stones": 0.5,
+      "islands": 0.5
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "uruguay-coast-colonia-jose-ignacio",
-    "title": "Uruguay's Coast: Colonia to Jos\u00e9 Ignacio",
+    "title": "Uruguay's Coast: Colonia to José Ignacio",
     "tags": [
       "eat",
       "islands",
@@ -335,7 +378,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 6
+    "days": 6,
+    "shapeWeights": {
+      "eat": 0.4,
+      "stones": 0.2,
+      "islands": 0.4
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "panama-city-guna-yala",
@@ -371,11 +420,16 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "save",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "stones": 0.5,
+      "islands": 0.5
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "antigua-lake-atitlan-five-days",
-    "title": "Antigua and Lake Atitl\u00e1n in Five Days",
+    "title": "Antigua and Lake Atitlán in Five Days",
     "tags": [
       "stones",
       "wild",
@@ -408,11 +462,16 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "save",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "high": 0.5,
+      "stones": 0.5
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "montreal-quebec-city-by-train",
-    "title": "Montr\u00e9al to Qu\u00e9bec City by Train",
+    "title": "Montréal to Québec City by Train",
     "tags": [
       "stones",
       "eat",
@@ -440,7 +499,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "eat": 0.5,
+      "stones": 0.5
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "new-orleans-four-days",
@@ -472,7 +536,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 4
+    "days": 4,
+    "shapeWeights": {
+      "eat": 1,
+      "stay": 0
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "mongolia-naadam-to-the-gobi",
@@ -506,7 +575,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 16
+    "days": 16,
+    "shapeWeights": {
+      "wild": 0.53,
+      "stones": 0.47
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "uzbekistan-silk-road-fifteen-days",
@@ -540,7 +614,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 15
+    "days": 15,
+    "shapeWeights": {
+      "wild": 0.07,
+      "stones": 0.93
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "oman-coast-sands-and-the-jebel",
@@ -577,7 +656,14 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "high": 0.3,
+      "wild": 0.3,
+      "drive": 0,
+      "stones": 0.4
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "laos-mekong-slow-boat-to-the-railway",
@@ -612,7 +698,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "save",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "high": 0.3,
+      "drive": 0.2,
+      "stones": 0.5
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "azerbaijan-caucasus-silk-and-stone",
@@ -648,7 +740,11 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "save",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "bohol-siquijor-with-three-kids",
@@ -683,7 +779,11 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "save",
-    "days": 7
+    "days": 7,
+    "shapeWeights": {
+      "islands": 1
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "maldives-baa-atoll-manta-season",
@@ -718,7 +818,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "splurge",
-    "days": 7
+    "days": 7,
+    "shapeWeights": {
+      "wild": 0.83,
+      "drive": 0.17
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "bhutan-black-necked-crane-november",
@@ -753,7 +858,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "wild": 0.14,
+      "stones": 0.86
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "dubai-abu-dhabi-five-day-design-run",
@@ -788,7 +898,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "singapore-four-days-with-small-children",
@@ -822,7 +936,12 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 4
+    "days": 4,
+    "shapeWeights": {
+      "stay": 0,
+      "wild": 1
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "dakar-saint-louis-saloum",
@@ -858,7 +977,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "save",
-    "days": 7
+    "days": 7,
+    "shapeWeights": {
+      "wild": 0.33,
+      "stones": 0.67
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "tunis-carthage-dougga-weekend",
@@ -893,7 +1017,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "save",
-    "days": 4
+    "days": 4,
+    "shapeWeights": {
+      "stay": 0,
+      "stones": 1
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "seychelles-three-islands-family",
@@ -929,7 +1058,11 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "splurge",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "islands": 1
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "mauritius-five-days-family",
@@ -967,7 +1100,11 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "islands": 1
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "rn7-madagascar-overland",
@@ -1006,7 +1143,14 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "full_days",
     "budget": "save",
-    "days": 14
+    "days": 14,
+    "shapeWeights": {
+      "wild": 0.54,
+      "drive": 0.15,
+      "stones": 0.08,
+      "islands": 0.23
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "accra-cape-coast-castles",
@@ -1041,7 +1185,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "save",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "zambezi-to-luangwa-on-foot",
@@ -1074,7 +1222,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "wild": 1
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "okavango-mokoro-light-aircraft",
@@ -1109,7 +1261,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "easy",
     "budget": "splurge",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "wild": 1
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "kigali-to-entebbe-gorilla-overland",
@@ -1148,7 +1304,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 14
+    "days": 14,
+    "shapeWeights": {
+      "wild": 0.77,
+      "stones": 0.15,
+      "islands": 0.08
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "namibia-self-drive-loop",
@@ -1184,7 +1346,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 16
+    "days": 16,
+    "shapeWeights": {
+      "wild": 0.87,
+      "drive": 0.13
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "serengeti-crossings-then-zanzibar",
@@ -1219,7 +1386,14 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 15
+    "days": 15,
+    "shapeWeights": {
+      "wild": 0.65,
+      "drive": 0.07,
+      "stones": 0.07,
+      "islands": 0.21
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "nz-north-island-loop",
@@ -1257,7 +1431,15 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 17
+    "days": 17,
+    "shapeWeights": {
+      "high": 0.12,
+      "wild": 0.31,
+      "drive": 0,
+      "stones": 0.25,
+      "islands": 0.32
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "wa-coral-coast-margaret-river-ningaloo",
@@ -1294,7 +1476,15 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 16
+    "days": 16,
+    "shapeWeights": {
+      "eat": 0.2,
+      "wild": 0.6,
+      "drive": 0,
+      "stones": 0.07,
+      "islands": 0.13
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "queensland-reef-daintree-whitsundays",
@@ -1330,7 +1520,13 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 15
+    "days": 15,
+    "shapeWeights": {
+      "wild": 0.57,
+      "drive": 0.14,
+      "islands": 0.29
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "tahiti-moorea-bora-bora",
@@ -1367,7 +1563,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "splurge",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "eat": 0.12,
+      "islands": 0.88
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "fiji-mamanucas-coral-coast-family",
@@ -1403,7 +1604,11 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "islands": 1
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "red-centre-uluru-kings-canyon",
@@ -1439,7 +1644,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 6
+    "days": 6,
+    "shapeWeights": {
+      "high": 0.2,
+      "wild": 0.6,
+      "drive": 0.2
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "tasmania-east-coast-van",
@@ -1474,11 +1685,18 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "save",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "eat": 0.25,
+      "wild": 0.25,
+      "drive": 0,
+      "islands": 0.5
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "prague-palava-budapest-by-rail",
-    "title": "Prague, P\u00e1lava and Budapest: the Slow Way Down the Line",
+    "title": "Prague, Pálava and Budapest: the Slow Way Down the Line",
     "tags": [
       "eat",
       "stones",
@@ -1507,7 +1725,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "eat": 0.57,
+      "stones": 0.43
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "copenhagen-to-the-arctic-circle",
@@ -1541,7 +1764,14 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 15
+    "days": 15,
+    "shapeWeights": {
+      "high": 0.14,
+      "wild": 0.14,
+      "drive": 0.14,
+      "stones": 0.58
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "slovenia-bohinj-with-kids",
@@ -1575,11 +1805,17 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 7
+    "days": 7,
+    "shapeWeights": {
+      "wild": 0.5,
+      "stones": 0.33,
+      "islands": 0.17
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "poland-down-the-vistula",
-    "title": "Poland: Down the Vistula, Gda\u0144sk to Krak\u00f3w",
+    "title": "Poland: Down the Vistula, Gdańsk to Kraków",
     "tags": [
       "stones",
       "eat",
@@ -1608,7 +1844,11 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "save",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "vienna-three-nights-at-the-opera",
@@ -1641,7 +1881,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "splurge",
-    "days": 4
+    "days": 4,
+    "shapeWeights": {
+      "stay": 0,
+      "stones": 1
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "amsterdam-haarlem-with-kids",
@@ -1672,7 +1917,11 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "berlin-four-days-fault-line",
@@ -1703,7 +1952,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "save",
-    "days": 4
+    "days": 4,
+    "shapeWeights": {
+      "stay": 0,
+      "stones": 1
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "wild-atlantic-way-dingle-to-achill",
@@ -1738,7 +1992,15 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "eat": 0.5,
+      "high": 0.1,
+      "wild": 0.2,
+      "drive": 0,
+      "islands": 0.2
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "scotland-west-highland-line",
@@ -1773,11 +2035,18 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "eat": 0.25,
+      "high": 0.25,
+      "stones": 0.38,
+      "islands": 0.12
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "amalfi-coast-girls-trip",
-    "title": "Amalfi Coast \u2014 Girls' Trip",
+    "title": "Amalfi Coast — Girls' Trip",
     "tags": [
       "islands",
       "eat",
@@ -1808,11 +2077,16 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "splurge",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "eat": 0.33,
+      "islands": 0.67
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "japan-with-a-little-one",
-    "title": "Japan with a Little One \u2014 Tokyo, Kyoto & Osaka",
+    "title": "Japan with a Little One — Tokyo, Kyoto & Osaka",
     "tags": [
       "eat",
       "stones",
@@ -1843,7 +2117,13 @@ export const SHELF_FIXTURE = [
     "party": "family",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "eat": 0.3,
+      "stay": 0.4,
+      "stones": 0.3
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "japan-tokyo-kyoto",
@@ -1874,7 +2154,13 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 13
+    "days": 13,
+    "shapeWeights": {
+      "eat": 0.59,
+      "wild": 0.08,
+      "stones": 0.33
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "iceland-the-ring-road",
@@ -1906,7 +2192,13 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "wild": 0.67,
+      "drive": 0.11,
+      "stones": 0.22
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "paris-the-loire-valley",
@@ -1938,7 +2230,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "mexico-city-oaxaca",
@@ -1972,7 +2268,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "eat": 1
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "thailand-bangkok-to-chiang-mai",
@@ -2005,7 +2305,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 12
+    "days": 12,
+    "shapeWeights": {
+      "eat": 0.55,
+      "stones": 0.45
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "egypt-cairo-the-nile",
@@ -2039,7 +2344,11 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "costa-rica-cloud-forest-to-coast",
@@ -2073,7 +2382,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "wild": 0.6,
+      "drive": 0.1,
+      "islands": 0.3
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "portugal-lisbon-the-douro",
@@ -2107,7 +2422,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "eat": 0.56,
+      "stones": 0.44
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "bali-ubud-sidemen-nusa-penida",
@@ -2144,7 +2464,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 12
+    "days": 12,
+    "shapeWeights": {
+      "wild": 0.64,
+      "islands": 0.36
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "rio-de-janeiro-ilha-grande",
@@ -2177,7 +2502,11 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "islands": 1
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "new-zealand-queenstown-fiordland",
@@ -2212,7 +2541,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 13
+    "days": 13,
+    "shapeWeights": {
+      "high": 0.75,
+      "wild": 0.25
+    },
+    "shapePrimary": "high"
   },
   {
     "slug": "jordan-petra-wadi-rum",
@@ -2246,7 +2580,13 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "wild": 0.25,
+      "stones": 0.63,
+      "islands": 0.12
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "malaysia-penang-langkawi",
@@ -2280,7 +2620,13 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "eat": 0.56,
+      "wild": 0.22,
+      "islands": 0.22
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "the-southwest-loop-utah-arizona",
@@ -2314,7 +2660,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "splurge",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "wild": 1,
+      "drive": 0
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "china-beijing-chengdu",
@@ -2347,7 +2698,13 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "eat": 0.4,
+      "wild": 0.2,
+      "stones": 0.4
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "australia-sydney-the-great-ocean-road",
@@ -2382,7 +2739,13 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 13
+    "days": 13,
+    "shapeWeights": {
+      "eat": 0.33,
+      "stay": 0.42,
+      "drive": 0.25
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "barcelona-long-weekend",
@@ -2415,7 +2778,12 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "full_days",
     "budget": "splurge",
-    "days": 5
+    "days": 5,
+    "shapeWeights": {
+      "stay": 0,
+      "stones": 1
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "cambodia-angkor-the-coast",
@@ -2449,7 +2817,13 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "eat": 0.33,
+      "stones": 0.45,
+      "islands": 0.22
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "istanbul-two-continents",
@@ -2481,7 +2855,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "full_days",
     "budget": "smart_mix",
-    "days": 7
+    "days": 7,
+    "shapeWeights": {
+      "stay": 0,
+      "stones": 1
+    },
+    "shapePrimary": "stay"
   },
   {
     "slug": "peru-cusco-the-sacred-valley",
@@ -2516,7 +2895,11 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "stones": 1
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "vietnam-hanoi-ha-long-bay",
@@ -2553,7 +2936,13 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "eat": 0.4,
+      "wild": 0.3,
+      "islands": 0.3
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "sri-lanka-hill-country-by-train",
@@ -2588,7 +2977,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "high": 0.4,
+      "stones": 0.6
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "santorini-the-cyclades",
@@ -2620,7 +3014,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "balanced",
     "budget": "save",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "islands": 1
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "croatia-split-hvar-dubrovnik",
@@ -2652,7 +3050,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "stones": 0.67,
+      "islands": 0.33
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "colombia-cartagena-tayrona",
@@ -2687,7 +3090,13 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "balanced",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "wild": 0.33,
+      "stones": 0.45,
+      "islands": 0.22
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "georgia-tbilisi-svaneti",
@@ -2722,7 +3131,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "eat": 0.33,
+      "high": 0.67
+    },
+    "shapePrimary": "high"
   },
   {
     "slug": "nepal-kathmandu-the-annapurnas",
@@ -2757,7 +3171,12 @@ export const SHELF_FIXTURE = [
     "party": "solo",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 13
+    "days": 13,
+    "shapeWeights": {
+      "high": 0.73,
+      "stones": 0.27
+    },
+    "shapePrimary": "high"
   },
   {
     "slug": "kenya-masai-mara-amboseli",
@@ -2791,7 +3210,11 @@ export const SHELF_FIXTURE = [
     "party": "friends",
     "pace": "easy",
     "budget": "splurge",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "wild": 1
+    },
+    "shapePrimary": "wild"
   },
   {
     "slug": "switzerland-the-berner-oberland",
@@ -2824,7 +3247,11 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "splurge",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "high": 1
+    },
+    "shapePrimary": "high"
   },
   {
     "slug": "morocco-marrakech-the-atlas",
@@ -2861,7 +3288,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "save",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "high": 0.25,
+      "stones": 0.75
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "lofoten-by-ferry",
@@ -2895,7 +3327,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "save",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "high": 0.5,
+      "islands": 0.5
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "puglia-slowly",
@@ -2929,7 +3366,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "save",
-    "days": 12
+    "days": 12,
+    "shapeWeights": {
+      "stay": 0.36,
+      "stones": 0.27,
+      "islands": 0.37
+    },
+    "shapePrimary": "islands"
   },
   {
     "slug": "cape-town-the-garden-route",
@@ -2964,7 +3407,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 11
+    "days": 11,
+    "shapeWeights": {
+      "wild": 1,
+      "drive": 0
+    },
+    "shapePrimary": "drive"
   },
   {
     "slug": "faroe-islands-eight-days-of-weather",
@@ -3000,7 +3448,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "save",
-    "days": 9
+    "days": 9,
+    "shapeWeights": {
+      "wild": 0.5,
+      "stones": 0.5
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "kerala-backwaters-tea-country",
@@ -3037,7 +3490,13 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "smart_mix",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "wild": 0.33,
+      "stones": 0.34,
+      "islands": 0.33
+    },
+    "shapePrimary": "stones"
   },
   {
     "slug": "taipei-the-mountain-towns",
@@ -3073,7 +3532,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "save",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "eat": 0.71,
+      "high": 0.29
+    },
+    "shapePrimary": "eat"
   },
   {
     "slug": "patagonia-torres-del-paine",
@@ -3108,7 +3572,12 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "splurge",
-    "days": 10
+    "days": 10,
+    "shapeWeights": {
+      "high": 0.78,
+      "drive": 0.22
+    },
+    "shapePrimary": "high"
   },
   {
     "slug": "seoul-in-blossom-season",
@@ -3138,6 +3607,11 @@ export const SHELF_FIXTURE = [
     "party": "couple",
     "pace": "easy",
     "budget": "save",
-    "days": 8
+    "days": 8,
+    "shapeWeights": {
+      "stay": 0,
+      "stones": 1
+    },
+    "shapePrimary": "stay"
   }
 ] as const

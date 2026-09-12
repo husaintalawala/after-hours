@@ -5,6 +5,7 @@ import {
   shapeMissFor,
   shelfFor,
   reasonFor,
+  shapeFit,
   type RankableGuide,
   type TripLength,
 } from "./daybreak"
@@ -43,6 +44,8 @@ const SHELF: Guide[] = SHELF_FIXTURE.map((g) => ({
   optimizeFor: [...g.optimizeFor],
   setting: [...g.setting],
   cityCount: g.cityCount,
+  shapeWeights: { ...g.shapeWeights },
+  shapePrimary: g.shapePrimary,
   bestMonths: [...g.bestMonths],
   party: g.party,
   pace: g.pace,
@@ -118,6 +121,16 @@ describe("P1 — the reported case: coast, and only coast", () => {
 
   test("Scotland is nowhere near the top, not merely off the podium", () => {
     assert.ok(rankOf(a, "scotland-west-highland-line") > 20)
+  })
+
+  test("how much of a trip is beach never outranks who is travelling", () => {
+    // The regression the first weighting shipped: folded above party, it put
+    // four family guides on a couple's islands podium.
+    const top = podium(a)
+    assert.ok(
+      top.every((g) => g.party !== "family"),
+      top.map((g) => `${g.slug}:${g.party}`).join(", ")
+    )
   })
 
   test("the Maldives is no longer beaten by a budget column", () => {
@@ -300,5 +313,32 @@ describe("the reason on each card", () => {
     const a = ask({ shapes: [], month: 6 })
     const r = reasonFor(SHELF[0], a, label)
     assert.ok(r === null || r === "In season")
+  })
+})
+
+describe("the weights", () => {
+  test("every guide in the fixture carries weights and a primary", () => {
+    // Without this, a fixture missing the columns ranks every tier-mate
+    // identically and the within-tier tie-break passes every test while doing
+    // nothing — which is precisely how the iOS suite first went green.
+    assert.ok(
+      SHELF.every((g) => Object.keys(g.shapeWeights).length > 0 && g.shapePrimary),
+      "a guide in the fixture has no shape weights or no primary"
+    )
+  })
+
+  test("being the primary is full strength even at a nights weight of 0", () => {
+    const g = SHELF.find(
+      (x) => x.shapePrimary !== null && (x.shapeWeights[x.shapePrimary] ?? 0) === 0
+    )
+    assert.ok(g, "the corpus should carry structural primaries (drive/stay) with 0 nights")
+    assert.equal(shapeFit(g!, g!.shapePrimary!), 1)
+  })
+
+  test("a guide that is only partly a shape fits it only partly", () => {
+    const g = SHELF.find((x) => x.slug === "serengeti-crossings-then-zanzibar")
+    assert.ok(g)
+    const f = shapeFit(g!, "islands")
+    assert.ok(f > 0 && f < 1, `Serengeti's islands fit should be partial, was ${f}`)
   })
 })

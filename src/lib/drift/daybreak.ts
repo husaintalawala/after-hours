@@ -437,6 +437,13 @@ export interface RankableGuide {
   setting: string[]
   /** Stops the trip sleeps in. Read only by the `stay` shape. */
   cityCount: number
+  /** Share of the trip's NIGHTS per shape, e.g. {"wild":0.65,"islands":0.21}.
+   *  Derived from every stop's nights; see 20260912210000. Empty when absent. */
+  shapeWeights: Record<string, number>
+  /** One word for what the trip is. For drive and stay it is derived
+   *  structurally and may carry a weight of 0 — being the primary counts as
+   *  full strength, never as absence. Null when absent. */
+  shapePrimary: string | null
   /** Months 1…12 the guide is editorially at its best. May be empty. */
   bestMonths: number[]
   /** `snapshot.day_count`. */
@@ -610,6 +617,17 @@ export function shapeMissFor(guide: RankableGuide, shape: string): number {
   return 4
 }
 
+/**
+ * How much of a guide is one shape, 0…1. The primary is full strength even
+ * when its nights weight is 0, because drive and stay are derived from what
+ * kind of trip it is rather than from where it sleeps.
+ */
+export function shapeFit(guide: RankableGuide, shape: string): number {
+  if (guide.shapePrimary === shape) return 1
+  const w = guide.shapeWeights[shape] ?? 0
+  return Math.min(Math.max(w, 0), 1)
+}
+
 function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number[] {
   // HOW MANY of the picked shapes it misses, not merely whether it misses any.
   // Binary was the reason the same three guides came back whatever was picked:
@@ -637,6 +655,23 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
   const shapeMiss = !a.shapes.size
     ? 0
     : [...a.shapes].sort().reduce((n, s) => n + shapeMissFor(guide, s), 0)
+  // HOW MUCH OF THE TRIP IS THAT SHAPE — the LAST tie-break, not the first.
+  //
+  // It was first. Folded into the shape term, it sat above party, so for the
+  // reported answer set (islands, couple, October) every pure-beach guide beat
+  // the Maldives and Uruguay's Coast regardless of who was travelling: the
+  // Maldives fell from 3rd to 16th and a couple's shelf filled with four family
+  // guides. The weight was outranking the reader's own answers.
+  //
+  // So it only decides between guides the reader's answers leave TIED — same
+  // tier, party, length, style and season — folded into the final slot ahead of
+  // editorial order: fitDeficit × 1000 + index. `index` is the shelf position
+  // (under 1000), so editorial order still breaks a genuine tie, and it stays a
+  // single component because Swift's `<` stops at six. Quarter buckets so
+  // near-equal weights still fall through to the curator.
+  const fitDeficit = !a.shapes.size
+    ? 0
+    : [...a.shapes].sort().reduce((n, s) => n + (4 - Math.floor(shapeFit(guide, s) * 4)), 0)
   // An empty `bestMonths` ranks with the out-of-season group: absent editorial
   // is not a claim that any month will do.
   const seasonMiss = guide.bestMonths.includes(a.departureMonth) ? 0 : 1
@@ -646,7 +681,7 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
   // than one matching neither. Binary here would leave them tied and let the
   // shelf order decide — the same fault the shape component had.
   const styleMiss = miss(a.rhythm, guide.pace) + miss(a.budget, guide.budget)
-  return [shapeMiss, partyMiss, lengthMiss, styleMiss, seasonMiss, index]
+  return [shapeMiss, partyMiss, lengthMiss, styleMiss, seasonMiss, fitDeficit * 1000 + index]
 }
 
 /**

@@ -36,6 +36,8 @@ function guide(
     optimizeFor?: string[]
     setting?: string[]
     cityCount?: number
+    shapeWeights?: Record<string, number>
+    shapePrimary?: string | null
     months?: number[]
     party?: string
     pace?: string
@@ -61,6 +63,10 @@ function guide(
     setting: opts.setting ?? [],
     // Three, so the `stay` structural clause does not fire unasked.
     cityCount: opts.cityCount ?? 3,
+    // Empty by default: every guide then gains the same constant per pick, so
+    // the order these older tests assert is exactly what it was.
+    shapeWeights: opts.shapeWeights ?? {},
+    shapePrimary: opts.shapePrimary ?? null,
     bestMonths: opts.months ?? [6],
     days: opts.days ?? 10,
     // Absent by DEFAULT, so every pre-existing test proves the new components
