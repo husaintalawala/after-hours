@@ -64,7 +64,22 @@ const CTAS: Cta[] = [
   },
 ]
 
-export default function CtaRow() {
+export default function CtaRow({ stacked = false }: { stacked?: boolean }) {
+  // STACKED is the laptop's zero-trip column. The rail version is `lg:hidden`
+  // because an established account already has both actions in the nav rail and
+  // the "+" button — but an account with no trips has neither a featured card to
+  // put in that column nor any other visible way to make one, so the same two
+  // cards fill it instead of a hole.
+  if (stacked) {
+    return (
+      <div className="flex h-full min-h-[290px] flex-col gap-3">
+        {CTAS.map((c) => (
+          <CtaCard key={c.key} cta={c} stacked />
+        ))}
+      </div>
+    )
+  }
+
   return (
     // A RAIL on a phone, where two 172px cards plus the page's own padding
     // overflow a 360px screen; a plain row once there is width for it.
@@ -78,12 +93,14 @@ export default function CtaRow() {
   )
 }
 
-function CtaCard({ cta }: { cta: Cta }) {
+function CtaCard({ cta, stacked = false }: { cta: Cta; stacked?: boolean }) {
   const { ground } = cta
   return (
     <Link
       href={cta.href}
-      className="relative flex h-[126px] w-[172px] shrink-0 items-end overflow-hidden rounded-hero outline-none transition-transform hover:scale-[1.015] focus-visible:ring-2 focus-visible:ring-aurora-ink/70 active:scale-[0.985]"
+      className={`relative flex items-end overflow-hidden rounded-hero outline-none transition-transform hover:scale-[1.015] focus-visible:ring-2 focus-visible:ring-aurora-ink/70 active:scale-[0.985] ${
+        stacked ? "w-full flex-1" : "h-[126px] w-[172px] shrink-0"
+      }`}
       style={{ background: `linear-gradient(135deg, ${ground.top}, ${ground.bottom})` }}
     >
       {/* The light the figure stands in. 118px is iOS's endRadius, and the card

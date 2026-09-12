@@ -162,12 +162,18 @@ export default function HomeShell({
 
   const showStartHere = isSelf && allTrips.length === 0
 
-  // A new account's globe is empty, so the curated guides are pinned on it.
+  // THE PASSPORT SHOWS YOUR OWN TRAVEL, or it shows nothing.
   //
-  // ONE ARRAY, assembled in the render that MOUNTS the globe: GlobeHero's
-  // marker effect has `[]` deps and captures `pins` exactly once, so a second
-  // set arriving later silently never draws.
-  const pins = showStartHere && inspire ? [...data.pins, ...inspire.pins] : data.pins
+  // A new account's globe used to be seeded with the CURATED pins, back when the
+  // globe was the full-bleed background of the whole page and an empty planet
+  // read as a broken one. The redesign moved it inside PassportPanel, whose
+  // subject is explicitly where the READER has been — so the borrowed pins now
+  // sit directly above a counter saying 0 Countries. The picture claims a life
+  // the numbers deny, and neither pin is theirs.
+  //
+  // An empty globe under "Your passport" is not a hole; it is the truth, and it
+  // is the before to the first trip's after.
+  const pins = data.pins
 
   useEffect(() => {
     setDaysOut(daysUntil(data.featured?.startDate ?? null))
@@ -429,9 +435,25 @@ export default function HomeShell({
           </Section>
         )}
 
-        {/* No trip at all: the passport and chats still deserve the row. */}
+        {/* No trip at all: the passport and chats still deserve the row — and
+            the first column, which would otherwise be the featured trip, goes
+            to the two things this account can actually DO. On a laptop CtaRow
+            is `lg:hidden` (the rail and the "+" cover it for an established
+            account), so without this a zero-trip home has no visible way to
+            make a trip at all: just a 40px "+" and a sentence. */}
         {!data.featured && (
-          <div className="mt-6 px-5 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-stretch lg:gap-4 lg:px-10">
+          <div
+            className={`mt-6 px-5 lg:grid lg:items-stretch lg:gap-4 lg:px-10 ${
+              isSelf
+                ? "lg:grid-cols-[300px_minmax(0,1fr)_380px]"
+                : "lg:grid-cols-[minmax(0,1fr)_400px]"
+            }`}
+          >
+            {isSelf && (
+              <div className="hidden lg:block">
+                <CtaRow stacked />
+              </div>
+            )}
             <PassportPanel
               countries={data.countries}
               followers={data.followers}
