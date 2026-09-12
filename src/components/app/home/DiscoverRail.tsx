@@ -20,30 +20,89 @@ import { loadCategory, type DiscoverAnchor, type DiscoverResult } from "@/lib/dr
  * out on mount, and the rail fills in. If it returns nothing the whole section
  * removes itself rather than leaving a titled empty band — a heading with no
  * content under it is the "dead gap" this redesign exists to delete.
+ *
+ * BUT "NOTHING CAME BACK" IS NOT "THERE IS NOTHING THERE", and conflating the
+ * two is what made this rail disappear on a home whose anchor city has
+ * eighteen photographed attractions. Measured on a cold load of /app: the
+ * lookup came back with ZERO for "Lisbon" while the very same endpoint,
+ * called by hand a second later with the same anchor, returned eighteen. A
+ * zero here is usually `loadCategory`'s own 9s fallback — it returns `[]` on
+ * timeout, so a slow request and an empty city are the same value. On other
+ * loads the request did not settle at all inside twenty seconds and four
+ * placeholder tiles pulsed under the heading indefinitely.
+ *
+ * Both failures looked identical from outside: the Discover rail is missing,
+ * with nothing to say why. So the component no longer believes a single empty
+ * answer and no longer trusts the library's clock. It asks again, twice, and
+ * only a third empty answer is taken as the truth about the city.
  */
+
+/** Empty answers to believe before accepting that a city really has nothing. */
+const MAX_ATTEMPTS = 3
+
+/**
+ * Longer than `loadCategory`'s own 9s budget, so it only fires when that
+ * budget did not. A placeholder that outlives its request is a bug by itself.
+ */
+const STUCK_MS = 11_000
+
 export default function DiscoverRail({ anchor }: { anchor: DiscoverAnchor }) {
   const [places, setPlaces] = useState<DiscoverResult[] | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let live = true
+    let settled = false
+    const timers: ReturnType<typeof setTimeout>[] = []
+
+    // One empty/failed/hung answer. Try again, backing off — or, if this was
+    // the last attempt, accept it and let the band remove itself.
+    const notThisTime = () => {
+      if (!live) return
+      if (attempt + 1 >= MAX_ATTEMPTS) {
+        setPlaces([])
+        return
+      }
+      timers.push(
+        setTimeout(
+          () => {
+            if (live) setAttempt((a) => a + 1)
+          },
+          1200 * (attempt + 1)
+        )
+      )
+    }
+
+    timers.push(
+      setTimeout(() => {
+        if (live && !settled) notThisTime()
+      }, STUCK_MS)
+    )
+
     loadCategory("forYou", anchor)
       .then((r) => {
-        if (live) setPlaces(r.slice(0, 10))
+        settled = true
+        if (!live) return
+        if (r.length === 0) return notThisTime()
+        setPlaces(r.slice(0, 10))
       })
       .catch(() => {
-        if (live) setFailed(true)
+        settled = true
+        notThisTime()
       })
+
     // The anchor is derived per render from the featured trip, so depend on its
     // VALUES rather than the object identity — otherwise this refetches on
-    // every parent render.
+    // every parent render. `attempt` is a dep on purpose: bumping it is what
+    // re-runs the lookup.
     return () => {
       live = false
+      timers.forEach(clearTimeout)
     }
-  }, [anchor.label, anchor.lat, anchor.lng, anchor.country])
+  }, [anchor.label, anchor.lat, anchor.lng, anchor.country, attempt])
 
-  // Nothing came back, or the lookup failed. Either way there is no band.
-  if (failed || (places !== null && places.length === 0)) return null
+  // Asked MAX_ATTEMPTS times and got nothing every time. There is no band.
+  if (places !== null && places.length === 0) return null
 
   return (
     <Section

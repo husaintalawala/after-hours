@@ -327,7 +327,28 @@ export default function HomeShell({
             hideTitleOnDesktop
           >
             <div className="px-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_380px] lg:items-stretch lg:gap-4 lg:px-10">
-              <FeaturedCard trip={data.featured} pill={featuredPill} />
+              <div className="flex flex-col">
+                <FeaturedCard trip={data.featured} pill={featuredPill} />
+                {/* THE DOOR TO THE REST, and it lives HERE rather than in the
+                    section header for a specific reason: this Section sets
+                    `hideTitleOnDesktop`, which is `lg:hidden` on the whole
+                    header — title, meta and action together. So the header's
+                    "All trips" link does not exist on a laptop. That was
+                    survivable while a rail of every other trip sat below this
+                    row; with the rail gone it would have left a desktop reader
+                    no way at all to reach the other thirty-four. Sitting in the
+                    trip column it is visible at every width, and it is next to
+                    the one trip it is offering an alternative to. */}
+                {allTrips.length > 1 && isSelf && (
+                  <Link
+                    href="/app/trips"
+                    className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full border border-aurora-border bg-aurora-glass px-4 py-2 font-drift-display text-[13.5px] font-semibold text-aurora-teal outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+                  >
+                    See all {allTrips.length} trips
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                )}
+              </div>
 
               <div className="mt-6 lg:mt-0">
                 <PassportPanel
@@ -350,15 +371,16 @@ export default function HomeShell({
               )}
             </div>
 
-            {data.others.length > 0 && (
-              <div className="mt-4 px-5 lg:px-10">
-                <Rail>
-                  {data.others.map((t) => (
-                    <RailTripCard key={t.id} trip={t} />
-                  ))}
-                </Rail>
-              </div>
-            )}
+            {/* ONE TRIP ON THE HOME. A rail of every other trip used to sit
+                here, which made this band's size a function of how much the
+                reader had travelled and pushed Discover and the curated shelf
+                down the page on exactly the accounts that use them most.
+
+                The rule is the one the iOS home now follows: one trip on the
+                account and you see it; two or more and you see the one you are
+                ON or leave for next; the remainder is one link away — the
+                pill in the trip column above — rather than a partial list that
+                begs the question of why it stopped where it did. */}
           </Section>
         )}
 
