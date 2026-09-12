@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Section, RailOrGrid } from "@/components/app/home/HomeSection"
+import { Section, RailOrGrid, SeeAllCard } from "@/components/app/home/HomeSection"
 import { loadCategory, type DiscoverAnchor, type DiscoverResult } from "@/lib/drift/discover"
 
 /**
@@ -126,6 +126,17 @@ export default function DiscoverRail({ anchor }: { anchor: DiscoverAnchor }) {
               />
             ))
           : places.map((p) => <PlaceCard key={p.id} place={p} />)}
+        {/* Not while the skeletons are up (`places === null`): a live "See all"
+            beside four pulsing placeholders offers to show everything of a set
+            that has not arrived. Nor on an empty result, where there is
+            nothing to see all of. */}
+        {places !== null && places.length > 0 && (
+          <SeeAllCard
+            href="/app/discover"
+            label="See all nearby"
+            className="h-[152px] w-[132px] rounded-card lg:h-[168px] lg:w-auto"
+          />
+        )}
       </RailOrGrid>
     </Section>
   )

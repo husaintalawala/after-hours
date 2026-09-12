@@ -120,3 +120,49 @@ export function Rail({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+/**
+ * The last card in a rail: "see all of this".
+ *
+ * AT THE END OF THE SCROLL, not under the section. A rail's own gesture already
+ * ends somewhere — you swipe until the cards run out — and that is the moment
+ * the reader has just established they want more of them. A button below the
+ * band answers the same question a scroll earlier, in a place the thumb is not.
+ *
+ * It takes its geometry from the rail rather than owning any, because the two
+ * rails are different shapes (Discover's places are 132x152, Inspire's guides
+ * 164x218) and a See-all that is not exactly the size of its neighbours reads
+ * as a card that failed to load its photograph.
+ *
+ * On a laptop `RailOrGrid` turns the rail into a grid, so this stops being "the
+ * end of the scroll" and becomes the last cell — which is why the sections that
+ * use it keep their heading link too. Same destination, two affordances, one
+ * per shape.
+ */
+export function SeeAllCard({
+  href,
+  label,
+  className = "",
+}: {
+  href: string
+  label: string
+  /** The neighbouring card's size and corner, passed down by the rail. */
+  className?: string
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group flex shrink-0 flex-col items-center justify-center gap-2.5 border border-aurora-border bg-aurora-glass text-center outline-none transition-colors hover:bg-aurora-glass2 focus-visible:ring-2 focus-visible:ring-aurora-teal/60 ${className}`}
+    >
+      <span
+        aria-hidden="true"
+        className="grid h-9 w-9 place-items-center rounded-full bg-aurora-teal/15 text-[15px] text-aurora-teal transition-transform group-hover:translate-x-0.5"
+      >
+        &rarr;
+      </span>
+      <span className="px-3 text-[12.5px] font-semibold leading-tight text-aurora-ink2">
+        {label}
+      </span>
+    </Link>
+  )
+}

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import CoverCredit from "@/components/app/CoverCredit"
-import { Section, RailOrGrid } from "@/components/app/home/HomeSection"
+import { Section, RailOrGrid, SeeAllCard } from "@/components/app/home/HomeSection"
 import type { InspirePromo, InspirePromoCard } from "@/lib/drift/inspirePromo"
 
 // The curated shelf, as a rail on the home.
@@ -33,6 +33,13 @@ export default function InspireRail({ promo }: { promo: InspirePromo }) {
         {cards.slice(0, 8).map((c) => (
           <InspireCard key={c.tripId} card={c} />
         ))}
+        {/* Ninety guides, eight cards. The end of the swipe is where the reader
+            has just finished the eight and is still going. */}
+        <SeeAllCard
+          href="/app/inspire"
+          label={`All ${promo.total} guides`}
+          className="h-[218px] w-[164px] rounded-hero lg:h-[288px] lg:w-auto"
+        />
       </RailOrGrid>
     </Section>
   )
