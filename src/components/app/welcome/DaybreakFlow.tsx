@@ -616,7 +616,9 @@ export default function DaybreakFlow({
       spend: string,
       mobility: string,
       food: ReadonlySet<string>,
-      shapes: ReadonlySet<string>
+      shapes: ReadonlySet<string>,
+      party: string,
+      length: string
     ) => {
       // PER FIELD, NOT ALL-OR-NOTHING. This was `if (!pace || !spend) return`,
       // which threw away a whole screen because half of it was blank: skip the
@@ -635,6 +637,16 @@ export default function DaybreakFlow({
         mobility_style?: string
         food_moods?: string[]
         priorities?: string[]
+        // The three answers this flow used to rank on and then throw away.
+        // `party` and `length` shaped the shelf more than any other term —
+        // party alone eliminated 19 of 30 candidates on the reported answer
+        // set — and neither could be audited, corrected or replayed afterwards.
+        // `shapes` is the raw answer; `priorities` above is a lossy four-token
+        // derivation of it that folds islands, mountains and road trip into
+        // one word, and is kept only because build-itinerary reads it.
+        party?: string
+        length?: string
+        shapes?: string[]
       } = {}
       if (pace) answers.travel_rhythm = pace
       if (spend) answers.budget_style = spend
@@ -643,6 +655,9 @@ export default function DaybreakFlow({
       // The shape answer, which used to end at the browser's edge — see
       // prioritiesForShapes. build-itinerary rotates the day's searches on it.
       if (priorities.length) answers.priorities = priorities
+      if (party) answers.party = party
+      if (length) answers.length = length
+      if (shapes.size) answers.shapes = [...shapes].sort()
       // Nothing to say is not the same as saying nothing: if every answer is
       // blank, write no row rather than an `updated_at` that claims a fresh
       // opinion the traveller never gave.
@@ -657,7 +672,12 @@ export default function DaybreakFlow({
         await db
           .from("user_travel_preferences")
           .upsert(
-            { ...answers, user_id: id, updated_at: new Date().toISOString() },
+            // CAST, NOT A REGENERATED TYPES FILE. `party`, `length` and
+            // `shapes` were added by 20260912190000 and are not in
+            // database.types.ts; regenerating it drops a large unrelated diff
+            // into this change. `answers` above is still typed field by field,
+            // so a mistyped key is caught there rather than here.
+            { ...answers, user_id: id, updated_at: new Date().toISOString() } as never,
             { onConflict: "user_id" }
           )
           .throwOnError()
@@ -821,7 +841,7 @@ export default function DaybreakFlow({
               // the values from the render it was built in, and the pair the
               // pills are showing is exactly what those are. Same trap `build`
               // documents below, where reading state cost the invite entirely.
-              void saveStyle(rhythm, budget, mobility, food, shapes)
+              void saveStyle(rhythm, budget, mobility, food, shapes, party, length)
               setStep(4)
             }}
             // Skip writes NOTHING. The column defaults are already what these
