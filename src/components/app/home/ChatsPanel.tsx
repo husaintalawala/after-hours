@@ -41,12 +41,11 @@ export default function ChatsPanel({ prompts }: { prompts: string[] }) {
           laptop: three questions pinned to the top of a 400px tile leaves the
           rest reading as something that failed to load, where centred they read
           as the contents of the card. */}
-      <div className="flex flex-1 flex-col justify-center gap-3 border-t border-aurora-border px-5 py-5">
-        <p className="text-[13px] leading-relaxed text-aurora-ink2">
-          It already knows your trips, your dates and your stops — so you can
-          start in the middle.
-        </p>
-
+      <div className="flex flex-1 flex-col justify-center border-t border-aurora-border px-5 py-5">
+        {/* No preamble. A sentence explaining that Drift knows your trips was
+            saying in words what the three questions below demonstrate by
+            naming your actual trip — and on a short column it cost a line that
+            the questions themselves could use. */}
         <div className="flex flex-col gap-2">
           {prompts.map((q) => (
             <Link
