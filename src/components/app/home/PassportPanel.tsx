@@ -39,62 +39,27 @@ export default function PassportPanel({
   pins: GlobeTripPin[]
   isSelf: boolean
 }) {
-  // The sentence is about the globe beside it, so it counts stamps and nothing
-  // else. Three states, and the empty one is deliberately forward-looking:
-  // "no stamps yet" is a fact, "the globe fills in as you travel" is what the
-  // reader is being invited to do about it.
-  const line =
-    countries === 0
-      ? "No stamps yet. The globe fills in as you travel."
-      : countries === 1
-        ? "One country stamped. The globe fills in as you travel."
-        : `${countries} countries stamped. The globe fills in as you travel.`
-
   const body = (
     <>
+      {/* THE NAME, THE FIGURES, THE GLOBE — and nothing else.
+          This panel also carried a sentence ("One country stamped. The globe
+          fills in as you travel.") and, on a laptop, a progress bar captioned
+          "1 of 195 countries". Both were saying what the three figures beneath
+          them already say, in more words and more furniture, on the one card
+          whose whole subject is a picture. The picture is the argument; it did
+          not need two captions explaining it. */}
       <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-between py-1">
-        <div className="min-w-0">
-          <h2 className="font-drift-display text-[18px] font-bold tracking-[-0.02em] text-aurora-ink sm:text-[20px] lg:text-[21px]">
-            Your passport
-          </h2>
-          {/* A PERCENTAGE, not a ch measure. `max-w-[30ch]` is a fact about the
-              font and none about the panel, so at 375px the last word of the
-              first line ran out over the globe's faded edge — still legible,
-              but type over imagery it did not need to be over. Two thirds of
-              the card leaves the illustration its own third at every width. */}
-          <p className="mt-1.5 max-w-[64%] text-[12.5px] leading-snug text-aurora-ink2 sm:max-w-[58%] lg:max-w-[42%] lg:text-[13px] xl:max-w-[38%]">
-            {line}
-          </p>
-        </div>
+        <h2 className="font-drift-display text-[18px] font-bold tracking-[-0.02em] text-aurora-ink sm:text-[20px] lg:text-[21px]">
+          Your passport
+        </h2>
 
         {/* Small, at the foot, and glanceable — the opposite of the row this
             replaces. */}
-        <div>
-          <dl className="mt-4 flex gap-5">
-            <Figure value={countries} label="Countries" />
-            <Figure value={followers} label="Followers" />
-            <Figure value={following} label="Following" />
-          </dl>
-
-          {/* THE DENOMINATOR IS THE WHOLE POINT. A single pin on a globe reads
-              as an empty planet; "1 of 195" reads as a start. Same fact, and
-              the second one is the true framing of it. Laptop only, where the
-              panel has the height to spare. */}
-          <div className="mt-4 hidden max-w-[42%] lg:block xl:max-w-[38%]">
-            <div className="h-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-aurora-teal to-aurora-teal-end"
-                style={{
-                  width: `${Math.max(countries > 0 ? 2 : 0, Math.min(100, (countries / 195) * 100))}%`,
-                  boxShadow: "0 0 10px rgba(55,214,196,0.55)",
-                }}
-              />
-            </div>
-            <p className="mt-1.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-aurora-ink3">
-              <span className="text-aurora-teal">{countries}</span> of 195 countries
-            </p>
-          </div>
-        </div>
+        <dl className="mt-4 flex gap-5">
+          <Figure value={countries} label="Countries" />
+          <Figure value={followers} label="Followers" />
+          <Figure value={following} label="Following" />
+        </dl>
       </div>
 
       {/* The globe, contained.
