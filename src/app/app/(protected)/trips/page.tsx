@@ -28,10 +28,19 @@ import BackLink from "@/components/app/BackLink"
 export const metadata = { title: "All trips · Drift" }
 
 function yearOf(trip: HomeTrip): string | null {
-  // The date-only slice, not `new Date(...)`. These timestamps are stored at
-  // UTC midnight, and a local-time parse in a western timezone lands on
-  // December 31st of the previous year — which would file a January trip under
-  // the wrong heading, silently.
+  // The date-only slice, not `new Date(...)`: a local-time parse of a
+  // UTC-midnight timestamp lands on December 31st of the previous year in any
+  // western timezone, which would file a January trip under the wrong heading
+  // with nothing to show for it.
+  //
+  // NOT EVERY ROW IS UTC MIDNIGHT, though. Rows the phone writes go through a
+  // default ISO8601 formatter over a LOCAL midnight, so a New York trip stores
+  // 04:00:00Z and a Tokyo one stores 15:00:00Z the day before. The slice is
+  // therefore right for rows written date-only and for anywhere west of
+  // Greenwich, and under-reads by a day east of it. That exposure is not new —
+  // `dateLabel`'s own `timeZone: "UTC"` has carried it since the home shipped,
+  // and this reads the same field the same way rather than inventing a second
+  // answer. Fixing it belongs where the dates are written.
   return trip.startDate?.slice(0, 4) ?? null
 }
 
@@ -90,7 +99,10 @@ export default async function AllTripsPage() {
           <div className="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3.5">
             {trips.map((trip) => (
               <div key={trip.id} className="[&>a]:w-full">
-                <RailTripCard trip={trip} />
+                {/* One full-width column on a phone — two 180px tracks plus
+                    the gap do not fit inside `max-w-2xl px-5` — then roughly
+                    a seventh of the 1400px container on a laptop. */}
+                <RailTripCard trip={trip} sizes="(max-width: 1024px) 100vw, 200px" />
               </div>
             ))}
           </div>

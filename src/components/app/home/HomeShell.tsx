@@ -515,14 +515,28 @@ function FeaturedCard({ trip, pill }: { trip: HomeTrip; pill: string | null }) {
  *  same card out in a grid rather than a rail; copying it there would have left
  *  two cards to keep in step, and this one already owns the cover chain, the
  *  Travelling pill and the flag. */
-export function RailTripCard({ trip }: { trip: HomeTrip }) {
+export function RailTripCard({
+  trip,
+  /** What width this card will actually be rendered at.
+   *
+   *  A PROP because the archive lays these out in a grid, where the track is
+   *  one full column on a phone — 335px inside `max-w-2xl px-5`, since two
+   *  180px tracks plus the gap do not fit. Left at the rail's flat "196px" the
+   *  browser picked a 196-class candidate and upscaled it most of the way to
+   *  double, so every cover on the archive was visibly soft on mobile and
+   *  crisp on the laptop. */
+  sizes = "196px",
+}: {
+  trip: HomeTrip
+  sizes?: string
+}) {
   const flag = countryFlagEmoji(trip.country)
   return (
     <Link
       href={`/app/trips/${trip.id}`}
       className="group relative block h-[168px] w-[196px] shrink-0 overflow-hidden rounded-card border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60"
     >
-      <CardCover trip={trip} sizes="196px" />
+      <CardCover trip={trip} sizes={sizes} />
       {trip.isActive ? (
         <span className="absolute left-2.5 top-2.5 rounded-full bg-gradient-to-b from-aurora-teal to-aurora-teal-end px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wide text-aurora-teal-ink">
           Travelling

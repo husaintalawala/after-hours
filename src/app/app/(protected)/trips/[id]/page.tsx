@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import Skeleton from "../loading"
+import Skeleton from "./loading"
 import Link from "next/link"
 import { tripCover as resolveTripCover } from "@/lib/drift/tripCover"
 import { buildTripNotes } from "@/lib/drift/tripNotes"
