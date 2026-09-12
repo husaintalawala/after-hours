@@ -2,26 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { TripRow, ProfileRow, StepRow } from "@/lib/db-types"
 import { dateOnly } from "@/lib/drift/dates"
 import { tripCover } from "@/lib/drift/tripCover"
-import {
-  firstUserMessages,
-  MAX_OPENER_ROWS,
-  needsFirstMessage,
-  resolveChatName,
-} from "@/lib/drift/chatName"
+import { homeChatPrompts } from "@/lib/drift/homePrompts"
 
-/**
- * How many threads the home panel lists.
- *
- * SIX, because the panel is a full column beside the globe on a laptop and
- * three rows of content left two thirds of the tile empty — which is what drove
- * the rows to stretch to 110px each and read as blank bands. Filling that space
- * with more threads is better than filling it with more padding, and on a phone
- * the panel is in normal flow where a six-item list is simply a list.
- * `All →` still goes to the full history.
- */
-const HOME_CHAT_ROWS = 6
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
-import type { HomeData, HomeTrip, HomeChat } from "@/components/app/home/HomeShell"
+import type { HomeData, HomeTrip } from "@/components/app/home/HomeShell"
 
 /**
  * Build the profile payload — globe pins, featured trip, trip list, stats —
@@ -61,8 +45,18 @@ export async function buildHomeData(
 ): Promise<HomeData> {
   // Parallelize the independent lookups — every serial await here is felt as
   // navigation latency.
-  const [{ data: profile }, { data: buddyRows }, followCounts] = await Promise.all([
+  const [{ data: profile }, { data: prefsRow }, { data: buddyRows }, followCounts] =
+    await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).single<ProfileRow>(),
+    // The five first-run answers, for the chat prompts — see homePrompts.ts.
+    // In the same wave as the profile, so personalising the panel costs no
+    // extra round trip. Absent for anyone who skipped the flow, which the
+    // prompt rules handle rather than depend on.
+    supabase
+      .from("user_travel_preferences")
+      .select("travel_rhythm,budget_style,mobility_style,food_moods,priorities")
+      .eq("user_id", userId)
+      .maybeSingle<PrefsRow>(),
     supabase
       .from("trip_buddies")
       .select("trip_id")
@@ -220,88 +214,35 @@ export async function buildHomeData(
         }
       : null
 
-  let chats: HomeChat[] = []
-  if (isSelf) {
-    // Same filters the Chats tab uses: merged-away duplicates and archived
-    // threads are not "recent", they are gone.
-    const { data: rows } = await supabase
-      .from("chat_sessions")
-      .select("id,title,anchor_type,anchor_id,anchor_label,last_message_at")
-      .eq("user_id", userId)
-      .is("merged_into", null)
-      .is("archived_at", null)
-      .order("last_message_at", { ascending: false })
-      // SIX SURVIVE — see HOME_CHAT_ROWS — but more are fetched, because the
-      // orphan filter below drops rows and asking for exactly six would show
-      // four.
-      .limit(HOME_CHAT_ROWS * 3)
-      .returns<ChatSessionRow[]>()
-
-    // THE SAME NAME THE CHATS TAB USES, and that is the requirement rather than
-    // a nicety: a thread called "Barcelona" in one place and something else in
-    // the other is two names for one object. The rule lives in chatName.ts
-    // precisely so there is one copy of it; both this and /app/chats call it.
-    // The trips are already loaded above, so the trip half costs nothing.
-    const tripTitles = new Map(trips.map((t) => [t.id, t.title]))
-
-    // ORPHANS ARE NOT THREADS. A chat anchored to a trip that no longer exists
-    // cannot be named — its title comes from the trip, and the trip is gone —
-    // so it rendered as the bare word "Chat", and a deleted-and-recreated trip
-    // leaves several of them at once. That is exactly the row the Chats tab has
-    // always dropped ("stale duplicate rows by their old label"); the home
-    // panel simply never learned the rule, which is why the tab and the panel
-    // disagreed about how many threads this account has.
-    const parts = (rows ?? [])
-      .filter((r) => !(r.anchor_type === "trip" && r.anchor_id && !tripTitles.has(r.anchor_id)))
-      .slice(0, HOME_CHAT_ROWS)
-      .map((r) => ({
-        row: r,
-        tripTitle:
-          r.anchor_type === "trip" && r.anchor_id ? tripTitles.get(r.anchor_id) ?? null : null,
-      }))
-
-    // Only the threads that would otherwise read "Chat" cost a second query,
-    // and they share one — see firstUserMessages.
-    const unnamed = parts
-      .filter((p) =>
-        needsFirstMessage({
-          tripTitle: p.tripTitle,
-          anchorLabel: p.row.anchor_label,
-          sessionTitle: p.row.title,
-        })
-      )
-      .map((p) => p.row.id)
-    const openers = unnamed.length
-      ? await firstUserMessages(
-          (ids) =>
-            supabase
-              .from("trip_chat_messages")
-              .select("session_id,text")
-              .in("session_id", ids)
-              .eq("role", "user")
-              .order("created_at", { ascending: true })
-              .limit(MAX_OPENER_ROWS),
-          unnamed
-        )
-      : new Map<string, string>()
-
-    chats = parts.map(({ row: r, tripTitle }) => {
-      const name = resolveChatName({
-        tripTitle,
-        anchorLabel: r.anchor_label,
-        sessionTitle: r.title,
-        firstMessage: openers.get(r.id) ?? null,
+  // THE PANEL ASKS QUESTIONS NOW rather than listing threads, so the home stops
+  // loading chat sessions altogether — two queries and an orphan filter gone.
+  // What it offers instead is built from data this function already holds: the
+  // next trip, where the reader lives, and the five first-run answers. See
+  // homePrompts.ts for why these are templated rather than generated.
+  const featuredTrip = featuredRow ? toHomeTrip(featuredRow) : null
+  const prompts = isSelf
+    ? homeChatPrompts({
+        homeCity: p?.home_city ?? null,
+        trip: featuredTrip
+          ? {
+              title: featuredTrip.title,
+              city: featuredTrip.city,
+              country: featuredTrip.country,
+              startDate: featuredTrip.startDate,
+              isActive: featuredTrip.isActive,
+            }
+          : null,
+        prefs: prefsRow
+          ? {
+              travelRhythm: prefsRow.travel_rhythm ?? null,
+              budgetStyle: prefsRow.budget_style ?? null,
+              mobilityStyle: prefsRow.mobility_style ?? null,
+              foodMoods: prefsRow.food_moods ?? [],
+              priorities: prefsRow.priorities ?? [],
+            }
+          : null,
       })
-      return {
-        id: r.id,
-        title: name,
-        // The session's own title becomes the second line when it is not
-        // already doing duty as the first — the same split the tab makes.
-        anchorLabel: r.title?.trim() && r.title.trim() !== name ? r.title.trim() : null,
-        lastMessageAt: r.last_message_at ?? null,
-      }
-    })
-  }
+    : []
 
   return {
     displayName: profile?.display_name || profile?.username || "traveler",
@@ -311,11 +252,11 @@ export async function buildHomeData(
     followers: followers ?? 0,
     following: following ?? 0,
     pins,
-    featured: featuredRow ? toHomeTrip(featuredRow) : null,
+    featured: featuredTrip,
     featuredHeader,
     others: orderedTrips.slice(1).map(toHomeTrip),
     home,
-    chats,
+    prompts,
   }
 }
 
@@ -327,13 +268,13 @@ type HomeProfileExtras = {
   home_lng: number | null
 }
 
-type ChatSessionRow = {
-  id: string
-  title: string | null
-  anchor_type: string | null
-  anchor_id: string | null
-  anchor_label: string | null
-  last_message_at: string | null
+/** The first-run answers, as stored. */
+type PrefsRow = {
+  travel_rhythm: string | null
+  budget_style: string | null
+  mobility_style: string | null
+  food_moods: string[] | null
+  priorities: string[] | null
 }
 
 /** Whether a profile row exists at all — /app/people/[id] 404s without one. */

@@ -55,15 +55,6 @@ export interface HomeTrip {
   isActive: boolean
 }
 
-/** One recent thread, for the Chats panel on the laptop home. */
-export interface HomeChat {
-  id: string
-  title: string
-  /** The trip or place the thread hangs off, when it has one. */
-  anchorLabel: string | null
-  lastMessageAt: string | null
-}
-
 /**
  * Where the reader IS, as opposed to where they are going.
  *
@@ -94,8 +85,9 @@ export interface HomeData {
   others: HomeTrip[]
   /** Self only — nobody's home city is shown on their public profile. */
   home: HomePlace | null
-  /** Self only, newest first, at most three. */
-  chats: HomeChat[]
+  /** Self only — the questions the Ask-Drift panel offers, already written for
+   *  this reader. See homePrompts.ts. */
+  prompts: string[]
 }
 
 /**
@@ -366,7 +358,7 @@ export default function HomeShell({
                   missing feature rather than an empty one. */}
               {isSelf && (
                 <div className="mt-6 lg:mt-0">
-                  <ChatsPanel chats={data.chats} />
+                  <ChatsPanel prompts={data.prompts} />
                 </div>
               )}
             </div>
@@ -396,7 +388,7 @@ export default function HomeShell({
             />
             {isSelf && (
               <div className="mt-6 lg:mt-0">
-                <ChatsPanel chats={data.chats} />
+                <ChatsPanel prompts={data.prompts} />
               </div>
             )}
           </div>
