@@ -19,6 +19,7 @@ import {
   spelledCount,
 } from "@/lib/drift/daybreak"
 import { type Plate } from "@/lib/drift/daybreakArt"
+import { monthLong, monthShort, type YearMonth } from "@/lib/drift/inspire"
 import { tripCover } from "@/lib/drift/tripCover"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
 import type { PlaceCandidate } from "@/lib/drift/chat"
@@ -483,6 +484,9 @@ export function MosaicStep({
   onToggle,
   length,
   onLength,
+  months,
+  departure,
+  onDeparture,
   onNext,
   onSkip,
 }: {
@@ -491,6 +495,10 @@ export function MosaicStep({
   onToggle: (slug: string) => void
   length: TripLength
   onLength: (v: TripLength) => void
+  /** The six months you could go; `departure` null is "I'm flexible". */
+  months: ReadonlyArray<YearMonth>
+  departure: YearMonth | null
+  onDeparture: (v: YearMonth | null) => void
   onNext: () => void
   onSkip: () => void
 }) {
@@ -646,13 +654,57 @@ export function MosaicStep({
         />
       </div>
 
+      {/* When — the third part of the same question. Chips, not rows: seven
+          wizard rows would push Continue two screens down for a one-word
+          answer. "I'm flexible" is the default for the reason "Any length" is:
+          it constrains nothing, so it is the honest unanswered state. */}
+      <div className="mt-5">
+        <p
+          id="daybreak-when"
+          className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em] text-aurora-teal"
+        >
+          When are you going?
+        </p>
+        <div role="radiogroup" aria-labelledby="daybreak-when" className="flex flex-wrap gap-2">
+          {[null, ...months].map((ym) => {
+            const on = ym
+              ? departure?.year === ym.year && departure?.month === ym.month
+              : !departure
+            return (
+              <button
+                key={ym ? `${ym.year}-${ym.month}` : "flexible"}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-label={ym ? `${monthLong(ym.month)} ${ym.year}` : undefined}
+                onClick={() => onDeparture(ym)}
+                className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
+                  on
+                    ? "border-aurora-teal/55 bg-aurora-teal/[0.10] text-aurora-teal"
+                    : "border-aurora-border bg-white/[0.05] text-aurora-ink2 hover:border-aurora-border-strong"
+                }`}
+              >
+                {ym ? monthShort(ym.month) : "I'm flexible"}
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-2 text-[12px] text-aurora-ink3">
+          {departure
+            ? `Ranked for what's good in ${monthLong(departure.month)}.`
+            : "We'll start it in whichever of these months suits the trip best."}
+        </p>
+      </div>
+
       <Footer>
-        {/* "Show me everything" is only honest when NEITHER half was answered.
-            A length with no shapes is still an answer, and a button that says
+        {/* "Show me everything" is only honest when NOTHING here was answered.
+            A length or a month with no shapes is still an answer, and a button that says
             everything while three of the pills are excluding trips is the flow
             claiming not to have heard what it just read. */}
         <Cta
-          label={!picked.size && length === "any" ? "Show me everything" : "Continue"}
+          label={
+            !picked.size && length === "any" && !departure ? "Show me everything" : "Continue"
+          }
           onClick={onNext}
         />
         <Skip label="Skip for now" onClick={onSkip} />

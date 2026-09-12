@@ -651,6 +651,29 @@ export function seasonScore(guide: RankableGuide, month: number): number {
   return guide.bestMonths.includes(month) ? 90 : 15
 }
 
+/**
+ * The month a flexible traveller's copy starts in: the earliest of `months`
+ * (the six you could go) where this guide scores best. Ties go to the soonest,
+ * so a guide that is good all year leaves next month, not in six. Blackout
+ * months are passed over unless every month is one. Null only for no months.
+ *
+ * "I'm flexible" takes the season out of the RANKING; this is where it goes
+ * instead — into the date, so the trip is still taken at its best.
+ */
+export function bestDepartureMonth(guide: RankableGuide, months: readonly number[]): number | null {
+  const open = months.filter((m) => !guide.blackoutMonths.includes(m))
+  let best: number | null = null
+  let bestScore = -1
+  for (const m of open.length ? open : months) {
+    const s = seasonScore(guide, m)
+    if (s > bestScore) {
+      best = m
+      bestScore = s
+    }
+  }
+  return best
+}
+
 export function shapeFit(guide: RankableGuide, shape: string): number {
   if (guide.shapePrimary === shape) return 1
   const w = guide.shapeWeights[shape] ?? 0

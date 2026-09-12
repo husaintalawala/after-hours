@@ -18,15 +18,16 @@ import {
   firstOfMonth,
   mayHaveLanded,
   mintUuid,
-  monthOf,
   monthsYouCouldGo,
   parseCopyResponse,
   PUBLIC_ORIGIN,
   RESERVED_TRIP_IDS,
   type DayStr,
+  type YearMonth,
 } from "@/lib/drift/inspire"
 import { CATEGORY_ORDER } from "@/lib/drift/inspire"
 import {
+  bestDepartureMonth,
   DEFAULT_BUDGET,
   DEFAULT_MOBILITY,
   DEFAULT_RHYTHM,
@@ -37,6 +38,7 @@ import {
   shelfFor,
   reasonFor,
   type Coord,
+  type RankableGuide,
   type TripLength,
 } from "@/lib/drift/daybreak"
 import { backdropAt } from "@/lib/drift/daybreakArt"
@@ -155,6 +157,13 @@ export default function DaybreakFlow({
   // instead of ending at the browser's edge. See prioritiesForShapes.
   const [shapes, setShapes] = useState<ReadonlySet<string>>(new Set())
   const [length, setLength] = useState<TripLength>("any")
+  // "When are you going?" — null is "I'm flexible", the default for the reason
+  // "any" is the length default: it constrains nothing. A picked month ranks the
+  // shelf for that month and starts the copy on its 1st; flexible ranks nothing
+  // on season and dates the copy at the guide's best month instead. Not
+  // persisted — it is a fact about this trip, not about the traveller.
+  const [departure, setDeparture] = useState<YearMonth | null>(null)
+  const departureMonths = useMemo(() => monthsYouCouldGo(localToday()), [])
 
   // 04 — NOT invented fields. These are two of the six columns of
   // `user_travel_preferences`, and both are read server-side by build-itinerary
@@ -242,12 +251,11 @@ export default function DaybreakFlow({
         party: party || null,
         rhythm: rhythm || null,
         budget: budget || null,
-        // The month of firstDepartureDate — the month the copy will actually
-        // start in, not the month it is today. Ranking for "now" would
-        // recommend against a departure date nobody is ever offered.
-        departureMonth: monthOf(firstDepartureDate()).month,
+        // The month screen 3 was answered with. Null ("I'm flexible") takes the
+        // season out of the ranking and puts it in the start date instead.
+        departureMonth: departure?.month ?? null,
       }),
-    [guides, shapes, length, party, rhythm, budget]
+    [guides, shapes, length, party, rhythm, budget, departure]
   )
   // NOT `.slice(0, 3)` any more. That filled the third slot by construction,
   // with whatever was least-bad in the whole corpus — on the highest-stakes
@@ -264,10 +272,10 @@ export default function DaybreakFlow({
       party: party || null,
       rhythm: rhythm || null,
       budget: budget || null,
-      departureMonth: monthOf(firstDepartureDate()).month,
+      departureMonth: departure?.month ?? null,
     }
     return new Map(suggested.map((g) => [g.tripId, reasonFor(g, a, label)]))
-  }, [suggested, shapes, length, party, rhythm, budget])
+  }, [suggested, shapes, length, party, rhythm, budget, departure])
   const chosenGuide = useMemo(
     () => guides.find((g) => g.tripId === chosenTripId) ?? null,
     [guides, chosenTripId]
@@ -340,7 +348,7 @@ export default function DaybreakFlow({
         setTimeout(() => setBuildStage((s) => Math.max(s, 2)), 1800),
       ]
 
-      const startDate = firstDepartureDate()
+      const startDate = departureDate(guide, departure, departureMonths)
 
       // The trip id is minted HERE, not by the function. copy-trip inserts AT the
       // supplied id and answers a duplicate on it — this same copy having already
@@ -413,7 +421,7 @@ export default function DaybreakFlow({
         setBuildError(copyErrorMessage(null))
       }
     },
-    [chosenTripId, finish, guides]
+    [chosenTripId, finish, guides, departure, departureMonths]
   )
 
   /** Screen 5's two answers. Both land on screen 6 and start the copy; the only
@@ -806,13 +814,17 @@ export default function DaybreakFlow({
             }
             length={length}
             onLength={setLength}
+            months={departureMonths}
+            departure={departure}
+            onDeparture={setDeparture}
             onNext={() => setStep(3)}
             onSkip={() => {
-              // Skip means "I did not answer this screen", so it clears BOTH
-              // halves of the question — a length left standing behind a
-              // skipped screen is an answer nobody gave.
+              // Skip means "I did not answer this screen", so it clears EVERY
+              // part of the question — a length or a month left standing behind
+              // a skipped screen is an answer nobody gave.
               setShapes(new Set())
               setLength("any")
+              setDeparture(null)
               setStep(3)
             }}
           />
@@ -944,18 +956,24 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * The first day of the leading month you could actually go — the same
- * derivation the Inspire "add as is" path uses, so the two never disagree about
- * when "later" is. You cannot leave today.
+ * The day the copy starts. A picked month starts on its 1st. "I'm flexible"
+ * starts on the 1st of whichever of the six months you could go suits THIS
+ * guide best (bestDepartureMonth) — the season left the ranking and went into
+ * the date. You cannot leave today; with no months at all, today is the floor.
  *
- * ONE derivation, read twice: screen 6 copies the trip FROM this date and
- * screen 4 ranks the shelf FOR its month. Computing the month separately is how
- * a flow ends up recommending for August and booking September.
+ * The shelf ranks for `departure.month` and this dates from `departure`, so the
+ * two can never disagree about which month it is — the failure the old single
+ * derivation existed to prevent, recommending for August and booking September.
  */
-function firstDepartureDate(): DayStr {
-  const today = localToday()
-  const months = monthsYouCouldGo(today)
-  return months.length ? firstOfMonth(months[0]) : today
+function departureDate(
+  guide: RankableGuide,
+  departure: YearMonth | null,
+  months: readonly YearMonth[]
+): DayStr {
+  if (departure) return firstOfMonth(departure)
+  const best = bestDepartureMonth(guide, months.map((m) => m.month))
+  const ym = months.find((m) => m.month === best) ?? months[0]
+  return ym ? firstOfMonth(ym) : localToday()
 }
 
 /** The viewer's own calendar day as "yyyy-MM-dd" — never UTC, because "the

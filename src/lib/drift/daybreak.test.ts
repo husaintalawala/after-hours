@@ -1,6 +1,7 @@
 import { test, describe } from "node:test"
 import assert from "node:assert/strict"
 import {
+  bestDepartureMonth,
   prioritiesForShapes,
   rankGuides,
   SHAPE_INTERESTS,
@@ -455,6 +456,30 @@ describe("flexible", () => {
     const closed = guide("closed", { blackoutMonths: [9] })
     const flex = { ...answers({ shapes: ["wild"], month: 9 }), departureMonth: null }
     assert.deepEqual(ids(shelfFor([closed], flex).guides), ["closed"])
+  })
+})
+
+describe("flexible start month", () => {
+  const sixFromSeptember = [10, 11, 12, 1, 2, 3]
+
+  test("starts in the guide's best month of the six", () => {
+    assert.equal(bestDepartureMonth(guide("g", { months: [12, 1] }), sixFromSeptember), 12)
+  })
+
+  test("a guide good all year leaves soonest", () => {
+    const allYear = guide("g", { months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] })
+    assert.equal(bestDepartureMonth(allYear, sixFromSeptember), 10)
+  })
+
+  test("graded scores beat the best-months fallback", () => {
+    const scores = [40, 40, 40, 40, 40, 40, 40, 40, 40, 65, 90, 65]
+    assert.equal(bestDepartureMonth(guide("g", { months: [10], monthScores: scores }), sixFromSeptember), 11)
+  })
+
+  test("never dates a trip into a blackout", () => {
+    const scores = [15, 15, 15, 15, 15, 15, 15, 15, 15, 90, 65, 15]
+    const g = guide("g", { monthScores: scores, blackoutMonths: [10] })
+    assert.equal(bestDepartureMonth(g, sixFromSeptember), 11)
   })
 })
 
