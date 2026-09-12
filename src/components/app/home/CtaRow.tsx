@@ -113,16 +113,41 @@ function CtaCard({ cta, stacked = false }: { cta: Cta; stacked?: boolean }) {
         }}
       />
 
-      {/* LIFTED 16px, so the figure clears the label. Measured on iOS: the
-          subject occupies x 47-96% of the card and the label runs x 10-63%, so
-          at rest they overlapped and the words landed on the scooter's wheel.
-          It costs a sliver off the top of the umbrella. */}
+      {/* THE ART IS 516x378 — aspect 1.365, which is EXACTLY the 172x126 rail
+          card. That is why `object-cover` is safe there and crops nothing, and
+          why the 16px lift costs only a sliver off the top: it is the only
+          thing removing anything. The lift is there because the subject spans
+          x 47-96% and the label x 10-63%, so at rest the words landed on the
+          scooter's wheel.
+
+          THE STACKED CARD IS A DIFFERENT SHAPE, and cover was wrong for it. Its
+          column is 300px wide with `min-h-[290px]` over two flex-1 cards and a
+          12px gap, so each is about 300x139 — aspect 2.158 against the art's
+          1.365. Cover scales to fill the width, drawing the art 220px tall into
+          a 139px box: 81px of vertical overflow, 40px of it off the top once
+          centred, and the lift takes 16px more. Twenty-six percent of the
+          illustration cut off the top, which is where the figures' heads are.
+
+          So the wide card COVERS FROM THE TOP and takes its loss at the bottom
+          instead. There is no framing of a 1.365 picture in a 2.158 box that
+          loses nothing; the only choice is WHERE. `object-contain` was tried
+          and rejected by looking at it: nothing is cut, but the figure shrinks
+          to the right third and the card reads as mostly empty gradient.
+          Anchored top, the figure stays full size, every head and the umbrella
+          are intact, and what goes is the underside of the beanbag and the
+          bottom of the scooter's wheels — which sit under the label and the
+          scrim and read as the illustration continuing past the frame.
+
+          No lift on that variant: the 16px was there to keep the figure off the
+          label, and a crop that already starts at the top has none to spare. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={cta.art}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute inset-0 h-full w-full -translate-y-4 object-cover"
+        className={`pointer-events-none absolute inset-0 h-full w-full object-cover ${
+          stacked ? "object-top" : "-translate-y-4"
+        }`}
       />
 
       {/* Carries white type over whatever the figure's colours are doing. Soft
