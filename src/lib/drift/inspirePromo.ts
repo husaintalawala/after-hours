@@ -343,10 +343,39 @@ function plate(
  * `label` names the surface in the log, because "the corpus query failed" is
  * only actionable if you know which screen went blank.
  */
+/**
+ * THE SHELF IS THE SAME FOR EVERY READER, so it is read once and kept.
+ *
+ * This query takes no user id and filters on nothing but `is_active` — every
+ * reader, on every load, gets byte-identical rows. Measured against production
+ * it is **1.71s and 274KB**, and `buildInspirePromo` runs inside the home's
+ * Suspense boundary, so the document cannot finish until it returns. The first
+ * byte leaves in ~25ms and then the reader watches a skeleton for three and a
+ * half seconds, which is what "the site is slow" actually is: not bandwidth
+ * (the whole home is ~115KB over the wire) and not the server being far away.
+ *
+ * The projection comment above measured 98KB when the shelf held forty guides.
+ * It holds ninety now and the cost grew with it, which is the other half of why
+ * this got worse without anyone changing this file.
+ *
+ * NOT A `LIMIT` INSTEAD, and that is deliberate. The deck shows eight, but
+ * `total` is the "90 guides" count in the section header and `pins` is one
+ * globe marker per guide — a LIMIT would quietly shrink both while looking
+ * like a pure win.
+ *
+ * FAILURES ARE NOT CACHED. Storing a null would turn one bad request into a
+ * shelf that stays missing for the whole window — the same trap that kept the
+ * friends banner empty for the life of the app, and not one to re-import here.
+ */
+const SHELF_TTL_MS = 10 * 60 * 1000
+let shelfMemo: { at: number; sources: PromoSource[] } | null = null
+
 async function readShelf(
   supabase: SupabaseClient,
   label: string
 ): Promise<PromoSource[] | null> {
+  if (shelfMemo && Date.now() - shelfMemo.at < SHELF_TTL_MS) return shelfMemo.sources
+
   // PROJECTED, not `select(snapshot)`. The shelf reads whole snapshots because
   // it searches inside them; this needs a title, a day count, a country and one
   // coordinate. Pulling all 40 snapshots costs 861KB over the wire and parses
@@ -394,7 +423,10 @@ async function readShelf(
   if (rows.length > 0 && sources.length === 0) {
     console.error(`[${label}] every inspire shelf row failed to decode`, { rows: rows.length })
   }
-  return sources.length ? sources : null
+  if (!sources.length) return null
+  // Only a real answer is kept — see the note on SHELF_TTL_MS.
+  shelfMemo = { at: Date.now(), sources }
+  return sources
 }
 
 /** The home deck: one big photo, four smaller faces, one pin per guide. */
@@ -422,6 +454,37 @@ export async function buildInspirePromo(
         kind: "inspire" as const,
       })),
   }
+}
+
+/**
+ * The guides this reader kept, as cards.
+ *
+ * FILTERED IN MEMORY from the same `readShelf` the other two builders use, not
+ * queried by id. The projection is what makes reading the whole corpus cheap —
+ * the note on `buildDaybreakShelf` records that all ninety cost the same ~98KB
+ * — so a second query keyed on ids would be slower AND would let the Saved band
+ * and the Inspire band disagree about a guide's cover, credit or kicker.
+ *
+ * ORDERED BY WHEN IT WAS SAVED, not by the curated rank: `ids` arrives
+ * newest-first from `readSavedGuideIds` and that order is preserved here.
+ *
+ * A SAVED ID WITH NO SURVIVING SOURCE SIMPLY DROPS OUT, which is the tolerance
+ * the table requires: a guide is de-listed by `is_active = false`, which leaves
+ * the save intact and merely unresolvable.
+ */
+export async function buildSavedGuides(
+  supabase: SupabaseClient,
+  ids: string[],
+  width: number = TILE_W
+): Promise<InspirePromoCard[]> {
+  if (ids.length === 0) return []
+  const sources = await readShelf(supabase, "saved")
+  if (!sources) return []
+  const byId = new Map(sources.map((s) => [s.tripId, s]))
+  return ids.flatMap((id) => {
+    const src = byId.get(id)
+    return src ? [card(src, width)] : []
+  })
 }
 
 /**
