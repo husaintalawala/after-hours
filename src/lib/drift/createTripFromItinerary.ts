@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/client"
 import type { ChatItinerary } from "@/lib/drift/generalChat"
 
+/** What resolve-place found for one named place, when it found anything. */
+export interface ResolvedPlace {
+  lat: number | null
+  lng: number | null
+  placeId: string | null
+}
+
 /**
  * Turn a chat-proposed plan into a real trip.
  *
@@ -21,7 +28,17 @@ import type { ChatItinerary } from "@/lib/drift/generalChat"
  * key, so a duplicate insert conflicts instead of duplicating.
  */
 export async function createTripFromItinerary(
-  itin: ChatItinerary
+  itin: ChatItinerary,
+  /**
+   * Coordinates and place ids, keyed by the place's name, for whichever places
+   * resolve-place had answered for by the time the reader pressed the button.
+   *
+   * OPTIONAL AND PARTIAL ON PURPOSE. A trip whose stops carry pins is better
+   * than one whose stops do not, but it is not worth making somebody wait on a
+   * dozen Google lookups to get it — and a lookup that fails should cost that
+   * one pin, not the trip. Absent, this writes exactly what it wrote before.
+   */
+  resolved: Record<string, ResolvedPlace> = {}
 ): Promise<{ tripId: string } | { error: string }> {
   const supabase = createClient()
   const {
@@ -69,12 +86,22 @@ export async function createTripFromItinerary(
   // destId. If this insert is swallowed the trip exists with no destination,
   // the spots reference a parent that was never written, and the reader is
   // navigated into an empty screen that was just described as a finished plan.
+  // The anchor takes the first place that actually has coordinates — iOS's
+  // rule. A destination with no lat/lng renders as a trip with nothing on the
+  // map, which is the one thing this whole feature is for.
+  const anchor = itin.days
+    .flatMap((d) => d.places)
+    .map((p) => resolved[p.name])
+    .find((r) => r && r.lat != null && r.lng != null)
+
   const dest = await supabase.from("steps").insert({
     id: destId,
     trip_id: tripId,
     date: start,
     location_name: itin.destination,
     step_type: "destination",
+    latitude: anchor?.lat ?? null,
+    longitude: anchor?.lng ?? null,
     country: itin.country,
     city: itin.destination,
     // nights + 1 = calendar days, app-wide. A 3-day plan is 2 nights, which is
@@ -96,6 +123,9 @@ export async function createTripFromItinerary(
       step_type: "spot",
       title: p.name,
       location_name: p.name,
+      place_id: resolved[p.name]?.placeId ?? null,
+      latitude: resolved[p.name]?.lat ?? null,
+      longitude: resolved[p.name]?.lng ?? null,
       date: addDaysISO(start, i),
       nights: 0,
       source: "recommendation",
