@@ -327,3 +327,59 @@ export async function reverseGeocodeHere(
     return { label: "Nearby", city: null, country: null }
   }
 }
+
+// ---------------------------------------------------------------- recents
+
+/** How many places the picker remembers. Enough to cover "the three places I
+ *  actually look at" without becoming a second, worse trip list. */
+const RECENTS_MAX = 4
+const RECENTS_KEY = "drift.discover.recents"
+
+/**
+ * Places this reader has chosen before.
+ *
+ * KEYED BY ACCOUNT, and that is not paranoia — this app has shipped the
+ * opposite twice. `daybreak.shapes` and `daybreak.party` were both device-wide
+ * keys read before any account check, so the second person to sign in on a
+ * phone got the first person's answers presented as their own defaults. A list
+ * of "where you were recently" is a more personal version of the same leak, and
+ * it fails the same invisible way: it looks like a sensible default.
+ *
+ * Every accessor is wrapped, because localStorage throws rather than returning
+ * null in a private window and in browsers set to block site data — and a
+ * picker that cannot open is worse than one with no history in it.
+ */
+function recentsKey(userId: string | null): string {
+  return userId ? `${RECENTS_KEY}.${userId}` : RECENTS_KEY
+}
+
+export function recentAnchors(userId: string | null): DiscoverAnchor[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = window.localStorage.getItem(recentsKey(userId))
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter(
+        (a): a is DiscoverAnchor =>
+          !!a && typeof a === "object" && typeof (a as DiscoverAnchor).label === "string"
+      )
+      .slice(0, RECENTS_MAX)
+  } catch {
+    return []
+  }
+}
+
+export function rememberAnchor(userId: string | null, anchor: DiscoverAnchor): void {
+  if (typeof window === "undefined" || !anchor.label) return
+  try {
+    // Deduped on the LABEL rather than the coordinate: the same neighbourhood
+    // resolved twice comes back with slightly different coordinates every time,
+    // so a coordinate key would fill the list with four copies of one place.
+    const next = [anchor, ...recentAnchors(userId).filter((a) => a.label !== anchor.label)]
+    window.localStorage.setItem(recentsKey(userId), JSON.stringify(next.slice(0, RECENTS_MAX)))
+  } catch {
+    // A reader who blocks site data simply has no history. Not an error.
+  }
+}
