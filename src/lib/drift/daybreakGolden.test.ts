@@ -1,6 +1,13 @@
 import { describe, test } from "node:test"
 import assert from "node:assert/strict"
-import { rankGuides, shapeMissFor, type RankableGuide, type TripLength } from "./daybreak"
+import {
+  rankGuides,
+  shapeMissFor,
+  shelfFor,
+  reasonFor,
+  type RankableGuide,
+  type TripLength,
+} from "./daybreak"
 import { SHELF_FIXTURE } from "./__fixtures__/shelf"
 
 /**
@@ -61,8 +68,10 @@ function ask(o: {
   }
 }
 
-/** What the reader is actually shown: the flow slices three. */
-const shelfFor = (a: ReturnType<typeof ask>) => rankGuides(SHELF, a).slice(0, 3)
+/** The top three of the RANKING, ignoring the floor — what the flow showed
+ *  before `shelfFor` existed. Kept separate so the ordering assertions above
+ *  and the floor assertions below cannot be confused for one another. */
+const podium = (a: ReturnType<typeof ask>) => rankGuides(SHELF, a).slice(0, 3)
 const rankOf = (a: ReturnType<typeof ask>, slug: string) =>
   rankGuides(SHELF, a).findIndex((g) => g.slug === slug) + 1
 
@@ -93,7 +102,7 @@ describe("P1 — the reported case: coast, and only coast", () => {
   const a = ask({ shapes: ["islands"], party: "couple", rhythm: "balanced", budget: "smart_mix", month: 10 })
 
   test("every guide shown is genuinely a beach trip", () => {
-    for (const g of shelfFor(a)) {
+    for (const g of podium(a)) {
       assert.ok(
         g.interests.includes("islands_beaches"),
         `${g.title} was shown for an islands pick without islands_beaches in its interests`
@@ -102,7 +111,7 @@ describe("P1 — the reported case: coast, and only coast", () => {
   })
 
   test("the three guides that were actually returned are gone", () => {
-    const shown = shelfFor(a).map((g) => g.slug)
+    const shown = podium(a).map((g) => g.slug)
     assert.ok(!shown.includes("scotland-west-highland-line"), "a Highland rail journey")
     assert.ok(!shown.includes("serengeti-crossings-then-zanzibar"), "a safari")
   })
@@ -143,7 +152,7 @@ describe("every chip returns its own kind of trip", () => {
   for (const shape of ["wild", "stones", "drive", "eat", "islands", "high"]) {
     for (const tail of tails) {
       test(`${shape} · ${tail.label}`, () => {
-        for (const g of shelfFor(ask({ shapes: [shape], ...tail.o }))) {
+        for (const g of podium(ask({ shapes: [shape], ...tail.o }))) {
           assert.ok(
             shapeMissFor(g, shape) <= 1,
             `${g.title} reached the podium for ${shape} at tier ${shapeMissFor(g, shape)}`
@@ -167,7 +176,7 @@ describe("P6 — Road trip stops returning trains", () => {
       "poland-down-the-vistula",
       "sri-lanka-hill-country-by-train",
     ]
-    const shown = shelfFor(a).map((g) => g.slug)
+    const shown = podium(a).map((g) => g.slug)
     for (const slug of rail) assert.ok(!shown.includes(slug), slug)
   })
 })
@@ -176,7 +185,7 @@ describe("P7 — Unpack once", () => {
   const a = ask({ shapes: ["stay"], length: "aboutAWeek", party: "couple", rhythm: "easy", budget: "smart_mix", month: 2 })
 
   test("a fifteen-day safari is not an answer to 'one base, slow days'", () => {
-    const shown = shelfFor(a).map((g) => g.slug)
+    const shown = podium(a).map((g) => g.slug)
     assert.ok(!shown.includes("serengeti-crossings-then-zanzibar"))
     assert.ok(!shown.includes("mongolia-naadam-to-the-gobi"))
   })
@@ -184,14 +193,14 @@ describe("P7 — Unpack once", () => {
   test("the screen is never empty", () => {
     // `stay` is the weakest shape in the corpus and the one this change does
     // not fully fix. What is pinned is that it degrades rather than breaks.
-    assert.equal(shelfFor(a).length, 3)
+    assert.equal(podium(a).length, 3)
   })
 })
 
 describe("multi-pick", () => {
   test("a guide satisfying both shapes beats one satisfying either", () => {
     const a = ask({ shapes: ["high", "wild"], length: "tenPlus", party: "couple", rhythm: "full_days", budget: "smart_mix", month: 3 })
-    const top = shelfFor(a)
+    const top = podium(a)
     for (const g of top) {
       const both = shapeMissFor(g, "high") <= 1 && shapeMissFor(g, "wild") <= 1
       const either = shapeMissFor(g, "high") <= 1 || shapeMissFor(g, "wild") <= 1
@@ -224,5 +233,72 @@ describe("the tiering itself", () => {
   test("a guide with no interests falls to the bottom rather than crashing", () => {
     const bare: Guide = { ...SHELF[0], interests: [], optimizeFor: [], setting: [] }
     assert.equal(shapeMissFor(bare, "islands"), 4)
+  })
+})
+
+describe("the floor — showing fewer beats padding with a wrong one", () => {
+  const shelf = (o: Parameters<typeof ask>[0]) => shelfFor(SHELF, ask(o), 3)
+
+  test("a normal answer still fills three", () => {
+    const s = shelf({ shapes: ["islands"], party: "couple", rhythm: "balanced", budget: "smart_mix", month: 10 })
+    assert.equal(s.guides.length, 3)
+    assert.equal(s.relaxed, null)
+  })
+
+  test("nothing below the floor is ever shown while something above it exists", () => {
+    for (const shape of ["wild", "stones", "drive", "eat", "islands", "high", "stay"]) {
+      const s = shelf({ shapes: [shape], month: 6 })
+      if (s.relaxed !== null) continue
+      for (const g of s.guides) {
+        assert.ok(
+          shapeMissFor(g, shape) <= 1,
+          `${g.title} was shown for ${shape} at tier ${shapeMissFor(g, shape)} without the shelf being marked relaxed`
+        )
+      }
+    }
+  })
+
+  test("an impossible multi-pick relaxes and SAYS it relaxed", () => {
+    // No guide in the corpus is primarily a road trip AND primarily a beach
+    // trip AND primarily a mountain trip. The shelf must widen rather than
+    // return nothing, and must not do it quietly.
+    const s = shelf({ shapes: ["drive", "islands", "high", "stay"], month: 1 })
+    assert.ok(s.guides.length > 0, "never an empty first-run screen")
+    assert.equal(s.relaxed, "shape", "a widened search must be declared")
+  })
+
+  test("the screen is never empty, whatever is asked", () => {
+    for (const shape of ["wild", "stones", "drive", "eat", "islands", "high", "stay"]) {
+      for (let month = 1; month <= 12; month++) {
+        const s = shelf({ shapes: [shape], month })
+        assert.ok(s.guides.length > 0, `${shape}/${month} returned nothing`)
+      }
+    }
+  })
+})
+
+describe("the reason on each card", () => {
+  const label = (s: string) => ({ islands: "Islands & beaches", wild: "Nature & wildlife" })[s] ?? s
+
+  test("names the shape that actually put the guide there", () => {
+    const a = ask({ shapes: ["islands"], party: "couple", rhythm: "balanced", budget: "smart_mix", month: 10 })
+    for (const g of shelfFor(SHELF, a, 3).guides) {
+      assert.equal(reasonFor(g, a, label), "Islands & beaches")
+    }
+  })
+
+  test("never a percentage, a score or a rank", () => {
+    const a = ask({ shapes: ["wild"], month: 7 })
+    for (const g of shelfFor(SHELF, a, 3).guides) {
+      const r = reasonFor(g, a, label) ?? ""
+      assert.ok(!/%|\bmatch\b|#\d/.test(r), `explanation looked statistical: "${r}"`)
+    }
+  })
+
+  test("falls back to something true rather than inventing one", () => {
+    // No shape picked at all — there is no shape reason to give.
+    const a = ask({ shapes: [], month: 6 })
+    const r = reasonFor(SHELF[0], a, label)
+    assert.ok(r === null || r === "In season")
   })
 })

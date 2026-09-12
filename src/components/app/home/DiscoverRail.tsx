@@ -5,10 +5,13 @@ import Link from "next/link"
 import { Section, RailOrGrid, SeeAllCard } from "@/components/app/home/HomeSection"
 import {
   loadCategory,
+  rememberAnchor,
   reverseGeocodeHere,
   type DiscoverAnchor,
   type DiscoverResult,
 } from "@/lib/drift/discover"
+import NearbyAnchorPicker from "@/components/app/home/NearbyAnchorPicker"
+import { createClient } from "@/lib/supabase/client"
 
 /**
  * "Near <somewhere>" — a rail of real places, fetched AFTER the page paints.
@@ -75,7 +78,26 @@ const STUCK_MS = 11_000
  */
 export default function DiscoverRail({ anchor: serverAnchor }: { anchor: DiscoverAnchor }) {
   const [hereAnchor, setHereAnchor] = useState<DiscoverAnchor | null>(null)
-  const anchor = hereAnchor ?? serverAnchor
+  const [picked, setPicked] = useState<DiscoverAnchor | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  // An explicit choice outranks the device, which outranks the server's guess.
+  const anchor = picked ?? hereAnchor ?? serverAnchor
+
+  // `getSession` reads the cookie the SSR client already set — no round trip.
+  // Only used to SCOPE the recents key, never to authorise anything, which is
+  // the distinction that makes reading it here safe.
+  useEffect(() => {
+    let off = false
+    createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (!off) setUserId(data.session?.user?.id ?? null)
+      })
+      .catch(() => {})
+    return () => {
+      off = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -169,7 +191,16 @@ export default function DiscoverRail({ anchor: serverAnchor }: { anchor: Discove
 
   return (
     <Section
-      title={anchor.label ? `Near ${anchor.label}` : "Discover"}
+      title={
+        <NearbyAnchorPicker
+          anchor={anchor}
+          userId={userId}
+          onSelect={(a) => {
+            setPicked(a)
+            rememberAnchor(userId, a)
+          }}
+        />
+      }
       action="Explore"
       actionHref="/app/discover"
     >

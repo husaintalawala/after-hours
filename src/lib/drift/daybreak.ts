@@ -757,6 +757,100 @@ function usesMiles(locale?: string): boolean {
  * the tail exists to be correct rather than to be read.
  */
 const SPELLED = ["Nothing", "One", "Two", "Three", "Four", "Five"]
+/** How the shelf was arrived at, so the screen can say so. */
+export interface Shelf<T> {
+  guides: T[]
+  /** The requirement that had to be loosened to fill the shelf, or null when
+   *  nothing was. Shown to the reader — a silently widened search is how a
+   *  recommender loses trust it cannot get back. */
+  relaxed: "style" | "length" | "season" | "shape" | null
+}
+
+/** Guides whose SHAPE genuinely matches: tier 0 or 1 on every pick. */
+function clearsTheFloor(guide: RankableGuide, a: RankingAnswers): boolean {
+  if (!a.shapes.size) return true
+  return [...a.shapes].every((s) => shapeMissFor(guide, s) <= 1)
+}
+
+/**
+ * The three (or two, or one) guides the first-run screen shows.
+ *
+ * STOP PADDING TO THREE. The ranker sorts and never filters, so the old
+ * `.slice(0, 3)` filled the third slot by construction — with whatever was
+ * least-bad in the whole corpus. On a first-run screen that slot is the
+ * highest-stakes real estate in the product and it was the one guaranteed to
+ * hold the weakest result. The reported failure was exactly that: one guide
+ * cleared every term, and a safari and an out-of-season Rio were shown beside
+ * it under a headline reading "Three of ours fit that."
+ *
+ * Better to show two good ones than three where one is wrong: a reader forgives
+ * a short list and remembers a bad recommendation.
+ *
+ * THE FLOOR IS THE SHAPE, and only the shape. Length, budget, pace and season
+ * are graded — hard-gating a graded attribute over a ninety-item corpus empties
+ * the screen, which is the mirror-image bug. A guide that is genuinely the kind
+ * of trip you asked for but slightly out of season still belongs on the shelf;
+ * one that is the wrong kind of trip never does.
+ *
+ * WHEN NOTHING CLEARS IT, the shape requirement is loosened one tier at a time
+ * and the caller is told which — never silently. `shape` as a relaxation value
+ * means even tier 2-3 was needed, which is the honest signal that the corpus
+ * has a hole rather than that the reader asked for something strange.
+ */
+export function shelfFor<T extends RankableGuide>(
+  guides: readonly T[],
+  answers: RankingAnswers,
+  size = 3
+): Shelf<T> {
+  const ranked = rankGuides(guides, answers)
+  const clean = ranked.filter((g) => clearsTheFloor(g, answers))
+  if (clean.length > 0) return { guides: clean.slice(0, size), relaxed: null }
+
+  // Nothing is the right kind of trip. Widen once, and say so.
+  const widened = ranked.filter(
+    (g) => !answers.shapes.size || [...answers.shapes].every((s) => shapeMissFor(g, s) <= 3)
+  )
+  if (widened.length > 0) return { guides: widened.slice(0, size), relaxed: "shape" }
+
+  // The corpus has nothing at all. Show the best of it rather than an empty
+  // screen — the one case where padding is the lesser harm, because the
+  // alternative is a dead end on a reader's first minute in the app.
+  return { guides: ranked.slice(0, size), relaxed: "shape" }
+}
+
+/**
+ * One clause saying why this guide is here, generated from the term that
+ * actually fired.
+ *
+ * NEVER A PERCENTAGE, and that is evidence-based rather than taste: Herlocker,
+ * Konstan and Riedl (CSCW 2000, 21 interfaces, 78 subjects) found four
+ * STATISTICAL explanation styles scored significantly BELOW showing nothing at
+ * all, while content-and-evidence explanations beat the no-explanation
+ * baseline. So no "78% match", no confidence score, no "ranked #2 of 90".
+ *
+ * ONE CLAUSE, for the same reason: in that study the winning explanation beat a
+ * strictly more informative version of itself, which scored below the bare
+ * card.
+ *
+ * Tied to the term that decided, so it cannot drift from the ranking: if the
+ * shape is what put the guide here, the shape is what it says.
+ */
+export function reasonFor(
+  guide: RankableGuide,
+  answers: RankingAnswers,
+  labelFor: (shape: string) => string
+): string | null {
+  const picks = [...answers.shapes].sort()
+  const direct = picks.find((s) => shapeMissFor(guide, s) === 0)
+  if (direct) return labelFor(direct)
+  const present = picks.find((s) => shapeMissFor(guide, s) === 1)
+  if (present) return labelFor(present)
+  // Nothing about the shape fired, so say the next truest thing rather than
+  // inventing a reason. Season is the only remaining term the reader chose.
+  if (guide.bestMonths.includes(answers.departureMonth)) return "In season"
+  return null
+}
+
 export function spelledCount(n: number): string {
   return SPELLED[n] ?? String(n)
 }

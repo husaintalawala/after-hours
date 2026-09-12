@@ -951,6 +951,8 @@ function PrefIcon({ name }: { name: string }) {
  *  what was just said. */
 export function PickStep({
   guides,
+  reasons,
+  relaxed,
   home,
   chosen,
   onChoose,
@@ -958,6 +960,10 @@ export function PickStep({
   onBrowseAll,
 }: {
   guides: DaybreakGuide[]
+  /** One clause per card saying why it is here, by trip id. See reasonFor. */
+  reasons: Map<string, string | null>
+  /** The requirement that had to be loosened to fill the shelf, or null. */
+  relaxed: "style" | "length" | "season" | "shape" | null
   /** Shown on each card when known — see daybreak.ts: distance informs the
    *  choice, it does not reorder it. */
   home: Coord | null
@@ -974,7 +980,14 @@ export function PickStep({
             ? `${spelledCount(guides.length)} of ours\nfit that.`
             : "Finding your\nfirst trip."
         }
-        subtitle="Someone finished each of these. Take one and every day is already in the order that worked."
+        // SAY WHEN THE SEARCH WAS WIDENED. A shelf quietly assembled from
+        // guides that do not match what was asked reads as a bad recommender;
+        // the same shelf, labelled, reads as an honest one.
+        subtitle={
+          relaxed === "shape"
+            ? "Nothing we have is quite that. These are the closest — someone finished each of them."
+            : "Someone finished each of these. Take one and every day is already in the order that worked."
+        }
       />
 
       <div className="mt-3.5 space-y-3">
@@ -983,6 +996,7 @@ export function PickStep({
             key={g.tripId}
             guide={g}
             home={home}
+            reason={reasons.get(g.tripId) ?? null}
             selected={chosen === g.tripId}
             onChoose={() => onChoose(g.tripId)}
           />
@@ -1012,11 +1026,14 @@ export function PickStep({
  */
 function GuideCard({
   guide,
+  reason,
   home,
   selected,
   onChoose,
 }: {
   guide: DaybreakGuide
+  /** Why this card is here, in one clause. Null when nothing fired. */
+  reason: string | null
   home: Coord | null
   selected: boolean
   onChoose: () => void
@@ -1054,6 +1071,19 @@ function GuideCard({
             {guide.title}
           </p>
         </div>
+        {/* WHY THIS ONE. One clause, from the term that actually decided —
+            never a percentage and never a match score: statistical
+            explanations measure WORSE than showing nothing, while
+            content-and-evidence ones measurably beat a bare card.
+
+            Top-left, opposite the selection dot and clear of the title block
+            at the bottom, which this component's own notes already warn about
+            overlapping. */}
+        {reason && (
+          <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2 py-[3px] text-[10px] font-semibold text-white backdrop-blur-sm">
+            {reason}
+          </span>
+        )}
         <span
           aria-hidden="true"
           className={`pointer-events-none absolute right-2.5 top-2.5 flex h-[22px] w-[22px] items-center justify-center rounded-full ${

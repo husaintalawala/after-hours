@@ -32,7 +32,10 @@ import {
   DEFAULT_RHYTHM,
   markDaybreakSeen,
   prioritiesForShapes,
+  TRIP_SHAPES,
   rankGuides,
+  shelfFor,
+  reasonFor,
   type Coord,
   type TripLength,
 } from "@/lib/drift/daybreak"
@@ -224,13 +227,16 @@ export default function DaybreakFlow({
    *
    * Everything the previous two screens collected finally gets read here: the
    * shapes, the length, and the month they would actually leave in.
-   * `rankGuides` ranks rather than filters, so this can never come back empty
-   * and there is no "if the filter emptied it, fall back" branch left to get
-   * out of step with the filter it was compensating for.
+   *
+   * IT CAN NOW COME BACK WITH FEWER THAN THREE, and that is the point. The
+   * ranker sorts and never filters, so slicing three off the top filled the
+   * last slot by construction — with whatever was least-bad in the whole
+   * corpus, on the first screen a new account ever sees. `shelfFor` applies a
+   * floor on the SHAPE and returns what actually clears it.
    */
-  const suggested = useMemo(
+  const shelf = useMemo(
     () =>
-      rankGuides(guides, {
+      shelfFor(guides, {
         shapes,
         length,
         party: party || null,
@@ -240,9 +246,28 @@ export default function DaybreakFlow({
         // start in, not the month it is today. Ranking for "now" would
         // recommend against a departure date nobody is ever offered.
         departureMonth: monthOf(firstDepartureDate()).month,
-      }).slice(0, 3),
+      }),
     [guides, shapes, length, party, rhythm, budget]
   )
+  // NOT `.slice(0, 3)` any more. That filled the third slot by construction,
+  // with whatever was least-bad in the whole corpus — on the highest-stakes
+  // screen in the product. `shelfFor` returns two when only two are the right
+  // kind of trip, and the headline already spells whatever number it gets.
+  const suggested = shelf.guides
+  /** One clause per card, keyed by trip id — see reasonFor. */
+  const reasons = useMemo(() => {
+    const label = (slug: string) =>
+      TRIP_SHAPES.find((t) => t.slug === slug)?.label ?? slug
+    const a = {
+      shapes,
+      length,
+      party: party || null,
+      rhythm: rhythm || null,
+      budget: budget || null,
+      departureMonth: monthOf(firstDepartureDate()).month,
+    }
+    return new Map(suggested.map((g) => [g.tripId, reasonFor(g, a, label)]))
+  }, [suggested, shapes, length, party, rhythm, budget])
   const chosenGuide = useMemo(
     () => guides.find((g) => g.tripId === chosenTripId) ?? null,
     [guides, chosenTripId]
@@ -823,6 +848,8 @@ export default function DaybreakFlow({
         {name === "pick" && (
           <PickStep
             guides={suggested}
+            reasons={reasons}
+            relaxed={shelf.relaxed}
             home={homeCoord}
             chosen={chosenTripId}
             onChoose={setChosenTripId}
