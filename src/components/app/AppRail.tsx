@@ -37,15 +37,24 @@ const NAV: Item[] = [
     ),
   },
   {
-    // A folded map: a trip somebody already walked, in the order they walked it.
-    // Deliberately not another compass or star — Discover already owns those,
-    // and Inspire is not searching, it is picking a pattern off the shelf.
+    // A STACK OF TRIPS, matching the dock. This was a folded map, and the dock's
+    // copy of the same idea was too — which is how that tab came to be reported
+    // as missing from the nav entirely: four glyphs, a map among them, and a
+    // real full-screen map living one row above it. The dock was corrected and
+    // this was not, so for one commit the same tab was a shelf on a phone and a
+    // map on a laptop.
+    //
+    // Deliberately still not a compass or a star — Discover owns those, and
+    // Inspire is not searching, it is picking a pattern off the shelf. Three
+    // sheets say shelf. Stroked rather than filled because that is this rail's
+    // drawing style; the dock's is the solid twin of the same glyph.
     href: "/app/inspire",
     label: "Inspire",
     icon: (
       <>
-        <path d="M9 3.5L3 6v14.5l6-2.5 6 2.5 6-2.5V3.5l-6 2.5-6-2.5z" />
-        <path d="M9 3.5v14.5M15 6v14.5" />
+        <path d="M12 3l9 4.8-9 4.8-9-4.8L12 3z" />
+        <path d="M3.5 12.2L12 16.8l8.5-4.6" />
+        <path d="M3.5 16.4L12 21l8.5-4.6" />
       </>
     ),
   },
