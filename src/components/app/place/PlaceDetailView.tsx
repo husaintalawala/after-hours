@@ -10,6 +10,7 @@ import "./place.css"
 export default function PlaceDetailView({ place, askHref }: { place: PlaceDetails; askHref: string | null }) {
   const photos = place.photoNames.slice(0, 5)
   const map = place.lat != null && place.lng != null ? staticMapUrl(place.lat, place.lng) : null
+  const mapHref = place.mapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${place.lat},${place.lng}`)}`
   return <main className="place-detail">
     <div className="place-navigation"><BackLink href="/app/discover" label="Discover" /><Link href="/app/saved">Back pocket →</Link></div>
     <header className="place-heading"><div>{place.typeLabel && <p className="place-eyebrow">{place.typeLabel}</p>}<h1>{place.name}</h1><div className="place-meta">{place.rating != null && place.rating > 0 && <span>★ {place.rating.toFixed(1)}{place.ratingCount ? ` · ${place.ratingCount.toLocaleString()} Google reviews` : ""}</span>}{place.openNow != null && <span className={place.openNow ? "place-open" : ""}>{place.openNow ? "Open now" : "Closed now"}</span>}</div></div><SavePlaceButton place={place} /></header>
@@ -23,7 +24,7 @@ export default function PlaceDetailView({ place, askHref }: { place: PlaceDetail
       </div>
       <aside className="place-essentials"><h2>Plan your visit</h2>{place.address && <p className="place-address">{place.address}</p>}<div className="place-actions">{place.mapsUri && <a href={place.mapsUri} target="_blank" rel="noreferrer">Directions ↗</a>}{place.website && <a href={place.website} target="_blank" rel="noreferrer">Website ↗</a>}{place.phone && <a href={`tel:${place.phone.replace(/[^+\d]/g, "")}`}>{place.phone}</a>}</div>
         {place.hours.length ? <details className="place-hours"><summary>Opening hours</summary><ul>{place.hours.map(hour => <li key={hour}>{hour}</li>)}</ul></details> : <p className="place-muted">Opening hours aren’t available.</p>}
-        {map && <OptimizedImg src={map} width={600} height={280} sizes="(max-width: 900px) 100vw, 380px" className="place-map" />}{map && <p className="place-map-credit"><a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noreferrer">© Mapbox</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></p>}
+        {map && <a href={mapHref} target="_blank" rel="noopener noreferrer" aria-label={`Open ${place.name} in Google Maps (opens in a new tab)`} className="block rounded-[10px]"><OptimizedImg src={map} width={600} height={280} sizes="(max-width: 900px) 100vw, 380px" className="place-map" /></a>}{map && <p className="place-map-credit"><a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noreferrer">© Mapbox</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></p>}
         {askHref && <Link href={askHref} className="place-ask">Ask Drift about this →</Link>}
       </aside>
     </div>
