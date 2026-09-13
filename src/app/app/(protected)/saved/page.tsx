@@ -18,7 +18,7 @@ import SavedShell from "@/components/app/saved/SavedShell"
  * component, or the whole corpus read moves into the browser.
  */
 
-export const metadata = { title: "Saved · Drift" }
+export const metadata = { title: "Back pocket · Drift" }
 
 export default function SavedPage() {
   return <Suspense fallback={<Loading />}><SavedContent /></Suspense>
@@ -33,15 +33,16 @@ async function SavedContent() {
   } = await supabase.auth.getSession()
   if (!session?.user) return null
 
-  const ids = await readSavedGuideIds(supabase)
-  if (ids === null) throw new Error("Saved guides unavailable")
+  const [ids, placesResult] = await Promise.all([
+    readSavedGuideIds(supabase),
+    supabase.from("saved_places").select("id,place_id,name,address,destination_name,country,note,source").eq("user_id", session.user.id).order("created_at", { ascending: false }),
+  ])
   // Newest saved first — `readSavedGuideIds` orders by created_at desc and
   // buildSavedGuides preserves that rather than reimposing the curated rank.
-  const cards = await buildSavedGuides(supabase, ids)
-  if (cards === null) throw new Error("Saved guide shelf unavailable")
+  const cards = ids === null ? null : await buildSavedGuides(supabase, ids)
 
   // `ids.length`, not `cards.length`: a guide that has been de-listed since it
   // was saved drops out of `cards` and the difference is what the empty state
   // needs to not claim the account has nothing.
-  return <SavedShell cards={cards} savedCount={ids.length} />
+  return <SavedShell cards={cards ?? []} savedCount={ids?.length ?? 0} guidesError={ids === null || cards === null} places={placesResult.data ?? []} placesError={!!placesResult.error} />
 }

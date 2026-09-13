@@ -73,54 +73,14 @@ export function Section({
   )
 }
 
-/**
- * The laptop answer to a rail: a grid that fills the width.
- *
- * A rail is the right shape on a phone — swipe is the native gesture and the
- * cards are bigger than the screen. On a laptop it shows three and a half cards
- * out of ninety behind a hidden scrollbar, which is the opposite of what all
- * that width is for. Same cards, laid out rather than queued.
- */
-export function RailOrGrid({
-  children,
-  cols = "lg:grid-cols-6",
-}: {
-  children: ReactNode
-  cols?: string
-}) {
-  return (
-    // ONE container that changes shape, not two that hide each other. Rendering
-    // the cards twice behind `lg:hidden` / `hidden lg:grid` would be the
-    // simpler JSX and would also put every cover in the DOM twice — `hidden`
-    // does not stop a browser fetching an image, so the laptop would pay for
-    // the phone's copy of all six photographs and vice versa.
-    <div
-      className={`-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:gap-3.5 lg:overflow-visible lg:px-10 lg:pb-0 ${cols}`}
-    >
-      {children}
-    </div>
-  )
+/** A single, independently scrollable shelf at every viewport width. */
+export function Rail({ children }: { children: ReactNode }) {
+  return <div className="home-shelf flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain px-5 pb-3 lg:gap-4 lg:px-10" tabIndex={0} role="region" aria-label="Scroll through this shelf">{children}</div>
 }
 
-/**
- * A horizontal scroller that bleeds to the screen edge but starts flush with
- * the section title above it.
- *
- * `-mx-5 px-5` is what does that: the negative margin cancels the page gutter
- * so the track runs edge to edge, and the padding puts the first card back
- * where the heading starts. Without it a rail either starts inset from its own
- * title, or its last card stops short of the edge and looks clipped.
- *
- * Scrollbars are hidden on purpose — on a phone there is never one, and on
- * desktop a permanent grey bar under every rail is three bars of chrome for a
- * gesture the trackpad already does.
- */
-export function Rail({ children }: { children: ReactNode }) {
-  return (
-    <div className="-mx-5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:-mx-10 lg:px-10">
-      <div className="flex w-max gap-3">{children}</div>
-    </div>
-  )
+/** Compatibility for saved surfaces that share the same shelf. */
+export function RailOrGrid({ children }: { children: ReactNode; cols?: string }) {
+  return <Rail>{children}</Rail>
 }
 
 /**

@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef } from "react"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import CoverCredit from "@/components/app/CoverCredit"
 import {
   BUDGET_STYLES,
-  type Coord,
   FOOD_MOODS,
   MOBILITY_STYLES,
   type PrefOption,
@@ -15,14 +14,11 @@ import {
   TRIP_SHAPES,
   unsplashTile,
   type TripLength,
-  distanceText,
-  spelledCount,
 } from "@/lib/drift/daybreak"
 import { type Plate } from "@/lib/drift/daybreakArt"
 import { monthLong, monthShort, type YearMonth } from "@/lib/drift/inspire"
 import { tripCover } from "@/lib/drift/tripCover"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
-import type { PlaceCandidate } from "@/lib/drift/chat"
 
 // The seven screens of the first-run flow. Each one owns a question and nothing
 // else — the sky, the photograph, the progress bar, the back button and every
@@ -50,11 +46,15 @@ export function Question({
    *  (PreferenceWizardKit's PrefQuestionPage). Optional, because the first
    *  three screens are statements rather than a numbered wizard. */
   eyebrow,
+  autoFocus = true,
 }: {
   title: string
   subtitle?: string
   eyebrow?: string
+  autoFocus?: boolean
 }) {
+  const heading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { if (autoFocus) heading.current?.focus({ preventScroll: true }) }, [title, autoFocus])
   return (
     // The largest text in the flow was the only text in it with nothing between
     // it and the picture: no shadow, no scrim of its own, on all seven screens.
@@ -62,13 +62,13 @@ export function Question({
     // visible behind this text — Backdrop covers DaybreakSky whenever there is
     // a photograph, which is every step once the shelf has landed. The real
     // ground is an arbitrary corpus photo.
-    <div className="space-y-[7px] [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
+    <div className="db-question space-y-[7px] [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]">
       {eyebrow && (
         <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-aurora-teal">
           {eyebrow}
         </p>
       )}
-      <h1 className="whitespace-pre-line font-drift-display text-[30px] font-bold leading-[1.08] text-aurora-ink">
+      <h1 ref={heading} tabIndex={-1} className="whitespace-pre-line font-drift-display text-[30px] font-bold leading-[1.08] text-aurora-ink">
         {title}
       </h1>
       {subtitle && (
@@ -140,7 +140,7 @@ function Spinner({ className = "h-4 w-4" }: { className?: string }) {
  *  floats the answer into the space between the question and the button rather
  *  than stacking everything against the headline. */
 function Footer({ children }: { children: React.ReactNode }) {
-  return <div className="mt-auto pt-5">{children}</div>
+  return <div className="db-footer mt-auto pt-5">{children}</div>
 }
 
 // MARK: - The photographic canvas
@@ -345,121 +345,6 @@ export function IdentityStep({
   )
 }
 
-// MARK: - 02 · Where do you set out from?
-
-/**
- * Every travel app opens on "Where are you going?" — the hardest question in
- * the product, asked at the moment the user knows least, which is usually why
- * they downloaded it. This asks the inverse: where you leave from is stable,
- * answerable without deciding anything, and the one fact that keeps paying —
- * distance from home in Travel Stats, and never having to ask which airport.
- */
-export function OriginStep({
-  query,
-  onQuery,
-  onSearch,
-  searching,
-  saving,
-  results,
-  chosen,
-  onPick,
-  onNext,
-  onSkip,
-}: {
-  query: string
-  onQuery: (v: string) => void
-  onSearch: () => void
-  searching: boolean
-  saving: boolean
-  results: PlaceCandidate[]
-  chosen: string | null
-  onPick: (c: PlaceCandidate) => void
-  onNext: () => void
-  onSkip: () => void
-}) {
-  return (
-    <>
-      <Question
-        title={"Where do you\nset out from?"}
-        subtitle="So we can measure how far you've gone — and stop asking where you're flying out of."
-      />
-
-      {/* A BARE FIELD, like iOS, but still a form.
-          The visible "Search" button offered a second way to ask a question the
-          field was already answering as you typed, and made a type-ahead read
-          as submit-driven. It is gone.
-          The <form> is not: submitting is how a two-letter city name gets past
-          the three-character type-ahead gate, so Enter still asks whatever was
-          typed. The spinner moves onto the field's own edge, where it describes
-          the thing that is actually working. */}
-      <form
-        className="relative mt-4"
-        onSubmit={(e) => {
-          e.preventDefault()
-          onSearch()
-        }}
-      >
-        <input
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder={chosen ?? "Your home city"}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          enterKeyHint="search"
-          className="w-full rounded-[18px] border border-aurora-border bg-aurora-glass px-3.5 py-3.5 pr-11 text-[16px] text-aurora-ink outline-none placeholder:text-aurora-ink3 focus:border-aurora-teal"
-        />
-        {searching && (
-          <span
-            aria-hidden
-            className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-[1.5px] border-white/25 border-t-aurora-teal"
-          />
-        )}
-      </form>
-
-      {/* Filled as you type — DaybreakFlow debounces the lookup and drops
-          out-of-order answers, so this list is always the newest query's. It
-          stays in flow rather than floating over the screen: the only thing
-          below it is the Continue button, and a question with an open list of
-          answers should not also be offering to move on. An empty result is an
-          empty list, never a row saying so. */}
-      {results.length > 0 ? (
-        <Panel className="mt-3 overflow-hidden py-1">
-          {results.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              disabled={saving}
-              onClick={() => onPick(c)}
-              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-aurora-glass2 disabled:opacity-50"
-            >
-              <PinGlyph />
-              <span className="min-w-0">
-                <span className="block truncate text-[14px] text-aurora-ink">{c.name}</span>
-                {c.address && (
-                  <span className="block truncate text-[11px] text-aurora-ink3">{c.address}</span>
-                )}
-              </span>
-            </button>
-          ))}
-        </Panel>
-      ) : (
-        chosen && (
-          <p className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-aurora-teal">
-            <CheckGlyph />
-            {chosen}
-          </p>
-        )
-      )}
-
-      <Footer>
-        <Cta label="Continue" onClick={onNext} />
-        <Skip label="Skip for now" onClick={onSkip} />
-      </Footer>
-    </>
-  )
-}
-
 // MARK: - 03 · What pulls you (the mosaic)
 
 /**
@@ -532,7 +417,7 @@ export function MosaicStep({
           longer make two cards in a row differ, and the seventh takes the left
           half of the last row rather than being promoted to a banner it did not
           earn. Label and check are guaranteed on every tile. */}
-      <div className="mt-3 grid grid-cols-2 gap-[10px]">
+      <div className="db-shapes mt-3 grid grid-cols-2 gap-[10px]">
         {shapes.map((s, i) => {
           const on = picked.has(s.slug)
           // THE LAST ONE TAKES THE WHOLE ROW when the count is odd. Seven tags
@@ -553,7 +438,7 @@ export function MosaicStep({
               role="checkbox"
               aria-checked={on}
               onClick={() => onToggle(s.slug)}
-              className={`relative flex w-full flex-col justify-end overflow-hidden rounded-2xl border text-left transition-colors ${
+              className={`db-shape relative flex w-full flex-col justify-end overflow-hidden rounded-2xl border text-left transition-colors ${
                 wide ? "col-span-2 aspect-[23/8]" : "aspect-[7/5]"
               } ${on ? "border-aurora-teal" : "border-white/20 hover:border-white/35"}`}
             >
@@ -571,7 +456,7 @@ export function MosaicStep({
                   turquoise lagoon as well as over a dark ridgeline. */}
               <span
                 aria-hidden
-                className="absolute inset-0"
+                className="db-shape-shade absolute inset-0"
                 style={{
                   background:
                     "linear-gradient(to bottom, transparent 38%, rgba(0,0,0,0.18) 46%, rgba(0,0,0,0.62) 72%, rgba(0,0,0,0.88) 100%)",
@@ -600,7 +485,7 @@ export function MosaicStep({
                   </svg>
                 )}
               </span>
-              <span className="relative min-w-0 px-3 pb-2.5 [text-shadow:0_1px_6px_rgba(0,0,0,0.55)]">
+              <span className="db-shape-caption relative min-w-0 px-3 pb-2.5 [text-shadow:0_1px_6px_rgba(0,0,0,0.55)]">
                 <span className="block text-[14px] font-bold leading-tight text-white">
                   {s.label}
                 </span>
@@ -733,6 +618,8 @@ export function MosaicStep({
  * options and not the column's four.
  */
 export function StyleStep({
+  page,
+  setPage,
   party,
   onParty,
   rhythm,
@@ -746,6 +633,8 @@ export function StyleStep({
   onNext,
   onSkip,
 }: {
+  page: number
+  setPage: (update: number | ((page: number) => number)) => void
   party: string
   onParty: (v: string) => void
   rhythm: string
@@ -759,7 +648,6 @@ export function StyleStep({
   onNext: () => void
   onSkip: () => void
 }) {
-  const [page, setPage] = useState(0)
 
   // The five questions, in iOS's order, each with its own eyebrow and headline
   // the way PrefQuestionPage gives them. A question deserves a headline of its
@@ -785,8 +673,8 @@ export function StyleStep({
     },
     {
       eyebrow: "Budget",
-      title: "And what are\nyou spending?",
-      subtitle: "Rough is fine — it steers where the money goes, not how much.",
+      title: "Where would you spend?",
+      subtitle: "Your spending style.",
       options: BUDGET_STYLES,
       value: budget,
       onChange: onBudget,
@@ -845,13 +733,13 @@ export function StyleStep({
         )}
       </div>
 
-      <Dots count={PAGES.length} at={page} />
+      <span className="sr-only" aria-live="polite">Question {page + 1} of {PAGES.length}</span>
 
       <Footer>
         <Cta label={last ? "Continue" : "Next"} onClick={() => (last ? onNext() : setPage((n) => n + 1))} />
         <Skip
-          label={page > 0 ? "Back" : "Skip for now"}
-          onClick={() => (page > 0 ? setPage((n) => n - 1) : onSkip())}
+          label="Skip preferences"
+          onClick={onSkip}
         />
       </Footer>
     </>
@@ -997,166 +885,6 @@ function PrefIcon({ name }: { name: string }) {
     <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
       <path d={p[name] ?? p.pin} />
     </svg>
-  )
-}
-
-// MARK: - 05 · Three of ours fit that
-
-/** The payoff for screen 3: real trips that real people finished, ranked by
- *  what was just said. */
-export function PickStep({
-  guides,
-  reasons,
-  relaxed,
-  home,
-  chosen,
-  onChoose,
-  onNext,
-  onBrowseAll,
-}: {
-  guides: DaybreakGuide[]
-  /** One clause per card saying why it is here, by trip id. See reasonFor. */
-  reasons: Map<string, string | null>
-  /** The requirement that had to be loosened to fill the shelf, or null. */
-  relaxed: "style" | "length" | "season" | "shape" | null
-  /** Shown on each card when known — see daybreak.ts: distance informs the
-   *  choice, it does not reorder it. */
-  home: Coord | null
-  chosen: string | null
-  onChoose: (tripId: string) => void
-  onNext: () => void
-  onBrowseAll: () => void
-}) {
-  return (
-    <>
-      <Question
-        title={
-          guides.length
-            ? `${spelledCount(guides.length)} of ours\nfit that.`
-            : "Finding your\nfirst trip."
-        }
-        // SAY WHEN THE SEARCH WAS WIDENED. A shelf quietly assembled from
-        // guides that do not match what was asked reads as a bad recommender;
-        // the same shelf, labelled, reads as an honest one.
-        subtitle={
-          relaxed === "shape"
-            ? "Nothing we have is quite that. These are the closest — someone finished each of them."
-            : "Someone finished each of these. Take one and every day is already in the order that worked."
-        }
-      />
-
-      <div className="mt-3.5 space-y-3">
-        {guides.map((g) => (
-          <GuideCard
-            key={g.tripId}
-            guide={g}
-            home={home}
-            reason={reasons.get(g.tripId) ?? null}
-            selected={chosen === g.tripId}
-            onChoose={() => onChoose(g.tripId)}
-          />
-        ))}
-      </div>
-
-      <Footer>
-        <Cta label="Make it mine" disabled={!chosen} onClick={onNext} />
-        <Skip label="Show me all of them instead" onClick={onBrowseAll} />
-      </Footer>
-    </>
-  )
-}
-
-/**
- * A wide guide card.
- *
- * STRETCHED BUTTON, NOT A WRAPPER, and the button carries NO z-index. The photo
- * credit is itself a button — the Unsplash/Commons obligation travels with
- * every display of these photos — so it cannot sit inside the selection
- * control, and it has to stay clickable through it. TripCoverImg draws it at
- * z-10 inside the photo box; the photo box is `relative` with z-index auto and
- * therefore starts no stacking context of its own, so the credit is compared
- * against the stretched button directly and wins. Giving the button any
- * z-index at all would bury it. Same shape, and the same reason, as the home
- * deck's StartHere tile.
- */
-function GuideCard({
-  guide,
-  reason,
-  home,
-  selected,
-  onChoose,
-}: {
-  guide: DaybreakGuide
-  /** Why this card is here, in one clause. Null when nothing fired. */
-  reason: string | null
-  home: Coord | null
-  selected: boolean
-  onChoose: () => void
-}) {
-  // "10 DAYS · ICELAND · 2,900 KM AWAY". The distance is the one fact a person
-  // cannot get from the photo, and without it two cards that look equally
-  // appealing can be a short hop and a long-haul flight. Appended HERE rather
-  // than built into the shelf's kicker: home is a client answer that may have
-  // been given thirty seconds ago, on screen 2, after the server rendered.
-  const far = distanceText(guide.pin, home)
-  const kicker = far ? `${guide.kicker} · ${far}` : guide.kicker
-
-  return (
-    <article className="relative">
-      <div
-        className={`relative h-[132px] overflow-hidden rounded-[18px] border ${
-          selected ? "border-2 border-aurora-teal" : "border-aurora-border"
-        }`}
-      >
-        <TripCoverImg cover={guide.cover} sizes="(max-width: 480px) 100vw, 440px" />
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, transparent 45%, rgba(0,0,0,0.86))",
-          }}
-        />
-        {/* Cleared to the right of the credit chip. A floated credit over a
-            title is the overlap this component's own notes warn about. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pr-[86px]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-aurora-teal">
-            {kicker}
-          </p>
-          <p className="line-clamp-2 font-drift-display text-[17px] font-semibold leading-tight text-white">
-            {guide.title}
-          </p>
-        </div>
-        {/* WHY THIS ONE. One clause, from the term that actually decided —
-            never a percentage and never a match score: statistical
-            explanations measure WORSE than showing nothing, while
-            content-and-evidence ones measurably beat a bare card.
-
-            Top-left, opposite the selection dot and clear of the title block
-            at the bottom, which this component's own notes already warn about
-            overlapping. */}
-        {reason && (
-          <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2 py-[3px] text-[10px] font-semibold text-white backdrop-blur-sm">
-            {reason}
-          </span>
-        )}
-        <span
-          aria-hidden="true"
-          className={`pointer-events-none absolute right-2.5 top-2.5 flex h-[22px] w-[22px] items-center justify-center rounded-full ${
-            selected ? "bg-aurora-teal text-aurora-teal-ink" : "border-[1.5px] border-white/75"
-          }`}
-        >
-          {selected && <CheckGlyph className="h-3 w-3" />}
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onClick={onChoose}
-        aria-pressed={selected}
-        aria-label={guide.aria}
-        className="absolute inset-0 rounded-[18px] outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-      />
-    </article>
   )
 }
 

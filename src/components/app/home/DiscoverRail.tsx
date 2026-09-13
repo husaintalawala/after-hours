@@ -204,19 +204,14 @@ export default function DiscoverRail({ anchor: serverAnchor }: { anchor: Discove
       action="Explore"
       actionHref="/app/discover"
     >
-      {/* auto-fill, NOT a fixed eight. Discover returns whatever is actually
-          near you — New York gives eight, a quiet town gives three — and a
-          fixed eight-column grid renders three cards stretched across a third
-          of the page each. auto-fill keeps the track width and simply leaves
-          the unused tracks empty, so a short result reads as a short result. */}
-      <RailOrGrid cols="lg:grid-cols-[repeat(auto-fill,minmax(168px,1fr))]">
+      <RailOrGrid>
         {places === null
           ? // Placeholders at the real card size, so the rail does not resize
             // under the reader's thumb when the answer lands.
             Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[152px] w-[132px] shrink-0 animate-pulse rounded-card border border-aurora-border bg-aurora-glass lg:h-[168px] lg:w-auto"
+                className="h-[152px] w-[132px] shrink-0 animate-pulse rounded-card border border-aurora-border bg-aurora-glass lg:h-[196px] lg:w-[204px]"
               />
             ))
           : places.map((p) => <PlaceCard key={p.id} place={p} />)}
@@ -228,7 +223,7 @@ export default function DiscoverRail({ anchor: serverAnchor }: { anchor: Discove
           <SeeAllCard
             href="/app/discover"
             label="See all nearby"
-            className="h-[152px] w-[132px] rounded-card lg:h-[168px] lg:w-auto"
+            className="h-[152px] w-[132px] rounded-card lg:h-[196px] lg:w-[204px]"
           />
         )}
       </RailOrGrid>
@@ -240,7 +235,7 @@ function PlaceCard({ place }: { place: DiscoverResult }) {
   return (
     <Link
       href={`/app/place/${encodeURIComponent(place.id)}`}
-      className="group relative block h-[152px] w-[132px] shrink-0 overflow-hidden rounded-card border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 lg:h-[168px] lg:w-auto"
+      className="group relative block h-[152px] w-[132px] shrink-0 overflow-hidden rounded-card border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 lg:h-[196px] lg:w-[204px]"
     >
       {place.photo ? (
         // A PLAIN <img>, never next/image. These are Google Place Photos served

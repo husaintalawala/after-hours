@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import type { GlobeTripPin } from "@/components/app/GlobeHero"
+import CoverCredit from "@/components/app/CoverCredit"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import BackLink from "@/components/app/BackLink"
 import FollowButton from "@/components/app/people/FollowButton"
@@ -12,13 +12,13 @@ import CtaRow from "@/components/app/home/CtaRow"
 import AskBar from "@/components/app/home/AskBar"
 import ChatsPanel from "@/components/app/home/ChatsPanel"
 import PassportPanel from "@/components/app/home/PassportPanel"
-import { Section, Rail } from "@/components/app/home/HomeSection"
+import { Section, Rail, SeeAllCard } from "@/components/app/home/HomeSection"
 import InspireRail from "@/components/app/home/InspireRail"
-import SavedRail from "@/components/app/home/SavedRail"
+import "./home.css"
 import DiscoverRail from "@/components/app/home/DiscoverRail"
 import type { DiscoverAnchor } from "@/lib/drift/discover"
 import type { TripCoverResult } from "@/lib/drift/tripCover"
-import type { InspirePromo, InspirePromoCard } from "@/lib/drift/inspirePromo"
+import type { InspirePromo } from "@/lib/drift/inspirePromo"
 import { countryFlagEmoji } from "@/lib/drift/flags"
 
 /**
@@ -112,29 +112,10 @@ export type HomeViewer =
       backHref: string
     }
 
-/**
- * Whole days from today until `iso`, or null when there is no date.
- *
- * COMPUTED ON THE CLIENT ONLY, via the effect below. "How many days until" is
- * a question about the reader's calendar, and the server answers it in its own
- * timezone — so a trip 21 days out in Lisbon is 20 or 22 on a machine in
- * California, and the two renders disagree.
- */
-function daysUntil(iso: string | null): number | null {
-  if (!iso) return null
-  const [y, m, d] = iso.slice(0, 10).split("-").map(Number)
-  if (!y || !m || !d) return null
-  const then = new Date(y, m - 1, d)
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  return Math.round((then.getTime() - today.getTime()) / 86_400_000)
-}
-
 export default function HomeShell({
   data,
   viewer = { kind: "self" },
   inspire = null,
-  savedGuides = null,
 }: {
   data: HomeData
   viewer?: HomeViewer
@@ -143,31 +124,9 @@ export default function HomeShell({
    * you could copy" on someone else's page is an advert wearing their name.
    */
   inspire?: InspirePromo | null
-  /**
-   * The guides this reader kept. Supplied ONLY by the self route, for a
-   * stronger version of the reason `inspire` is: a curated shelf on somebody
-   * else's profile is an advert wearing their name, and what THEY saved is
-   * nobody else's business. /app/people/[id] renders this same shell.
-   */
-  savedGuides?: { cards: InspirePromoCard[]; total: number } | null
 }) {
-  const [daysOut, setDaysOut] = useState<number | null>(null)
   const isSelf = viewer.kind === "self"
   const allTrips = [...(data.featured ? [data.featured] : []), ...data.others]
-
-  /** "Amalfi Coast · Bali · +32 more" — the places behind the count. Cities
-   *  rather than titles, because a title runs to "Bhutan in Crane Season:
-   *  Thimphu, Punakha, Phobjikha and Paro" and two of those truncate to
-   *  nothing legible. */
-  const tripsPeek = (() => {
-    const rest = data.others
-    if (!rest.length) return null
-    const names = rest
-      .slice(0, 2)
-      .map((t) => t.city?.trim() || t.country?.trim() || t.title.trim())
-    const extra = rest.length - names.length
-    return extra > 0 ? `${names.join(" · ")} · +${extra} more` : names.join(" · ")
-  })()
 
   const showStartHere = isSelf && allTrips.length === 0
 
@@ -183,23 +142,6 @@ export default function HomeShell({
   // An empty globe under "Your passport" is not a hole; it is the truth, and it
   // is the before to the first trip's after.
   const pins = data.pins
-
-  useEffect(() => {
-    setDaysOut(daysUntil(data.featured?.startDate ?? null))
-  }, [data.featured?.startDate])
-
-  // The pill on the featured cover — "Upcoming · in 21 days". Null until the
-  // effect lands (see daysUntil), and null when there is nothing true to say,
-  // which is what keeps it from being decoration.
-  const featuredPill: string | null = (() => {
-    if (!data.featured) return null
-    if (data.featured.isActive) return "You are travelling"
-    if (daysOut === null) return null
-    if (daysOut > 1) return `Upcoming · in ${daysOut} days`
-    if (daysOut === 1) return "Upcoming · tomorrow"
-    if (daysOut === 0) return "Upcoming · today"
-    return null
-  })()
 
   // WHERE "NEAR HERE" IS: where the reader is TODAY, then where they live.
   //
@@ -296,7 +238,7 @@ export default function HomeShell({
           1760 is still a cap rather than `none`: past it the cockpit's middle
           column turns into a letterbox again, which is the fault this layout
           was built to fix. */}
-      <div className="relative z-10 mx-auto w-full max-w-2xl lg:mx-0 lg:max-w-[1760px]">
+      <div className="relative z-10 mx-auto w-full max-w-2xl lg:max-w-[1600px]">
         {/* ---------- The top band ----------
             ONE COLUMN ON A PHONE, TWO ACROSS A LAPTOP.
 
@@ -348,203 +290,34 @@ export default function HomeShell({
           </div>
         </div>
 
-        {/* ---------- The cockpit ----------
-            THREE TILES ON A LAPTOP, STACKED BANDS ON A PHONE.
+        <div className="home-dashboard mt-6 px-5 lg:px-10">
+          {isSelf && <div className="hidden lg:block"><CtaRow stacked /></div>}
+          <PassportPanel countries={data.countries} followers={data.followers} following={data.following} pins={pins} isSelf={isSelf} />
+          {isSelf && <div className="home-dashboard-personal">
+            <div className="hidden lg:block"><ChatsPanel prompts={data.prompts} /></div>
+          </div>}
+        </div>
 
-            What was here before gave one upcoming trip a 21:9 band across the
-            full column — a cinema letterbox that cropped the photograph to a
-            strip of sky, and roughly a third of the screen spent on the single
-            thing the account had least of. One trip is not a hero; it is one
-            trip. It gets a 296px column, the globe gets the width it was asking
-            for (it was a 132px box beside three numbers), and the chats that
-            had no presence on this page at all get the third.
-
-            Sized by what each holds, and each an honest rectangle rather than
-            a ribbon. Below lg they are three ordinary stacked cards. */}
-        {data.featured && (
-          <Section
-            title={isSelf ? "Your trips" : `${data.displayName.split(/\s+/)[0]}'s trips`}
-            meta={allTrips.length > 1 ? `${allTrips.length} trips` : undefined}
-            action={allTrips.length > 1 && isSelf ? "All trips" : undefined}
-            actionHref={allTrips.length > 1 && isSelf ? "/app/trips" : undefined}
-            /* The laptop row carries its own three subjects, so a band title
-               reading "Your trips" over a globe and a chat list would be
-               describing only the left third of what is under it. */
-            hideTitleOnDesktop
-          >
-            <div className="px-5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_380px] lg:items-stretch lg:gap-4 lg:px-10">
-              <div className="flex flex-col">
-                <FeaturedCard trip={data.featured} pill={featuredPill} />
-                {/* THE DOOR TO THE REST, and it lives HERE rather than in the
-                    section header for a specific reason: this Section sets
-                    `hideTitleOnDesktop`, which is `lg:hidden` on the whole
-                    header — title, meta and action together. So the header's
-                    "All trips" link does not exist on a laptop. That was
-                    survivable while a rail of every other trip sat below this
-                    row; with the rail gone it would have left a desktop reader
-                    no way at all to reach the other thirty-four. Sitting in the
-                    trip column it is visible at every width, and it is next to
-                    the one trip it is offering an alternative to. */}
-                {/* SHOWN WITH ONE TRIP TOO. The gate used to be `> 1`, on the reasoning
-                    that there is nothing to "see all" of when the home is already
-                    showing your only trip. But this is the single door to the
-                    archive on a laptop — the section header that would otherwise
-                    carry it is `hideTitleOnDesktop` — so a one-trip account had no
-                    route to /app/trips at all, and the account that most needs to
-                    find where trips live is the one that has just made its first.
-                    The copy changes rather than the link disappearing. */}
-                {allTrips.length > 0 && isSelf && (
-                  <Link
-                    href="/app/trips"
-                    className="group mt-3 flex items-center gap-3 rounded-2xl border border-aurora-border bg-aurora-glass px-4 py-3 outline-none transition-colors hover:border-aurora-teal/45 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-drift-display text-[14px] font-bold leading-tight tracking-[-0.01em] text-aurora-ink">
-                        {allTrips.length === 1
-                          ? "All your trips"
-                          : `See all ${allTrips.length} trips`}
-                      </span>
-                      {/* NAMES THE PLACES, not just the count. "See all 35
-                          trips" is a number; "Amalfi Coast · Bali · +32 more"
-                          is a reason to press it, and it costs a line the
-                          column already had. Cities rather than titles because
-                          a title runs to "Bhutan in Crane Season: Thimphu,
-                          Punakha, Phobjikha and Paro" and two of those would
-                          truncate into nothing legible.
-                          NOT COVER THUMBNAILS, which was the first idea and is
-                          the wrong one here: every photo in this app carries an
-                          attribution obligation that travels with the display,
-                          and a 28px circle has nowhere to put it — see
-                          TripCoverImg, which exists so that cannot be
-                          forgotten. */}
-                      {tripsPeek && (
-                        <span className="mt-0.5 block truncate text-[11.5px] leading-snug text-aurora-ink3">
-                          {tripsPeek}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="shrink-0 text-[15px] text-aurora-teal transition-transform group-hover:translate-x-0.5"
-                    >
-                      →
-                    </span>
-                  </Link>
-                )}
-              </div>
-
-              <div className="mt-6 lg:mt-0">
-                <PassportPanel
-                  countries={data.countries}
-                  followers={data.followers}
-                  following={data.following}
-                  pins={pins}
-                  isSelf={isSelf}
-                />
-              </div>
-
-              {/* LAPTOP ONLY. This is the third column of the cockpit row, and
-                  it exists because that row has the width for it. On a phone
-                  there is no row — the panel became a fourth stacked band of
-                  suggestions between the passport and the trips, competing with
-                  the Ask bar pinned directly above it, which is the same job
-                  done twice on a screen with no room to do it once. */}
-              {isSelf && (
-                <div className="hidden lg:mt-0 lg:block">
-                  <ChatsPanel prompts={data.prompts} />
-                </div>
-              )}
-            </div>
-
-            {/* ONE TRIP ON THE HOME. A rail of every other trip used to sit
-                here, which made this band's size a function of how much the
-                reader had travelled and pushed Discover and the curated shelf
-                down the page on exactly the accounts that use them most.
-
-                The rule is the one the iOS home now follows: one trip on the
-                account and you see it; two or more and you see the one you are
-                ON or leave for next; the remainder is one link away — the
-                pill in the trip column above — rather than a partial list that
-                begs the question of why it stopped where it did. */}
-          </Section>
-        )}
-
-        {/* No trip at all: the passport and chats still deserve the row — and
-            the first column, which would otherwise be the featured trip, goes
-            to the two things this account can actually DO. On a laptop CtaRow
-            is `lg:hidden` (the rail and the "+" cover it for an established
-            account), so without this a zero-trip home has no visible way to
-            make a trip at all: just a 40px "+" and a sentence. */}
-        {!data.featured && (
-          <div
-            className={`mt-6 px-5 lg:grid lg:items-stretch lg:gap-4 lg:px-10 ${
-              isSelf
-                ? "lg:grid-cols-[300px_minmax(0,1fr)_380px]"
-                : "lg:grid-cols-[minmax(0,1fr)_400px]"
-            }`}
-          >
-            {isSelf && (
-              <div className="hidden lg:block">
-                <CtaRow stacked />
-              </div>
-            )}
-            <PassportPanel
-              countries={data.countries}
-              followers={data.followers}
-              following={data.following}
-              pins={pins}
-              isSelf={isSelf}
-            />
-            {/* Laptop only — see the note on the other call site. */}
-            {isSelf && (
-              <div className="hidden lg:mt-0 lg:block">
-                <ChatsPanel prompts={data.prompts} />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* An account with trips but no featured pick still gets its rail. */}
-        {!data.featured && data.others.length > 0 && (
-          <Section title={isSelf ? "Your trips" : "Trips"} meta={`${data.others.length} trips`}>
-            <div className="px-5 lg:px-10">
-              <Rail>
-                {data.others.map((t) => (
-                  <RailTripCard key={t.id} trip={t} />
-                ))}
-              </Rail>
-            </div>
-          </Section>
-        )}
-
-        {/* ---------- Saved ----------
-            Directly above Discover, because the page's laptop reading order is
-            cockpit (yours) → Discover (near you) → Inspire (curated), and Saved
-            is yours. Self-removing when empty; see SavedRail for the placements
-            that were rejected. */}
-        {isSelf && savedGuides && savedGuides.cards.length > 0 && (
-          <div className="px-5 lg:px-10">
-            <SavedRail cards={savedGuides.cards} total={savedGuides.total} />
-          </div>
-        )}
+        {(isSelf || allTrips.length > 0) && <Section className="home-trips" title={isSelf ? "Your trips" : "Trips"} meta={`${allTrips.length} trips`} action={isSelf ? "All trips" : undefined} actionHref={isSelf ? "/app/trips" : undefined}>
+          <Rail>
+            {allTrips.map(trip => <RailTripCard key={trip.id} trip={trip} sizes="(min-width:1024px) 244px, 196px" />)}
+            {isSelf && <SeeAllCard href={allTrips.length ? "/app/trips" : "/app/trips/new"} label={allTrips.length ? "All your trips" : "Create your first trip"} className="h-[168px] w-[196px] rounded-card" />}
+          </Rail>
+        </Section>}
 
         {/* ---------- Discover ----------
             Owner-only and self-removing: it fetches after paint and renders
             nothing at all if the lookup comes back empty, so it can never
             leave a titled band with a hole under it. */}
         {isSelf && discoverAnchor && (
-          <div className="px-5 lg:px-10">
-            <DiscoverRail anchor={discoverAnchor} />
-          </div>
+          <DiscoverRail anchor={discoverAnchor} />
         )}
 
         {/* ---------- The curated shelf ----------
             Owner-only, and now permanent rather than an empty-state
             consolation. See InspireRail. */}
         {isSelf && inspire && (
-          <div className="px-5 lg:px-10">
-            <InspireRail promo={inspire} />
-          </div>
+          <InspireRail promo={inspire} />
         )}
 
         {/* The two paths that work from zero, shared with the desktop rail so
@@ -587,62 +360,6 @@ export default function HomeShell({
  * The countdown moves to a corner badge because a 296px column has no room for
  * a pill spelling out "Upcoming · in 21 days" beside a flag.
  */
-function FeaturedCard({ trip, pill }: { trip: HomeTrip; pill: string | null }) {
-  const flag = countryFlagEmoji(trip.country)
-  // "Upcoming · in 21 days" → "21 / days". The long form still renders on a
-  // phone, where the card is wide and the badge would look stranded.
-  const short = pill?.match(/in (\d+) days?/)
-  return (
-    <Link
-      href={`/app/trips/${trip.id}`}
-      className="group relative block aspect-[3/2] overflow-hidden rounded-hero border border-aurora-border outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/60 sm:aspect-[16/9] lg:aspect-auto lg:h-[392px]"
-    >
-      <CardCover trip={trip} sizes="(max-width: 1024px) 100vw, 296px" />
-
-      {pill && (
-        <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/45 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-md lg:left-3.5 lg:top-3.5 lg:px-2.5 lg:py-1 lg:text-[9.5px] lg:uppercase lg:tracking-[0.13em]">
-          {short ? "Next trip" : pill}
-        </span>
-      )}
-
-      {/* The countdown, as a numeral. Desktop only — see above. */}
-      {short && (
-        <span className="absolute right-3.5 top-3.5 hidden rounded-2xl border border-white/20 bg-black/45 px-3 py-2 text-center backdrop-blur-md lg:block">
-          <span className="block font-drift-display text-[24px] font-black leading-none tabular-nums text-white">
-            {short[1]}
-          </span>
-          <span className="mt-1 block font-mono text-[8px] uppercase tracking-[0.14em] text-aurora-teal">
-            days
-          </span>
-        </span>
-      )}
-      {flag && (
-        <span className="absolute right-4 top-4 text-[20px] drop-shadow lg:hidden">{flag}</span>
-      )}
-
-      <div className="absolute inset-x-0 bottom-0 p-4 lg:p-[18px]">
-        {flag && (
-          <p className="mb-1.5 hidden font-mono text-[9.5px] uppercase tracking-[0.12em] text-white/85 lg:block">
-            {flag} {[trip.country, trip.dateLabel].filter(Boolean).join(" · ")}
-          </p>
-        )}
-        <p className="font-drift-display text-[24px] font-black leading-[1.04] tracking-[-0.03em] text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.5)] sm:text-[30px] lg:line-clamp-3 lg:text-[21px] lg:leading-[1.08]">
-          {trip.title}
-        </p>
-        <p className="mt-2 font-mono text-[11px] text-white/80 [text-shadow:0_1px_3px_rgba(0,0,0,0.5)] lg:hidden">
-          {[trip.dateLabel, trip.country, trip.city].filter(Boolean).join("  ·  ")}
-        </p>
-        <span className="mt-3 hidden items-center gap-1.5 rounded-full border border-white/25 bg-black/40 px-3.5 py-1.5 text-[12px] font-semibold text-white backdrop-blur-sm transition-colors group-hover:bg-aurora-teal group-hover:text-aurora-teal-ink lg:inline-flex">
-          Open trip
-          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h13M12 5l7 7-7 7" />
-          </svg>
-        </span>
-      </div>
-    </Link>
-  )
-}
-
 /** A trip in the rail beside the featured one.
  *
  *  EXPORTED for /app/trips, the archive behind this page's "All trips" link —
@@ -700,7 +417,8 @@ export function RailTripCard({
 function CardCover({ trip, sizes }: { trip: HomeTrip; sizes: string }) {
   return (
     <>
-      <TripCoverImg cover={trip.cover} sizes={sizes} />
+      <TripCoverImg cover={trip.cover} sizes={sizes} showCredit={false} />
+      {trip.cover.credit && <div className="absolute right-2 top-2 z-10 [&>*]:mt-0"><CoverCredit text={trip.cover.credit.text} href={trip.cover.credit.href} placement="inline" /></div>}
       <div
         aria-hidden
         className="absolute inset-0"

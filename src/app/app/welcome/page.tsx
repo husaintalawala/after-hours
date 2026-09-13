@@ -64,13 +64,14 @@ export default async function WelcomePage({
   const [profileRes, guides] = await Promise.all([
     supabase
       .from("profiles")
-      .select("username,display_name,avatar_url,home_city,home_lat,home_lng")
+      .select("username,display_name,avatar_url,home_city,home_country,home_lat,home_lng")
       .eq("id", user.id)
       .maybeSingle<{
         username: string | null
         display_name: string | null
         avatar_url: string | null
         home_city: string | null
+        home_country: string | null
         home_lat: number | null
         home_lng: number | null
       }>(),
@@ -96,6 +97,7 @@ export default async function WelcomePage({
             username: p?.username ?? "",
             avatarUrl: p?.avatar_url ?? null,
             homeCity: p?.home_city ?? null,
+            homeCountry: p?.home_country ?? null,
             homeCoord:
               p?.home_lat != null && p?.home_lng != null
                 ? { lat: p.home_lat, lng: p.home_lng }

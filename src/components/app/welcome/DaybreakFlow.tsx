@@ -43,16 +43,16 @@ import {
 } from "@/lib/drift/daybreak"
 import { backdropAt } from "@/lib/drift/daybreakArt"
 import type { DaybreakGuide } from "@/lib/drift/inspirePromo"
-import DaybreakSky from "./DaybreakSky"
+import TripCoverImg from "@/components/app/TripCoverImg"
+import OriginStep from "./DaybreakOrigin"
+import PickStep from "./DaybreakRecommendations"
+import "./daybreak.css"
 import DaybreakProfileEditor from "./DaybreakProfileEditor"
 import {
-  Backdrop,
   BuildStep,
   CrewStep,
   IdentityStep,
   MosaicStep,
-  OriginStep,
-  PickStep,
   StyleStep,
 } from "./DaybreakSteps"
 
@@ -107,6 +107,7 @@ export interface DaybreakProfile {
   username: string
   avatarUrl: string | null
   homeCity: string | null
+  homeCountry?: string | null
   /** Written by screen 2 on a previous visit, and until now never read back. */
   homeCoord: Coord | null
 }
@@ -126,6 +127,8 @@ export default function DaybreakFlow({
   const router = useRouter()
 
   const [step, setStep] = useState(0)
+  const [stylePage, setStylePage] = useState(0)
+  const [previewId, setPreviewId] = useState<string | null>(null)
 
   // 01
   const [displayName, setDisplayName] = useState(profile.displayName)
@@ -143,6 +146,8 @@ export default function DaybreakFlow({
   const [searching, setSearching] = useState(false)
   const [savingCity, setSavingCity] = useState(false)
   const [homeCity, setHomeCity] = useState(profile.homeCity)
+  const [homeContext, setHomeContext] = useState<string | null>(profile.homeCountry ?? null)
+  const [cityError, setCityError] = useState<string | null>(null)
   /** Feeds the distance on each guide card — the reason screen 2 exists at all
    *  beyond Travel Stats. Held in state rather than read from the prop so a
    *  city picked NOW reaches screen 4 in this same session: the server
@@ -436,12 +441,14 @@ export default function DaybreakFlow({
   )
 
   const back = useCallback(() => {
+    if (step === 4 && previewId) { setPreviewId(null); return }
+    if (step === 3 && stylePage > 0) { setStylePage(page => page - 1); return }
     if (step === 0) {
       finish(null)
       return
     }
     setStep(step - 1)
-  }, [finish, step])
+  }, [finish, step, previewId, stylePage])
 
   /**
    * One lookup, whoever asked for it — the debounce below or an explicit Enter.
@@ -482,6 +489,7 @@ export default function DaybreakFlow({
     if (!q) return
     const s = ++searchSeq.current
     setSearching(true)
+    setCityError(null)
 
     const { sessionToken, suggestions } = await suggestPlaces(q, placeSession.current)
     if (searchSeq.current !== s) return
@@ -499,6 +507,7 @@ export default function DaybreakFlow({
     // cities; fall back to whatever it offered.
     const cities = suggestions.filter(isCityishSuggestion)
     const shown = cities.length ? cities : suggestions
+    if (!shown.length) setCityError("No matching city. Try another name, or skip for now.")
     void citiesOnly
 
     // Mapped into the shape OriginStep already draws. Coordinates are absent
@@ -528,6 +537,8 @@ export default function DaybreakFlow({
    */
   useEffect(() => {
     const q = cityQuery.trim()
+    searchSeq.current++
+    setCityError(null)
     if (q.length < CITY_MIN_CHARS) {
       // Nothing, rather than the answer to a query two keystrokes ago.
       setCityResults([])
@@ -545,6 +556,8 @@ export default function DaybreakFlow({
     searchSeq.current++
     setSearching(false)
     setSavingCity(true)
+    setCityError(null)
+    let succeeded = false
     try {
       // Resolve the prediction to a real place — and TERMINATE the billing
       // session while doing it. A prediction carries no coordinates, and this
@@ -558,6 +571,7 @@ export default function DaybreakFlow({
         data: { session },
       } = await db.auth.getSession()
       const uid = session?.user?.id
+      if (!uid) throw new Error("Sign in to save your starting point")
       if (uid) {
         await db
           .from("profiles")
@@ -573,6 +587,8 @@ export default function DaybreakFlow({
       // Only after the write lands. Setting the label first shows a city the
       // row does not have, which is the bug Settings › Home city already had.
       setHomeCity(picked.name)
+      setHomeContext(picked.address ?? null)
+      succeeded = true
       // FROM `picked`, NOT `c`. The row above is written from the RESOLVED
       // place; `c` is the autocomplete prediction that produced it, and a
       // prediction carries no coordinates — selectPlace is the call that
@@ -594,8 +610,10 @@ export default function DaybreakFlow({
     } catch {
       // The question is optional and skippable; a failed write leaves the
       // previous answer standing rather than claiming a new one.
+      setCityError("Couldn’t save that city. Please choose it again, or skip for now.")
     }
     setSavingCity(false)
+    return succeeded
   }
 
   /**
@@ -726,16 +744,7 @@ export default function DaybreakFlow({
   // MARK: Render
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col text-aurora-ink">
-      {/* The photograph IS the ground. The sky survives only as the fallback
-          beneath it, for the moment before the shelf lands and for a shelf that
-          never does. */}
-      <DaybreakSky progress={skyProgress} />
-      {/* `behindPhotos`, not the old `deep`: the two steps whose own content
-          is photographs, where the ground has to stop being one. See the note
-          on Backdrop. */}
-      <Backdrop plate={backdrop} behindPhotos={name === "shape" || name === "pick"} />
-
+    <div className="daybreak-flow relative flex min-h-[100dvh] flex-col text-aurora-ink" data-step={name} data-preview={!!previewId}>
       {/* Back on the left, a hairline of progress, and a close that is always
           live. The bar is almost redundant — the sky already says how far in
           you are — so it is 3px and nearly silent rather than a seven-dot pager
@@ -745,11 +754,11 @@ export default function DaybreakFlow({
           right of this same column — the same reservation GuideCard makes for
           the same chip, plus that strip's own 18px inset, because here the two
           are siblings rather than one inside the other. */}
-      <div className="relative z-10 mx-auto flex w-full max-w-[440px] items-center gap-[11px] pb-[18px] pl-[18px] pr-[104px] pt-2">
+      <div className="db-chrome">
         <button
           type="button"
           onClick={back}
-          aria-label={step === 0 ? "Close" : "Back"}
+          aria-label={previewId && name === "pick" ? "Back to recommendations" : step === 0 ? "Close" : "Back"}
           disabled={name === "build" && !buildError}
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-aurora-border bg-aurora-glass text-aurora-ink2 ${
             name === "build" && !buildError ? "opacity-0" : ""
@@ -769,15 +778,12 @@ export default function DaybreakFlow({
             </svg>
           )}
         </button>
-        <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.14]">
-          <div
-            className="h-full rounded-full bg-aurora-teal transition-[width] duration-300"
-            style={{ width: `${Math.max(6, barFraction * 100)}%` }}
-          />
-        </div>
+        <span>{name === "pick" ? "Your escapes" : name === "origin" ? "Starting point" : name === "shape" ? "Your kind of escape" : "Your trip"}</span>
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[440px] flex-1 flex-col px-[18px] pb-[14px]">
+      <div className="db-layout">
+      {name !== "pick" && backdrop && <div className="db-scene"><TripCoverImg cover={backdrop.cover} sizes="(min-width: 900px) 45vw, 1px" /></div>}
+      <div className="db-content">
         {name === "identity" && (
           <IdentityStep
             displayName={displayName}
@@ -796,7 +802,9 @@ export default function DaybreakFlow({
             saving={savingCity}
             results={cityResults}
             chosen={homeCity}
-            onPick={(c) => void pickCity(c)}
+            context={homeContext}
+            error={cityError}
+            onPick={pickCity}
             onNext={() => setStep(2)}
             onSkip={() => setStep(2)}
           />
@@ -831,6 +839,8 @@ export default function DaybreakFlow({
         )}
         {name === "style" && (
           <StyleStep
+            page={stylePage}
+            setPage={setStylePage}
             party={party}
             onParty={setParty}
             rhythm={rhythm}
@@ -880,11 +890,9 @@ export default function DaybreakFlow({
         {name === "pick" && (
           <PickStep
             guides={suggested}
-            reasons={reasons}
             relaxed={shelf.relaxed}
-            home={homeCoord}
-            chosen={chosenTripId}
-            onChoose={setChosenTripId}
+            previewId={previewId}
+            onPreview={(id) => { setPreviewId(id); if (id) setChosenTripId(id) }}
             onNext={() => setStep(5)}
             onBrowseAll={() => router.push("/app/inspire")}
           />
@@ -913,6 +921,8 @@ export default function DaybreakFlow({
             onRetry={() => void build(wantsToInvite)}
           />
         )}
+      </div>
+
       </div>
 
       {editing && (

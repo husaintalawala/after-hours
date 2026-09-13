@@ -56,7 +56,11 @@ export interface InspirePromo {
  * It is the same row, the same projection and the same ordering — a second
  * query would be a second place for the tie-break to be forgotten.
  */
+export interface DaybreakStop { name: string; nights: number; blurb: string | null }
+
 export interface DaybreakGuide extends InspirePromoCard {
+  blurb?: string | null
+  previewStops?: DaybreakStop[]
   /** The shape tags the row stores (`wild`, `stones`, …).
    *
    *  NO LONGER WHAT THE SHAPE ANSWER IS SCORED ON — see `shapeMissFor`. Kept
@@ -151,6 +155,8 @@ const CARD_WIDTHS = [480, 760, 1100, 1520]
 const MOSAIC_WIDTHS = [280, 420, 640, 840]
 
 interface PromoSource {
+  blurb: string | null
+  previewStops: DaybreakStop[]
   tripId: string
   title: string
   days: number
@@ -280,6 +286,8 @@ function decode(raw: unknown): PromoSource | null {
   return {
     tripId,
     title,
+    blurb: asString(row.blurb),
+    previewStops: destinations.filter(d => d.name || d.city).map(d => ({ name: (d.name || d.city)!, nights: d.nights, blurb: d.blurb })),
     days: Math.round(days),
     // Same choice the shelf headline makes, so the two surfaces name a trip the
     // same way — falling through to the first city for the (currently zero)
@@ -474,7 +482,7 @@ async function readShelf(
       // the same three guides.
       "trip_id,tags,best_months,party,pace,budget," +
         "interests,optimize_for,setting,shape_weights,shape_primary,month_scores,blackout_months," +
-        "hero_url,hero_attribution,hero_link," +
+        "blurb,hero_url,hero_attribution,hero_link," +
         "title:snapshot->>title,day_count:snapshot->day_count," +
         "countries:snapshot->countries,cities:snapshot->cities," +
         "destinations:snapshot->destinations"
@@ -585,6 +593,8 @@ export async function buildDaybreakShelf(
     }
     return {
       ...card(s, CARD_W, CARD_WIDTHS),
+      blurb: s.blurb,
+      previewStops: s.previewStops,
       tags: s.tags,
       interests: s.interests,
       optimizeFor: s.optimizeFor,

@@ -10,7 +10,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 /** Directories under /public that belong to the LOGGED-IN APP, not to the
  *  marketing site — exempt from the rewrite below. Add one here the moment you
  *  add one to /public, or its files will 404 as HTML. */
-const APP_ASSET_DIRS = ["/cta/", "/brand/"];
+const APP_ASSET_DIRS = ["/cta/", "/brand/", "/fonts/"];
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const pathname = req.nextUrl.pathname;

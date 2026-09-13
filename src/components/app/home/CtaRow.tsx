@@ -62,6 +62,7 @@ const CTAS: Cta[] = [
     art: "/cta/start-chat.png",
     ground: DEEP_PLUM,
   },
+  { key: "back-pocket", title: "Back pocket", href: "/app/saved", art: "/cta/back-pocket.png", ground: { top: "#1B5A46", bottom: "#07241A", glow: "#3FBF8F" } },
 ]
 
 export default function CtaRow({ stacked = false }: { stacked?: boolean }) {
@@ -72,7 +73,7 @@ export default function CtaRow({ stacked = false }: { stacked?: boolean }) {
   // cards fill it instead of a hole.
   if (stacked) {
     return (
-      <div className="flex h-full min-h-[290px] flex-col gap-3">
+      <div className="flex h-full min-h-[336px] flex-col gap-3">
         {CTAS.map((c) => (
           <CtaCard key={c.key} cta={c} stacked />
         ))}
@@ -121,7 +122,7 @@ function CtaCard({ cta, stacked = false }: { cta: Cta; stacked?: boolean }) {
           scooter's wheel.
 
           THE STACKED CARD IS A DIFFERENT SHAPE, and cover was wrong for it. Its
-          column is 300px wide with `min-h-[290px]` over two flex-1 cards and a
+          column is 300px wide with `min-h-[336px]` over two flex-1 cards and a
           12px gap, so each is about 300x139 — aspect 2.158 against the art's
           1.365. Cover scales to fill the width, drawing the art 220px tall into
           a 139px box: 81px of vertical overflow, 40px of it off the top once
@@ -145,9 +146,7 @@ function CtaCard({ cta, stacked = false }: { cta: Cta; stacked?: boolean }) {
         src={cta.art}
         alt=""
         aria-hidden
-        className={`pointer-events-none absolute inset-0 h-full w-full object-cover ${
-          stacked ? "object-top" : "-translate-y-4"
-        }`}
+        className={`pointer-events-none absolute inset-0 h-full w-full ${(stacked || cta.key === "back-pocket") ? "object-contain object-right" : `object-cover ${stacked ? "object-top" : "-translate-y-4"}`}`}
       />
 
       {/* Carries white type over whatever the figure's colours are doing. Soft

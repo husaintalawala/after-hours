@@ -18,11 +18,13 @@ export interface PlaceDetails {
   phone: string | null
   mapsUri: string | null
   photoNames: string[]
+  photoCredits?: Record<string, { name: string; uri: string | null }[]>
   reviews: Array<{
     rating: number | null
     text: string
     author: string
     when: string
+    authorUri?: string | null
   }>
   lat: number | null
   lng: number | null
@@ -43,9 +45,11 @@ const FIELD_MASK = [
   "internationalPhoneNumber",
   "googleMapsUri",
   "photos.name",
+  "photos.authorAttributions",
   "reviews.rating",
   "reviews.text.text",
   "reviews.authorAttribution.displayName",
+  "reviews.authorAttribution.uri",
   "reviews.relativePublishTimeDescription",
   "location",
   "primaryTypeDisplayName",
@@ -93,12 +97,14 @@ export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails |
       phone: g.internationalPhoneNumber ?? null,
       mapsUri: g.googleMapsUri ?? null,
       photoNames: (g.photos ?? []).map((p: any) => p.name).filter(Boolean).slice(0, 6),
+      photoCredits: Object.fromEntries((g.photos ?? []).map((p: any) => [p.name, (p.authorAttributions ?? []).map((a: any) => ({ name: a.displayName ?? "", uri: a.uri ?? null }))])),
       reviews: (g.reviews ?? [])
         .map((r: any) => ({
           rating: r.rating ?? null,
           text: r.text?.text ?? "",
           author: r.authorAttribution?.displayName ?? "Traveler",
           when: r.relativePublishTimeDescription ?? "",
+          authorUri: r.authorAttribution?.uri ?? null,
         }))
         .filter((r: any) => r.text)
         .slice(0, 4),
