@@ -6,7 +6,6 @@ import CoverCredit from "@/components/app/CoverCredit"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import BackLink from "@/components/app/BackLink"
 import FollowButton from "@/components/app/people/FollowButton"
-import StartHere from "@/components/app/home/StartHere"
 import HomeHeader, { Avatar } from "@/components/app/home/HomeHeader"
 import CtaRow from "@/components/app/home/CtaRow"
 import AskBar from "@/components/app/home/AskBar"
@@ -128,7 +127,6 @@ export default function HomeShell({
   const isSelf = viewer.kind === "self"
   const allTrips = [...(data.featured ? [data.featured] : []), ...data.others]
 
-  const showStartHere = isSelf && allTrips.length === 0
 
   // THE PASSPORT SHOWS YOUR OWN TRAVEL, or it shows nothing.
   //
@@ -301,7 +299,8 @@ export default function HomeShell({
         {(isSelf || allTrips.length > 0) && <Section className="home-trips" title={isSelf ? "Your trips" : "Trips"} meta={`${allTrips.length} trips`} action={isSelf ? "All trips" : undefined} actionHref={isSelf ? "/app/trips" : undefined}>
           <Rail>
             {allTrips.map(trip => <RailTripCard key={trip.id} trip={trip} sizes="(min-width:1024px) 244px, 196px" />)}
-            {isSelf && <SeeAllCard href={allTrips.length ? "/app/trips" : "/app/trips/new"} label={allTrips.length ? "All your trips" : "Create your first trip"} className="h-[168px] w-[196px] rounded-card" />}
+            {isSelf && allTrips.length === 0 && <p className="py-5 text-[14px] text-aurora-ink3">Your trips will appear here.</p>}
+            {isSelf && allTrips.length > 0 && <SeeAllCard href="/app/trips" label="All your trips" className="h-[168px] w-[196px] rounded-card" />}
           </Rail>
         </Section>}
 
@@ -318,14 +317,6 @@ export default function HomeShell({
             consolation. See InspireRail. */}
         {isSelf && inspire && (
           <InspireRail promo={inspire} />
-        )}
-
-        {/* The two paths that work from zero, shared with the desktop rail so
-            the two cannot drift apart the way they did before. */}
-        {showStartHere && (
-          <div className="mt-8 px-5 lg:px-10">
-            <StartHere promo={inspire} />
-          </div>
         )}
 
         {allTrips.length === 0 && !isSelf && (
