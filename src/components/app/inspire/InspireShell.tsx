@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useInspireBrowseState } from "./InspireBrowseState"
 import Link from "next/link"
 import TripCoverImg from "@/components/app/TripCoverImg"
 import OptimizedImg from "@/components/app/OptimizedImg"
@@ -57,9 +58,10 @@ export default function InspireShell({
   months: InspireMonth[]
   everythingCover: TripCoverResult
 }) {
-  const [category, setCategory] = useState<string | null>(null)
-  const [monthKey, setMonthKey] = useState<string | null>(null)
-  const [query, setQuery] = useState("")
+  const { category, setCategory, monthKey, setMonthKey, query, setQuery } = useInspireBrowseState()
+  const [searchIndex, setSearchIndex] = useState<Record<string, string> | null>(null)
+  const [searchError, setSearchError] = useState(false)
+  const [searchAttempt, setSearchAttempt] = useState(0)
 
   // Every word has to match, but they may match in different places: "japan
   // toddler" is a country in the title and a word in a place name. Folded the
@@ -72,7 +74,25 @@ export default function InspireShell({
     .split(/\s+/)
     .filter(Boolean)
   const searching = query.trim().length >= 2 && terms.length > 0
-  const results = searching ? cards.filter((c) => terms.every((t) => c.search.includes(t))) : []
+  useEffect(() => {
+    if (!searching || searchIndex) return
+    const controller = new AbortController()
+    setSearchError(false)
+    const timer = setTimeout(() => { setSearchError(true); controller.abort() }, 10000)
+    fetch("/api/drift/inspire-search", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Search unavailable")
+        const index: unknown = await response.json()
+        if (!index || typeof index !== "object" || Array.isArray(index) ||
+            !Object.values(index).every((value) => typeof value === "string")) throw new Error("Invalid index")
+        if (!controller.signal.aborted) setSearchIndex(index as Record<string, string>)
+      })
+      .catch(() => { if (!controller.signal.aborted) setSearchError(true) })
+      .finally(() => clearTimeout(timer))
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [searching, searchIndex, searchAttempt])
+  const results = searching && searchIndex ? cards.filter((c) =>
+    terms.every((t) => `${c.search} ${searchIndex[c.tripId] ?? ""}`.includes(t))) : []
 
   const selectedMonth = months.find((m) => m.key === monthKey) ?? null
   const categoryLabel = categories.find((c) => c.slug === category)?.label ?? null
@@ -145,7 +165,13 @@ export default function InspireShell({
         />
       </label>
 
-      {searching ? (
+      {searching && !searchIndex ? (
+        <section className="mt-6" aria-live="polite">
+          {searchError ? <button onClick={() => setSearchAttempt((n) => n + 1)}>
+            Search couldn&apos;t load. Try again.
+          </button> : <p>Searching guides…</p>}
+        </section>
+      ) : searching ? (
         <section className="mt-6">
           <Kicker>
             {results.length === 0

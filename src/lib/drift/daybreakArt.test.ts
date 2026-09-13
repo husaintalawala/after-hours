@@ -183,24 +183,9 @@ describe("how you travel", () => {
     )
   })
 
-  test("the party values are the column's, and family is left out on purpose", () => {
-    assert.deepEqual(
-      TRAVEL_PARTIES.map((p) => p.value),
-      ["solo", "couple", "friends"]
-    )
-    // The CHECK allows a fourth. The shelf carries ONE family guide of forty,
-    // and an answer only one guide can satisfy scores 39 misses and returns
-    // that guide padded out by ties — the "same three trips whatever you pick"
-    // fault, rebuilt. If a second family guide is ever seeded, this assertion
-    // is the thing to come back and delete.
-    assert.ok(
-      !TRAVEL_PARTIES.some((p) => p.value === "family"),
-      "family is not offered while the corpus has one guide behind it"
-    )
-    assert.deepEqual(
-      TRAVEL_PARTIES.map((p) => p.label),
-      ["Just me", "Two of us", "A group"]
-    )
+  test("the party values include the current family option", () => {
+    assert.deepEqual(TRAVEL_PARTIES.map((p) => p.value), ["solo", "couple", "friends", "family"])
+    assert.deepEqual(TRAVEL_PARTIES.map((p) => p.label), ["Just me", "Two of us", "A group", "With kids"])
   })
 
   // The screen opens on these, and Skip writes nothing — so a default that is
@@ -236,6 +221,7 @@ describe("every preference option explains itself", () => {
         "Your pace, nobody to negotiate with",
         "One plan, two opinions",
         "Plans that survive a group chat",
+        "Naps built in, one big thing a day",
       ]
     )
   })

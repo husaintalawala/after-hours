@@ -1,3 +1,4 @@
+import { BROWSE_COLUMNS } from "@/lib/drift/inspireBrowse"
 import { Suspense } from "react"
 import Skeleton from "./loading"
 import { createClient } from "@/lib/supabase/server"
@@ -35,7 +36,7 @@ export const dynamic = "force-dynamic"
  * visits — and it survives the round trip: insertion order is what `Object.keys`
  * returns for non-numeric keys, which is what TAG_ORDER below reads.
  */
-export const INSPIRE_TAGS: Record<string, string> = Object.fromEntries(
+const INSPIRE_TAGS: Record<string, string> = Object.fromEntries(
   CATEGORY_ORDER.map((c) => [c.slug, c.name])
 )
 
@@ -194,7 +195,7 @@ function decode(raw: unknown): InspireCard | null {
   const row = asRecord(raw)
   if (!row) return null
   const tripId = asString(row.trip_id)
-  const snap = asRecord(row.snapshot)
+  const snap = row
   if (!tripId || !snap) return null
 
   // An empty card with a working click target is a bug the user finds by
@@ -269,19 +270,6 @@ function decode(raw: unknown): InspireCard | null {
       ...tags.map((t) => INSPIRE_TAGS[t]),
       asString(row.author_handle),
       asString(row.blurb),
-      // The places themselves — this is the half that makes "ramen" or
-      // "onsen" find anything.
-      ...asArray(snap.items).flatMap((i) => {
-        const it = asRecord(i)
-        if (!it) return []
-        return [
-          asString(it.title),
-          asString(it.location_name),
-          asString(it.canonical_name),
-          asString(it.kind),
-          asString(it.place_category),
-        ]
-      }),
     ]),
     authorHandle: asString(row.author_handle),
     authorAvatar: asString(row.author_avatar_url),
@@ -359,9 +347,7 @@ function ShelfUnavailable() {
 }
 
 export default function InspirePage() {
-  // force-dynamic, and it reads every guide's whole snapshot with no limit —
-  // the longest wait in the app. Behind a boundary the skeleton is on screen
-  // while that happens instead of the document being held open.
+  // Stream the projected shelf; place text is fetched only when searching.
   return (
     <Suspense fallback={<Skeleton />}>
       <InspireContent />
@@ -378,7 +364,7 @@ async function InspireContent() {
   const { data, error } = await supabase
     .from("inspire_trips")
     .select(
-      "trip_id,rank,tags,best_months,blurb,hero_url,hero_attribution,hero_link,author_handle,author_avatar_url,snapshot"
+      BROWSE_COLUMNS
     )
     .eq("is_active", true)
     .order("rank", { ascending: false })

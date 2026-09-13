@@ -1,3 +1,4 @@
+import InspireBrowseState from "@/components/app/inspire/InspireBrowseState"
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -70,7 +71,7 @@ export default async function ProtectedLayout({
         </div>
         {/* Content clears the attached mobile nav (56px + safe area) and the
             desktop rail (pl). */}
-        <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-[76px]">{children}</div>
+        <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-[76px]"><InspireBrowseState key={user.id}>{children}</InspireBrowseState></div>
         <div className="lg:hidden">
           <AppNav />
         </div>
