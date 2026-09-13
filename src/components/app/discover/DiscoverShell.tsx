@@ -1,4 +1,5 @@
 "use client"
+import { activityScope } from "@/lib/activity"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -724,7 +725,10 @@ function LocationPicker({
     const q = search.trim()
     if (!q || searching) return
     setSearching(true)
+    const activity = activityScope(), actionId = crypto.randomUUID(), started = performance.now()
+    activity("search_started","discover","started",{},actionId)
     const cands = await resolvePlaceCandidates(q, q)
+    activity("search_completed","discover",cands.length ? "succeeded" : "observed",{duration_ms:Math.round(performance.now()-started)},actionId)
     setSearching(false)
     setResults(
       cands

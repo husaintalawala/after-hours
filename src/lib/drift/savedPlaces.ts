@@ -1,4 +1,5 @@
 "use client"
+import { activityScope } from "../activity-scope.ts"
 
 import { useCallback, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -92,6 +93,7 @@ async function write(
   next: boolean
 ): Promise<boolean> {
   const db = createClient()
+  const activity = activityScope()
   const {
     data: { user },
   } = await db.auth.getUser()
@@ -103,6 +105,7 @@ async function write(
       .delete()
       .eq("user_id", user.id)
       .eq("place_id", place.id)
+    activity(next ? "backpocket_saved" : "backpocket_unsaved", "backpocket", error ? "failed" : "succeeded", {item_type:"place"})
     return !error
   }
 
@@ -130,7 +133,8 @@ async function write(
     },
     { onConflict: "user_id,place_id" }
   )
-  return !error
+  activity(next ? "backpocket_saved" : "backpocket_unsaved", "backpocket", error ? "failed" : "succeeded", {item_type:"place"})
+    return !error
 }
 
 /**

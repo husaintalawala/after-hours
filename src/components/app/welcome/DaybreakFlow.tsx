@@ -1,4 +1,5 @@
 "use client"
+import { recordActivity } from "@/lib/activity"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -292,6 +293,7 @@ export default function DaybreakFlow({
   const skyProgress = step / (STEPS.length - 1)
   const barFraction = (step + 1) / STEPS.length
   const name: Step = STEPS[step]
+  useEffect(() => { recordActivity("onboarding_step_viewed","onboarding","observed",{step_index:step}) },[step])
 
   /**
    * A different photograph per screen, walked DOWN the shelf so consecutive
@@ -316,6 +318,7 @@ export default function DaybreakFlow({
   /** Called once, when the flow is done with — finished, skipped or closed. */
   const finish = useCallback(
     (tripId: string | null) => {
+      if(tripId) recordActivity("onboarding_completed","onboarding","succeeded")
       router.push(tripId ? `/app/trips/${tripId}` : "/app")
     },
     [router]
@@ -339,6 +342,7 @@ export default function DaybreakFlow({
         finish(null)
         return
       }
+      recordActivity("trip_creation_started","trips","started",{entrypoint:"daybreak"})
       setBuildError(null)
       // A retry re-asks for the link, so last attempt's failure must not
       // outlive it on screen.

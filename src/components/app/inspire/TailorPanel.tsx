@@ -1,4 +1,5 @@
 "use client"
+import { activityScope } from "@/lib/activity"
 
 import { useEffect, useMemo, useState } from "react"
 import InspireReceipt from "@/components/app/inspire/InspireReceipt"
@@ -226,6 +227,9 @@ export default function TailorPanel({
     // plan — the shape on screen and the trip written would differ. The as-is
     // button carries no plan at all, so it is safe mid-tailor.
     if (isCopying || (!asIs && isTailoring)) return
+    const activity = activityScope(), actionId = crypto.randomUUID()
+    activity("trip_creation_started","trips","started",{entrypoint:"inspire"},actionId)
+    let activitySuccess = false
     setIsCopying(true)
     setCopyError(null)
 
@@ -277,12 +281,16 @@ export default function TailorPanel({
       // The row exists. A later copy of the same pattern on the same day is a
       // new trip the user asked for, so stop reusing this id.
       inFlightIds.delete(key)
+      activitySuccess = true
+      activity("create_trip","trips","succeeded",{entrypoint:"inspire"},actionId)
+      activity("guide_adopted","inspire","succeeded",{},actionId)
       setCopied(parsed)
     } catch {
       // The network never delivered an answer — the row may exist. The id stays
       // reserved so a retry replays this copy rather than writing a second one.
       setCopyError(copyErrorMessage(null))
     } finally {
+      if(!activitySuccess) activity("guide_adopted","inspire","failed",{},actionId)
       setIsCopying(false)
     }
   }

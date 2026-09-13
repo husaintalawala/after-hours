@@ -1,4 +1,5 @@
 "use client"
+import { recordActivity } from "@/lib/activity"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import dynamic from "next/dynamic"
@@ -76,6 +77,7 @@ export default function PatternView({
   // The tailor is a state of this screen, not a route: the pattern is what you
   // are altering, and going "back" from the alteration must return you to it
   // rather than to wherever you came from.
+  useEffect(() => { recordActivity("guide_opened","inspire") }, [])
   const [tailoring, setTailoring] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const [saved, setSaved] = useState(initiallySaved)
