@@ -7,7 +7,7 @@ export default function ActivityProvider({userId}: {userId:string}) {
   const pathname = usePathname()
   useEffect(() => {
     if (!activityAvailable()) return
-    void connectActivity(userId).then(() => { recordActivity("session_started","app"); foregroundActivity() })
+    void connectActivity(userId).then(() => { recordActivity("session_started","app"); const feature = featureForPath(window.location.pathname); if (feature) recordActivity("feature_viewed",feature); foregroundActivity() })
     const foreground = () => { foregroundActivity(); void flushActivity() }
     const timer = setInterval(() => { foregroundActivity(); void flushActivity() }, 5000)
     const consent = setInterval(() => { void connectActivity(userId) }, 60000)
@@ -19,10 +19,14 @@ export default function ActivityProvider({userId}: {userId:string}) {
   },[userId])
   useEffect(() => {
     // Only classify known route segments, never transmit paths, IDs, or queries.
-    const segment = pathname.split("/")[2] || "trips"
-    const map: Record<string,Feature> = {discover:"discover",inspire:"inspire",saved:"backpocket",backpocket:"backpocket",trip:"trips",trips:"trips",chat:"chat",chats:"chat",welcome:"onboarding",profile:"profile",settings:"settings"}
-    const feature = map[segment]
+    const feature = featureForPath(pathname)
     if (feature) recordActivity("feature_viewed",feature)
   },[pathname])
   return null
+}
+
+function featureForPath(pathname:string): Feature | undefined {
+  const segment = pathname.split("/")[2] || "trips"
+  const map: Record<string,Feature> = {discover:"discover",inspire:"inspire",saved:"backpocket",backpocket:"backpocket",trip:"trips",trips:"trips",chat:"chat",chats:"chat",welcome:"onboarding",profile:"profile",settings:"settings"}
+  return map[segment]
 }
