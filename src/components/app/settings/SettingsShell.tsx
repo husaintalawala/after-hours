@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import ActivityPreference from "./ActivityPreference"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
 import { revokeGoogleAccess } from "@/lib/drift/google"
 // isCityish moved to lib/drift/chat.ts — the first-run flow asks the same
@@ -136,6 +137,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
       <BackLink href="/app" label="Home" className="mb-5" />
       <h1 className="font-drift-display text-[28px] font-bold">Settings</h1>
 
+      <ActivityPreference />
       {/* Profile */}
       <section className="mt-6 rounded-2xl border border-aurora-border bg-aurora-glass p-5">
         <div className="flex items-center gap-4">

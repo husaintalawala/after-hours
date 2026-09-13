@@ -1,4 +1,5 @@
 "use client"
+import { activityScope } from "@/lib/activity"
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -250,6 +251,10 @@ export default function TripChat({
       startedRef.current = true
       capture(AnalyticsEvent.StartChat, { has_trip: !!tripId, has_image: !!img })
     }
+    const activity = activityScope(), actionId = crypto.randomUUID(), started = performance.now()
+    let outcomeRecorded = false
+    activity("chat_message_sent","chat","started",{},actionId)
+    const finishActivity = (outcome: "succeeded" | "failed") => { if (!outcomeRecorded) { outcomeRecorded=true; activity("chat_response_completed","chat",outcome,{duration_ms:Math.round(performance.now()-started)},actionId) } }
     setError(null)
     setInput("")
     setAttached(null)
@@ -275,6 +280,7 @@ export default function TripChat({
           setStreaming(streamBuf)
         },
         onPayload: (answer: ChatAnswer) => {
+          finishActivity("succeeded")
           const id = nextId()
           const finalText = answer.assistant_text || streamBuf
           setMessages((m) => [
@@ -295,6 +301,7 @@ export default function TripChat({
           if (answer.cards?.length) void hydrateCards(id, answer.cards)
         },
         onError: (msg) => {
+          finishActivity("failed")
           setStreaming(null)
           setStatus(null)
           setError(msg)
@@ -302,6 +309,7 @@ export default function TripChat({
       },
       controller.signal
     )
+    if (!outcomeRecorded) finishActivity("failed")
     if (abortRef.current === controller) abortRef.current = null
     setBusy(false)
   }

@@ -1,4 +1,5 @@
 "use client"
+import { activityScope } from "@/lib/activity"
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -83,6 +84,8 @@ export default function NewTripFlow() {
 
   async function create() {
     if (!place || !tripType || creating) return
+    const activity = activityScope(), actionId = crypto.randomUUID()
+    activity("trip_creation_started","trips","started",{entrypoint:"manual"},actionId)
     setCreating(true)
     setError(null)
     try {
@@ -141,9 +144,10 @@ export default function NewTripFlow() {
       // Anchor failure is non-fatal on iOS too — the trip still exists.
       if (stepErr) console.warn("[NewTrip] destination anchor failed:", stepErr.message)
 
-      capture(AnalyticsEvent.CreateTrip, { trip_type: tripType, has_end_date: !!end })
+      activity("create_trip","trips","succeeded",{entrypoint:"manual"},actionId)
       router.push(`/app/trips/${trip.id}`)
     } catch (e) {
+      activity("create_trip","trips","failed",{entrypoint:"manual"},actionId)
       setError(e instanceof Error ? e.message : "Something went wrong")
       setCreating(false)
     }

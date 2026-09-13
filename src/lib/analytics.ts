@@ -1,3 +1,4 @@
+import { activityAvailable, activityOptedOut, recordLegacyActivity } from "./activity"
 // ── PostHog event-level funnel layer (sits on top of Vercel Web Analytics) ──
 //
 // Vercel Analytics answers "how much traffic / which pages"; PostHog answers
@@ -87,6 +88,7 @@ const queue: Array<[string, Props | undefined]> = []
 let pendingIdentity: [string, Props | undefined] | null = null
 
 export function initAnalytics(): void {
+  if (activityAvailable() || activityOptedOut()) return // private activity replaces third-party product capture
   if (typeof window === "undefined") return
   // Independent of PostHog: either can be configured without the other, so the
   // pixel must not sit behind PostHog's early return below.
@@ -128,6 +130,8 @@ export function initAnalytics(): void {
 }
 
 export function capture(event: string, props?: Props): void {
+  if (activityAvailable()) { recordLegacyActivity(event, props); return }
+  if (activityOptedOut()) return
   if (typeof window === "undefined") return
   metaCapture(event)
   try {
@@ -139,6 +143,7 @@ export function capture(event: string, props?: Props): void {
 }
 
 export function identifyUser(id: string, props?: Props): void {
+  if (activityAvailable() || activityOptedOut()) return
   if (typeof window === "undefined") return
   try {
     if (ph) ph.identify(id, props)
@@ -362,6 +367,7 @@ function metaCapture(event: string): void {
 }
 
 export function trackPageview(url: string): void {
+  if (activityAvailable() || activityOptedOut()) return
   // Not queued: a pageview for a route the user has already navigated away from
   // is noise, and initAnalytics() captures the entry route itself.
   try {

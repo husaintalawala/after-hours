@@ -1,3 +1,4 @@
+import { activityScope } from "../activity-scope.ts"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 /**
@@ -57,6 +58,7 @@ export async function toggleSavedGuide(
   tripId: string,
   next: boolean
 ): Promise<boolean> {
+  const activity = activityScope()
   const {
     data: { user },
   } = await db.auth.getUser()
@@ -80,6 +82,7 @@ export async function toggleSavedGuide(
         onConflict: "user_id,trip_id",
         ignoreDuplicates: true,
       })
+    activity(next ? "backpocket_saved" : "backpocket_unsaved", "backpocket", error ? "failed" : "succeeded", {item_type:"guide"})
     return !error
   }
 
@@ -90,5 +93,6 @@ export async function toggleSavedGuide(
     .delete()
     .eq("user_id", user.id)
     .eq("trip_id", tripId)
-  return !error
+  activity(next ? "backpocket_saved" : "backpocket_unsaved", "backpocket", error ? "failed" : "succeeded", {item_type:"guide"})
+    return !error
 }

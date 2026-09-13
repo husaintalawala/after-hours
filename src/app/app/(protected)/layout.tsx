@@ -1,3 +1,4 @@
+import ActivityProvider from "@/components/app/ActivityProvider"
 import InspireBrowseState from "@/components/app/inspire/InspireBrowseState"
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
@@ -53,6 +54,7 @@ export default async function ProtectedLayout({
         rel="stylesheet"
       />
       {/* Supabase user id only — no email; the provider is the signup's method. */}
+      <ActivityProvider userId={user.id} />
       <PostHogAuthBridge
         userId={user.id}
         method={user.app_metadata?.provider ?? null}
