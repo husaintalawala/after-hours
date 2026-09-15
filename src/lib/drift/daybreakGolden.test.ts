@@ -64,7 +64,8 @@ function ask(o: {
   party?: string
   rhythm?: string
   budget?: string
-  month: number
+  /** Null = "I'm flexible". */
+  month: number | null
 }) {
   return {
     shapes: new Set(o.shapes),
@@ -282,13 +283,47 @@ describe("the floor — showing fewer beats padding with a wrong one", () => {
     }
   })
 
-  test("an impossible multi-pick relaxes and SAYS it relaxed", () => {
-    // No guide in the corpus is primarily a road trip AND primarily a beach
-    // trip AND primarily a mountain trip. The shelf must widen rather than
-    // return nothing, and must not do it quietly.
-    const s = shelf({ shapes: ["drive", "islands", "high", "stay"], month: 1 })
-    assert.ok(s.guides.length > 0, "never an empty first-run screen")
-    assert.equal(s.relaxed, "shape", "a widened search must be declared")
+  test("a multi-pick is a union, so it clears the floor without relaxing", () => {
+    // This used to assert the opposite: no guide is primarily a road trip AND a
+    // beach AND a mountain trip, so the shelf widened and said so. But the
+    // screen says "pick as many as fit" — four chips mean ANY of these, and a
+    // guide that is genuinely one of them is a real answer, not a relaxation.
+    const picks = ["drive", "islands", "high", "stay"]
+    const s = shelf({ shapes: picks, month: 1 })
+    assert.equal(s.relaxed, null, "a union of picks is not a widened search")
+    assert.equal(s.guides.length, 3)
+    for (const g of s.guides) {
+      assert.ok(
+        picks.some((p) => shapeMissFor(g, p) <= 1),
+        `${g.title} answers none of ${picks.join(", ")} at tier 0-1`
+      )
+    }
+  })
+
+  test("the reported case: six of seven picks is not three Arctic islands", () => {
+    // A reader picked every chip but History & ruins, flexible on dates, and
+    // was shown Lofoten by ferry, the Faroe Islands and another cold northern
+    // island — guides with weak SETTING evidence (arctic, islands, mountains)
+    // on many chips at once, which a summed key and an every-pick floor
+    // rewarded over guides that are genuinely any one of them.
+    const picks = ["wild", "drive", "eat", "islands", "high", "stay"]
+    const s = shelf({ shapes: picks, budget: "smart_mix", month: null })
+    assert.equal(s.relaxed, null)
+    const shown = s.guides.map((g) => g.slug)
+    const covered = new Set<string>()
+    for (const g of s.guides) {
+      const hit = picks.filter((p) => shapeMissFor(g, p) <= 1)
+      assert.ok(hit.length > 0, `${g.title} answers none of the picks at tier 0-1`)
+      for (const p of hit) covered.add(p)
+    }
+    assert.ok(
+      covered.size >= 3,
+      `the shelf should spread across the picks, covered only ${[...covered].join(", ")} (${shown.join(", ")})`
+    )
+    assert.ok(
+      !(shown.includes("lofoten-by-ferry") && shown.includes("faroe-islands-eight-days-of-weather")),
+      `the reported Arctic pair came back together: ${shown.join(", ")}`
+    )
   })
 
   test("the screen is never empty, whatever is asked", () => {

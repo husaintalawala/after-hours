@@ -701,12 +701,26 @@ function sortKey(guide: RankableGuide, index: number, a: RankingAnswers): number
   // is the unfixed half, and it is what returned a safari for a beach.
   //
   // Each pick now scores 0…4 by how directly the guide is that kind of trip
-  // (see shapeMissFor) instead of 0…1 by whether a tag is present. Sorted
-  // before summing so a shared fixture prints the same per-shape tiers on both
-  // platforms; addition commutes, but a test that reports them does not.
-  const shapeMiss = !a.shapes.size
-    ? 0
-    : [...a.shapes].sort().reduce((n, s) => n + shapeMissFor(guide, s), 0)
+  // (see shapeMissFor) instead of 0…1 by whether a tag is present.
+  //
+  // THE SUM WAS AN INTERSECTION, AND THE PICKS ARE A UNION. Summing the tiers
+  // read several chips as "one trip that is all of these", but the screen says
+  // "pick as many as fit" — six chips mean ANY of these. A sum is won by the
+  // guide with a little SETTING evidence on many chips rather than real
+  // evidence on one: arctic, islands and mountains buy tier 3 on three chips at
+  // once, so a reader who picked six of the seven was shown Lofoten by ferry,
+  // the Faroe Islands and a third cold northern island.
+  //
+  // So: HOW WELL IT ANSWERS THE PICK IT SERVES BEST, then how many picks it has
+  // no real evidence for — `best × 10 + unmet`, where unmet is tier 2 or worse.
+  // For a SINGLE pick that is 0, 10, 21, 31, 41 — the same order as the old
+  // 0…4, so no single-pick shelf moves. Seven picks cannot carry `unmet` into
+  // the tens. Sorted first so a shared fixture prints the same per-shape tiers
+  // on both platforms.
+  const tiers = [...a.shapes].sort().map((s) => shapeMissFor(guide, s))
+  const shapeMiss = tiers.length
+    ? Math.min(...tiers) * 10 + tiers.filter((t) => t > 1).length
+    : 0
   // HOW MUCH OF THE TRIP IS THAT SHAPE — the LAST tie-break, not the first.
   //
   // It was first. Folded into the shape term, it sat above party, so for the
@@ -857,10 +871,17 @@ export interface Shelf<T> {
   relaxed: "style" | "length" | "season" | "shape" | null
 }
 
-/** Guides whose SHAPE genuinely matches: tier 0 or 1 on every pick. */
+/**
+ * Guides whose SHAPE genuinely matches: tier 0 or 1 on ANY pick.
+ *
+ * It was EVERY pick, and no guide in the corpus is six kinds of trip, so a
+ * reader who picked six always fell through to the widened branch — under "the
+ * closest trips to what you picked", with three Arctic islands. The picks are a
+ * union; a guide that is really one of them is really an answer.
+ */
 function clearsTheFloor(guide: RankableGuide, a: RankingAnswers): boolean {
   if (!a.shapes.size) return true
-  return [...a.shapes].every((s) => shapeMissFor(guide, s) <= 1)
+  return [...a.shapes].some((s) => shapeMissFor(guide, s) <= 1)
 }
 
 /**
@@ -877,7 +898,8 @@ function clearsTheFloor(guide: RankableGuide, a: RankingAnswers): boolean {
  * Better to show two good ones than three where one is wrong: a reader forgives
  * a short list and remembers a bad recommendation.
  *
- * THE FLOOR IS THE SHAPE, and only the shape. Length, budget, pace and season
+ * THE FLOOR IS THE SHAPE, and only the shape: tier 0 or 1 on ANY pick (see
+ * clearsTheFloor). Length, budget, pace and season
  * are graded — hard-gating a graded attribute over a ninety-item corpus empties
  * the screen, which is the mirror-image bug. A guide that is genuinely the kind
  * of trip you asked for but slightly out of season still belongs on the shelf;
@@ -902,12 +924,35 @@ export function shelfFor<T extends RankableGuide>(
     (g) => answers.departureMonth === null || !g.blackoutMonths.includes(answers.departureMonth)
   )
   const ranked = open.length ? open : rankGuides(guides, answers)
+  const picks = [...answers.shapes]
+  const hits = (g: RankableGuide) => picks.filter((s) => shapeMissFor(g, s) <= 1)
   const clean = ranked.filter((g) => clearsTheFloor(g, answers))
-  if (clean.length > 0) return { guides: clean.slice(0, size), relaxed: null }
+  if (clean.length > 0) {
+    // SPREAD ACROSS THE PICKS. A guide is taken first only if it answers a pick
+    // the cards already taken do not, then the rest fill in rank order. Three
+    // road trips for somebody who also picked food and islands is the same
+    // fault as three Arctic islands, one step milder. With no picks or one pick
+    // this is exactly `clean.slice(0, size)`.
+    const shown: T[] = []
+    const covered = new Set<string>()
+    for (const g of clean) {
+      if (shown.length >= size) break
+      const h = hits(g)
+      if (h.some((s) => !covered.has(s))) {
+        shown.push(g)
+        for (const s of h) covered.add(s)
+      }
+    }
+    for (const g of clean) {
+      if (shown.length >= size) break
+      if (!shown.includes(g)) shown.push(g)
+    }
+    return { guides: shown, relaxed: null }
+  }
 
   // Nothing is the right kind of trip. Widen once, and say so.
   const widened = ranked.filter(
-    (g) => !answers.shapes.size || [...answers.shapes].every((s) => shapeMissFor(g, s) <= 3)
+    (g) => !answers.shapes.size || [...answers.shapes].some((s) => shapeMissFor(g, s) <= 3)
   )
   if (widened.length > 0) return { guides: widened.slice(0, size), relaxed: "shape" }
 

@@ -266,7 +266,11 @@ export function Backdrop({
         />
       </div>
 
-      {cover.credit && (
+      {/* NOT on the blurred branch. There the photograph is softened and
+          darkened into a field of colour, and no recognisable photo is on
+          screen to credit — a label naming a source over an abstract wash reads
+          as a caption for nothing. Mirrors DaybreakBackdrop on iOS. */}
+      {cover.credit && !behindPhotos && (
         // pointer-events-none on the strip, auto on the chip: this layer spans
         // the top of the screen above the chrome, and without it the back
         // button underneath would stop responding.
@@ -673,7 +677,7 @@ export function StyleStep({
     },
     {
       eyebrow: "Budget",
-      title: "Where would you spend?",
+      title: "How do you like\nto spend on a trip?",
       subtitle: "Your spending style.",
       options: BUDGET_STYLES,
       value: budget,

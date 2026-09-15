@@ -24,8 +24,11 @@ import { useEffect, useRef, useState } from "react"
  * face, so it satisfies neither clause, and Production API access is granted by
  * a human reviewing screenshots of your attribution.
  *
- * So: collapsed, it is a small chip that still says "Unsplash" — the word does
- * the §4 work in about 80px instead of 300. Tapped, it expands to the full
+ * So: collapsed, it is a plain label that still says "Photo: Unsplash" — the word
+ * does the §4 work in about 80px instead of 300. NO PILL AND NO CAMERA: the
+ * capsule and icon made a caption read as a control, and on a hero it was one
+ * more dark shape on the photograph. White at 75% with a soft text shadow holds
+ * over bright and dark photos alike. Tapped, it expands to the full
  * credit with both links, UTM'd as the guidelines specify. The photographer's
  * name is never more than one tap away and the full string rides in aria-label
  * for anything reading the page rather than looking at it.
@@ -78,11 +81,13 @@ export default function CoverCredit({
   const service = photographer ? "Unsplash" : isCommons ? "Wikimedia" : "Photo"
 
   const UNSPLASH = "https://unsplash.com/?utm_source=drift&utm_medium=referral"
+  const position =
+    placement === "corner"
+      ? "pointer-events-auto absolute bottom-1.5 right-1.5 z-10"
+      : "relative mt-2.5 w-fit"
   const chip =
     "flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] leading-none text-white/85 backdrop-blur-sm " +
-    (placement === "corner"
-      ? "pointer-events-auto absolute bottom-1.5 right-1.5 z-10"
-      : "relative mt-2.5 w-fit")
+    position
 
   if (!open) {
     return (
@@ -95,22 +100,9 @@ export default function CoverCredit({
           setOpen(true)
         }}
         aria-label={`${text}. Show photo credit.`}
-        className={`${chip} transition-colors hover:bg-black/65`}
+        className={`${position} text-[10px] font-medium leading-none text-white/75 transition-colors [text-shadow:0_1px_3px_rgba(0,0,0,0.6)] hover:text-white`}
       >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-3 w-3"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M4 8.5h3.2L8.8 6h6.4l1.6 2.5H20a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1Z" />
-          <circle cx="12" cy="13.2" r="3.1" />
-        </svg>
-        {service}
+        {service === "Photo" ? "Photo credit" : `Photo: ${service}`}
       </button>
     )
   }
