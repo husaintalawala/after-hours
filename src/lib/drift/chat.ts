@@ -36,6 +36,28 @@ export interface ChatCard {
   proposed_op?: ProposedOp | null
 }
 
+/** One place on a planned day, as ask-drift-chat sends it. */
+export interface AskItineraryPlace {
+  name: string
+  why: string
+  place_query: string
+  type: "spot" | "activity" | "food" | "stay"
+  time: string | null // "HH:MM"
+}
+
+export interface AskItineraryDay {
+  title: string
+  date: string | null // "yyyy-MM-dd", already clamped to the trip server-side
+  destination_ref: string | null
+  places: AskItineraryPlace[]
+}
+
+/** A day-by-day plan drafted in a trip chat. null for anything that is not one. */
+export interface AskItinerary {
+  title: string
+  days: AskItineraryDay[]
+}
+
 export interface ChatAnswer {
   assistant_text: string
   title: string
@@ -45,6 +67,71 @@ export interface ChatAnswer {
   cards: ChatCard[]
   followups: string[]
   reply_chips?: string[]
+  /** Newer ask-drift-chat only. Absent on an older deploy — always optional. */
+  itinerary?: AskItinerary | null
+}
+
+const ITINERARY_TYPES = new Set(["spot", "activity", "food", "stay"])
+const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "")
+
+/**
+ * The `itinerary` field, shaped into something renderable or null.
+ *
+ * TOLERANT, like coerceItinerary in generalChat.ts: this is model output that
+ * crossed a JSON boundary, and the backend that sends it may not be deployed.
+ * A place without a name is dropped, a day without places is dropped, a plan
+ * without days is null — and a bad date, type or time degrades that one field
+ * rather than discarding the plan.
+ */
+export function normalizeItinerary(raw: unknown): AskItinerary | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+  const o = raw as Record<string, unknown>
+  const days: AskItineraryDay[] = (Array.isArray(o.days) ? o.days : []).flatMap((rd) => {
+    if (!rd || typeof rd !== "object") return []
+    const d = rd as Record<string, unknown>
+    const places: AskItineraryPlace[] = (Array.isArray(d.places) ? d.places : []).flatMap((rp) => {
+      if (!rp || typeof rp !== "object") return []
+      const p = rp as Record<string, unknown>
+      const name = str(p.name)
+      if (!name) return []
+      const type = str(p.type)
+      const time = str(p.time)
+      return [
+        {
+          name,
+          why: str(p.why),
+          place_query: str(p.place_query) || name,
+          type: (ITINERARY_TYPES.has(type) ? type : "spot") as AskItineraryPlace["type"],
+          time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : null,
+        },
+      ]
+    })
+    if (!places.length) return []
+    const date = str(d.date)
+    return [
+      {
+        title: str(d.title),
+        date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+        destination_ref: str(d.destination_ref) || null,
+        places,
+      },
+    ]
+  })
+  if (!days.length) return null
+  return { title: str(o.title), days }
+}
+
+/** Arrays where the renderer expects arrays, and `itinerary` normalized. */
+export function normalizeAnswer(raw: unknown): ChatAnswer {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>
+  return {
+    ...(o as unknown as ChatAnswer),
+    assistant_text: typeof o.assistant_text === "string" ? o.assistant_text : "",
+    cards: Array.isArray(o.cards) ? (o.cards as ChatCard[]) : [],
+    followups: Array.isArray(o.followups) ? (o.followups as string[]) : [],
+    reply_chips: Array.isArray(o.reply_chips) ? (o.reply_chips as string[]) : [],
+    itinerary: normalizeItinerary(o.itinerary),
+  }
 }
 
 export interface AskRequestBody {
@@ -228,7 +315,7 @@ function handleFrame(frame: string, handlers: AskHandlers): boolean {
         break
       }
       case "payload": {
-        handlers.onPayload?.(JSON.parse(dataStr) as ChatAnswer)
+        handlers.onPayload?.(normalizeAnswer(JSON.parse(dataStr)))
         break
       }
       case "status": {
@@ -374,7 +461,7 @@ async function blockingAsk(body: AskRequestBody, signal?: AbortSignal): Promise<
     }
     throw new AskError(message || `ask failed: ${res.status}`, code)
   }
-  return (await res.json()) as ChatAnswer
+  return normalizeAnswer(await res.json())
 }
 
 /**

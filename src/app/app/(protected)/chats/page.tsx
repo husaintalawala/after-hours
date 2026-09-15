@@ -102,9 +102,12 @@ async function ChatsContent({ ask }: { ask?: string }) {
       // page is already a server component running four queries in parallel, so
       // a fifth costs no latency — which is the whole reason the prompts are
       // computed here rather than in the browser the way iOS has to.
+      // party/shapes/notes ride along for the general chat's prompt, so it
+      // never asks who is going or what they like (not in database.types.ts —
+      // added by Drift 20260912190000 — hence the explicit row type).
       supabase
         .from("user_travel_preferences")
-        .select("travel_rhythm,budget_style,mobility_style,food_moods,priorities")
+        .select("travel_rhythm,budget_style,mobility_style,food_moods,priorities,party,shapes,notes")
         .eq("user_id", user.id)
         .maybeSingle<{
           travel_rhythm: string | null
@@ -112,6 +115,9 @@ async function ChatsContent({ ask }: { ask?: string }) {
           mobility_style: string | null
           food_moods: string[] | null
           priorities: string[] | null
+          party: string | null
+          shapes: string[] | null
+          notes: string | null
         }>(),
     ])
   const sessions = (sessionsRaw ?? []) as SessionRow[]
@@ -199,6 +205,8 @@ async function ChatsContent({ ask }: { ask?: string }) {
     title: t.title,
     photo: coverFor(t),
     start: t.start_date,
+    end: t.end_date,
+    city: t.cities?.[0] ?? null,
     dateRange: [fmtShort(t.start_date), fmtShort(t.end_date)].filter(Boolean).join(" – "),
     destinations: (destByTrip.get(t.id) ?? []).map((d) => ({
       id: d.id,
@@ -331,6 +339,19 @@ async function ChatsContent({ ask }: { ask?: string }) {
       initialAsk={ask ?? null}
       prompts={prompts}
       homeCity={profile?.home_city ?? null}
+      prefs={
+        prefsRow
+          ? {
+              party: prefsRow.party,
+              travel_rhythm: prefsRow.travel_rhythm,
+              budget_style: prefsRow.budget_style,
+              mobility_style: prefsRow.mobility_style,
+              food_moods: prefsRow.food_moods,
+              shapes: prefsRow.shapes,
+              notes: prefsRow.notes,
+            }
+          : null
+      }
     />
   )
 }

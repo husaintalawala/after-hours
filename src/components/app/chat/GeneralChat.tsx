@@ -1,16 +1,27 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { renderRich } from "@/lib/drift/richText"
-import ItineraryCard from "@/components/app/chat/ItineraryCard"
+import ItineraryCard, { itineraryRowKey } from "@/components/app/chat/ItineraryCard"
+import ChatBanner, { useChatBanner } from "@/components/app/chat/ChatBanner"
 import {
   askGeneral,
+  chooseTripForItinerary,
   flattenTurns,
   generalSystemPrompt,
   type ChatItinerary,
   type GeneralTrip,
+  type ItineraryPlace,
+  type TravelPrefs,
 } from "@/lib/drift/generalChat"
 import { createGeneralSession, loadSessionMessages, saveMessage } from "@/lib/drift/chatStore"
+import type { PlaceCandidate } from "@/lib/drift/chat"
+import { applyCreateStep, applyRemoveStep } from "@/lib/drift/quickOp"
+import { createTripFromItinerary, ensureDestination } from "@/lib/drift/createTripFromItinerary"
+import { addDaysISO, dayDateFor, pickDestinationId, shortDate } from "@/lib/drift/itineraryPlacement"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { checkTripActivated } from "@/lib/drift/activation"
 
 /**
  * A thread about nothing in particular — the web's `general` chat.
@@ -38,6 +49,7 @@ export default function GeneralChat({
   homeCity,
   initialSend,
   prompts = [],
+  prefs = null,
 }: {
   trips: GeneralTrip[]
   homeCity?: string | null
@@ -45,7 +57,149 @@ export default function GeneralChat({
   initialSend?: string | null
   /** Offered when the thread is empty; tapping one sends it. */
   prompts?: string[]
+  /** The first-run answers, so the assistant never asks for them again. */
+  prefs?: TravelPrefs | null
 }) {
+  const router = useRouter()
+  /** Trips this thread created from an Add, until the page's own list has them. */
+  const createdTripsRef = useRef<GeneralTrip[]>([])
+  /** Destinations this thread had to create, by trip id. */
+  const createdDestRef = useRef<Record<string, string>>({})
+  // Adds report through the banner; `added` maps "<msgId>|<row>" → step id
+  // (or "trip:<id>" for a place that started a trip) so Undo flips rows back.
+  const banner = useChatBanner()
+  const [added, setAdded] = useState<Record<string, string>>({})
+
+  async function undoSteps(tripId: string, stepIds: string[]): Promise<string[]> {
+    const failed: string[] = []
+    for (const id of stepIds) {
+      try {
+        await applyRemoveStep(tripId, id)
+      } catch {
+        failed.push(id)
+      }
+    }
+    const gone = new Set(stepIds.filter((id) => !failed.includes(id)))
+    setAdded((a) => Object.fromEntries(Object.entries(a).filter(([, s]) => !gone.has(s))))
+    return failed
+  }
+
+  /**
+   * Add one plan place — to the trip going there, else the next trip, else a
+   * new trip holding just this place. Decided, never asked; the banner names
+   * the trip it went to and offers Undo.
+   */
+  async function addFromPlan(
+    msgId: string,
+    itin: ChatItinerary,
+    place: ItineraryPlace,
+    dayIndex: number,
+    cand: PlaceCandidate | null
+  ): Promise<void> {
+    const rowKey = `${msgId}|${itineraryRowKey(dayIndex, place.name)}`
+    const again = () => void addFromPlan(msgId, itin, place, dayIndex, cand)
+    const fail = () =>
+      banner.fail({ tripId: null, title: `Couldn’t add ${place.name} — try again` }, again)
+    const pool = [
+      ...trips.filter((t) => t.id),
+      ...createdTripsRef.current.filter((c) => !trips.some((t) => t.id === c.id)),
+    ]
+    const today = new Date().toISOString().slice(0, 10)
+    const target = chooseTripForItinerary(pool, itin, today)
+
+    if (!target?.id) {
+      const single: ChatItinerary = {
+        ...itin,
+        startDate: itin.startDate ? addDaysISO(itin.startDate, dayIndex) : null,
+        days: [{ title: itin.days[dayIndex]?.title ?? "", places: [place] }],
+      }
+      const coords = cand
+        ? { [place.name]: { lat: cand.latitude ?? null, lng: cand.longitude ?? null, placeId: cand.id || null } }
+        : {}
+      const res = await createTripFromItinerary(single, coords)
+      if ("error" in res) return fail()
+      createdTripsRef.current.push({
+        id: res.tripId,
+        title: single.title,
+        city: itin.destination,
+        country: itin.country,
+        startDate: res.startDate,
+        endDate: res.endDate,
+        destinations: res.destinationId
+          ? [{ id: res.destinationId, date: res.startDate, nights: 1, label: itin.destination }]
+          : [],
+      })
+      capture(AnalyticsEvent.AddToItinerary, { source: "chat", step_type: "spot", has_day: true })
+      setAdded((a) => ({ ...a, [rowKey]: `trip:${res.tripId}` }))
+      banner.succeed({
+        tripId: res.tripId,
+        tripTitle: single.title,
+        names: [place.name],
+        stepIds: [],
+        title: `Started ${single.title} with ${place.name}`,
+        detail: [itin.destination, itin.country].filter(Boolean).join(", "),
+      })
+      router.refresh()
+      return
+    }
+
+    const tripId = target.id
+    const date = dayDateFor(dayIndex, {
+      dayDate: itin.days[dayIndex]?.date ?? null,
+      planStart: itin.startDate,
+      tripStart: target.startDate,
+      tripEnd: target.endDate ?? null,
+    })
+    let destinationId: string | null =
+      pickDestinationId(target.destinations ?? [], date, itin.destination) ??
+      createdDestRef.current[tripId] ??
+      null
+    if (!destinationId) {
+      destinationId = await ensureDestination(tripId, {
+        city: itin.destination,
+        country: itin.country,
+        date: date ?? target.startDate?.slice(0, 10) ?? null,
+        lat: cand?.latitude ?? null,
+        lng: cand?.longitude ?? null,
+      })
+      if (!destinationId) return fail()
+      createdDestRef.current[tripId] = destinationId
+    }
+    const type = place.type ?? "spot"
+    try {
+      const step = await applyCreateStep(
+        tripId,
+        {
+          op: "create_step",
+          type,
+          title: place.name,
+          destination_id: destinationId,
+          date,
+          time: date ? place.time ?? null : null,
+        },
+        cand
+          ? {
+              name: cand.name || place.name,
+              lat: cand.latitude ?? null,
+              lng: cand.longitude ?? null,
+              place_id: !cand.source || cand.source === "google" ? cand.id : null,
+            }
+          : { name: place.name }
+      )
+      capture(AnalyticsEvent.AddToItinerary, { source: "chat", step_type: type, has_day: !!date })
+      void checkTripActivated(tripId)
+      setAdded((a) => ({ ...a, [rowKey]: step.id }))
+      banner.succeed({
+        tripId,
+        tripTitle: target.title,
+        names: [place.name],
+        stepIds: [step.id],
+        detail: `${place.name} · Day ${dayIndex + 1}${date ? `, ${shortDate(date)}` : ""}`,
+      })
+    } catch {
+      fail()
+    }
+  }
   const [messages, setMessages] = useState<
     Array<{ id: string; role: "user" | "assistant"; text: string; itinerary?: ChatItinerary | null }>
   >([])
@@ -80,7 +234,7 @@ export default function GeneralChat({
     if (sid) void saveMessage(sid, null, "user", text)
 
     const { text: answer, itinerary, error } = await askGeneral(
-      generalSystemPrompt({ trips, homeCity }),
+      generalSystemPrompt({ trips, homeCity, prefs }),
       flattenTurns(history)
     )
 
@@ -140,7 +294,8 @@ export default function GeneralChat({
   const empty = messages.length === 0 && !busy
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
+      <ChatBanner api={banner} onUndo={undoSteps} className="top-3" />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
         <div className="mx-auto w-full max-w-[680px]">
           {empty && (
@@ -190,7 +345,13 @@ export default function GeneralChat({
                 }
               >
                 {m.role === "assistant" ? renderRich(m.text) : m.text}
-                {m.itinerary && <ItineraryCard itin={m.itinerary} />}
+                {m.itinerary && (
+                  <ItineraryCard
+                    itin={m.itinerary}
+                    isAdded={(key) => !!added[`${m.id}|${key}`]}
+                    onAdd={(p, i, c) => addFromPlan(m.id, m.itinerary!, p, i, c)}
+                  />
+                )}
               </div>
             </div>
           ))}

@@ -3,28 +3,51 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { placePhotoUrl, resolvePlace, type PlaceCandidate } from "@/lib/drift/chat"
-import type { ChatItinerary } from "@/lib/drift/generalChat"
+import type { ChatItinerary, ItineraryPlace } from "@/lib/drift/generalChat"
 import { createTripFromItinerary, type ResolvedPlace } from "@/lib/drift/createTripFromItinerary"
+import { shortDate } from "@/lib/drift/itineraryPlacement"
+
+/** The row identity `isAdded` is asked about — unique within one plan. */
+export function itineraryRowKey(dayIndex: number, name: string): string {
+  return `${dayIndex}:${name}`
+}
 
 /**
  * A plan the assistant laid out, drawn as days rather than printed as JSON.
  *
- * The model is told to append its itinerary as one machine block, and the whole
- * point of asking for a block instead of prose is that the app can render it:
- * days as sections, places as rows with their own photograph, and one button
- * that turns the lot into a real trip. Without this the block is stripped and
- * thrown away, which is a worse answer than never asking for it — the reader
- * gets a paragraph where they were promised a plan.
+ * ONE LOOK FOR EVERY CHAT. The general chat's machine block and ask-drift-chat's
+ * `itinerary` field both land here: days as sections, places as rows with their
+ * own photograph, a Map link and an Add button. Where Add writes is the
+ * caller's: it reports through the chat's banner (with Undo) and tells this
+ * card which rows are added, so an Undo from the banner flips a row back.
  *
- * ONLY THE TAP SAVES IT. The system prompt tells the model it cannot save a
- * trip itself and must never claim it has; this button is the other half of
- * that promise, so "Create this trip" is the first moment anything is written.
+ * NOTHING ASKS FIRST. A trip chat passes `addAllTo`/`onAddAll`, which replace
+ * "Create this trip" with one "Add all to <trip>" — a trip chat must never mint
+ * a second trip. A general chat keeps "Create this trip".
  */
-export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
+export default function ItineraryCard({
+  itin,
+  onAdd,
+  isAdded,
+  onAddAll,
+  addAllTo,
+}: {
+  itin: ChatItinerary
+  /** Per-place Add. Absent = no Add buttons. */
+  onAdd?: (place: ItineraryPlace, dayIndex: number, candidate: PlaceCandidate | null) => Promise<void>
+  /** Whether the row `itineraryRowKey(day, name)` is already added. */
+  isAdded?: (rowKey: string) => boolean
+  /** Add every place not yet added, given whatever photos/coords resolved. */
+  onAddAll?: (resolved: Record<string, PlaceCandidate>) => Promise<void>
+  /** Trip name — shows "Add all to <name>" in place of "Create this trip". */
+  addAllTo?: string
+}) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resolved, setResolved] = useState<Record<string, PlaceCandidate>>({})
+  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({})
+  const [allBusy, setAllBusy] = useState(false)
 
   const places = itin.days.flatMap((d) => d.places)
   const hydratedRef = useRef(false)
@@ -53,14 +76,41 @@ export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
     // screen. A setState on an unmounted component is a harmless no-op in
     // React 18; a dropped result is not.
     void Promise.all(
-      places.slice(0, 12).map(async (p) => {
-        const cand = await resolvePlace(p.name, itin.destination, itin.country ?? undefined)
-        if (!cand) return
-        setResolved((r) => (r[p.name] ? r : { ...r, [p.name]: cand }))
-      })
+      itin.days
+        .flatMap((d) => d.places.map((p) => ({ p, where: d.destinationRef || itin.destination })))
+        .slice(0, 12)
+        .map(async ({ p, where }) => {
+          const cand = await resolvePlace(p.query || p.name, where, itin.country ?? undefined)
+          if (!cand) return
+          setResolved((r) => (r[p.name] ? r : { ...r, [p.name]: cand }))
+        })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function addOne(dayIndex: number, p: ItineraryPlace) {
+    const key = itineraryRowKey(dayIndex, p.name)
+    if (!onAdd || rowBusy[key] || isAdded?.(key)) return
+    setRowBusy((r) => ({ ...r, [key]: true }))
+    try {
+      await onAdd(p, dayIndex, resolved[p.name] ?? null)
+    } finally {
+      setRowBusy((r) => ({ ...r, [key]: false }))
+    }
+  }
+
+  async function addAll() {
+    if (!onAddAll || allBusy) return
+    setAllBusy(true)
+    try {
+      await onAddAll(resolved)
+    } finally {
+      setAllBusy(false)
+    }
+  }
+
+  const allAdded =
+    !!isAdded && itin.days.every((d, i) => d.places.every((p) => isAdded(itineraryRowKey(i, p.name))))
 
   async function create() {
     if (busy) return
@@ -92,9 +142,9 @@ export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
           {itin.title}
         </h3>
         <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-aurora-ink3">
+          {itin.destination ? `${itin.destination} · ` : ""}
           {itin.days.length} {itin.days.length === 1 ? "day" : "days"} &middot; {places.length}{" "}
           {places.length === 1 ? "place" : "places"}
-          {itin.country ? ` · ${itin.country}` : ""}
         </p>
       </header>
 
@@ -103,12 +153,18 @@ export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
           <li key={`${day.title}-${i}`} className="px-4 py-3.5">
             <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-aurora-teal">
               Day {i + 1}
+              {day.date ? ` · ${shortDate(day.date)}` : ""}
               {day.title ? ` · ${day.title}` : ""}
             </p>
             <ul className="mt-2.5 space-y-2.5">
               {day.places.map((p) => {
                 const cand = resolved[p.name]
                 const photo = cand ? placePhotoUrl(cand) : null
+                const key = itineraryRowKey(i, p.name)
+                const added = !!isAdded?.(key)
+                const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  p.query || [p.name, day.destinationRef || itin.destination].filter(Boolean).join(" ")
+                )}`
                 return (
                   <li key={p.name} className="flex items-start gap-3">
                     {/* The thumbnail is its own element whether or not a photo
@@ -127,6 +183,7 @@ export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13.5px] font-semibold leading-snug text-aurora-ink">
+                        {p.time ? <span className="mr-1.5 font-mono text-[11px] text-aurora-ink3">{p.time}</span> : null}
                         {p.name}
                       </span>
                       {p.why && (
@@ -139,6 +196,36 @@ export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
                           ★ {cand.rating.toFixed(1)}
                         </span>
                       )}
+                      <span className="mt-2 flex flex-wrap items-center gap-2">
+                        {onAdd &&
+                          (added ? (
+                            <span
+                              aria-label={`${p.name} added`}
+                              className="rounded-full border border-aurora-teal/40 px-3 py-1 text-[12px] font-semibold text-aurora-teal"
+                            >
+                              ✓ Added
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void addOne(i, p)}
+                              disabled={!!rowBusy[key] || allBusy}
+                              aria-label={`Add ${p.name}`}
+                              className="rounded-full bg-aurora-teal px-3 py-1 text-[12px] font-bold text-aurora-teal-ink disabled:opacity-50"
+                            >
+                              {rowBusy[key] ? "Adding…" : "Add"}
+                            </button>
+                          ))}
+                        <a
+                          href={mapHref}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`${p.name} on the map`}
+                          className="rounded-full border border-aurora-border px-3 py-1 text-[12px] font-medium text-aurora-ink2"
+                        >
+                          Map
+                        </a>
+                      </span>
                     </span>
                   </li>
                 )
@@ -149,15 +236,26 @@ export default function ItineraryCard({ itin }: { itin: ChatItinerary }) {
       </ol>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-aurora-border px-4 py-3.5">
-        <button
-          type="button"
-          onClick={() => void create()}
-          disabled={busy}
-          className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-        >
-          {busy ? "Creating…" : `Create ${itin.destination} trip`}
-          {!busy && <span aria-hidden="true">&rarr;</span>}
-        </button>
+        {addAllTo && onAddAll ? (
+          <button
+            type="button"
+            onClick={() => void addAll()}
+            disabled={allBusy || allAdded}
+            className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+          >
+            {allAdded ? "✓ All added" : allBusy ? "Adding…" : `Add all to ${addAllTo}`}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void create()}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+          >
+            {busy ? "Creating…" : `Create ${itin.destination} trip`}
+            {!busy && <span aria-hidden="true">&rarr;</span>}
+          </button>
+        )}
         {error && <span className="text-[12.5px] text-aurora-ink3">{error}</span>}
       </div>
     </section>

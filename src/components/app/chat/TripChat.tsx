@@ -18,6 +18,12 @@ import { ensureTripSession, loadTripMessages, saveMessage, getCurrentUserId, loa
 from "@/lib/drift/chatStore"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import { checkTripActivated } from "@/lib/drift/activation"
+import ItineraryCard, { itineraryRowKey } from "@/components/app/chat/ItineraryCard"
+import ChatBanner, { useChatBanner } from "@/components/app/chat/ChatBanner"
+import type { AskItinerary } from "@/lib/drift/chat"
+import type { ChatItinerary, ItineraryPlace } from "@/lib/drift/generalChat"
+import { dayDateFor, lastDestinationDay, pickDestinationId } from "@/lib/drift/itineraryPlacement"
+import { ensureDestination } from "@/lib/drift/createTripFromItinerary"
 
 // Trip-scoped Ask Drift: streaming answers, photo place-card carousel
 // (hydrated via resolve-place, like DriftChatView), "You might want to ask"
@@ -46,11 +52,14 @@ interface Msg {
   cards?: HydratedCard[]
   followups?: string[]
   replyChips?: string[]
+  /** A drafted day-by-day plan (ask-drift-chat `itinerary`). */
+  itinerary?: ChatItinerary | null
 }
 
 export default function TripChat({
   tripId,
   tripTitle,
+  tripStart,
   destinations,
   country,
   fill = false,
@@ -197,7 +206,22 @@ export default function TripChat({
   const [busy, setBusy] = useState(false)
   /** The in-flight turn, so the composer's STOP button can cancel it. */
   const abortRef = useRef<AbortController | null>(null)
-  const [undo, setUndo] = useState<{ label: string; stepId: string } | null>(null)
+  // Every add reports through the banner (with Undo) — nothing is posted into
+  // the transcript. `added` maps "<msgId>|<row>" → the step it wrote, so an
+  // Undo from the banner flips exactly those Add buttons back.
+  const banner = useChatBanner()
+  const addedRef = useRef<Record<string, string>>({})
+  const [added, setAdded] = useState<Record<string, string>>({})
+  const markAdded = (key: string, stepId: string) => {
+    addedRef.current = { ...addedRef.current, [key]: stepId }
+    setAdded(addedRef.current)
+  }
+  const unmarkSteps = (ids: Set<string>) => {
+    addedRef.current = Object.fromEntries(
+      Object.entries(addedRef.current).filter(([, s]) => !ids.has(s))
+    )
+    setAdded(addedRef.current)
+  }
   const [error, setError] = useState<string | null>(null)
   const seq = useRef(0)
   const nextId = () => `m${seq.current++}`
@@ -286,6 +310,13 @@ export default function TripChat({
               cards: answer.cards as HydratedCard[],
               followups: answer.followups,
               replyChips: answer.reply_chips,
+              itinerary: answer.itinerary
+                ? toCardItinerary(answer.itinerary, {
+                    tripTitle,
+                    country: country ?? null,
+                    fallbackDestination: destinations[0]?.label ?? null,
+                  })
+                : null,
             },
           ])
           setStreaming(null)
@@ -330,7 +361,7 @@ export default function TripChat({
     setBusy(false)
   }
 
-  async function confirmCard(card: HydratedCard) {
+  async function confirmCard(msgId: string, cardIndex: number, card: HydratedCard) {
     // Every suggestion card is addable. Cards with a proposed_op carry the
     // model's date/time/type; itinerary/route cards arrive without one, so we
     // synthesize a plain create_step from the card itself (spot, no schedule).
@@ -347,18 +378,7 @@ export default function TripChat({
       duration_minutes: p?.duration_minutes ?? null,
       notes: p?.notes ?? null,
     }
-    // resolved_place: coords always; place_id only for Google-sourced ids
-    // (OSM/Geonames ids are deliberately not sent — iOS parity).
-    const cand = card.candidate
-    const resolved = cand
-      ? {
-          name: cand.name || card.title,
-          lat: cand.latitude ?? null,
-          lng: cand.longitude ?? null,
-          place_id:
-            !cand.source || cand.source === "google" ? cand.id : null,
-        }
-      : { name: card.title }
+    const resolved = resolvedPlaceFor(card.candidate, card.title)
     try {
       const step = await applyCreateStep(tripId, op, resolved)
       // The other half of add_to_itinerary: confirming a chat suggestion card.
@@ -370,28 +390,170 @@ export default function TripChat({
         has_day: !!op.date,
       })
       void checkTripActivated(tripId)
-      setUndo({ label: `Added ${op.title}`, stepId: step.id })
-      setMessages((m) =>
-        m.map((msg) =>
-          msg.cards ? { ...msg, cards: msg.cards.filter((c) => c !== card) } : msg
-        )
+      markAdded(`${msgId}|card:${cardIndex}`, step.id)
+      banner.succeed({
+        tripId,
+        tripTitle,
+        names: [op.title],
+        stepIds: [step.id],
+        detail: op.date ? `${op.title} · ${shortDate(op.date)}` : op.title,
+      })
+      scheduleRefresh()
+    } catch {
+      banner.fail({ tripId, tripTitle, title: `Couldn’t add ${op.title} — try again` }, () =>
+        void confirmCard(msgId, cardIndex, card)
       )
-      router.refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't add that.")
     }
   }
 
-  async function doUndo() {
-    if (!undo) return
-    const { stepId } = undo
-    setUndo(null)
-    try {
-      await applyRemoveStep(tripId, stepId)
-      router.refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't undo.")
+  // One refresh after a burst of writes, not one per write — "Add all" makes a
+  // dozen in a row and each refresh re-runs the trip page's server queries.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scheduleRefresh = () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    refreshTimer.current = setTimeout(() => router.refresh(), 600)
+  }
+  /** A destination this thread had to create, reused by every later add. */
+  const createdDestRef = useRef<string | null>(null)
+
+  /**
+   * Add one itinerary place to THIS trip, now.
+   *
+   * The day is the plan's own date when it has one, else the day's offset from
+   * the trip start; the parent is the destination covering that day. A trip
+   * with no destination gets one (iOS addPlaceNow) rather than a question.
+   */
+  async function writeItineraryPlace(
+    itin: ChatItinerary,
+    place: ItineraryPlace,
+    dayIndex: number,
+    cand: PlaceCandidate | null
+  ): Promise<{ stepId: string; date: string | null } | null> {
+    const day = itin.days[dayIndex]
+    const date = dayDateFor(dayIndex, {
+      dayDate: day?.date ?? null,
+      tripStart,
+      tripEnd: lastDestinationDay(destinations),
+    })
+    let destinationId =
+      pickDestinationId(destinations, date, day?.destinationRef) ?? createdDestRef.current
+    if (!destinationId) {
+      destinationId = await ensureDestination(tripId, {
+        city: day?.destinationRef || itin.destination,
+        country: country ?? null,
+        date: date ?? dateOnly(tripStart),
+        lat: cand?.latitude ?? null,
+        lng: cand?.longitude ?? null,
+      })
+      if (!destinationId) return null
+      createdDestRef.current = destinationId
     }
+    const op: CreateStepOp = {
+      op: "create_step",
+      type: normalizeType(place.type ?? "spot"),
+      title: place.name,
+      destination_ref: day?.destinationRef ?? null,
+      destination_id: destinationId,
+      date,
+      time: date ? place.time ?? null : null,
+      duration_minutes: null,
+      notes: null,
+    }
+    try {
+      const step = await applyCreateStep(tripId, op, resolvedPlaceFor(cand, place.name))
+      capture(AnalyticsEvent.AddToItinerary, { source: "chat", step_type: op.type, has_day: !!date })
+      void checkTripActivated(tripId)
+      scheduleRefresh()
+      return { stepId: step.id, date }
+    } catch {
+      return null
+    }
+  }
+
+  async function addItineraryPlace(
+    msgId: string,
+    itin: ChatItinerary,
+    place: ItineraryPlace,
+    dayIndex: number,
+    cand: PlaceCandidate | null
+  ) {
+    const res = await writeItineraryPlace(itin, place, dayIndex, cand)
+    if (!res) {
+      banner.fail({ tripId, tripTitle, title: `Couldn’t add ${place.name} — try again` }, () =>
+        void addItineraryPlace(msgId, itin, place, dayIndex, cand)
+      )
+      return
+    }
+    markAdded(`${msgId}|${itineraryRowKey(dayIndex, place.name)}`, res.stepId)
+    banner.succeed({
+      tripId,
+      tripTitle,
+      names: [place.name],
+      stepIds: [res.stepId],
+      detail: `${place.name} · Day ${dayIndex + 1}${res.date ? `, ${shortDate(res.date)}` : ""}`,
+    })
+  }
+
+  /** "Add all to <trip>": sequential writes under one working banner, which
+   *  becomes one success banner whose Undo removes every step it wrote. */
+  async function addAllItinerary(
+    msgId: string,
+    itin: ChatItinerary,
+    resolved: Record<string, PlaceCandidate>
+  ) {
+    const pending = itin.days
+      .flatMap((d, i) => d.places.map((p) => ({ p, i })))
+      .filter(({ p, i }) => !addedRef.current[`${msgId}|${itineraryRowKey(i, p.name)}`])
+    if (!pending.length) return
+    banner.working(tripId, tripTitle, pending.length)
+    const names: string[] = []
+    const stepIds: string[] = []
+    const days = new Set<number>()
+    let failed = 0
+    for (const [n, { p, i }] of pending.entries()) {
+      const res = await writeItineraryPlace(itin, p, i, resolved[p.name] ?? null)
+      if (res) {
+        markAdded(`${msgId}|${itineraryRowKey(i, p.name)}`, res.stepId)
+        names.push(p.name)
+        stepIds.push(res.stepId)
+        days.add(i)
+      } else {
+        failed++
+      }
+      banner.progress(n + 1)
+    }
+    if (!stepIds.length) {
+      banner.fail({ tripId, tripTitle, title: `Couldn’t add the plan to ${tripTitle} — try again` }, () =>
+        void addAllItinerary(msgId, itin, resolved)
+      )
+      return
+    }
+    banner.succeed({
+      tripId,
+      tripTitle,
+      names,
+      stepIds,
+      title: `Added to ${tripTitle}`,
+      detail:
+        `${names.length} ${names.length === 1 ? "place" : "places"} across ${days.size} ${days.size === 1 ? "day" : "days"}` +
+        (failed ? ` · ${failed} couldn’t be added` : ""),
+    })
+  }
+
+  /** Banner Undo: remove the steps, flip their Add buttons back. Resolves to
+   *  the ids that could not be removed. */
+  async function undoSteps(tid: string, stepIds: string[]): Promise<string[]> {
+    const failed: string[] = []
+    for (const id of stepIds) {
+      try {
+        await applyRemoveStep(tid, id)
+      } catch {
+        failed.push(id)
+      }
+    }
+    unmarkSteps(new Set(stepIds.filter((id) => !failed.includes(id))))
+    scheduleRefresh()
+    return failed
   }
 
   return (
@@ -425,6 +587,9 @@ export default function TripChat({
           </div>
         </div>
       )}
+
+      {/* Action banner: just below the header, over the transcript. */}
+      <ChatBanner api={banner} onUndo={undoSteps} className={bare ? "top-3" : "top-[80px]"} />
 
       <div
         ref={scrollRef}
@@ -509,6 +674,18 @@ export default function TripChat({
                   {renderRich(m.text)}
                 </div>
 
+                {/* Day-by-day plan — the same card the general chat draws, with
+                    Add writing to this trip and "Add all" instead of a new trip. */}
+                {m.itinerary && (
+                  <ItineraryCard
+                    itin={m.itinerary}
+                    addAllTo={tripTitle}
+                    isAdded={(key) => !!added[`${m.id}|${key}`]}
+                    onAdd={(p, i, c) => addItineraryPlace(m.id, m.itinerary!, p, i, c)}
+                    onAddAll={(resolved) => addAllItinerary(m.id, m.itinerary!, resolved)}
+                  />
+                )}
+
                 {/* Place-card carousel */}
                 {m.cards && m.cards.length > 0 && (
                   <div className="-mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -516,7 +693,8 @@ export default function TripChat({
                       <PlaceCardView
                         key={`${m.id}-c${i}`}
                         card={card}
-                        onAdd={() => confirmCard(card)}
+                        added={!!added[`${m.id}|card:${i}`]}
+                        onAdd={() => confirmCard(m.id, i, card)}
                       />
                     ))}
                   </div>
@@ -577,15 +755,6 @@ export default function TripChat({
           </p>
         )}
       </div>
-
-      {undo && (
-        <div className="flex items-center justify-between border-t border-drift-divider bg-aurora-glass px-4 py-2 text-sm">
-          <span className="text-drift-muted">{undo.label}</span>
-          <button onClick={doUndo} className="font-medium text-drift-coral">
-            Undo
-          </button>
-        </div>
-      )}
 
       {!atBottom && (
         <button
@@ -737,11 +906,15 @@ async function fileToDataUrl(file: File): Promise<string | null> {
 // One card in the carousel: hero photo, title, why-text, chips, Add/Map pills.
 function PlaceCardView({
   card,
+  added,
   onAdd,
 }: {
   card: HydratedCard
-  onAdd: () => void
+  /** Flips Add to a non-interactive "✓ Added" (and back if undone). */
+  added: boolean
+  onAdd: () => Promise<void>
 }) {
+  const [busy, setBusy] = useState(false)
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     card.map_query || card.place_query || card.title
   )}`
@@ -788,14 +961,33 @@ function PlaceCardView({
           </div>
         )}
         <div className="mt-2.5 flex items-center gap-2">
-          <button
-            onClick={onAdd}
-            className="rounded-full bg-drift-coral px-3 py-1.5 text-[12.5px] font-semibold text-white"
-          >
-            Add
-            {card.proposed_op?.date ? ` · ${shortDate(card.proposed_op.date)}` : ""}
-            {card.proposed_op?.time ? ` ${card.proposed_op.time}` : ""}
-          </button>
+          {added ? (
+            <span
+              aria-label={`${card.title} added`}
+              className="rounded-full border border-drift-coral/40 px-3 py-1.5 text-[12.5px] font-semibold text-drift-coral"
+            >
+              ✓ Added
+            </span>
+          ) : (
+            <button
+              onClick={async () => {
+                if (busy) return
+                setBusy(true)
+                try {
+                  await onAdd()
+                } finally {
+                  setBusy(false)
+                }
+              }}
+              disabled={busy}
+              aria-label={`Add ${card.title}`}
+              className="rounded-full bg-drift-coral px-3 py-1.5 text-[12.5px] font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Adding…" : "Add"}
+              {!busy && card.proposed_op?.date ? ` · ${shortDate(card.proposed_op.date)}` : ""}
+              {!busy && card.proposed_op?.time ? ` ${card.proposed_op.time}` : ""}
+            </button>
+          )}
           <a
             href={mapHref}
             target="_blank"
@@ -822,6 +1014,46 @@ function shortDate(iso: string): string {
 
 function normalizeType(t: string): CreateStepOp["type"] {
   return t === "activity" || t === "food" || t === "stay" ? t : "spot"
+}
+
+/** resolved_place: coords always; place_id only for Google-sourced ids
+ *  (OSM/Geonames ids are deliberately not sent — iOS parity). */
+function resolvedPlaceFor(cand: PlaceCandidate | null | undefined, fallbackName: string) {
+  return cand
+    ? {
+        name: cand.name || fallbackName,
+        lat: cand.latitude ?? null,
+        lng: cand.longitude ?? null,
+        place_id: !cand.source || cand.source === "google" ? cand.id : null,
+      }
+    : { name: fallbackName }
+}
+
+/** ask-drift-chat's plan, in the shape ItineraryCard draws. */
+function toCardItinerary(
+  itin: AskItinerary,
+  opts: { tripTitle: string; country: string | null; fallbackDestination: string | null }
+): ChatItinerary {
+  const destination =
+    itin.days.find((d) => d.destination_ref)?.destination_ref ?? opts.fallbackDestination ?? opts.tripTitle
+  return {
+    destination,
+    country: opts.country,
+    title: itin.title || `${opts.tripTitle} plan`,
+    startDate: itin.days[0]?.date ?? null,
+    days: itin.days.map((d) => ({
+      title: d.title,
+      date: d.date,
+      destinationRef: d.destination_ref,
+      places: d.places.map((p) => ({
+        name: p.name,
+        why: p.why,
+        query: p.place_query,
+        type: p.type,
+        time: p.time,
+      })),
+    })),
+  }
 }
 
 // renderRich (assistant markdown + [label](places:…) links → tappable chips) is

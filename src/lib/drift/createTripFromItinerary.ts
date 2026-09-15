@@ -39,7 +39,10 @@ export async function createTripFromItinerary(
    * one pin, not the trip. Absent, this writes exactly what it wrote before.
    */
   resolved: Record<string, ResolvedPlace> = {}
-): Promise<{ tripId: string } | { error: string }> {
+): Promise<
+  | { tripId: string; destinationId?: string; startDate: string; endDate: string }
+  | { error: string }
+> {
   const supabase = createClient()
   const {
     data: { user },
@@ -113,7 +116,7 @@ export async function createTripFromItinerary(
     console.error("[createTripFromItinerary] insert destination", dest.error)
     // The trip exists and is openable; it simply has no stops yet. Better to
     // hand the reader that than to claim nothing happened.
-    return { tripId }
+    return { tripId, startDate: start, endDate: end }
   }
 
   const spots = itin.days.flatMap((day, i) =>
@@ -136,7 +139,42 @@ export async function createTripFromItinerary(
     if (error) console.error("[createTripFromItinerary] insert spots", error)
   }
 
-  return { tripId }
+  return { tripId, destinationId: destId, startDate: start, endDate: end }
+}
+
+/**
+ * Give a trip with no destination one, so a chat Add has somewhere to hang.
+ *
+ * iOS's addPlaceNow does the same instead of asking "make X your destination?"
+ * — apply-quick-op refuses a stop with no parent, so without this an Add on a
+ * destination-less trip is a dead end. Same row shape as the anchor above.
+ * Owner or accepted buddy may insert steps (RLS), which is who can chat here.
+ */
+export async function ensureDestination(
+  tripId: string,
+  place: { city: string; country: string | null; date: string | null; lat?: number | null; lng?: number | null }
+): Promise<string | null> {
+  const supabase = createClient()
+  const id = crypto.randomUUID()
+  const { error } = await supabase.from("steps").insert({
+    id,
+    trip_id: tripId,
+    // steps.date is NOT NULL; an undated trip anchors on today, as
+    // createTripFromItinerary does above.
+    date: place.date ?? todayISO(),
+    location_name: place.city,
+    step_type: "destination",
+    latitude: place.lat ?? null,
+    longitude: place.lng ?? null,
+    country: place.country,
+    city: place.city,
+    nights: 1,
+  })
+  if (error) {
+    console.error("[ensureDestination] insert destination", error)
+    return null
+  }
+  return id
 }
 
 function todayISO(): string {

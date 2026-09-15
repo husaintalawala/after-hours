@@ -12,10 +12,18 @@
 export interface ItineraryPlace {
   name: string
   why: string
+  /** Lookup string for resolve-place / Maps. Trip-chat plans carry one; the
+   *  general block does not, and the name is used instead. */
+  query?: string
+  type?: "spot" | "activity" | "food" | "stay"
+  time?: string | null
 }
 
 export interface ItineraryDay {
   title: string
+  /** yyyy-MM-dd when the plan pinned this day to a date (trip chat). */
+  date?: string | null
+  destinationRef?: string | null
   places: ItineraryPlace[]
 }
 
@@ -40,6 +48,116 @@ export interface GeneralTrip {
   city: string | null
   country: string | null
   startDate: string | null
+  /** Present when the chat can add to this trip. */
+  id?: string
+  endDate?: string | null
+  destinations?: Array<{ id: string; date: string | null; nights: number; label: string }>
+}
+
+/** The first-run answers as stored. Every field optional — a skipped screen
+ *  is a missing field, not an error. */
+export interface TravelPrefs {
+  party?: string | null
+  travel_rhythm?: string | null
+  budget_style?: string | null
+  mobility_style?: string | null
+  food_moods?: string[] | null
+  shapes?: string[] | null
+  notes?: string | null
+}
+
+/**
+ * The labels the traveller picked their answers under — the same words as iOS
+ * DaybreakPrefCatalog and ask-drift-chat's PREF_LABELS, so all three chats
+ * describe a person identically. An id missing here (a legacy value) is left
+ * out rather than leaking a slug into the prompt.
+ */
+const PREF_LABELS: Record<string, Record<string, string>> = {
+  party: { solo: "Just me", couple: "Two of us", friends: "A group", family: "With kids" },
+  travel_rhythm: { easy: "Unhurried", balanced: "Balanced", full_days: "Full days" },
+  budget_style: { save: "Careful", smart_mix: "Smart mix", splurge: "No limit" },
+  mobility_style: { walkable: "Walkable first", public_transit: "Public transit", rental_car: "Self-drive" },
+  food_moods: { local_gems: "Local gems", casual: "Casual", fine_dining: "Fine dining", night_out: "Night out" },
+  shapes: {
+    wild: "Nature & wildlife",
+    stones: "History & ruins",
+    drive: "Road trip",
+    eat: "Food & drink",
+    islands: "Islands & beaches",
+    high: "Mountains & hiking",
+    stay: "One base, slow days",
+  },
+}
+
+/**
+ * " TRAVELER PREFERENCES, already answered in Drift — …: travelling: With kids; pace: Unhurried."
+ *
+ * A port of iOS DriftChatView.preferencesLine, leading space included, so it
+ * drops into the prompt the same way. Empty when nothing usable is saved.
+ */
+export function preferencesLine(prefs: TravelPrefs | null | undefined): string {
+  if (!prefs) return ""
+  const one = (k: keyof typeof PREF_LABELS, v: string | null | undefined) =>
+    v ? PREF_LABELS[k][v] ?? null : null
+  const many = (k: keyof typeof PREF_LABELS, vs: string[] | null | undefined) =>
+    (Array.isArray(vs) ? vs : []).map((v) => PREF_LABELS[k][v]).filter(Boolean)
+  const parts: string[] = []
+  const party = one("party", prefs.party)
+  if (party) parts.push(`travelling: ${party}`)
+  const pace = one("travel_rhythm", prefs.travel_rhythm)
+  if (pace) parts.push(`pace: ${pace}`)
+  const budget = one("budget_style", prefs.budget_style)
+  if (budget) parts.push(`budget: ${budget}`)
+  const mobility = one("mobility_style", prefs.mobility_style)
+  if (mobility) parts.push(`getting around: ${mobility}`)
+  const food = many("food_moods", prefs.food_moods)
+  if (food.length) parts.push(`food: ${food.join(", ")}`)
+  const shapes = many("shapes", prefs.shapes)
+  if (shapes.length) parts.push(`loves: ${shapes.join(", ")}`)
+  const notes = prefs.notes?.trim()
+  if (notes) parts.push(`notes: ${notes}`)
+  if (!parts.length) return ""
+  return ` TRAVELER PREFERENCES, already answered in Drift — shape every recommendation around them and NEVER ask about any of these again: ${parts.join("; ")}.`
+}
+
+const placeKey = (s: string | null | undefined): string[] =>
+  (s ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+
+/**
+ * Which trip a general-chat Add lands in — decided, never asked.
+ *
+ * Mirrors iOS bestTrip(for:place:): a trip already going to the plan's
+ * destination (one not yet ended first), else the next trip not yet ended,
+ * else the first trip listed. null only when there are no trips at all, which
+ * the caller answers by creating one. Place names are compared by
+ * comma-separated part, so "Lisbon, Portugal" matches "Lisbon" but "US" never
+ * matches "Austin".
+ */
+export function chooseTripForItinerary<T extends GeneralTrip>(
+  trips: T[],
+  itin: { destination: string; country: string | null },
+  today: string
+): T | null {
+  if (!trips.length) return null
+  const wanted = new Set([...placeKey(itin.destination), ...placeKey(itin.country)])
+  const goesThere = (t: T) =>
+    [t.city, t.country, ...(t.destinations ?? []).map((d) => d.label)]
+      .flatMap(placeKey)
+      .some((k) => wanted.has(k))
+  const live = trips.filter((t) => {
+    const end = (t.endDate ?? t.startDate)?.slice(0, 10)
+    return !end || end >= today
+  })
+  const soonest = [...live].sort((a, b) =>
+    (a.startDate?.slice(0, 10) || "9999").localeCompare(b.startDate?.slice(0, 10) || "9999")
+  )[0]
+  return live.find(goesThere) ?? trips.find(goesThere) ?? soonest ?? trips[0]
 }
 
 /**
@@ -77,6 +195,7 @@ function todayISO(): string {
 export function generalSystemPrompt(opts: {
   trips: GeneralTrip[]
   homeCity?: string | null
+  prefs?: TravelPrefs | null
 }): string {
   const digest = tripsDigest(opts.trips)
   const trips = digest
@@ -90,8 +209,9 @@ export function generalSystemPrompt(opts: {
   // describes is what `stripItineraryBlock` below removes. Drop one and the
   // other becomes either dead code or raw JSON on screen.
   return [
-    `You are Drift, a sharp, friendly travel assistant inside the Drift trip-planning app.${home}${trips} Answer their question concisely.`,
-    `IMPORTANT — you cannot save a trip yourself. Present the plan and let the user save it; NEVER claim or imply you have already created, added or saved a trip.`,
+    `You are Drift, a sharp, friendly travel assistant inside the Drift trip-planning app.${home}${trips}${preferencesLine(opts.prefs)} Answer their question concisely.`,
+    `NEVER INTERVIEW. When they want a trip or days planned, do not ask who is going, the occasion, interests, pace or budget first — lay the itinerary out NOW from what you already know (their preferences, their trips, and their message), making sensible assumptions and naming any in one short clause. They tweak it afterwards. Ask a question only when there is no destination at all.`,
+    `IMPORTANT — you cannot save a trip yourself. Under any itinerary you lay out the app shows an Add button on every place and a "Create this trip" button, and only the user's tap on one writes anything. NEVER claim or imply you have already created, added or saved a trip.`,
     `ITINERARY MODE — when the user asks you to plan a multi-day or day-by-day trip (2+ days, or "plan my trip to X"), write a SHORT 1–2 sentence intro, then append EXACTLY ONE machine block on its own line with NOTHING after it:`,
     `<<DRIFT_ITINERARY>>{"destination":"Montreal","country":"Canada","title":"3 days in Montreal","start_date":"2026-08-15","days":[{"title":"Old Montreal","places":[{"name":"Notre-Dame Basilica","why":"Gothic-revival landmark"}]}]}<<END>>`,
     `Block rules: 3–4 REAL places per day, "why" is one short line, valid minified JSON, no markdown or newlines inside it. Today is ${todayISO()}; if the user named dates, set "start_date" to the first day as yyyy-MM-dd and make the number of days match the range; OMIT "start_date" when they gave none, and then use 3–5 days. Do NOT also write the day-by-day list in prose. Omit the block entirely for anything that is not a multi-day itinerary.`,

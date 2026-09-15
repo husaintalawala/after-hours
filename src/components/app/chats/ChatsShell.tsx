@@ -8,6 +8,7 @@ import { renderRich } from "@/lib/drift/richText"
 import BackLink from "@/components/app/BackLink"
 import AppNav from "@/components/app/AppNav"
 import { loadSessionMessages, type StoredMessage } from "@/lib/drift/chatStore"
+import type { TravelPrefs } from "@/lib/drift/generalChat"
 
 // Chats — sidebar-and-thread layout (Husain-approved mockup). Desktop: the
 // conversation history lives in a left sidebar under the app nav with cover-
@@ -30,6 +31,8 @@ export interface TripPickVM {
   title: string
   photo: string | null
   start: string | null
+  end: string | null
+  city: string | null
   dateRange: string
   destinations: Array<{ id: string; date: string; nights: number; label: string }>
   country: string | null
@@ -56,6 +59,7 @@ export default function ChatsShell({
   initialAsk = null,
   prompts = [],
   homeCity = null,
+  prefs = null,
 }: {
   sessions: ChatSessionVM[]
   trips: TripPickVM[]
@@ -75,6 +79,8 @@ export default function ChatsShell({
   prompts?: string[]
   /** Seeds the general thread's "near me" answers. */
   homeCity?: string | null
+  /** The first-run answers, for the general thread's prompt. */
+  prefs?: TravelPrefs | null
 }) {
   const firstTripSession = sessions.find((s) => s.kind === "trip" && s.tripId)
   // NO TRIPS → a general thread, not the picker. The picker's whole job is to
@@ -382,12 +388,16 @@ export default function ChatsShell({
     ) : sel.mode === "general" ? (
       <GeneralChat
         trips={trips.map((t) => ({
+          id: t.id,
           title: t.title,
-          city: null,
+          city: t.city,
           country: t.country,
           startDate: t.start,
+          endDate: t.end,
+          destinations: t.destinations,
         }))}
         homeCity={homeCity}
+        prefs={prefs}
         prompts={prompts}
         initialSend={ask}
       />
@@ -479,6 +489,8 @@ function tripStub(s: ChatSessionVM): TripPickVM {
     title: s.title,
     photo: s.photo,
     start: null,
+    end: null,
+    city: null,
     dateRange: "",
     destinations: [],
     country: null,
