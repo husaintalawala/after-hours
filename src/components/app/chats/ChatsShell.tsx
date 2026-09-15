@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import TripChat from "@/components/app/chat/TripChat"
 import GeneralChat from "@/components/app/chat/GeneralChat"
+import ItineraryCard from "@/components/app/chat/ItineraryCard"
 import { renderRich } from "@/lib/drift/richText"
 import BackLink from "@/components/app/BackLink"
 import AppNav from "@/components/app/AppNav"
@@ -508,6 +509,7 @@ function HistoryThread({ session }: { session: ChatSessionVM }) {
       alive = false
     }
   }, [session.id])
+  const freshPlans = new Set((msgs ?? []).flatMap((m, i) => (m.itinerary ? [i] : [])).slice(-2))
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -531,6 +533,11 @@ function HistoryThread({ session }: { session: ChatSessionVM }) {
           m.role === "assistant" ? (
             <div key={i} className="max-w-full text-[15px] leading-[1.65] text-drift-ink">
               {renderRich(m.text)}
+              {/* A stored plan comes back as its card; only the latest two
+                  look their photos up again. */}
+              {m.itinerary && (
+                <ItineraryCard itin={m.itinerary} resolvePhotos={freshPlans.has(i)} />
+              )}
             </div>
           ) : (
             <div key={i} className="text-right">

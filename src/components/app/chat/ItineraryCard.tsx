@@ -31,6 +31,7 @@ export default function ItineraryCard({
   isAdded,
   onAddAll,
   addAllTo,
+  resolvePhotos = true,
 }: {
   itin: ChatItinerary
   /** Per-place Add. Absent = no Add buttons. */
@@ -41,6 +42,10 @@ export default function ItineraryCard({
   onAddAll?: (resolved: Record<string, PlaceCandidate>) => Promise<void>
   /** Trip name — shows "Add all to <name>" in place of "Create this trip". */
   addAllTo?: string
+  /** Look up photos/pins on mount. Off for older plans reloaded from history,
+   *  so reopening a long thread does not re-bill a lookup per place it ever
+   *  suggested — only the latest two plans resolve. Read once, at mount. */
+  resolvePhotos?: boolean
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
@@ -66,7 +71,7 @@ export default function ItineraryCard({
    * produces under its own 3–5 day, 3–4 place instruction.
    */
   useEffect(() => {
-    if (hydratedRef.current) return
+    if (hydratedRef.current || !resolvePhotos) return
     hydratedRef.current = true
     // NO `alive` FLAG, deliberately, and this cost an hour to see. The ref
     // above already guarantees one run — but React's dev double-mount runs

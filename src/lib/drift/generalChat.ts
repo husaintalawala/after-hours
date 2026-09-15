@@ -120,6 +120,102 @@ export function preferencesLine(prefs: TravelPrefs | null | undefined): string {
   return ` TRAVELER PREFERENCES, already answered in Drift — shape every recommendation around them and NEVER ask about any of these again: ${parts.join("; ")}.`
 }
 
+/** What rides in trip_chat_messages.metadata beside an assistant message. */
+export function itineraryMetadata(
+  itin: ChatItinerary | null | undefined
+): { itinerary: ChatItinerary } | null {
+  return itin ? { itinerary: itin } : null
+}
+
+const STORED_STEP_TYPES = new Set(["spot", "activity", "food", "stay"])
+const STORED_TIME = /^([01]\d|2[0-3]):[0-5]\d$/
+// Swift's default Date encoding is seconds since 2001-01-01 UTC.
+const APPLE_EPOCH_MS = Date.UTC(2001, 0, 1)
+
+function storedDay(v: unknown): string | null {
+  if (typeof v === "string") {
+    const d = v.slice(0, 10)
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null
+  }
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return new Date(APPLE_EPOCH_MS + v * 1000).toISOString().slice(0, 10)
+  }
+  return null
+}
+
+/**
+ * The plan stored in a message row's `metadata`, or null — never a throw.
+ *
+ * LENIENT BY CONTRACT, like iOS ChatMessageMetadata: the column has carried
+ * other shapes (the retired agent path wrote its own), so anything that is not
+ * a plan reads as "no itinerary", never as a failed thread load. Reads the web
+ * shape (days[].places[{name, why, query, type, time}]) and, best-effort, the
+ * iOS ChatItinerary Codable (days[].cards[{title, why, placeQuery, stepType,
+ * time}], startDate as an ISO string or Swift reference-date seconds).
+ */
+export function readStoredItinerary(metadata: unknown): ChatItinerary | null {
+  try {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null
+    const raw = (metadata as Record<string, unknown>).itinerary
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+    const o = raw as Record<string, unknown>
+    const text = (v: unknown) => (typeof v === "string" ? v.trim() : "")
+    const days: ItineraryDay[] = (Array.isArray(o.days) ? o.days : []).flatMap((rd) => {
+      if (!rd || typeof rd !== "object") return []
+      const d = rd as Record<string, unknown>
+      const list = Array.isArray(d.places) ? d.places : Array.isArray(d.cards) ? d.cards : []
+      const places: ItineraryPlace[] = list.flatMap((rp) => {
+        if (!rp || typeof rp !== "object") return []
+        const p = rp as Record<string, unknown>
+        const name = text(p.name) || text(p.title)
+        if (!name) return []
+        const query = text(p.query) || text(p.placeQuery)
+        const type = text(p.type) || text(p.stepType)
+        const time = text(p.time)
+        return [
+          {
+            name,
+            why: text(p.why),
+            ...(query ? { query } : {}),
+            ...(STORED_STEP_TYPES.has(type) ? { type: type as ItineraryPlace["type"] } : {}),
+            ...(STORED_TIME.test(time) ? { time } : {}),
+          },
+        ]
+      })
+      if (!places.length) return []
+      const date = storedDay(d.date)
+      const ref = text(d.destinationRef)
+      return [{ title: text(d.title), ...(date ? { date } : {}), ...(ref ? { destinationRef: ref } : {}), places }]
+    })
+    const destination = text(o.destination)
+    if (!destination || !days.length) return null
+    return {
+      destination,
+      country: text(o.country) || null,
+      title: text(o.title) || `${destination} trip`,
+      startDate: storedDay(o.startDate),
+      days,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The trip a general-chat Add starts when there is no trip to add to.
+ *
+ * The WHOLE plan's span (iOS): every day kept, so the trip runs from the plan's
+ * start (else today) for as many days as the plan has — but only the tapped
+ * place on its own day. Later Adds from the same plan then land on their own
+ * days in this trip instead of falling outside a one-day trip.
+ */
+export function planForSingleAdd(itin: ChatItinerary, dayIndex: number, place: ItineraryPlace): ChatItinerary {
+  return {
+    ...itin,
+    days: itin.days.map((d, j) => ({ ...d, places: j === dayIndex ? [place] : [] })),
+  }
+}
+
 const placeKey = (s: string | null | undefined): string[] =>
   (s ?? "")
     .normalize("NFD")

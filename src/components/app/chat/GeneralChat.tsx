@@ -10,6 +10,7 @@ import {
   chooseTripForItinerary,
   flattenTurns,
   generalSystemPrompt,
+  planForSingleAdd,
   type ChatItinerary,
   type GeneralTrip,
   type ItineraryPlace,
@@ -19,7 +20,7 @@ import { createGeneralSession, loadSessionMessages, saveMessage } from "@/lib/dr
 import type { PlaceCandidate } from "@/lib/drift/chat"
 import { applyCreateStep, applyRemoveStep } from "@/lib/drift/quickOp"
 import { createTripFromItinerary, ensureDestination } from "@/lib/drift/createTripFromItinerary"
-import { addDaysISO, dayDateFor, pickDestinationId, shortDate } from "@/lib/drift/itineraryPlacement"
+import { dayDateFor, pickDestinationId, shortDate } from "@/lib/drift/itineraryPlacement"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import { checkTripActivated } from "@/lib/drift/activation"
 
@@ -108,11 +109,8 @@ export default function GeneralChat({
     const target = chooseTripForItinerary(pool, itin, today)
 
     if (!target?.id) {
-      const single: ChatItinerary = {
-        ...itin,
-        startDate: itin.startDate ? addDaysISO(itin.startDate, dayIndex) : null,
-        days: [{ title: itin.days[dayIndex]?.title ?? "", places: [place] }],
-      }
+      // The whole plan's span, holding just this place on its own day.
+      const single = planForSingleAdd(itin, dayIndex, place)
       const coords = cand
         ? { [place.name]: { lat: cand.latitude ?? null, lng: cand.longitude ?? null, placeId: cand.id || null } }
         : {}
@@ -126,7 +124,15 @@ export default function GeneralChat({
         startDate: res.startDate,
         endDate: res.endDate,
         destinations: res.destinationId
-          ? [{ id: res.destinationId, date: res.startDate, nights: 1, label: itin.destination }]
+          ? [
+              {
+                id: res.destinationId,
+                date: res.startDate,
+                // Same span createTripFromItinerary writes on the anchor.
+                nights: Math.max(1, itin.days.length - 1),
+                label: itin.destination,
+              },
+            ]
           : [],
       })
       capture(AnalyticsEvent.AddToItinerary, { source: "chat", step_type: "spot", has_day: true })
@@ -254,7 +260,7 @@ export default function GeneralChat({
       ...m,
       { id: `${Date.now()}-a`, role: "assistant", text: shown, itinerary },
     ])
-    if (sid) void saveMessage(sid, null, "assistant", shown)
+    if (sid) void saveMessage(sid, null, "assistant", shown, itinerary)
     setBusy(false)
     if (error) setFailed(false)
   }
@@ -283,6 +289,7 @@ export default function GeneralChat({
           id: `${i}-${r.role}`,
           role: r.role === "assistant" ? "assistant" : "user",
           text: r.text,
+          itinerary: r.itinerary ?? null,
         }))
       )
     })()

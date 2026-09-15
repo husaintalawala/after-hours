@@ -4,6 +4,8 @@
 // writes are fail-open: persistence must never block the conversation.
 
 import { createClient } from "@/lib/supabase/client"
+import type { Json } from "@/lib/database.types"
+import { itineraryMetadata, readStoredItinerary, type ChatItinerary } from "@/lib/drift/generalChat"
 
 // A plain typed client. This used to be `(): any` because the generated
 // generics collapsed every write to `never` under @supabase/ssr 0.5 — fixed by
@@ -15,6 +17,9 @@ export interface StoredMessage {
   text: string
   /** Author of a user turn on a SHARED trip thread. Absent on personal chats. */
   userId?: string | null
+  /** The plan stored in `metadata.itinerary` — null for every other row,
+   *  including rows whose metadata is some other shape or malformed. */
+  itinerary?: ChatItinerary | null
 }
 
 /** Signed-in user id, for deciding which turns are the viewer's own. */
@@ -138,7 +143,7 @@ export async function loadSessionMessages(sessionId: string): Promise<StoredMess
     const supabase = db()
     const { data } = await supabase
       .from("trip_chat_messages")
-      .select("role,text,created_at,user_id")
+      .select("role,text,created_at,user_id,metadata")
       // Newest-first then reversed. Ordering ascending WITH a limit returns the
       // OLDEST 100, which silently pins a long thread to its beginning.
       .order("created_at", { ascending: false })
@@ -147,10 +152,11 @@ export async function loadSessionMessages(sessionId: string): Promise<StoredMess
     return (data ?? [])
       .slice()
       .reverse()
-      .map((m: { role: string; text: string; user_id?: string | null }) => ({
+      .map((m: { role: string; text: string; user_id?: string | null; metadata?: unknown }) => ({
         role: m.role,
         text: m.text,
         userId: m.user_id ?? null,
+        itinerary: readStoredItinerary(m.metadata),
       }))
   } catch {
     return []
@@ -170,7 +176,7 @@ export async function loadTripMessages(tripId: string): Promise<StoredMessage[]>
     const supabase = db()
     const { data } = await supabase
       .from("trip_chat_messages")
-      .select("role,text,created_at,user_id")
+      .select("role,text,created_at,user_id,metadata")
       .eq("trip_id", tripId)
       // Newest-first then reversed — see loadSessionMessages. This matters more
       // here: a shared group thread is several members' turns combined, so the
@@ -180,10 +186,11 @@ export async function loadTripMessages(tripId: string): Promise<StoredMessage[]>
     return (data ?? [])
       .slice()
       .reverse()
-      .map((m: { role: string; text: string; user_id?: string | null }) => ({
+      .map((m: { role: string; text: string; user_id?: string | null; metadata?: unknown }) => ({
         role: m.role,
         text: m.text,
         userId: m.user_id ?? null,
+        itinerary: readStoredItinerary(m.metadata),
       }))
   } catch {
     return []
@@ -194,7 +201,10 @@ export async function saveMessage(
   sessionId: string,
   tripId: string | null,
   role: "user" | "assistant",
-  text: string
+  text: string,
+  /** An assistant turn's plan, stored as `metadata.itinerary` (the key iOS
+   *  ChatMessageMetadata uses) so a reopened thread draws the card again. */
+  itinerary?: ChatItinerary | null
 ): Promise<void> {
   try {
     const supabase = db()
@@ -202,12 +212,14 @@ export async function saveMessage(
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) return
+    const metadata = itineraryMetadata(itinerary)
     await supabase.from("trip_chat_messages").insert({
       session_id: sessionId,
       trip_id: tripId,
       user_id: user.id,
       role,
       text,
+      ...(metadata ? { metadata: metadata as unknown as Json } : {}),
     }).throwOnError()
     const patch: { last_message_at: string; title?: string } = {
       last_message_at: new Date().toISOString(),

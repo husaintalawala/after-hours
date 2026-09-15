@@ -3,7 +3,11 @@ import assert from "node:assert/strict"
 import {
   chooseTripForItinerary,
   generalSystemPrompt,
+  itineraryMetadata,
+  planForSingleAdd,
   preferencesLine,
+  readStoredItinerary,
+  type ChatItinerary,
   type GeneralTrip,
 } from "./generalChat.ts"
 
@@ -121,5 +125,108 @@ describe("chooseTripForItinerary", () => {
       trip({ id: "second", city: "Oslo", startDate: "2025-01-01", endDate: "2025-01-05" }),
     ]
     assert.equal(chooseTripForItinerary(trips, lisbon, today)?.id, "first")
+  })
+})
+
+// A plan persisted in trip_chat_messages.metadata must come back on reopen —
+// and a row holding anything else must read as "no plan", never break a load.
+describe("readStoredItinerary", () => {
+  const webPlan: ChatItinerary = {
+    destination: "Tokyo",
+    country: "Japan",
+    title: "Japan with a Little One",
+    startDate: "2026-09-10",
+    days: [
+      {
+        title: "Shinjuku",
+        date: "2026-09-10",
+        destinationRef: "Tokyo",
+        places: [{ name: "Shinjuku Gyoen", why: "Space to run", query: "Shinjuku Gyoen Tokyo", type: "spot", time: "09:00" }],
+      },
+      { title: "Asakusa", places: [{ name: "Senso-ji", why: "Oldest temple" }] },
+    ],
+  }
+
+  test("the web shape round-trips through JSON", () => {
+    const stored = JSON.parse(JSON.stringify(itineraryMetadata(webPlan)))
+    assert.deepEqual(readStoredItinerary(stored), webPlan)
+    assert.equal(itineraryMetadata(null), null)
+  })
+
+  test("the iOS ChatItinerary shape reads best-effort", () => {
+    const ios = {
+      itinerary: {
+        destination: "Kyoto",
+        country: null,
+        title: "",
+        startDate: 800_000_000, // Swift reference-date seconds → 2026-05-09T06:13Z
+        days: [
+          {
+            id: "D1",
+            title: "Higashiyama",
+            date: "2026-05-08",
+            cards: [
+              { id: "C1", title: "Kiyomizu-dera", why: "Views", placeQuery: "Kiyomizu-dera Kyoto", mapQuery: "x", photoURL: null, rating: 4.6, lat: 35, lng: 135, placeId: "p", stepType: "activity", time: "8:00" },
+              { id: "C2", title: "", why: "nameless" },
+            ],
+          },
+        ],
+      },
+    }
+    assert.deepEqual(readStoredItinerary(ios), {
+      destination: "Kyoto",
+      country: null,
+      title: "Kyoto trip",
+      startDate: "2026-05-09",
+      days: [
+        {
+          title: "Higashiyama",
+          date: "2026-05-08",
+          places: [{ name: "Kiyomizu-dera", why: "Views", query: "Kiyomizu-dera Kyoto", type: "activity" }],
+        },
+      ],
+    })
+    assert.equal(readStoredItinerary({ itinerary: { ...ios.itinerary, startDate: "2026-05-08T04:00:00Z" } })?.startDate, "2026-05-08")
+  })
+
+  test("other shapes and malformed rows are no itinerary, not an error", () => {
+    for (const m of [
+      null,
+      undefined,
+      "itinerary",
+      42,
+      [],
+      {},
+      { agent: { ops: [] } },
+      { itinerary: null },
+      { itinerary: "Tokyo" },
+      { itinerary: [] },
+      { itinerary: { destination: "Tokyo", days: "3" } },
+      { itinerary: { destination: "", days: webPlan.days } },
+      { itinerary: { destination: "Tokyo", days: [{ title: "x", places: [{ why: "no name" }] }] } },
+    ]) {
+      assert.equal(readStoredItinerary(m), null)
+    }
+  })
+})
+
+describe("planForSingleAdd", () => {
+  test("keeps every day of the plan, with only the tapped place on its day", () => {
+    const itin: ChatItinerary = {
+      destination: "Lisbon",
+      country: "Portugal",
+      title: "3 days in Lisbon",
+      startDate: "2026-10-01",
+      days: [
+        { title: "A", places: [{ name: "One", why: "" }, { name: "Two", why: "" }] },
+        { title: "B", places: [{ name: "Three", why: "" }] },
+        { title: "C", places: [{ name: "Four", why: "" }] },
+      ],
+    }
+    const single = planForSingleAdd(itin, 1, itin.days[1].places[0])
+    assert.equal(single.days.length, 3)
+    assert.equal(single.startDate, "2026-10-01")
+    assert.deepEqual(single.days.map((d) => d.places.map((p) => p.name)), [[], ["Three"], []])
+    assert.equal(itin.days[0].places.length, 2) // the chat's own plan is untouched
   })
 })

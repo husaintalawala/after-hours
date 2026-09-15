@@ -54,6 +54,9 @@ interface Msg {
   replyChips?: string[]
   /** A drafted day-by-day plan (ask-drift-chat `itinerary`). */
   itinerary?: ChatItinerary | null
+  /** A plan reloaded from history that is not one of the latest two — drawn
+   *  without re-resolving its photos. */
+  stalePlan?: boolean
 }
 
 export default function TripChat({
@@ -184,12 +187,16 @@ export default function TripChat({
         history.map((h) => h.userId ?? "").filter((id) => id && id !== me),
       )
       if (!alive) return
-      const hydrated: Msg[] = history.map((h) => ({
+      // Plans come back from metadata; only the latest two look up photos again.
+      const freshPlans = new Set(history.flatMap((h, i) => (h.itinerary ? [i] : [])).slice(-2))
+      const hydrated: Msg[] = history.map((h, i) => ({
         id: nextId(),
         role: h.role === "assistant" ? "assistant" : "user",
         text: h.text,
         authorId: h.userId ?? null,
         authorName: h.userId ? names[h.userId] ?? null : null,
+        itinerary: h.itinerary ?? null,
+        stalePlan: !!h.itinerary && !freshPlans.has(i),
       }))
       // Merge history UNDER whatever is already on screen rather than bailing
       // when the list is non-empty. On the mobile dock path TripDockComposer
@@ -301,6 +308,13 @@ export default function TripChat({
         onPayload: (answer: ChatAnswer) => {
           const id = nextId()
           const finalText = answer.assistant_text || streamBuf
+          const plan = answer.itinerary
+            ? toCardItinerary(answer.itinerary, {
+                tripTitle,
+                country: country ?? null,
+                fallbackDestination: destinations[0]?.label ?? null,
+              })
+            : null
           setMessages((m) => [
             ...m,
             {
@@ -310,19 +324,13 @@ export default function TripChat({
               cards: answer.cards as HydratedCard[],
               followups: answer.followups,
               replyChips: answer.reply_chips,
-              itinerary: answer.itinerary
-                ? toCardItinerary(answer.itinerary, {
-                    tripTitle,
-                    country: country ?? null,
-                    fallbackDestination: destinations[0]?.label ?? null,
-                  })
-                : null,
+              itinerary: plan,
             },
           ])
           setStreaming(null)
           setStatus(null)
           if (sessionRef.current)
-            void saveMessage(sessionRef.current, tripId, "assistant", finalText)
+            void saveMessage(sessionRef.current, tripId, "assistant", finalText, plan)
           if (answer.cards?.length) void hydrateCards(id, answer.cards)
         },
         onError: (msg) => {
@@ -679,6 +687,7 @@ export default function TripChat({
                 {m.itinerary && (
                   <ItineraryCard
                     itin={m.itinerary}
+                    resolvePhotos={!m.stalePlan}
                     addAllTo={tripTitle}
                     isAdded={(key) => !!added[`${m.id}|${key}`]}
                     onAdd={(p, i, c) => addItineraryPlace(m.id, m.itinerary!, p, i, c)}
