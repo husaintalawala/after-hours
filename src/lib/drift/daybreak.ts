@@ -341,11 +341,13 @@ export const MOBILITY_STYLES: ReadonlyArray<PrefOption> = [
 
 /** Multi-select, and it reaches the itinerary: build-itinerary buckets the
  *  day's meals off `food_moods`. */
+/** Labels match iOS DaybreakPrefCatalog.foods exactly: one answer, one name on
+ *  both platforms (the chat prompt's PREF_LABELS already used these). */
 export const FOOD_MOODS: ReadonlyArray<PrefOption> = [
   { value: "local_gems", label: "Local gems", subtitle: "Where the neighbourhood eats", icon: "pin" },
   { value: "casual", label: "Casual", subtitle: "Markets, counters, no booking", icon: "bowl" },
-  { value: "fine_dining", label: "Worth dressing for", subtitle: "One proper dinner", icon: "sparkle" },
-  { value: "night_out", label: "A night out", subtitle: "Bars, music, late", icon: "moon" },
+  { value: "fine_dining", label: "Fine dining", subtitle: "One proper dinner", icon: "sparkle" },
+  { value: "night_out", label: "Night out", subtitle: "Bars, music, late", icon: "moon" },
 ]
 
 export const DEFAULT_MOBILITY = "walkable"
