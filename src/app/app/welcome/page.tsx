@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { buildDaybreakShelf } from "@/lib/drift/inspirePromo"
 import { DAYBREAK_COOKIE, hasSeenDaybreak } from "@/lib/drift/daybreak"
 import DaybreakFlow from "@/components/app/welcome/DaybreakFlow"
+import ActivityProvider from "@/components/app/ActivityProvider"
 
 // Daybreak — the six questions a brand-new account meets before it meets the
 // app. /app routes here when the account has no trips and has not seen this;
@@ -89,6 +90,12 @@ export default async function WelcomePage({
         href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap"
         rel="stylesheet"
       />
+      {/* This route is OUTSIDE the (protected) group, which is the only other
+          place ActivityProvider mounts — so without this the onboarding events
+          the flow records have nowhere to go and the signup funnel is empty for
+          every new account. No consent is asked here; the flow records only for
+          somebody who has already opted in. */}
+      <ActivityProvider userId={user.id} />
       <div className="min-h-[100dvh] bg-aurora-midnight font-drift-body">
         <DaybreakFlow
           userId={user.id}

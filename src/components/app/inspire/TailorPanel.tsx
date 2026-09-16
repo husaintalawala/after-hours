@@ -230,6 +230,8 @@ export default function TailorPanel({
     const activity = activityScope(), actionId = crypto.randomUUID()
     activity("trip_creation_started","trips","started",{entrypoint:"inspire"},actionId)
     let activitySuccess = false
+    /** Why the copy did not land, for the create_trip that pairs with the start above. */
+    let failure: "server" | "unauthorized" | "validation" | "timeout" | "unknown" = "unknown"
     setIsCopying(true)
     setCopyError(null)
 
@@ -264,6 +266,7 @@ export default function TailorPanel({
         // fresh copy and must not reuse this id.
         if (!mayHaveLanded(res.status)) inFlightIds.delete(key)
         setCopyError(copyErrorMessage(res.status))
+        failure = res.status >= 500 ? "server" : res.status === 401 || res.status === 403 ? "unauthorized" : "validation"
         return
       }
 
@@ -276,6 +279,7 @@ export default function TailorPanel({
         setCopyError(
           "Drift couldn't read the result of the copy. If the trip isn't in your list, refresh in a moment.",
         )
+        failure = "validation"
         return
       }
       // The row exists. A later copy of the same pattern on the same day is a
@@ -289,8 +293,17 @@ export default function TailorPanel({
       // The network never delivered an answer — the row may exist. The id stays
       // reserved so a retry replays this copy rather than writing a second one.
       setCopyError(copyErrorMessage(null))
+      // 'timeout', not a clean failure: the comment above says this branch may
+      // have written the trip, and counting it as a failure understates the
+      // copy's real success rate by exactly the cases nobody can see.
+      failure = "timeout"
     } finally {
-      if(!activitySuccess) activity("guide_adopted","inspire","failed",{},actionId)
+      // Every trip_creation_started gets exactly one create_trip carrying the
+      // same action_id, so the funnel is joinable from either end.
+      if(!activitySuccess) {
+        activity("create_trip","trips","failed",{entrypoint:"inspire",error_code:failure},actionId)
+        activity("guide_adopted","inspire","failed",{error_code:failure},actionId)
+      }
       setIsCopying(false)
     }
   }

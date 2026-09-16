@@ -214,6 +214,8 @@ export default function TripChat({
   const [busy, setBusy] = useState(false)
   /** The in-flight turn, so the composer's STOP button can cancel it. */
   const abortRef = useRef<AbortController | null>(null)
+  /** Whether THIS turn ended because the reader stopped it — see finishActivity. */
+  const stoppedRef = useRef(false)
   // Every add reports through the banner (with Undo) — nothing is posted into
   // the transcript. `added` maps "<msgId>|<row>" → the step it wrote, so an
   // Undo from the banner flips exactly those Add buttons back.
@@ -284,8 +286,9 @@ export default function TripChat({
     }
     const activity = activityScope(), actionId = crypto.randomUUID(), started = performance.now()
     let outcomeRecorded = false
+    stoppedRef.current = false
     activity("chat_message_sent","chat","started",{},actionId)
-    const finishActivity = (outcome: "succeeded" | "failed") => { if (!outcomeRecorded) { outcomeRecorded=true; activity("chat_response_completed","chat",outcome,{duration_ms:Math.round(performance.now()-started)},actionId) } }
+    const finishActivity = (outcome: "succeeded" | "failed", errorCode?: "cancelled") => { if (!outcomeRecorded) { outcomeRecorded=true; activity("chat_response_completed","chat",outcome,{duration_ms:Math.round(performance.now()-started),...(errorCode?{error_code:errorCode}:{})},actionId) } }
     setError(null)
     setInput("")
     setAttached(null)
@@ -348,7 +351,9 @@ export default function TripChat({
       },
       controller.signal
     )
-    if (!outcomeRecorded) finishActivity("failed")
+    // A user Stop is not a failure of ours: recorded as cancelled so the chat
+    // success rate is not dragged down by answers nobody waited for.
+    if (!outcomeRecorded) finishActivity("failed", stoppedRef.current ? "cancelled" : undefined)
     if (abortRef.current === controller) abortRef.current = null
     setBusy(false)
   }
@@ -364,6 +369,7 @@ export default function TripChat({
     const controller = abortRef.current
     if (!controller) return
     abortRef.current = null
+    stoppedRef.current = true
     controller.abort()
     const partial = streamingRef.current
     if (partial && partial.trim()) {

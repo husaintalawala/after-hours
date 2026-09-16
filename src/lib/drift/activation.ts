@@ -1,4 +1,5 @@
 import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { activityRecording, activityScope } from "@/lib/activity-scope"
 
 // trip_activated — "this stopped being an empty trip".
 //
@@ -21,21 +22,41 @@ import { AnalyticsEvent, capture } from "@/lib/analytics"
 // 81 kB → 334 kB). This runs only after somebody adds a stop, so a lazy chunk
 // costs nothing that matters, and on routes that already bundle supabase it is
 // the chunk they already have.
+//
+// TWO LATCHES, because the two stores disagree about who is being counted.
+// PostHog hears every trip, so its latch is the one-per-trip rule above,
+// unchanged. Private activity hears only an opted-in account, so sharing that
+// latch meant a trip that reached three stops BEFORE its owner opted in was
+// latched on an event private activity never took — and could never be counted
+// afterwards. Its latch is written only once the event was actually taken, and
+// is consulted only while this tab is recording, so an account that never opts
+// in still pays one HEAD count per trip, not one per add.
 const ACTIVATION_STOPS = 3
 
 export async function checkTripActivated(tripId: string): Promise<void> {
   if (typeof window === "undefined" || !tripId) return
   const key = `drift_trip_activated_${tripId}`
+  const privateKey = `drift.activity.activated.${tripId}`
   try {
-    if (localStorage.getItem(key)) return
+    const shared = !!localStorage.getItem(key)
+    const privateDue = activityRecording() && !localStorage.getItem(privateKey)
+    if (shared && !privateDue) return
     const { createClient } = await import("@/lib/supabase/client")
     const { count, error } = await createClient()
       .from("steps")
       .select("id", { count: "exact", head: true })
       .eq("trip_id", tripId)
     if (error || count == null || count < ACTIVATION_STOPS) return
-    localStorage.setItem(key, "1")
-    capture(AnalyticsEvent.TripActivated, { stop_count: count })
+    if (!shared) {
+      localStorage.setItem(key, "1")
+      capture(AnalyticsEvent.TripActivated, { stop_count: count })
+    }
+    // Recorded natively rather than through capture()'s legacy mapper, which
+    // does not map trip_activated — otherwise the first activation would be
+    // recorded twice, once per path.
+    if (privateDue && activityScope()("trip_activated", "trips", "succeeded", { stop_count: count })) {
+      localStorage.setItem(privateKey, "1")
+    }
   } catch {
     /* analytics must never break the app */
   }

@@ -2603,7 +2603,9 @@ function ExpenseForm({
     }
     // Only the insert branch: an edit is not a new expense. No label, amount or
     // currency — splitting costs is either used or it isn't, and the count says so.
-    if (!expense) capture(AnalyticsEvent.ExpenseAdded)
+    // `source` matches what iOS sends, so expense_added carries the same
+    // entrypoint on both platforms instead of arriving from web with none.
+    if (!expense) capture(AnalyticsEvent.ExpenseAdded, { source: "manual" })
     router.refresh()
     onClose()
   }

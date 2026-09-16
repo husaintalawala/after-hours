@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { activityScope } from "@/lib/activity"
 import {
   attemptKey,
   copyErrorMessage,
@@ -72,6 +74,12 @@ export default function MakeItMinePanel({
 
   async function makeItMine() {
     if (copying || !startDate) return
+    // This path wrote trips and appeared in neither system. 'copy' is the
+    // entrypoint iOS already uses for "make it mine" on somebody else's trip.
+    const activity = activityScope(), actionId = crypto.randomUUID()
+    activity("trip_creation_started","trips","started",{entrypoint:"copy"},actionId)
+    let landed = false
+    let failure: "server" | "unauthorized" | "validation" | "timeout" | "unknown" = "unknown"
     setCopying(true)
     setError(null)
 
@@ -103,6 +111,7 @@ export default function MakeItMinePanel({
         // and must not inherit this id.
         if (!mayHaveLanded(res.status)) RESERVED_TRIP_IDS.delete(key)
         setError(copyErrorMessage(res.status))
+        failure = res.status >= 500 ? "server" : res.status === 401 || res.status === 403 ? "unauthorized" : "validation"
         setCopying(false)
         return
       }
@@ -117,10 +126,14 @@ export default function MakeItMinePanel({
         setError(
           "Drift couldn't read the result of the copy. If the trip isn't in your list, refresh in a moment.",
         )
+        failure = "validation"
         setCopying(false)
         return
       }
       RESERVED_TRIP_IDS.delete(key)
+      landed = true
+      capture(AnalyticsEvent.CreateTrip, { source: "copy" })
+      activity("create_trip","trips","succeeded",{entrypoint:"copy"},actionId)
       // Stays in the copying state through the push — the panel is about to be
       // torn down by the navigation, and re-enabling the button first offers a
       // second click that would write a second trip.
@@ -129,7 +142,11 @@ export default function MakeItMinePanel({
       // No answer ever arrived, so the row may exist. The id stays reserved so a
       // retry replays this copy rather than writing a second one.
       setError(copyErrorMessage(null))
+      // May in fact have landed — 'timeout' rather than a clean failure.
+      failure = "timeout"
       setCopying(false)
+    } finally {
+      if (!landed) activity("create_trip","trips","failed",{entrypoint:"copy",error_code:failure},actionId)
     }
   }
 

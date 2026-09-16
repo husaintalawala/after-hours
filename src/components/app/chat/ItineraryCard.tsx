@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { placePhotoUrl, resolvePlace, type PlaceCandidate } from "@/lib/drift/chat"
 import type { ChatItinerary, ItineraryPlace } from "@/lib/drift/generalChat"
 import { createTripFromItinerary, type ResolvedPlace } from "@/lib/drift/createTripFromItinerary"
+import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { activityScope } from "@/lib/activity"
 import { shortDate } from "@/lib/drift/itineraryPlacement"
 
 /** The row identity `isAdded` is asked about — unique within one plan. */
@@ -119,6 +121,11 @@ export default function ItineraryCard({
 
   async function create() {
     if (busy) return
+    // Turning a chat plan into a trip was invisible in both systems. Same
+    // started/succeeded-or-failed pair as every other creation path, sharing an
+    // action_id so the two ends can be joined.
+    const activity = activityScope(), actionId = crypto.randomUUID()
+    activity("trip_creation_started","trips","started",{entrypoint:"chat"},actionId)
     setBusy(true)
     setError(null)
     // Whatever has resolved BY NOW rides along — the pins and place ids are a
@@ -130,10 +137,13 @@ export default function ItineraryCard({
     }
     const res = await createTripFromItinerary(itin, coords)
     if ("error" in res) {
+      activity("create_trip","trips","failed",{entrypoint:"chat",error_code:"unknown"},actionId)
       setError(res.error)
       setBusy(false)
       return
     }
+    capture(AnalyticsEvent.CreateTrip, { source: "chat" })
+    activity("create_trip","trips","succeeded",{entrypoint:"chat"},actionId)
     // Straight into the trip that was just made — the plan is now a place, and
     // leaving the reader in the chat to go find it is asking them to take the
     // step the button was supposed to take.

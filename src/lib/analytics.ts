@@ -1,4 +1,4 @@
-import { activityAvailable, activityOptedOut, recordLegacyActivity } from "./activity"
+import { recordLegacyActivity } from "./activity-scope"
 // ── PostHog event-level funnel layer (sits on top of Vercel Web Analytics) ──
 //
 // Vercel Analytics answers "how much traffic / which pages"; PostHog answers
@@ -91,7 +91,6 @@ const queue: Array<[string, Props | undefined]> = []
 let pendingIdentity: [string, Props | undefined] | null = null
 
 export function initAnalytics(): void {
-  if (activityAvailable() || activityOptedOut()) return // private activity replaces third-party product capture
   if (typeof window === "undefined") return
   // Independent of PostHog: either can be configured without the other, so the
   // pixel must not sit behind PostHog's early return below.
@@ -133,9 +132,15 @@ export function initAnalytics(): void {
 }
 
 export function capture(event: string, props?: Props): void {
-  if (activityAvailable()) { recordLegacyActivity(event, props); return }
-  if (activityOptedOut()) return
   if (typeof window === "undefined") return
+  // PRIVATE ACTIVITY IS ADDITIVE. It is a second, account-linked store that the
+  // user opts into; it does not replace this one, and nothing below is
+  // conditional on it. An early return here took the acquisition funnel
+  // (landing_cta_click, login_*, signup, app_opened, start_chat) — which has no
+  // private equivalent and no signed-in user to consent with — off the air for
+  // everybody the moment the flag was set. recordLegacyActivity is a no-op
+  // unless the flag is on AND this account opted in.
+  recordLegacyActivity(event, props)
   metaCapture(event)
   try {
     if (ph) ph.capture(event, props)
@@ -146,7 +151,6 @@ export function capture(event: string, props?: Props): void {
 }
 
 export function identifyUser(id: string, props?: Props): void {
-  if (activityAvailable() || activityOptedOut()) return
   if (typeof window === "undefined") return
   try {
     if (ph) ph.identify(id, props)
@@ -393,7 +397,6 @@ function metaCapture(event: string): void {
 }
 
 export function trackPageview(url: string): void {
-  if (activityAvailable() || activityOptedOut()) return
   // Not queued: a pageview for a route the user has already navigated away from
   // is noise, and initAnalytics() captures the entry route itself.
   try {

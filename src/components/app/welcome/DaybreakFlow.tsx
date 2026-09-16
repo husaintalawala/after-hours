@@ -342,7 +342,11 @@ export default function DaybreakFlow({
         finish(null)
         return
       }
-      recordActivity("trip_creation_started","trips","started",{entrypoint:"daybreak"})
+      // One id for both ends of the pair. Going through capture()'s legacy
+      // mapper instead would drop it, and a started with no joinable completion
+      // is a funnel step that can only ever be counted, never followed.
+      const actionId = crypto.randomUUID()
+      recordActivity("trip_creation_started","trips","started",{entrypoint:"daybreak"},actionId)
       setBuildError(null)
       // A retry re-asks for the link, so last attempt's failure must not
       // outlive it on screen.
@@ -387,6 +391,7 @@ export default function DaybreakFlow({
           // and must not inherit this id.
           if (!mayHaveLanded(res.status)) RESERVED_TRIP_IDS.delete(key)
           setBuildError(copyErrorMessage(res.status))
+          recordActivity("create_trip","trips","failed",{entrypoint:"daybreak",error_code:res.status >= 500 ? "server" : res.status === 401 || res.status === 403 ? "unauthorized" : "validation"},actionId)
           return
         }
 
@@ -396,11 +401,13 @@ export default function DaybreakFlow({
           setBuildError(
             "Drift couldn't read the result of the copy. If the trip isn't in your list, refresh in a moment."
           )
+          recordActivity("create_trip","trips","failed",{entrypoint:"daybreak",error_code:"validation"},actionId)
           return
         }
         RESERVED_TRIP_IDS.delete(key)
         setLandedTripId(parsed.id)
         capture(AnalyticsEvent.CreateTrip, { source: "daybreak" })
+        recordActivity("create_trip","trips","succeeded",{entrypoint:"daybreak"},actionId)
         void checkTripActivated(parsed.id)
 
         setBuildStage(3)
@@ -428,6 +435,8 @@ export default function DaybreakFlow({
         // a retry replays this copy rather than writing a second one.
         tickers.current.forEach(clearTimeout)
         setBuildError(copyErrorMessage(null))
+        // The row MAY exist — 'timeout', not a clean failure.
+        recordActivity("create_trip","trips","failed",{entrypoint:"daybreak",error_code:"timeout"},actionId)
       }
     },
     [chosenTripId, finish, guides, departure, departureMonths]

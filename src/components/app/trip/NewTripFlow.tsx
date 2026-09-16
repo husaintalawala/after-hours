@@ -144,6 +144,12 @@ export default function NewTripFlow() {
       // Anchor failure is non-fatal on iOS too — the trip still exists.
       if (stepErr) console.warn("[NewTrip] destination anchor failed:", stepErr.message)
 
+      // BOTH, always: the PostHog/Meta capture is the activation funnel this
+      // repo already runs and the conversion a campaign optimises toward, and
+      // the private record is opt-in and may never exist. Neither replaces the
+      // other. create_trip is recorded natively on every path, so the legacy
+      // mapper deliberately does not map it and this is not counted twice.
+      capture(AnalyticsEvent.CreateTrip, { trip_type: tripType, has_end_date: !!end })
       activity("create_trip","trips","succeeded",{entrypoint:"manual"},actionId)
       router.push(`/app/trips/${trip.id}`)
     } catch (e) {
