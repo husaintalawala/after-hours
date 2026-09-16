@@ -5,6 +5,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import ActivityPreference from "./ActivityPreference"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
+import EmailPreferencesSection from "@/components/app/settings/EmailPreferencesSection"
 import { signOutAndForget } from "@/lib/drift/signOut"
 // isCityish moved to lib/drift/chat.ts — the first-run flow asks the same
 // question ("Where do you set out from?") and must filter it the same way.
@@ -129,6 +130,11 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
       <p className="mt-2 px-1 text-[12px] text-drift-muted">
         Currency and units apply to prices and weather shown here on the web.
       </p>
+
+      {/* Email — the same switches as the page every Drift email links to,
+          for this account's own address. */}
+      <SectionLabel>Email</SectionLabel>
+      <EmailPreferencesSection />
 
       {/* Account */}
       <SectionLabel>Account</SectionLabel>

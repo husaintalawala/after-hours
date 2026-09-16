@@ -51,6 +51,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // /email/preferences is where the Unsubscribe and Email preferences links in
+  // every optional Drift email land. Same shape of problem as /i: a root path
+  // with no extension, on the host the links point at, so the marketing rewrite
+  // would 404 every one of them — an unsubscribe link that does not work.
+  // NextResponse.next(), not updateSession: the page is signed out by design and
+  // reads no cookies.
+  if (pathname === "/email" || pathname.startsWith("/email/")) {
+    return NextResponse.next();
+  }
+
   // /join/<token> is the invite landing page. Public — the whole point is that a
   // signed-out stranger can see the trip before deciding to sign up — but it
   // runs through updateSession because the page branches on whether there is

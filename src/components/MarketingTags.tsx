@@ -39,7 +39,10 @@ import { usePathname } from "next/navigation"
 // homepage, has been finding nothing all along, while the tag burned two
 // seconds a page inside the logged-in app. Fixing that is an affiliate
 // decision, not a performance one.
-const EXCLUDED_PREFIXES = ["/join", "/app", "/auth"]
+// /email is the unsubscribe page every Drift email links to. Loading an ad
+// network on the page where someone asks us to stop contacting them is the
+// wrong message, and nothing on it earns a commission.
+const EXCLUDED_PREFIXES = ["/join", "/app", "/auth", "/email"]
 
 export default function MarketingTags() {
   const pathname = usePathname()

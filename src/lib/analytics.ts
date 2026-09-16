@@ -72,12 +72,21 @@ type PostHogLike = {
 // who are not signed in yet. The path shape is kept (the funnel still sees "an
 // invite landing"); only the token itself is dropped.
 const CAPABILITY_PATH = /\/join\/[^/?#]+/g
+// The email-preferences link is the same kind of key, carried in `?t=`: whoever
+// holds it can change which emails Drift sends that person. The page moves it
+// out of the address bar once it has read it, but an event can be stamped
+// before that effect runs.
+const EMAIL_PREFS_TOKEN = /(\/email\/[^?#]*\?(?:[^#]*&)?t=)[^&#]+/g
 
 function redactCapabilityUrls(props: Props): Props {
   for (const k of Object.keys(props)) {
     const v = props[k]
     if (typeof v === "string" && v.includes("/join/")) {
       props[k] = v.replace(CAPABILITY_PATH, "/join/[token]")
+    }
+    const w = props[k]
+    if (typeof w === "string" && w.includes("/email/")) {
+      props[k] = w.replace(EMAIL_PREFS_TOKEN, "$1[token]")
     }
   }
   return props
@@ -283,9 +292,17 @@ let metaStarted = false
 /** True once geo said no, so metaCapture stops asking whether fbq exists. */
 let metaBlocked = false
 
+/** /email is the page every Drift email's Unsubscribe link opens. An ad tracker
+ *  has no place where someone asks us to stop contacting them — the same
+ *  carve-out MarketingTags makes for its ad script. */
+function isEmailPreferencesPath(): boolean {
+  return /^\/email(\/|$)/.test(window.location.pathname)
+}
+
 /** True on the Drift halves of this app — see SCOPED TO DRIFT above. */
 function isDriftSurface(): boolean {
   if (typeof window === "undefined") return false
+  if (isEmailPreferencesPath()) return false
   if (window.location.hostname.toLowerCase().startsWith("drift.")) return true
   return /^\/(app|auth|trip|join|i)(\/|$)/.test(window.location.pathname)
 }
@@ -413,8 +430,9 @@ export function trackPageview(url: string): void {
   // is noise, and initAnalytics() captures the entry route itself.
   try {
     // The App Router is a SPA after first load, so the pixel's own automatic
-    // PageView fires once and never again. Client navigations need this.
-    if (metaStarted && !metaBlocked && (window as FbWindow).fbq) fbq("track", "PageView")
+    // PageView fires once and never again. Client navigations need this — but
+    // not into /email, where a pixel loaded on an earlier page stays quiet.
+    if (metaStarted && !metaBlocked && (window as FbWindow).fbq && !isEmailPreferencesPath()) fbq("track", "PageView")
     ph?.capture("$pageview", { $current_url: url })
   } catch {
     /* noop */
