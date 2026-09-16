@@ -10,7 +10,7 @@ export default function ActivityPreference() {
   if (!activityAvailable()) return null
   return <section className="mt-6 rounded-2xl border border-aurora-border p-5">
     <label className="flex items-center justify-between gap-4"><span>Share usage to improve Drift</span><input type="checkbox" checked={enabled} disabled={busy} onChange={async e => {setBusy(true);try{await setActivityEnabled(e.target.checked)}catch{}finally{setBusy(false)}}} /></label>
-    <p className="mt-2 text-sm opacity-70">On by default. Drift records which feature you used, the action and whether it worked, when it happened and how long it took, whether the app was in the foreground, and random session and action ids — linked to your account. No chat or search text, locations, or URLs. History is kept for up to 90 days after it reaches our servers. A copy goes to PostHog, our analytics provider. Turn this off to stop sharing and delete the history Drift stores; copies PostHog already has are not deleted. Your trips and chats are unaffected.</p>
+    <p className="mt-2 text-sm opacity-70">On by default. Drift records which feature you used, the action and whether it worked, when it happened and how long it took, whether the app was in the foreground, and random session and action ids — linked to your account. No chat or search text, locations, or URLs. A copy goes to PostHog, our analytics provider. Turn this off to stop sharing. What was already shared is kept; deleting your account removes Drift's copy. Your trips and chats are unaffected.</p>
     {status && <p role="status" className="mt-2 text-sm">{status}</p>}
   </section>
 }
