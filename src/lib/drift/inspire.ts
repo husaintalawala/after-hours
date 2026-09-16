@@ -583,7 +583,11 @@ export function photoAt(url: string | null | undefined, width: number): string |
     u.searchParams.set("w", String(w))
     u.searchParams.set("q", "70")
     u.searchParams.set("auto", "format")
-    u.searchParams.set("fit", "crop")
+    // `max` fits within the requested width and NEVER upscales; `crop` does,
+    // and the top of the srcset ladder (3200) is wider than some of these
+    // photos, so under `crop` the browser was handed a multi-megabyte upscale
+    // that was blurrier than the original. Capping at native is the fix.
+    u.searchParams.set("fit", "max")
     return u.toString()
   }
   return url

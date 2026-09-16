@@ -19,6 +19,11 @@ import { photoAt, photoSrcSet } from "./inspire.ts"
 const WIKI =
   "https://commons.wikimedia.org/wiki/Special:FilePath/Cala_Paura_-_Virginia_Cassano.jpg"
 const UNSPLASH = "https://images.unsplash.com/photo-1234567890"
+// A real stored `inspire_trips.hero_url` (iceland-the-ring-road), trimmed only
+// in the ixid blob. The stored form carries `fit=max`, which is what keeps an
+// over-large ask from being upscaled.
+const STORED_UNSPLASH =
+  "https://images.unsplash.com/photo-1503104538136-7491acef4d5d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDA0NjU2fDB8MXxzZWFyY2h8MXx8SWNlbGFuZA&ixlib=rb-4.1.0&q=80&w=1080"
 
 describe("photoSrcSet", () => {
   test("offers every width, each as its own candidate", () => {
@@ -102,6 +107,33 @@ describe("photoSrcSet", () => {
     assert.equal(photoSrcSet(WIKI, []), null)
     // Duplicates collapse, and what collapses to one candidate is not a srcset.
     assert.equal(photoSrcSet(WIKI, [1200, 1200]), null)
+  })
+
+  test("an Unsplash candidate asks the host to cap, never to upscale", () => {
+    // THE DEFECT. photoAt overrode the stored `fit=max` with `fit=crop`, and
+    // imgix upscales under `crop`: this same photo at `fit=crop&w=9000` comes
+    // back 9000x6000 from a 6000x4000 original — 8MB of JPEG that is blurrier
+    // than the file it was made from. Under `fit=max` an over-large ask is
+    // capped at native instead. The ladder's top rung is 3200, so a 2400px
+    // photo WILL be asked for more than it has; that has to degrade to native,
+    // not to an upscale.
+    const set = photoSrcSet(STORED_UNSPLASH, [800, 3200])
+    assert.ok(set)
+    for (const cand of set.split(", ")) {
+      const u = new URL(cand.trim().split(" ")[0])
+      assert.equal(u.searchParams.get("fit"), "max", "fit=crop lets imgix upscale")
+    }
+  })
+
+  test("sizing an Unsplash photo keeps its attribution token", () => {
+    // ixid is Unsplash's attribution/tracking token, not a render param.
+    // Dropping it is a licence regression no visual check would ever catch.
+    const at = photoAt(STORED_UNSPLASH, 1600)
+    assert.ok(at)
+    const u = new URL(at)
+    assert.equal(u.searchParams.get("w"), "1600")
+    assert.equal(u.searchParams.get("ixid"), "M3wxMDA0NjU2fDB8MXxzZWFyY2h8MXx8SWNlbGFuZA")
+    assert.equal(u.pathname, "/photo-1503104538136-7491acef4d5d")
   })
 
   test("the ladder spans a phone to a retina laptop", () => {
