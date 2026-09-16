@@ -51,6 +51,7 @@ type Props = Record<string, unknown>
 type PostHogLike = {
   capture: (event: string, props?: Props) => void
   identify: (id: string, props?: Props) => void
+  reset: () => void
 }
 
 // IMPORTANT: this module must NOT `import posthog from "posthog-js"`. Every
@@ -83,6 +84,8 @@ function redactCapabilityUrls(props: Props): Props {
 
 let ph: PostHogLike | null = null
 let initStarted = false
+/** The in-flight posthog-js chunk, so a reset that races it can wait for it. */
+let loading: Promise<void> | null = null
 const queue: Array<[string, Props | undefined]> = []
 let pendingIdentity: [string, Props | undefined] | null = null
 
@@ -95,7 +98,7 @@ export function initAnalytics(): void {
   const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
   if (!key) return // not configured yet (no key in Vercel env) → stay a no-op
   initStarted = true
-  import("posthog-js")
+  loading = import("posthog-js")
     .then(({ default: posthog }) => {
       posthog.init(key, {
         api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
@@ -145,6 +148,29 @@ export function identifyUser(id: string, props?: Props): void {
     else if (initStarted) pendingIdentity = [id, props]
   } catch {
     /* noop */
+  }
+}
+
+/**
+ * Forget the identified person in this browser — the web half of iOS
+ * Analytics.reset(), called on sign-out and after account deletion (see
+ * clearUserClientState). Without it posthog-js keeps the account's id in its own
+ * cookie and storage, and every later autocaptured click and exception from this
+ * browser is filed under a person who signed out, or who no longer exists.
+ *
+ * Waits for the chunk if it is still loading: that identity is persisted from an
+ * earlier page, so dropping the reset because the library had not arrived yet
+ * would leave it in place for the next document to pick straight back up.
+ */
+export async function resetAnalytics(): Promise<void> {
+  if (typeof window === "undefined") return
+  pendingIdentity = null
+  queue.length = 0
+  try {
+    if (!ph && loading) await loading
+    ph?.reset()
+  } catch {
+    /* analytics must never break the app */
   }
 }
 

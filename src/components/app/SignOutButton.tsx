@@ -1,17 +1,11 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { signOutAndForget } from "@/lib/drift/signOut"
 
 export default function SignOutButton() {
-  const router = useRouter()
   return (
     <button
-      onClick={async () => {
-        await createClient().auth.signOut()
-        router.push("/app/login")
-        router.refresh()
-      }}
+      onClick={() => void signOutAndForget()}
       className="text-sm text-drift-muted hover:text-drift-ink"
     >
       Sign out

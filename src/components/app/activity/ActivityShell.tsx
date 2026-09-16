@@ -297,9 +297,10 @@ function Signals({ items }: { items: ActivitySignal[] }) {
             {/* Follows, likes and comments are all ABOUT a person, so the row
                 opens that person. iOS points its equivalent at the follower
                 list for the same reason: a row that answers nothing reads as a
-                broken screen. */}
+                broken screen. A trip's own news (handed over, a traveller
+                left) opens the trip — the page decides which. */}
             <Link
-              href="/app/people"
+              href={s.href}
               className="flex items-center gap-3 rounded-lg py-2 transition-colors hover:bg-aurora-glass"
             >
               <Avatar url={s.avatar} name={s.actor} size={32} />

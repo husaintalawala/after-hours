@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { signOutAndForget } from "@/lib/drift/signOut"
 
 // The top of the logged-in home: the mark, the reader, and one sentence in the
 // display serif that names the time of day and asks the only question this app
@@ -109,7 +108,6 @@ export default function HomeHeader({
 function AvatarMenu({ url, name }: { url: string | null; name: string }) {
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
-  const router = useRouter()
 
   // Close on an outside press and on Escape. A menu that can only be dismissed
   // by choosing something from it is a trap on a touch screen.
@@ -162,9 +160,7 @@ function AvatarMenu({ url, name }: { url: string | null; name: string }) {
             role="menuitem"
             onClick={async () => {
               setOpen(false)
-              await createClient().auth.signOut()
-              router.push("/app/login")
-              router.refresh()
+              await signOutAndForget()
             }}
             className="block w-full px-4 py-2.5 text-left text-[13.5px] font-medium text-aurora-ink2 transition-colors hover:bg-white/[0.06] hover:text-aurora-ink"
           >

@@ -478,7 +478,11 @@ async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string
   // <name>" on plan rows). Usually a subset of the roster, but a member who
   // left the trip after adding stops isn't — the union keeps their name.
   const stepAuthorIds = steps.map((s) => s.author_id).filter((a): a is string => !!a)
-  const profileIds = [...new Set([...memberIds, ...rosterIds, ...stepAuthorIds])]
+  // Payers too. Normally already household members, but a deleted account's
+  // expenses are kept for the group with its id still the payer — asking for it
+  // is what lets a miss below mean "this profile is gone", not "never asked".
+  const payerIds = expenseRows.map((e) => e.payer_user_id).filter((a): a is string => !!a)
+  const profileIds = [...new Set([...memberIds, ...rosterIds, ...stepAuthorIds, ...payerIds])]
   const [splitsRes, profilesRes] = await Promise.all([
     expenseIds.length
       ? supabase.from("expense_splits").select("expense_id,household_id,share_minor").in("expense_id", expenseIds)
@@ -505,13 +509,23 @@ async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string
     memberNames.set(p.id, (p.display_name || p.username || "Traveler").split(" ")[0])
   }
 
+  // An id we asked for and got no profile back for belongs to a deleted
+  // account. Its expenses, settle-ups and household are kept so the group's
+  // balances stay right, and it reads "Former traveller" — on iOS too. Only when
+  // the profiles read itself worked: a failed read is not evidence that
+  // everybody left.
+  const profilesRead = !("error" in profilesRes && profilesRes.error)
+  const FORMER_TRAVELLER = "Former traveller"
+  const knownName = (uid: string): string | null =>
+    memberNames.get(uid) ?? (profilesRead ? FORMER_TRAVELLER : null)
+
   const payerLabel = (uid: string | null): string | null =>
-    !uid ? null : uid === meId ? "You" : memberNames.get(uid) ?? null
+    !uid ? null : uid === meId ? "You" : knownName(uid)
 
   // Trip members for the "paid by" picker (solo trip = just you).
   const members = (memberIds.length ? memberIds : [meId]).filter(Boolean).map((id) => ({
     id,
-    name: id === meId ? "You" : memberNames.get(id) ?? "Traveler",
+    name: id === meId ? "You" : knownName(id) ?? "Traveler",
   }))
 
   // The travel-buddy roster, which is NOT the same list as `members` above:
@@ -594,8 +608,12 @@ async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string
       const h = householdRows.find((x) => x.id === id)
       const mine = !!h?.member_user_ids?.includes(meId)
       if (mine) return { label: "You", mine }
-      const names = (h?.member_user_ids ?? []).map((m) => memberNames.get(m)).filter(Boolean)
-      return { label: h?.name || names.join(" & ") || "Household", mine }
+      const ids = h?.member_user_ids ?? []
+      const names = ids.map((m) => memberNames.get(m)).filter(Boolean)
+      // Every member gone and no saved name: a deleted account's household that
+      // the server's "Former traveller" rename never reached.
+      const unnamed = ids.length && profilesRead && !names.length ? FORMER_TRAVELLER : "Household"
+      return { label: h?.name || names.join(" & ") || unnamed, mine }
     }
     ledger = {
       rows: bals.map((b) => ({ ...hLabel(b.householdId), netMinor: b.netMinor })),

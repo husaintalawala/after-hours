@@ -1,11 +1,10 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
-import { revokeGoogleAccess } from "@/lib/drift/google"
+import { signOutAndForget } from "@/lib/drift/signOut"
 // isCityish moved to lib/drift/chat.ts — the first-run flow asks the same
 // question ("Where do you set out from?") and must filter it the same way.
 import { resolvePlaceCandidates, isCityish } from "@/lib/drift/chat"
@@ -13,9 +12,10 @@ import BackLink from "@/components/app/BackLink"
 
 // Web port of the iOS SettingsView: profile header, preferences (default
 // trip privacy — stored locally like iOS UserDefaults), account (sign out),
-// about, and the destructive delete-account flow — which now revokes Google
-// in the browser and hands the actual deletion to the delete-account edge
-// function, the same path iOS uses.
+// about, and a link to delete the account. Deletion is its own page
+// (/app/settings/delete-account): it previews what happens to shared trips,
+// verifies with an emailed code, and reconciles uncertain endings — none of
+// which fits an inline confirm.
 
 export interface SettingsProfile {
   displayName: string
@@ -28,13 +28,7 @@ export interface SettingsProfile {
 const PRIVACY_OPTIONS = ["public", "friends", "private"] as const
 
 export default function SettingsShell({ profile }: { profile: SettingsProfile }) {
-  const router = useRouter()
   const [privacy, setPrivacy] = useState<string>("public")
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  // Set when deletion fails. The account still exists at that point, so the
-  // user has to be told rather than silently signed out.
-  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
@@ -46,89 +40,11 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
     localStorage.setItem("defaultTripPrivacy", v)
   }
 
+  // Through signOutAndForget, like every other sign-out: it also forgets this
+  // account's browser state and leaves by a hard navigation.
   async function signOut() {
     setSigningOut(true)
-    await createClient().auth.signOut()
-    router.push("/app/login")
-    router.refresh()
-  }
-
-  // Real deletion, matching iOS. This used to be a client-side soft delete —
-  // profiles.deleted_at plus the eight tables RLS let the browser see — which
-  // left the auth user, the profile row, every Gmail/Calendar-derived row and
-  // all S3 media in place while the copy promised they were gone. A browser
-  // cannot do this correctly at all: removing the auth user needs the service
-  // role, and ~24 user-scoped tables are invisible under RLS.
-  //
-  // Google is revoked FIRST, from the browser, because the grant lives in this
-  // session and the server has no way to reach it. Best-effort: a user who
-  // never connected Google, or whose token cannot be silently re-minted, must
-  // still be able to delete their account — so a failed revoke degrades to a
-  // note in the success message rather than blocking.
-  async function deleteAccount() {
-    setDeleting(true)
-    setDeleteError(null)
-
-    // Only attempt the revoke if this account ever connected Google.
-    // revokeGoogleAccess -> silentAccessToken loads Google Identity Services and
-    // waits for a token that is never coming for an unconnected account, which
-    // parked the button on "Deleting…" for ~25s before the delete even started.
-    // Measured in a real click-through; the type-check and build both passed it.
-    let hasGoogle = false
-    try {
-      const db = createClient()
-      const { data } = await db
-        .from("import_sources")
-        .select("provider")
-        .in("provider", ["gmail", "calendar"])
-        .limit(1)
-      hasGoogle = ((data ?? []) as unknown[]).length > 0
-    } catch {
-      // Can't tell → try the revoke rather than silently skipping it.
-      hasGoogle = true
-    }
-
-    let revokeNote = ""
-    if (hasGoogle) {
-      try {
-        const revoked = await revokeGoogleAccess(profile.email ?? "")
-        if (!revoked.ok) {
-          revokeNote =
-            " Google still lists Drift under third-party access — remove it there to fully revoke."
-        }
-      } catch {
-        revokeNote =
-          " Google still lists Drift under third-party access — remove it there to fully revoke."
-      }
-    }
-
-    let res: Response
-    try {
-      res = await fetch("/api/drift/delete-account", { method: "POST" })
-    } catch {
-      setDeleting(false)
-      setDeleteError("Couldn't reach the server. Your account has not been deleted — please try again.")
-      return
-    }
-
-    const body = (await res.json().catch(() => null)) as
-      | { ok?: boolean; error?: string }
-      | null
-
-    if (!res.ok || !body?.ok) {
-      // Nothing has been signed out, so the account still works and the user
-      // can retry. Never sign out on failure — that strands them outside an
-      // account that still exists.
-      setDeleting(false)
-      setDeleteError(
-        (body?.error ?? "Account deletion failed. Please try again.") + revokeNote
-      )
-      return
-    }
-
-    await createClient().auth.signOut()
-    router.push("/app/login")
-    router.refresh()
+    await signOutAndForget()
   }
 
   return (
@@ -244,52 +160,19 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
 
       {/* Danger zone */}
       <SectionLabel>Danger zone</SectionLabel>
-      <section className="rounded-2xl border border-aurora-border bg-aurora-glass p-5">
-        {!confirmingDelete ? (
-          <>
-            <button
-              onClick={() => setConfirmingDelete(true)}
-              className="text-[15px] font-semibold text-red-600 transition-opacity hover:opacity-70"
-            >
-              Delete account
-            </button>
-            <p className="mt-2 text-[12px] text-drift-muted">
-              This will permanently delete your account and all associated data.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-[14.5px] font-semibold text-red-600">
-              Delete your account?
-            </p>
-            <p className="mt-1.5 text-[13px] text-drift-muted">
-              This action cannot be undone. All your trips, media, photos, and data
-              will be permanently deleted, and any connected Google account will be
-              disconnected.
-            </p>
-            {deleteError && (
-              <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-[13px] font-medium text-red-700">
-                {deleteError}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2.5">
-              <button
-                onClick={deleteAccount}
-                disabled={deleting}
-                className="rounded-full bg-red-600 px-5 py-2.5 text-[13.5px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </button>
-              <button
-                onClick={() => setConfirmingDelete(false)}
-                disabled={deleting}
-                className="rounded-full bg-drift-alt-bg px-5 py-2.5 text-[13.5px] font-semibold text-drift-muted"
-              >
-                Cancel
-              </button>
-            </div>
-          </>
-        )}
+      <section className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
+        <Link
+          href="/app/settings/delete-account"
+          className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-red-500/10"
+        >
+          <span className="min-w-0">
+            <span className="block text-[15px] font-semibold text-red-400">Delete account</span>
+            <span className="mt-1 block text-[12px] text-drift-muted">
+              See what&rsquo;s removed and what your travel group keeps before you confirm.
+            </span>
+          </span>
+          <span aria-hidden className="text-[13px] text-drift-muted">›</span>
+        </Link>
       </section>
     </div>
   )

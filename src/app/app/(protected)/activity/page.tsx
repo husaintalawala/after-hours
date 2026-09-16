@@ -75,6 +75,8 @@ export interface ActivitySignal {
   avatar: string | null
   text: string
   agoText: string
+  /** Where the row opens: People for social signals, the trip for its own news. */
+  href: string
 }
 
 const DAY = 86_400_000
@@ -507,20 +509,41 @@ export default async function ActivityPage() {
     })
   }
 
-  const signals: ActivitySignal[] = (notifRes.data ?? []).slice(0, 6).map((n) => ({
-    id: n.id,
-    actor: nameOf(n.actor_id) ?? "Someone",
-    avatar: profiles.get(n.actor_id)?.avatar_url ?? null,
-    text:
-      n.type === "follow"
-        ? "started following you"
-        : n.type === "like"
-          ? "liked your trip"
-          : n.type === "comment"
-            ? `commented on ${titleOf.get(n.trip_id ?? "") ?? "your trip"}`
-            : "trip update",
-    agoText: ago(n.created_at),
-  }))
+  const signals: ActivitySignal[] = (notifRes.data ?? []).slice(0, 6).map((n) => {
+    // trip_handover / traveller_left are SELF-ADDRESSED — actor_id is the
+    // reader, because the traveller who left no longer has a profile to be the
+    // actor. So the actor's name would be the reader's own; the TRIP is the
+    // subject, and the row opens it. Neither says why somebody left: everyone on
+    // the trip already knows who was on it. Copy matches the push (send-push).
+    if (n.type === "trip_handover" || n.type === "traveller_left") {
+      return {
+        id: n.id,
+        actor: titleOf.get(n.trip_id ?? "") ?? "A trip",
+        avatar: null,
+        text:
+          n.type === "trip_handover"
+            ? "· You’re now the organiser."
+            : "· A traveller left. Their share of the expenses stays.",
+        agoText: ago(n.created_at),
+        href: n.trip_id ? `/app/trips/${n.trip_id}` : "/app/trips",
+      }
+    }
+    return {
+      id: n.id,
+      actor: nameOf(n.actor_id) ?? "Someone",
+      avatar: profiles.get(n.actor_id)?.avatar_url ?? null,
+      text:
+        n.type === "follow"
+          ? "started following you"
+          : n.type === "like"
+            ? "liked your trip"
+            : n.type === "comment"
+              ? `commented on ${titleOf.get(n.trip_id ?? "") ?? "your trip"}`
+              : "trip update",
+      agoText: ago(n.created_at),
+      href: "/app/people",
+    }
+  })
 
   return (
     <ActivityShell
