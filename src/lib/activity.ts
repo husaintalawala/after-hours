@@ -561,7 +561,9 @@ export async function flushActivity() {
   } catch (error) {
     if (epoch !== generation) return
     const status = error instanceof ActivityRequestError ? error.status : 0
-    if (status >= 400 && status < 500) {
+    // 401 is the exception: a token that expired between the session read and the
+    // request is refreshed on the next attempt, so it backs off like a 5xx.
+    if (status >= 400 && status < 500 && status !== 401) {
       // Permanent. Retrying a 4xx forever is how the queue stops moving, so the
       // batch is dropped and the consent state re-read — 42501 is also how the
       // server says the consent under this batch is no longer current.
