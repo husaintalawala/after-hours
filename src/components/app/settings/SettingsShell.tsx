@@ -132,6 +132,24 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
       <SectionLabel>Account</SectionLabel>
       <GoogleConnection />
 
+      {/* Download your data — its own page (/app/settings/export-data), for the
+          same reason deletion is: what the file holds, and what it deliberately
+          doesn't, needs a sentence or two. */}
+      <section className="my-3 overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
+        <Link
+          href="/app/settings/export-data"
+          className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-white/5"
+        >
+          <span className="min-w-0">
+            <span className="block text-[15px] font-semibold text-aurora-ink">Download your data</span>
+            <span className="mt-1 block text-[12px] text-drift-muted">
+              Your trips, expenses, saved places and photo links, in one file.
+            </span>
+          </span>
+          <span aria-hidden className="text-[13px] text-drift-muted">›</span>
+        </Link>
+      </section>
+
       <section className="overflow-hidden rounded-2xl border border-aurora-border bg-aurora-glass">
         <button
           onClick={signOut}
