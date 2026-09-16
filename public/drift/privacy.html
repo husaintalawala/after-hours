@@ -39,7 +39,7 @@
     <article class="legal">
       <span class="eyebrow">Privacy</span>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: August 13, 2026</p>
+      <p class="updated">Last updated: September 15, 2026</p>
 
       <p class="lead">Drift helps you and your friends plan trips together, book stays and tours, and split the costs. This policy explains what we collect, why, and the choices you have. We keep it in plain language on purpose.</p>
 
@@ -48,7 +48,7 @@
 
       <h2>Information we collect</h2>
       <h3>Account information</h3>
-      <p>When you create an account we collect your email address, a username, and any display name or profile details you add. Authentication is handled by our backend provider (Supabase); we don't store your password ourselves.</p>
+      <p>When you create an account we collect your email address, a username, and any display name or profile details you add. Authentication is handled by our backend provider (Supabase); we don't store your password ourselves. You can sign in with a link sent to your email address, with Apple, or with Google — signing in with Apple or Google tells us only your name and email address, or the private relay address Apple gives us if you choose to hide yours.</p>
 
       <h3>Trip content</h3>
       <p>The itineraries, destinations, stops, notes, dates, and expenses you and your travel companions add to a trip. On shared trips, this content is visible to the other members of that trip.</p>
@@ -83,12 +83,12 @@
       </ul>
 
       <h2>AI features</h2>
-      <p>Some features use AI models — including Google's Gemini and Anthropic's Claude — to do things like extract highlights from a video or write a trip recap. When you use these features, the relevant content (for example, a video or your trip details) is processed by these providers to generate the result. We don't use your private trip content to train third-party models.</p>
+      <p>Some features use AI models — including Google's Gemini, Anthropic's Claude and OpenAI's models — to do things like answer a question about a destination, extract highlights from a video, or write a trip recap. When you use these features, the relevant content (for example, a video or your trip details) is processed by these providers to generate the result. We don't use your private trip content to train third-party models.</p>
 
       <h2>How we share information</h2>
       <p><strong>We do not sell your personal information.</strong> We share it only in these cases:</p>
       <ul>
-        <li><strong>Service providers</strong> that run Drift on our behalf — Supabase (database, authentication), Amazon Web Services (media storage and delivery), Google (maps and place data, Gemini AI), Anthropic (Claude AI), Plaid (financial connections), and Apple (push notifications, payments). They may only use your data to provide their service to us.</li>
+        <li><strong>Service providers</strong> that run Drift on our behalf — Supabase (database, authentication), Amazon Web Services (media storage and delivery), Google (maps and place data, Gemini AI), Anthropic (Claude AI), OpenAI (the Ask Drift assistant), Plaid (financial connections), Apple (push notifications, payments, Sign in with Apple), Resend (transactional email, such as trip invitations and your deletion receipt), PostHog (product analytics), Sentry (crash diagnostics), Vercel (web hosting) and Cloudflare (bot protection on sign-in). They may only use your data to provide their service to us.</li>
         <li><strong>Booking partners.</strong> When you tap a stay or tour, Drift opens a link to a booking partner (such as Booking.com, Expedia, Hotels.com, Vrbo, Viator, Klook, or Priceline, sometimes via the Stay22 or Travelpayouts networks). Your booking is made on the partner's site under their terms and privacy policy. Drift may earn a commission on qualifying bookings — see our <a href="terms.html">Terms</a>. We don't share your personal profile with these partners; they receive only the click needed to attribute the referral.</li>
         <li><strong>Other users</strong>, for content you choose to share — members of a shared trip see that trip's content, and public profiles or trips are visible to others.</li>
         <li><strong>Legal and safety</strong> — if required by law, or to protect the rights and safety of our users and the public.</li>
@@ -128,12 +128,21 @@
 
       <h2>Data retention</h2>
       <p><strong>Google user data has a hard limit.</strong> The full body of an email and the full text of a calendar event are never written to our database at any point. The sender, subject or event title, and the short parsed excerpt we keep for each scanned item are erased automatically by a scheduled job that runs every day and clears anything older than 30 days. After that, all that remains of a scan is the structured booking you chose to confirm, which stays on your trip until you remove it or delete your account.</p>
-      <p>We keep your other information for as long as your account is active or as needed to provide Drift. <strong>Deleting your account is immediate and permanent.</strong> It removes your profile, trips, itinerary items, photos and other uploaded media files, expenses, chats, and social activity; it disconnects any linked Google account and revokes Drift's access at Google; and it deletes your login itself, so the account can no longer be signed in to. We retain data beyond this only where we must to comply with legal obligations, resolve disputes, or enforce our agreements.</p>
+      <p>We keep your other information for as long as your account is active or as needed to provide Drift. We retain data beyond that only where we must to comply with legal obligations, resolve disputes, or enforce our agreements.</p>
+
+      <h3 id="account-deletion">When you delete your account</h3>
+      <p>You can delete your account yourself: in the iOS app under <strong>Settings &rsaquo; Delete Account</strong>, or on the web under <strong>Settings &rsaquo; Danger zone</strong>. Before anything is deleted, we confirm it is you — a six-digit code sent to your account's email address, or Sign in with Apple if that is how you sign in. Nothing is removed until that step passes, so an unlocked phone alone cannot close your account. The screen shows you what will happen, with your own numbers, before you confirm.</p>
+      <p><strong>The deletion itself is immediate and permanent.</strong> It removes your profile; the trips only you were on, with their itinerary, notes and packing lists; your photos, videos and files; your chats with Drift; your comments, likes and follows; the bookings imported from Gmail, Calendar and forwarded email, together with the Google-derived records described above; your saved places and guides; your travel preferences; the device tokens used to send you notifications; and your login itself, so the account can no longer be signed in to. It cannot be undone, and we cannot restore it for you afterwards.</p>
+      <p><strong>Trips you organised with other people are handed over, not destroyed.</strong> If someone accepted an invitation to a trip you organise, that trip passes to the traveller who joined first, so their itinerary and everything they added to it survive. They are told the trip has a new organiser; they are not told why.</p>
+      <p><strong>A few shared records are kept deliberately, with your identity removed.</strong> Expenses and settle-ups on trips you shared with other people stay, so their balances remain correct, and they appear as “Former traveller” rather than under your name. Your receipts, photos, messages and comments on those trips are removed.</p>
+      <p><strong>We disconnect the services Drift connected on your behalf.</strong> Google access is revoked; Sign in with Apple tokens are revoked, so Drift stops appearing under your Apple ID; and any bank connection is removed at Plaid, so it stops sharing data with us. If a provider cannot be reached at that moment, we keep retrying automatically and tell you what you can do yourself in the meantime.</p>
+      <p>We email a receipt to your account address when it is done, listing what was removed and what was kept.</p>
+      <p><strong>What can still exist for a short time afterwards.</strong> We would rather say this plainly than promise more than we can do. Encrypted daily database backups hold your data until they age out of a rolling seven-day window; if we ever restore one, we re-apply your deletion to it. Authentication security logs keep the record of sign-ins for up to 90 days. Media already delivered may sit in content-delivery caches for a short time after the files themselves are deleted. Our email provider keeps its own delivery logs for messages already sent to you. Our product-analytics provider holds usage events tied to a random identifier rather than your name or email address, and those events remain in its systems. We also keep a record that an account was deleted, when, and anything that could not be reached at the time — without your name or email address — because that record is how we prove the deletion happened and finish any outstanding step.</p>
 
       <h2>Your rights and choices</h2>
       <ul>
         <li><strong>Access and correction</strong> — you can view and edit most of your information in the app.</li>
-        <li><strong>Deletion</strong> — you can delete your account, which removes your personal data as described above.</li>
+        <li><strong>Deletion</strong> — you can delete your account in the app or on the web, and we confirm it is you first. See <a href="#account-deletion">When you delete your account</a> for exactly what is removed, what is handed to the people you travelled with, and what is kept.</li>
         <li><strong>Location and notifications</strong> — you control these in your device settings at any time.</li>
         <li><strong>Financial connections</strong> — you can disconnect a linked account at any time.</li>
         <li><strong>Google account</strong> — you can disconnect it in Settings, or revoke Drift's access anytime at <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a>.</li>
