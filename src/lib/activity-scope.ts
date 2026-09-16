@@ -38,3 +38,17 @@ export function recordLegacyActivity(name: string, properties?: Record<string, u
   const feature = name === "add_to_itinerary" && entrypoint ? (ENTRYPOINT_FEATURES[entrypoint] ?? mapped) : mapped
   activityScope()(name, feature, "succeeded", entrypoint ? { entrypoint } : {})
 }
+
+// ── PostHog copy ─────────────────────────────────────────────────────────────
+// analytics.ts installs this and activity.ts calls it, so neither imports the
+// other: activity.ts must not pull posthog-js, and analytics.ts must not pull
+// the activity module (see the note at the top of this file). Called only for
+// events that entered the activity queue, so nothing is copied while sharing is
+// off or before consent answers.
+type Mirror = (name: string, properties: Record<string, string | number | boolean>) => void
+let mirror: Mirror = () => {}
+export function installActivityMirror(value: Mirror) { mirror = value }
+export function mirrorActivity(name: string, properties: Record<string, string | number | boolean>) {
+  try { mirror(name, properties) } catch { /* analytics must never break the app */ }
+}
+

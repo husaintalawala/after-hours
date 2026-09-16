@@ -1,4 +1,4 @@
-import { recordLegacyActivity } from "./activity-scope"
+import { installActivityMirror, recordLegacyActivity } from "./activity-scope"
 // ── PostHog event-level funnel layer (sits on top of Vercel Web Analytics) ──
 //
 // Vercel Analytics answers "how much traffic / which pages"; PostHog answers
@@ -88,6 +88,18 @@ let initStarted = false
 /** The in-flight posthog-js chunk, so a reset that races it can wait for it. */
 let loading: Promise<void> | null = null
 const queue: Array<[string, Props | undefined]> = []
+
+// First-party activity events, copied to PostHog under an `activity_` prefix so
+// they are never counted together with the legacy funnel event of the same name
+// (create_trip, trip_activated, …), which capture() already sends. Straight to
+// PostHog: not through capture(), so no Meta pixel and no loop back into the
+// activity mapper. The activity queue only calls this for events it accepted.
+installActivityMirror((name, props) => {
+  if (typeof window === "undefined") return
+  const event = "activity_" + name
+  if (ph) ph.capture(event, props)
+  else if (initStarted && queue.length < 50) queue.push([event, props])
+})
 let pendingIdentity: [string, Props | undefined] | null = null
 
 export function initAnalytics(): void {

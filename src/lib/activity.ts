@@ -1,6 +1,6 @@
 "use client"
 
-import { activityAvailable, installActivityScope } from "./activity-scope"
+import { activityAvailable, installActivityScope, mirrorActivity } from "./activity-scope"
 
 // Optional, account-linked usage history. No content and no object ids: the
 // vocabulary below is the whole of what can ever leave this device.
@@ -275,6 +275,16 @@ function alignQueue() {
   persist()
 }
 
+/** The PostHog copy of an event that entered the queue: the same fixed fields, nothing else. */
+function mirror(event: ActivityEvent) {
+  mirrorActivity(event.event_name, {
+    feature: event.feature,
+    outcome: event.outcome,
+    ...(event.action_id ? { action_id: event.action_id } : {}),
+    ...event.properties,
+  })
+}
+
 /** Move the pre-consent buffer into the queue, or discard it. It is never persisted. */
 function promoteBuffer() {
   const buffered = preConsent
@@ -284,6 +294,7 @@ function promoteBuffer() {
     if (pending.length >= QUEUE_MAX) break
     event.consent_version = consentVersion
     pending.push(event)
+    mirror(event)
   }
   persist()
 }
@@ -492,6 +503,7 @@ function enqueue(name: string, feature: Feature, outcome: Outcome, properties: R
   if (!enabled) return false
   if (pending.length >= QUEUE_MAX) { setHealth("Usage queue is full. Some new usage events cannot be stored."); return false }
   pending.push(event)
+  mirror(event)
   persist()
   if (pending.length >= FLUSH_AT) void flushActivity()
   return true

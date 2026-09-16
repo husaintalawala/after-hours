@@ -31,8 +31,8 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), 'utf8')
 
 function loadActivity() {
   return load(read('../src/lib/activity.ts')
-    .replace('import { activityAvailable, installActivityScope } from "./activity-scope"',
-      'const activityAvailable = () => process.env.NEXT_PUBLIC_ACTIVITY_ENABLED === "true"\nconst installActivityScope = (f) => { globalThis.__installedScope = f }')
+    .replace('import { activityAvailable, installActivityScope, mirrorActivity } from "./activity-scope"',
+      'const activityAvailable = () => process.env.NEXT_PUBLIC_ACTIVITY_ENABLED === "true"\nconst installActivityScope = (f) => { globalThis.__installedScope = f }\nconst mirrorActivity = (n, p) => (globalThis.__mirrored ??= []).push([n, p])')
     .replace('import("@/lib/supabase/client").then((m) => m.createClient())', 'Promise.resolve(globalThis.__activityClient())'))
 }
 const loadScope = () => load(read('../src/lib/activity-scope.ts'))
@@ -439,7 +439,7 @@ async function loadAnalytics(sink) {
     init() {}, capture(event, props) { sink.ph.push([event, props]) }, identify(id, props) { sink.id.push([id, props]) },
   }
   return load(read('../src/lib/analytics.ts')
-    .replace('import { recordLegacyActivity } from "./activity-scope"', 'const recordLegacyActivity = (n, p) => globalThis.__legacy.push([n, p])')
+    .replace('import { installActivityMirror, recordLegacyActivity } from "./activity-scope"', 'const recordLegacyActivity = (n, p) => globalThis.__legacy.push([n, p])\nconst installActivityMirror = (f) => { globalThis.__mirror = f }')
     .replace('import("posthog-js")', 'Promise.resolve({ default: globalThis.__posthog })'))
 }
 
@@ -485,3 +485,50 @@ test('NewTripFlow still captures create_trip for PostHog and Meta', () => {
   assert.match(source, /capture\(AnalyticsEvent\.CreateTrip/)
   assert.match(source, /activity\("create_trip","trips","succeeded"/)
 })
+
+// ── PostHog copy ─────────────────────────────────────────────────────────────
+test('the PostHog copy is made only for events the queue took', async () => {
+  browser(); server()
+  globalThis.__mirrored = []
+  const a = await loadActivity()
+  await a.connectActivity('user-a')
+  a.recordActivity('feature_viewed', 'discover')
+  assert.equal(globalThis.__mirrored.length, 0, 'nothing is copied while sharing is off')
+
+  await a.setActivityEnabled(true)
+  const actionId = crypto.randomUUID()
+  a.recordActivity('create_trip', 'trips', 'succeeded', { entrypoint: 'manual' }, actionId)
+  assert.deepEqual(globalThis.__mirrored.find(([n]) => n === 'create_trip'),
+    ['create_trip', { feature: 'trips', outcome: 'succeeded', action_id: actionId, entrypoint: 'manual' }],
+    'the same fixed fields the server gets, and nothing else')
+  a.recordActivity('guide_opened', 'inspire', 'observed', { search: 'private text' })
+  assert.ok(!globalThis.__mirrored.some(([n]) => n === 'guide_opened'), 'an event the queue refused is not copied either')
+
+  await a.setActivityEnabled(false)
+  const count = globalThis.__mirrored.length
+  a.recordActivity('feature_viewed', 'discover')
+  assert.equal(globalThis.__mirrored.length, count, 'and nothing after sharing is turned off')
+  await settle()
+})
+
+test('activity copies reach PostHog as activity_*, never Meta and never the legacy name', async () => {
+  const sink = { ph: [], id: [] }
+  globalThis.__legacy = []
+  globalThis.window = Object.assign(new EventTarget(), { location: { hostname: 'drift.after-hours.app', pathname: '/app/trips/1', href: 'https://drift.after-hours.app/app/trips/1' } })
+  globalThis.document = { createElement: () => ({}), head: { appendChild() {} } }
+  globalThis.sessionStorage = new Store(); globalThis.localStorage = new Store()
+  globalThis.fetch = async () => new Response(JSON.stringify({ adsAllowed: true }))
+  process.env.NEXT_PUBLIC_POSTHOG_KEY = 'ph-test'
+  process.env.NEXT_PUBLIC_META_PIXEL_ID = '1234567890'
+  const an = await loadAnalytics(sink)
+  an.initAnalytics()
+  await new Promise((r) => setTimeout(r, 0))
+  await new Promise((r) => setTimeout(r, 0))
+
+  globalThis.__mirror('create_trip', { feature: 'trips', outcome: 'succeeded' })
+  assert.deepEqual(sink.ph.find(([e]) => e === 'activity_create_trip'), ['activity_create_trip', { feature: 'trips', outcome: 'succeeded' }])
+  assert.ok(!sink.ph.some(([e]) => e === 'create_trip'), 'never counted with the legacy create_trip')
+  assert.ok(!globalThis.window.fbq.queue.some(([, name]) => String(name).includes('create_trip')), 'and never sent to Meta')
+  assert.equal(globalThis.__legacy.length, 0, 'and never looped back into the activity mapper')
+})
+
