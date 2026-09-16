@@ -38,6 +38,7 @@ import {
   rankGuides,
   shelfFor,
   reasonFor,
+  shapeCounts,
   type Coord,
   type RankableGuide,
   type TripLength,
@@ -269,6 +270,11 @@ export default function DaybreakFlow({
   // kind of trip, and the headline already spells whatever number it gets.
   const suggested = shelf.guides
   /** One clause per card, keyed by trip id — see reasonFor. */
+  /** How many guides genuinely are each kind of trip — the tiles' eyebrow. */
+  const tileCounts = useMemo(
+    () => shapeCounts(guides, TRIP_SHAPES.map((t) => t.slug)),
+    [guides]
+  )
   const reasons = useMemo(() => {
     const label = (slug: string) =>
       TRIP_SHAPES.find((t) => t.slug === slug)?.label ?? slug
@@ -838,6 +844,7 @@ export default function DaybreakFlow({
             months={departureMonths}
             departure={departure}
             onDeparture={setDeparture}
+            counts={tileCounts}
             onNext={() => setStep(3)}
             onSkip={() => {
               // Skip means "I did not answer this screen", so it clears EVERY

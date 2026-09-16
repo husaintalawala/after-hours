@@ -4,6 +4,7 @@ import {
   bestDepartureMonth,
   prioritiesForShapes,
   rankGuides,
+  shapeCounts,
   SHAPE_INTERESTS,
   seasonScore,
   shelfFor,
@@ -480,6 +481,17 @@ describe("flexible start month", () => {
     const scores = [15, 15, 15, 15, 15, 15, 15, 15, 15, 90, 65, 15]
     const g = guide("g", { monthScores: scores, blackoutMonths: [10] })
     assert.equal(bestDepartureMonth(g, sixFromSeptember), 11)
+  })
+})
+
+describe("tile counts", () => {
+  test("count the floor, not the tags", () => {
+    const guides = [
+      guide("primary", { tags: ["islands"] }),                                  // tier 0
+      guide("tagged-only", { tags: ["islands"], interests: [], setting: [] }),  // tag, no evidence
+      guide("other", { tags: ["wild"] }),
+    ]
+    assert.deepEqual(shapeCounts(guides, ["islands", "wild", "high"]), { islands: 1, wild: 1, high: 0 })
   })
 })
 

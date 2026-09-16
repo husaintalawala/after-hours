@@ -376,6 +376,7 @@ export function MosaicStep({
   months,
   departure,
   onDeparture,
+  counts = {},
   onNext,
   onSkip,
 }: {
@@ -388,6 +389,8 @@ export function MosaicStep({
   months: ReadonlyArray<YearMonth>
   departure: YearMonth | null
   onDeparture: (v: YearMonth | null) => void
+  /** Guides that genuinely are each kind of trip, by slug — see shapeCounts. */
+  counts?: Readonly<Record<string, number>>
   onNext: () => void
   onSkip: () => void
 }) {
@@ -490,6 +493,11 @@ export function MosaicStep({
                 )}
               </span>
               <span className="db-shape-caption relative min-w-0 px-3 pb-2.5 [text-shadow:0_1px_6px_rgba(0,0,0,0.55)]">
+                {(counts[s.slug] ?? 0) > 0 && (
+                  <span className="block text-[9.5px] font-bold uppercase tracking-[0.09em] text-white/80">
+                    {counts[s.slug] === 1 ? "1 trip" : `${counts[s.slug]} trips`}
+                  </span>
+                )}
                 <span className="block text-[14px] font-bold leading-tight text-white">
                   {s.label}
                 </span>

@@ -676,6 +676,21 @@ export function bestDepartureMonth(guide: RankableGuide, months: readonly number
   return best
 }
 
+/**
+ * How many guides genuinely ARE each kind of trip — tier 0 or 1, the same floor
+ * shelfFor applies. Counted on that floor rather than on tags on purpose: a tile
+ * promising "14 trips" must not count guides the shelf would refuse to show for
+ * that answer. Twin of DaybreakRanking.shapeCounts.
+ */
+export function shapeCounts(
+  guides: readonly RankableGuide[],
+  shapes: readonly string[]
+): Record<string, number> {
+  return Object.fromEntries(
+    shapes.map((s) => [s, guides.filter((g) => shapeMissFor(g, s) <= 1).length])
+  )
+}
+
 export function shapeFit(guide: RankableGuide, shape: string): number {
   if (guide.shapePrimary === shape) return 1
   const w = guide.shapeWeights[shape] ?? 0
