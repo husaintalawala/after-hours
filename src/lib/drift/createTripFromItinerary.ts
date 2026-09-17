@@ -41,13 +41,14 @@ export async function createTripFromItinerary(
   resolved: Record<string, ResolvedPlace> = {}
 ): Promise<
   | { tripId: string; destinationId?: string; startDate: string; endDate: string }
-  | { error: string }
+  /** `code` is the create_trip error_code, the same two iOS reports for this routine. */
+  | { error: string; code: "unauthorized" | "server" }
 > {
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { error: "Sign in again and try once more." }
+  if (!user) return { error: "Sign in again and try once more.", code: "unauthorized" }
 
   // Calendar arithmetic on the DATE STRING, never on a parsed instant. The
   // model emits a wall-clock day; `new Date("2026-08-15")` is UTC midnight, and
@@ -81,7 +82,7 @@ export async function createTripFromItinerary(
     const retry = await supabase.from("trips").insert(base)
     if (retry.error) {
       console.error("[createTripFromItinerary] insert trip", retry.error)
-      return { error: "I couldn't create the trip just now — nothing changed." }
+      return { error: "I couldn't create the trip just now — nothing changed.", code: "server" }
     }
   }
 

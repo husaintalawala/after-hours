@@ -22,6 +22,7 @@ import { applyCreateStep, applyRemoveStep } from "@/lib/drift/quickOp"
 import { createTripFromItinerary, ensureDestination } from "@/lib/drift/createTripFromItinerary"
 import { dayDateFor, pickDestinationId, shortDate } from "@/lib/drift/itineraryPlacement"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { activityScope } from "@/lib/activity"
 import { checkTripActivated } from "@/lib/drift/activation"
 
 /**
@@ -114,8 +115,16 @@ export default function GeneralChat({
       const coords = cand
         ? { [place.name]: { lat: cand.latitude ?? null, lng: cand.longitude ?? null, placeId: cand.id || null } }
         : {}
+      // A trip creation like "Create this trip", and recorded as one — iOS runs
+      // both through the same routine, so both are the "chat" entrypoint.
+      const activity = activityScope(), actionId = crypto.randomUUID()
+      activity("trip_creation_started","trips","started",{entrypoint:"chat"},actionId)
       const res = await createTripFromItinerary(single, coords)
-      if ("error" in res) return fail()
+      if ("error" in res) {
+        activity("create_trip","trips","failed",{entrypoint:"chat",error_code:res.code},actionId)
+        return fail()
+      }
+      activity("create_trip","trips","succeeded",{entrypoint:"chat"},actionId)
       createdTripsRef.current.push({
         id: res.tripId,
         title: single.title,

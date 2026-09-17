@@ -86,6 +86,8 @@ export default function NewTripFlow() {
     if (!place || !tripType || creating) return
     const activity = activityScope(), actionId = crypto.randomUUID()
     activity("trip_creation_started","trips","started",{entrypoint:"manual"},actionId)
+    /** Why the insert did not land — the same codes iOS TripDetailFormView reports. */
+    let failure: "unauthorized" | "server" | "unknown" = "unknown"
     setCreating(true)
     setError(null)
     try {
@@ -94,7 +96,10 @@ export default function NewTripFlow() {
         data: { session },
       } = await supabase.auth.getSession()
       const user = session?.user
-      if (!user) throw new Error("Not signed in")
+      if (!user) {
+        failure = "unauthorized"
+        throw new Error("Not signed in")
+      }
 
       // iOS stores the default-privacy preference locally (UserDefaults);
       // the web mirrors that in localStorage via the Settings page.
@@ -123,7 +128,10 @@ export default function NewTripFlow() {
         })
         .select("id")
         .single()
-      if (tripErr || !trip) throw new Error(tripErr?.message ?? "trip insert failed")
+      if (tripErr || !trip) {
+        failure = "server"
+        throw new Error(tripErr?.message ?? "trip insert failed")
+      }
 
       // Destination anchor step — mirrors iOS createDestinationAnchor exactly.
       const hasCoord =
@@ -153,7 +161,7 @@ export default function NewTripFlow() {
       activity("create_trip","trips","succeeded",{entrypoint:"manual"},actionId)
       router.push(`/app/trips/${trip.id}`)
     } catch (e) {
-      activity("create_trip","trips","failed",{entrypoint:"manual"},actionId)
+      activity("create_trip","trips","failed",{entrypoint:"manual",error_code:failure},actionId)
       setError(e instanceof Error ? e.message : "Something went wrong")
       setCreating(false)
     }

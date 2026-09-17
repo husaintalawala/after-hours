@@ -137,7 +137,7 @@ export default function ItineraryCard({
     }
     const res = await createTripFromItinerary(itin, coords)
     if ("error" in res) {
-      activity("create_trip","trips","failed",{entrypoint:"chat",error_code:"unknown"},actionId)
+      activity("create_trip","trips","failed",{entrypoint:"chat",error_code:res.code},actionId)
       setError(res.error)
       setBusy(false)
       return
