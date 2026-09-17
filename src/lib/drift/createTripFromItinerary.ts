@@ -1,3 +1,4 @@
+import { isAuthRetryableFetchError } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import type { ChatItinerary } from "@/lib/drift/generalChat"
 
@@ -41,14 +42,20 @@ export async function createTripFromItinerary(
   resolved: Record<string, ResolvedPlace> = {}
 ): Promise<
   | { tripId: string; destinationId?: string; startDate: string; endDate: string }
-  /** `code` is the create_trip error_code, the same two iOS reports for this routine. */
-  | { error: string; code: "unauthorized" | "server" }
+  /** `code` is the create_trip error_code: iOS's unauthorized / server, plus network. */
+  | { error: string; code: "unauthorized" | "server" | "network" }
 > {
   const supabase = createClient()
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
-  if (!user) return { error: "Sign in again and try once more.", code: "unauthorized" }
+  // getUser is a network call that returns, not throws, a dropped connection
+  // (status 0) or an auth 5xx — neither means the reader is signed out.
+  if (!user) {
+    const code = isAuthRetryableFetchError(authError) ? (authError.status === 0 ? "network" : "server") : "unauthorized"
+    return { error: "Sign in again and try once more.", code }
+  }
 
   // Calendar arithmetic on the DATE STRING, never on a parsed instant. The
   // model emits a wall-clock day; `new Date("2026-08-15")` is UTC midnight, and
