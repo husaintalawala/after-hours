@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.afterhours.drift",
+      "sha256_cert_fingerprints": [
+        "92:60:07:01:07:2C:BE:55:4A:1D:EC:6D:3B:0E:A4:53:80:9A:90:18:B5:21:93:26:46:C7:95:AF:27:77:F1:74"
+      ]
+    }
+  }
+]
