@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drift — Every trip, together</title>
+<title>Drift — Find your next trip</title>
 <link rel="icon" href="assets/icon/icon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/icon/icon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="assets/icon/icon-180.png">
 <link rel="icon" href="drift-logo.png" sizes="any">
-<meta name="description" content="The group-trip app. Start from 40 ready-made trips, keep bookings and plans in one place, split every cost — then watch your world fill in. iPhone.">
-<meta property="og:title" content="Drift — Every trip, together">
-<meta property="og:description" content="Plan with your crew, keep every booking in one place, split every cost, and watch your world fill in. The group-trip app for iPhone.">
+<meta name="description" content="Discover trips you’ll love, make them your own, and keep every plan and place close with Drift.">
+<meta property="og:title" content="Drift — Find your next trip">
+<meta property="og:description" content="Discover trips you’ll love. Make them your own with Drift — solo or with your people.">
 <meta property="og:image" content="assets/photo/og-image.jpg">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#ffffff">
@@ -103,13 +103,13 @@
      radial-gradient(90% 70% at 30% 80%,rgba(23,193,175,.09),rgba(23,193,175,0) 60%),
      radial-gradient(120% 80% at 50% 32%,rgba(6,11,18,0) 26%,rgba(6,11,18,.30) 100%),
      linear-gradient(180deg,rgba(6,11,18,.74) 0%,rgba(6,11,18,.24) 26%,rgba(6,11,18,.28) 54%,rgba(6,11,18,.66) 100%)}
-  .stage-hero{position:absolute;z-index:4;left:0;right:0;top:clamp(74px,9.6vh,126px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
+  .stage-hero{position:absolute;z-index:6;left:0;right:0;top:clamp(82px,11vh,118px);text-align:center;color:#fff;padding:0 24px;pointer-events:none;will-change:opacity,transform}
   .stage-hero>*{pointer-events:auto}
   .laurel{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.24);padding:7px 15px;border-radius:100px}
   .laurel i{width:7px;height:7px;border-radius:50%;background:#2fd0be;box-shadow:0 0 10px #2fd0be}
-  @media(max-width:700px){.stage-hero{top:clamp(104px,14vh,128px)}}
+  @media(max-width:700px){.stage-hero{top:clamp(96px,13vh,118px)}}
   .stage-hero .kicker{display:block;font-family:var(--sans);font-weight:800;font-size:clamp(11px,1.05vw,13.5px);letter-spacing:.22em;text-indent:.22em;text-transform:uppercase;color:#7df3e5;text-shadow:0 1px 16px rgba(0,0,0,.55)}
-  .stage-hero h1{font-size:clamp(54px,12.5vw,158px);margin:14px 0 0;line-height:.99;letter-spacing:-.015em;text-shadow:0 2px 50px rgba(0,0,0,.45)}
+  .stage-hero h1{font-size:clamp(62px,8.2vw,112px);margin:12px 0 0;line-height:.94;letter-spacing:-.025em;text-shadow:0 2px 50px rgba(0,0,0,.45)}
   /* padding grows the PAINT box (background-clip:text only paints inside it —
      line-height .93 left ascenders and the g's descender outside, unpainted =
      "truncated" glyphs); the negative margins hand the space back to layout. */
@@ -118,8 +118,21 @@
      -webkit-background-clip:text;background-clip:text;color:transparent;
      filter:drop-shadow(0 2px 14px rgba(34,183,212,.30))}
   .stage-hero h1 em .tdot{background:linear-gradient(120deg,#22b7d4 0%,#8b7bff 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .stage-hero .sub{font-size:clamp(16px,1.7vw,20px);color:rgba(255,255,255,.94);margin:26px auto 0;max-width:30ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.45)}
-  .stage-hero .cta{margin-top:24px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
+  .stage-hero .sub{font-size:clamp(16px,1.55vw,19px);color:rgba(255,255,255,.94);margin:20px auto 0;max-width:34ch;font-weight:500;text-shadow:0 1px 18px rgba(0,0,0,.45)}
+  .stage-hero .cta{margin-top:20px;display:flex;justify-content:center;gap:14px;align-items:center;flex-wrap:wrap}
+  .stage-hero .cta .arrow{font-size:18px;line-height:1;transform:translateY(-1px)}
+  @media(max-width:700px){
+    .stage-hero h1{font-size:clamp(48px,13.5vw,62px);margin-top:10px;line-height:.95}
+    .stage-hero .sub{font-size:15px;margin-top:16px;max-width:29ch}
+    .stage-hero .cta{margin-top:16px}
+  }
+  @media(max-width:700px) and (max-height:680px){
+    .stage-hero{top:82px}
+    .stage-hero h1{font-size:44px}
+    .stage-hero .sub{font-size:14px;margin-top:12px;max-width:31ch}
+    .stage-hero .cta{margin-top:13px}
+    .stage-hero .btn{font-size:14px;padding:12px 20px}
+  }
   .stage-hero .rate{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.92);display:inline-flex;align-items:center;gap:8px}
   .stage-hero .rate .av{display:flex}
   .stage-hero .rate .av span{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.85);margin-left:-8px;background-size:cover;background-position:center}
@@ -787,6 +800,103 @@
     .rz .ok,.dpin{transform:scale(1)!important}
     .settle .sbar i{width:100%!important}
   }
+
+  /* ============ LIVE-USE MOTION PROTOTYPE ============
+     Every chapter is a trimmed recording of the current iOS app. */
+  .motion-prototype .story{height:460vh;background:#f8f4ed}
+  .motion-prototype .stage{background:#f8f4ed}
+  .motion-prototype .chatsec,.motion-prototype .bento,.motion-prototype .relivec{display:none}
+  .motion-prototype .stage-phone{z-index:5}
+  .motion-prototype .stage-phone .phone{--pw:clamp(270px,40vh,292px);padding:6px;border-radius:47px;background:#050a12;box-shadow:0 48px 90px -42px rgba(5,11,20,.68),0 18px 40px -24px rgba(5,11,20,.48),inset 0 0 0 1px rgba(255,255,255,.16)}
+  .motion-prototype .stage-phone .scr{border-radius:41px;background:#07111f;padding-bottom:216.43%}
+  .trip-sequence{position:absolute;inset:0;overflow:hidden;background:#07111f}
+  .native-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transform:scale(.99);will-change:opacity,transform;transition:opacity .22s linear,transform .35s var(--e);background:#07111f}
+  .native-video:first-child{opacity:1;transform:scale(1)}
+  .motion-copy{position:absolute;z-index:4;inset:0;color:#0c1626;pointer-events:none;scroll-margin-top:100px;transition:color .45s ease}
+  .motion-copy article{position:absolute;left:calc(50% + 135px);top:50%;width:340px;opacity:0;transition:opacity .5s var(--e),transform .65s var(--e);pointer-events:none}
+  .motion-copy article.future{transform:translateY(-50%) translateX(72px)}
+  .motion-copy article.past{transform:translateY(-50%) translateX(-140px)}
+  .motion-copy article.on{opacity:1;transform:translateY(-50%) translateX(0)}
+  .motion-copy .eyebrow{font-size:20px}
+  .motion-copy h2{font-size:clamp(38px,4.6vw,58px);margin-top:10px;line-height:.98}
+  .motion-copy h2 em{font-style:italic;color:#0e8c7e}
+  .motion-copy p{font-size:15px;color:#5b6672;max-width:31ch;margin-top:15px}
+  .motion-copy .fixture-note{display:inline-flex;margin-top:18px;padding:7px 10px;border-radius:999px;background:#e5f7f3;color:#0e756b;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .motion-prototype .stage.night .motion-copy{color:#f7fbff}
+  .motion-prototype .stage.night .motion-copy h2 em{color:#72eadc}
+  .motion-prototype .stage.night .motion-copy p{color:rgba(235,245,248,.7)}
+  .motion-prototype .stage.night .motion-copy .fixture-note{background:rgba(55,214,196,.12);color:#8ff3e7}
+  .prototype-label{position:absolute;z-index:7;right:24px;bottom:22px;padding:6px 9px;border:1px solid rgba(12,22,38,.13);border-radius:999px;background:rgba(255,255,255,.72);color:#53606e;font-size:9px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(12px)}
+  .motion-reduced{display:none}
+  @media(max-width:899px){
+    .motion-prototype .story{height:440vh}
+    .motion-prototype .stage-phone{margin-top:205px}
+    .motion-prototype .stage-phone .phone{--pw:min(292px,76vw,calc((100svh - 218px)/2.1643));padding:4px;border-radius:43px}
+    .motion-prototype .stage-phone .scr{border-radius:39px}
+    .motion-copy{inset:0;text-align:center}
+    .motion-copy article{left:18px;right:18px;top:74px;width:auto}
+    .motion-copy article.future{transform:translateY(12px)}
+    .motion-copy article.past{transform:translateY(-12px)}
+    .motion-copy article.on{transform:none}
+    .motion-copy h2{font-size:30px;margin-top:5px}
+    .motion-copy p{font-size:12.5px;margin:8px auto 0;max-width:46ch}
+    .motion-copy .eyebrow{font-size:16px}
+    .motion-copy .fixture-note{margin-top:9px;font-size:8px;padding:5px 8px}
+    .prototype-label{right:12px;bottom:10px}
+  }
+  @media(max-width:899px) and (max-height:650px){
+    .motion-copy .fixture-note{display:none}
+    .motion-prototype .stage-phone{margin-top:220px}
+    .motion-prototype .stage-phone .phone{--pw:min(250px,68vw,calc((100svh - 234px)/2.1643))}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .motion-prototype .story{height:100svh;background:#f8f4ed}
+    .motion-prototype .stage{display:flex;position:relative;height:100svh;background:#07111f}
+    .motion-prototype .stage-phone{position:absolute;left:50%;top:calc(100svh - 118px);margin:0!important;transform:translateX(-50%) scale(.7)!important;transform-origin:50% 0;opacity:.82}
+    .motion-prototype .motion-copy,.motion-prototype .prototype-label{display:none}
+    .motion-reduced{display:grid;gap:96px;padding:140px max(24px,6vw) 96px;background:#f8f4ed}
+    .motion-reduced article{display:grid;grid-template-columns:minmax(220px,292px) minmax(280px,420px);gap:clamp(48px,8vw,120px);align-items:center;justify-content:center}
+    .motion-reduced article:nth-child(even){background:#07111f;color:#fff;margin-inline:-6vw;padding:84px max(24px,6vw)}
+    .motion-reduced .reduced-phone{padding:5px;border-radius:44px;background:#050a12;box-shadow:0 30px 60px -35px rgba(5,11,20,.65)}
+    .motion-reduced img{display:block;width:100%;border-radius:39px}
+    .motion-reduced h2{font-size:clamp(34px,5vw,54px);line-height:1;margin-top:8px}
+    .motion-reduced h2 em{font-style:italic;color:#0e8c7e}
+    .motion-reduced article:nth-child(even) h2 em{color:#72eadc}
+    .motion-reduced p{max-width:34ch;margin-top:14px;color:#5b6672}
+    .motion-reduced article:nth-child(even) p{color:rgba(235,245,248,.72)}
+    .nav .nav-in{background:rgba(255,255,255,.88)!important;box-shadow:0 10px 30px -20px rgba(6,12,20,.35)!important}
+    .nav .brand,.nav .nav-contact,.nav .nav-login{color:var(--ink)!important}
+  }
+  html.reduce-motion-test .motion-prototype .story{height:100svh;background:#f8f4ed}
+  html.reduce-motion-test .motion-prototype .stage{display:flex;position:relative;height:100svh;background:#07111f}
+  html.reduce-motion-test .motion-prototype .stage-phone{position:absolute;left:50%;top:calc(100svh - 118px);margin:0!important;transform:translateX(-50%) scale(.7)!important;transform-origin:50% 0;opacity:.82}
+  html.reduce-motion-test .motion-prototype .motion-copy,html.reduce-motion-test .motion-prototype .prototype-label{display:none}
+  html.reduce-motion-test .motion-reduced{display:grid;gap:96px;padding:140px max(24px,6vw) 96px;background:#f8f4ed}
+  html.reduce-motion-test .motion-reduced article{display:grid;grid-template-columns:minmax(220px,292px) minmax(280px,420px);gap:clamp(48px,8vw,120px);align-items:center;justify-content:center}
+  html.reduce-motion-test .motion-reduced article:nth-child(even){background:#07111f;color:#fff;margin-inline:-6vw;padding:84px max(24px,6vw)}
+  html.reduce-motion-test .motion-reduced .reduced-phone{padding:5px;border-radius:44px;background:#050a12;box-shadow:0 30px 60px -35px rgba(5,11,20,.65)}
+  html.reduce-motion-test .motion-reduced img{display:block;width:100%;border-radius:39px}
+  html.reduce-motion-test .motion-reduced h2{font-size:clamp(34px,5vw,54px);line-height:1;margin-top:8px}
+  html.reduce-motion-test .motion-reduced h2 em{font-style:italic;color:#0e8c7e}
+  html.reduce-motion-test .motion-reduced article:nth-child(even) h2 em{color:#72eadc}
+  html.reduce-motion-test .motion-reduced p{max-width:34ch;margin-top:14px;color:#5b6672}
+  html.reduce-motion-test .motion-reduced article:nth-child(even) p{color:rgba(235,245,248,.72)}
+  html.reduce-motion-test .nav .nav-in{background:rgba(255,255,255,.88)!important;box-shadow:0 10px 30px -20px rgba(6,12,20,.35)!important}
+  html.reduce-motion-test .nav .brand,html.reduce-motion-test .nav .nav-contact,html.reduce-motion-test .nav .nav-login{color:var(--ink)!important}
+  @media (max-width:899px) and (prefers-reduced-motion:reduce){
+    .motion-reduced{gap:58px;padding:116px 20px 72px}
+    .motion-reduced article,.motion-reduced article:nth-child(even){grid-template-columns:minmax(0,292px);gap:22px;text-align:center;margin-inline:-20px;padding:0 20px}
+    .motion-reduced article:nth-child(even){padding-block:60px}
+    .motion-reduced .reduced-phone{order:2}
+    .motion-reduced p{margin-inline:auto}
+  }
+  @media(max-width:899px){
+    html.reduce-motion-test .motion-reduced{gap:58px;padding:116px 20px 72px}
+    html.reduce-motion-test .motion-reduced article,html.reduce-motion-test .motion-reduced article:nth-child(even){grid-template-columns:minmax(0,292px);gap:22px;text-align:center;margin-inline:-20px;padding:0 20px}
+    html.reduce-motion-test .motion-reduced article:nth-child(even){padding-block:60px}
+    html.reduce-motion-test .motion-reduced .reduced-phone{order:2}
+    html.reduce-motion-test .motion-reduced p{margin-inline:auto}
+  }
 </style>
 
 <!-- Travelpayouts (Drive) verification + affiliate tracking for the
@@ -817,6 +927,7 @@
      there if after-hours.app remains a registered channel. -->
 <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1" data-cmp-ab="2">
   (function () {
+      if (location.hostname !== "drift.after-hours.app") return;
       var script = document.createElement("script");
       script.async = 1;
       script.setAttribute("data-cmp-ab","2");
@@ -825,7 +936,7 @@
   })();
 </script>
 </head>
-<body>
+<body class="motion-prototype">
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav"><div class="nav-in">
@@ -840,121 +951,65 @@
   </div>
 </div></header>
 
-<!-- ============ EPIC — photo hero backdrop + sticky scrollytelling ============ -->
+<!-- ============ MOTION PROTOTYPE — INSPIRE TO DISCOVER ============ -->
 <section class="story" id="story"><span id="top"></span>
   <div class="stage" id="stage">
-    <!-- persistent full-bleed photo backdrop (fades out as the phone rises) -->
     <div class="stage-photo" id="ephoto"><picture><source type="image/webp" srcset="assets/photo/hero-aurora.webp"><img fetchpriority="high" decoding="async" src="assets/photo/hero-aurora.webp" alt="Tents glowing under the northern lights on a group trip" width="2000" height="1333" style="object-position:center 52%"></picture></div>
     <div class="stage-scrim" id="escrim"></div>
-    <!-- hero copy — fades away as the phone rises into frame -->
     <div class="stage-hero" id="ehero">
-      <span class="kicker">The group-trip app</span>
-      <h1 data-ghost>Every trip,<br><em>together<span class="tdot">.</span></em></h1>
-      <p class="sub">Start from a ready-made trip or a blank page, keep the plan and the bookings in one place, and split every cost.</p>
-      <div class="cta">
-        <a class="btn light" href="/app" data-ph-cta>Start planning — free</a>
-      </div>
-      <a class="hero-alt" href="https://testflight.apple.com/join/UxEzW2jb" target="_blank" rel="noopener">or get the iPhone beta — no invite needed</a>
+      <span class="kicker">Inspire · plan · discover</span>
+      <h1 data-ghost>Find your<br><em>next trip<span class="tdot">.</span></em></h1>
+      <p class="sub">Discover trips you’ll love. Make them your own with Drift.</p>
+      <div class="cta"><a class="btn light" id="heroStoryCta" href="#trip-story">See Drift in action <span class="arrow" aria-hidden="true">↓</span></a></div>
     </div>
-    <!-- pinned phone — rises from the bottom, screens evolve as you scroll -->
+
+    <div class="motion-copy" id="trip-story" aria-live="polite">
+      <article class="on" data-motion-phase="0">
+        <div class="eyebrow">01 · Inspire</div>
+        <h2>Open a trip <em>worth stealing.</em></h2>
+        <p>Watch a real Drift session search Japan and open a complete Tokyo–Kyoto guide.</p>
+        <span class="fixture-note">Recorded in the live app · approved demo account</span>
+      </article>
+      <article data-motion-phase="1">
+        <div class="eyebrow">02 · Ask Drift</div>
+        <h2>Ask once. Watch Drift <em>think.</em></h2>
+        <p>A real prompt turns an existing Shibuya Sky booking into a timed, walkable Tokyo evening with dinner nearby.</p>
+        <span class="fixture-note">One real prompt · prerecorded response</span>
+      </article>
+      <article data-motion-phase="2">
+        <div class="eyebrow">03 · Discover</div>
+        <h2>Find it nearby. <em>Keep it.</em></h2>
+        <p>Open Shibuya Sky from Tokyo’s live map, inspect the place, and save it to the demo account’s Back pocket.</p>
+        <span class="fixture-note">Real search and save · approved demo account</span>
+      </article>
+    </div>
+
     <div class="stage-phone" id="stagePhone">
-      <div class="phone"><div class="scr stage-screens" id="screens">
-        <!-- 0 · PLAN — a shared itinerary building itself -->
-        <!-- 0 · INSPIRE — 40 ready-made trips, copy one and make it yours -->
-        <div class="s appscr aur ap-insp on" data-i="0">
-          <div class="in-head"><div class="tt">Trips worth stealing</div><div class="mt">40 itineraries, built day by day</div></div>
-          <div class="in-grid">
-            <div class="ic i1"><span class="im" style="background-image:url(assets/photo/iceland.webp)"></span><span class="sc"></span><span class="mine">Make it mine</span><div class="cc"><div class="nn">Iceland: The Ring Road</div><div class="mt">10 days</div></div></div>
-            <div class="ic i2"><span class="im" style="background-image:url(assets/photo/tokyo.webp)"></span><span class="sc"></span><div class="cc"><div class="nn">Japan: Tokyo &amp; Kyoto</div><div class="mt">13 days</div></div></div>
-            <div class="ic i3"><span class="im" style="background-image:url(assets/photo/amalfi.jpg)"></span><span class="sc"></span><div class="cc"><div class="nn">Amalfi Coast</div><div class="mt">11 days</div></div></div>
-            <div class="ic i4"><span class="im" style="background-image:url(assets/photo/machupicchu.webp)"></span><span class="sc"></span><div class="cc"><div class="nn">Peru: The Sacred Valley</div><div class="mt">11 days</div></div></div>
-          </div>
+      <div class="phone motion-phone"><div class="scr stage-screens" id="screens">
+        <div class="s trip-sequence on" id="tripSequence" data-i="0">
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/inspire-japan-guide.webp" aria-label="A recorded Drift session searching Inspire and opening a Japan guide"><source src="assets/native/drift-inspire.mp4?v=20260920b" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/chat-tokyo-response.webp" aria-label="A recorded Ask Drift conversation planning a golden-hour evening around Shibuya Sky"><source src="assets/native/drift-chat.mp4?v=20260920b" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/discover-shibuya-saved.webp" aria-label="A recorded Drift Discover session opening and saving Shibuya Sky"><source src="assets/native/drift-discover.mp4?v=20260920b" type="video/mp4"></video>
         </div>
-        <div class="s appscr aur ap-plan" data-i="1">
-          <div class="ascr-top">
-            <div class="tt">Paris &amp; Rome</div>
-            <div class="mt"><span class="crew"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i><i style="background-image:url(assets/photo/friends-bali.jpg)"></i><i style="background-image:url(assets/photo/swing.jpg)"></i></span>Jun 12–19 · 4 going</div>
-          </div>
-          <div class="ap-body">
-            <div class="ap-day k1">DAY 1 · PARIS</div>
-            <div class="ap-card glass k1"><span class="th" style="background-image:url(assets/photo/paris.webp)"></span><div class="cc"><div class="nn">Eiffel Tower</div><div class="ww"><i style="background-image:url(assets/photo/friends-kl.jpg)"></i>Maya added this</div></div><span class="tag">7:30p</span></div>
-            <div class="ap-card glass k2"><span class="th g1"></span><div class="cc"><div class="nn">Seine cruise</div><div class="ww"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>Jon added this</div></div><span class="tag">9:00p</span></div>
-            <div class="ap-day k3">DAY 4 · ROME</div>
-            <div class="ap-card glass k3"><span class="th g2"></span><div class="cc"><div class="nn">Colosseum tour</div><div class="ww"><i style="background-image:url(assets/photo/swing.jpg)"></i>Ana added this</div></div><span class="tag">9:30a</span></div>
-          </div>
-          <div class="ap-live k4"><span class="pl-dot"></span>Maya is adding a stop…</div>
-        </div>
-        <!-- 1 · RESERVATIONS — bookings read from the inbox, dropped onto days -->
-        <div class="s appscr aur ap-res" data-i="2">
-          <div class="ascr-top"><div class="tt">Your reservations</div><div class="mt"><span class="pl-dot"></span>Read from your inbox</div></div>
-          <div class="ap-body">
-            <div class="rz glass d1"><span class="ic fl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3a1.5 1.5 0 00-3 0v5.5l-8 5v2l8-2.6V19l-2 1.4V22l3.5-1 3.5 1v-1.6L11 19v-6.1l10 2.6z"/></svg></span><div class="cc"><div class="dd">FLIGHT · JUN 16</div><div class="nn">CDG → FCO</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
-            <div class="rz glass d2"><span class="ic st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a2 2 0 012-2h14a2 2 0 012 2v6M3 18v2M21 18v2M6 10V7a2 2 0 012-2h3a2 2 0 012 2v3"/></svg></span><div class="cc"><div class="dd">STAY · JUN 12–16</div><div class="nn">Hôtel du Louvre</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
-            <div class="rz glass d3"><span class="ic ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 012-2h12a2 2 0 012 2 2 2 0 000 4 2 2 0 000 4 2 2 0 01-2 2H6a2 2 0 01-2-2 2 2 0 000-4 2 2 0 000-4z"/></svg></span><div class="cc"><div class="dd">TOUR · JUN 17</div><div class="nn">Colosseum tour</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
-          </div>
-          <div class="ap-live d4"><span class="pl-dot"></span>3 added to your itinerary</div>
-        </div>
-        <!-- 2 · DISCOVER — live map with pins + a place carousel -->
-        <div class="s appscr aur ap-disc" data-i="3">
-          <div class="dmap">
-            <span class="dpin amber p2" style="left:38%;top:39%"></span>
-            <span class="dpin p3" style="left:64%;top:44%"></span>
-            <span class="dpin amber p4" style="left:57%;top:65%"></span>
-            <span class="dpin p5" style="left:33%;top:62%"></span>
-            <span class="dpin sel p1" style="left:49%;top:53%"></span>
-            <span class="dlabel" style="left:49%;top:44%">◎ Shibuya Crossing</span>
-          </div>
-          <div class="dmap-top"><span class="dchip"><i></i>Shibuya · Tokyo</span></div>
-          <div class="dcar">
-            <div class="dc c1"><span class="im" style="background-image:url(assets/photo/tokyo.webp)"></span><div class="cc"><div class="nn">Shibuya Crossing</div><div class="mt"><span class="st">★</span> 4.8 · Landmark</div></div></div>
-            <div class="dc c2"><span class="im" style="background-image:url(assets/app/poi-goldengai.webp)"></span><div class="cc"><div class="nn">Golden Gai</div><div class="mt"><span class="st">★</span> 4.7 · Bar alley</div></div></div>
-            <div class="dc c3"><span class="im" style="background-image:url(assets/app/poi-teamlab.webp)"></span><div class="cc"><div class="nn">teamLab Planets</div><div class="mt"><span class="st">★</span> 4.9 · Art</div></div></div>
-            <div class="dc c4"><span class="im" style="background-image:url(assets/app/poi-sensoji.webp)"></span><div class="cc"><div class="nn">Senso-ji Temple</div><div class="mt"><span class="st">★</span> 4.7 · Landmark</div></div></div>
-          </div>
-        </div>
-        <!-- 3 · SPLIT — expenses + settle up (dark aurora) -->
-        <div class="s appscr aur ap-split" data-i="4">
-          <div class="ascr-top"><div class="tt">Trip expenses</div><div class="mt">Paris &amp; Rome · 4 people</div></div>
-          <div class="ap-body">
-            <div class="xrow glass r1"><span class="xi" style="background-image:url(assets/photo/friends-kl.jpg)"></span><div class="cc"><div class="nn">Dinner at Septime</div><div class="dd">Maya paid · split 4</div></div><span class="xp">€240</span></div>
-            <div class="xrow glass r2"><span class="xi" style="background-image:url(assets/photo/friends-bali.jpg)"></span><div class="cc"><div class="nn">Hôtel du Louvre</div><div class="dd">Jon paid · 4 nights</div></div><span class="xp">€960</span></div>
-            <div class="xrow glass r3"><span class="xi" style="background-image:url(assets/photo/swing.jpg)"></span><div class="cc"><div class="nn">Colosseum tickets</div><div class="dd">Ana paid · split 4</div></div><span class="xp">€72</span></div>
-          </div>
-          <div class="settle">
-            <div class="sl">YOU OWE ANA</div>
-            <div class="samt"><em>€</em><span class="count" data-to="54">54</span></div>
-            <div class="sbar"><i></i></div>
-            <div class="ss">Drift did the math<b>Settle up</b></div>
-          </div>
-        </div>
-        <!-- 4 · GLOBE — your world fills in, pins + Kodak moments -->
-        <div class="s appscr aur ap-globe" data-i="5">
-          <img loading="lazy" decoding="async" class="gl-bg" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trips, rotating">
-          <div class="gl-head"><div class="tt">Your world</div><div class="mt">Everywhere you've been, together</div></div>
-          <div class="gl-card">
-            <div class="big">14<em>countries</em></div>
-            <div class="grow"><div><b>36</b><span>Cities</span></div><div><b>1,204</b><span>Photos</span></div><div><b>5</b><span>Trips</span></div></div>
-          </div>
-        </div>
-        <div class="hero-globe" id="heroGlobe"><img loading="lazy" decoding="async" src="assets/app/onboard-globe-anim.webp" alt="Your living globe, filling with every trip"></div>
       </div></div>
     </div>
-    <!-- chapter text blocks -->
-    <div class="chapters" id="chapters">
-      <div class="chap on left" data-i="0"><div class="eyebrow">Start from a real trip</div><h2>40 trips,<br><em>ready</em> to go.</h2><p>Iceland’s Ring Road. Tokyo to Kyoto. Copy any one into your own trip and change what you like — the plan is already built.</p></div>
-      <div class="chap right" data-i="1"><div class="eyebrow">Plan together</div><h2>Plan it <em>together.</em></h2><p>Everyone adds stops to one shared itinerary — the plan builds itself as your crew chimes in.</p></div>
-      <div class="chap left" data-i="2"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Drift reads your inbox and drops every flight, stay and ticket onto the right day.</p></div>
-      <div class="chap right" data-i="3"><div class="eyebrow">Know what to do</div><h2>A local guide,<br><em>built in.</em></h2><p>Top sights, tours and hidden gems for every stop — add any in a tap.</p></div>
-      <div class="chap left" data-i="4"><div class="eyebrow">Split every cost</div><h2>Split it.<br><em>Settle</em> in a tap.</h2><p>Log what everyone pays and Drift does the math — the trip ends square, no spreadsheet required.</p></div>
-      <div class="chap right" data-i="5"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Every place you went and every photo you took, pinned to a living globe — and everyone you went with.</p></div>
-    </div>
-    <!-- tab indicator -->
-    <div class="tabs" id="tabs">
-      <span class="tab plan on" data-phase="plan" data-to="1">Plan</span>
-      <span class="tab split" data-phase="split" data-to="4">Split</span>
-      <span class="tab relive" data-phase="relive" data-to="5">Relive</span>
-    </div>
+    <div class="prototype-label">Scroll for chapters · videos play automatically</div>
   </div>
+</section>
+
+<section class="motion-reduced" aria-label="How Drift works">
+  <article id="reduced-inspire">
+    <div class="reduced-phone"><img loading="lazy" decoding="async" src="assets/native/inspire-japan-guide.webp" alt="A Japan guide opened from Drift Inspire"></div>
+    <div><div class="eyebrow">01 · Inspire</div><h2>Start with a trip <em>worth stealing.</em></h2><p>Browse a real route, then see its pace, seasons, stops, and places before you make it yours.</p></div>
+  </article>
+  <article>
+    <div class="reduced-phone"><img loading="lazy" decoding="async" src="assets/native/chat-tokyo-response.webp" alt="Drift’s response planning an evening around Shibuya Sky"></div>
+    <div><div class="eyebrow">02 · Ask Drift</div><h2>Ask once. Watch Drift <em>think.</em></h2><p>A real prompt turns a Shibuya Sky booking into a timed, walkable evening with dinner nearby.</p></div>
+  </article>
+  <article>
+    <div class="reduced-phone"><img loading="lazy" decoding="async" src="assets/native/discover-shibuya-saved.webp" alt="Shibuya Sky saved from Drift Discover"></div>
+    <div><div class="eyebrow">03 · Discover</div><h2>Find it nearby. <em>Keep it.</em></h2><p>Open the exact place from Tokyo’s live map and keep it in Back pocket.</p></div>
+  </article>
 </section>
 
 <!-- ============ CHAT (Ask Drift) ============ -->
@@ -1082,7 +1137,8 @@
 
 <script>
 (function(){
-  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches||new URLSearchParams(location.search).has('reduce');
+  if(reduce)document.documentElement.classList.add('reduce-motion-test');
 
   /* ---- reveals ---- */
   var rev=[].slice.call(document.querySelectorAll('[data-r],[data-ghost]'));
@@ -1187,6 +1243,7 @@
   measure();
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){measure();onStory();});}
   function phoneTransform(i,rise){
+    if(document.body.classList.contains('motion-prototype'))return;
     var ry=(i%2)?-13:13, rz=(i%2)?1.4:-1.4, tx=(i%2)?-14:14, tilt=1-rise;
     var ty=(rise*PHONE_REST).toFixed(1);                  // rest offset derived in measure()
     stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)'+(PHONE_SCALE<1?' scale('+PHONE_SCALE.toFixed(3)+')':'');
@@ -1304,7 +1361,6 @@
 
 })();
 </script>
-  <script defer src="/_vercel/insights/script.js"></script>
   <script>
   /* Load choreography trigger: html.lit starts the hero intro (see heroSet/heroBreath).
      Fires when the hero photo has decoded so the fade reveals a real frame, never a
@@ -1319,7 +1375,188 @@
     setTimeout(lit, 1200);
   })();
   </script>
-  <!-- PostHog event funnel (key served from Vercel env via /api/ph; no-op until set) -->
-  <script defer src="/api/ph"></script>
+  <script>
+  /* Real recordings from the live iOS app. Scroll chooses the chapter; the
+     active recording then plays at its native pace while the visitor watches. */
+  (function(){
+    var story=document.getElementById('story');
+    var stage=document.getElementById('stage');
+    var phone=document.getElementById('stagePhone');
+    var photo=document.getElementById('ephoto');
+    var scrim=document.getElementById('escrim');
+    var hero=document.getElementById('ehero');
+    var sequence=document.getElementById('tripSequence');
+    var videos=[].slice.call(sequence.querySelectorAll('.native-video'));
+    var motionCopy=document.getElementById('trip-story');
+    var prototypeLabel=document.querySelector('.prototype-label');
+    var phases=[].slice.call(document.querySelectorAll('[data-motion-phase]'));
+    var heroStoryCta=document.getElementById('heroStoryCta');
+    var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches||new URLSearchParams(location.search).has('reduce');
+    function clamp(v){return Math.max(0,Math.min(1,v));}
+    function smooth(v){return v*v*(3-2*v);}
+    function storyMoment(progress){
+      var count=videos.length;
+      if(progress>=1)return{phase:count-1,local:1,energy:0};
+      var raw=progress*count;
+      var phase=Math.min(count-1,Math.floor(raw));
+      var local=clamp(raw-phase);
+      var edge=Math.min(clamp(local/.14),clamp((1-local)/.14));
+      return{phase:phase,local:local,energy:1-smooth(edge)};
+    }
+    function hydrate(video){
+      if(video.dataset.hydrating||video.dataset.hydrated)return;
+      var source=video.querySelector('source');
+      if(!source)return;
+      video.dataset.hydrating='1';
+      fetch(source.getAttribute('src')).then(function(response){
+        if(!response.ok)throw new Error('Video '+response.status);
+        return response.blob();
+      }).then(function(blob){
+        video.src=URL.createObjectURL(blob);
+        video.dataset.hydrated='1';
+        delete video.dataset.hydrating;
+        video.load();
+      }).catch(function(){video.classList.add('video-failed');});
+    }
+    var activeVideo=-1,playTimer=0;
+    function pauseAll(){
+      clearTimeout(playTimer);
+      videos.forEach(function(video){video.pause();delete video.dataset.playScheduled;});
+    }
+    function schedulePlay(video,index,delay){
+      if(index!==activeVideo||video.dataset.playScheduled)return;
+      video.dataset.playScheduled='1';
+      clearTimeout(playTimer);
+      playTimer=setTimeout(function(){
+        delete video.dataset.playScheduled;
+        if(index!==activeVideo||document.hidden)return;
+        video.muted=true;
+        video.playsInline=true;
+        video.play().catch(function(){
+          video.classList.add('video-waiting');
+        });
+      },delay==null?120:delay);
+    }
+    function showChapter(moment,playActive){
+      videos.forEach(function(video,i){
+        var active=i===moment.phase;
+        video.style.opacity=active?'1':'0';
+        video.style.transform=active?'scale(1)':'scale(.99)';
+      });
+      var video=videos[moment.phase];
+      hydrate(video);
+      if(!playActive){
+        if(activeVideo!==-1)pauseAll();
+        activeVideo=-1;
+        if(moment.phase===0&&video.readyState>=1&&video.currentTime>.05){
+          try{video.currentTime=0;}catch(e){}
+        }
+        return;
+      }
+      if(activeVideo!==moment.phase){
+        pauseAll();
+        activeVideo=moment.phase;
+        try{video.currentTime=0;}catch(e){}
+        schedulePlay(video,moment.phase);
+      }else if(video.paused&&!video.ended){
+        schedulePlay(video,moment.phase);
+      }
+      var next=videos[moment.phase+1];
+      if(next)hydrate(next);
+    }
+    function setCopyPhase(phase){
+      phases.forEach(function(el,i){
+        el.classList.toggle('on',i===phase);
+        el.classList.toggle('past',i<phase);
+        el.classList.toggle('future',i>phase);
+      });
+    }
+    if(heroStoryCta){
+      heroStoryCta.addEventListener('click',function(event){
+        event.preventDefault();
+        if(reduce){
+          var reducedInspire=document.getElementById('reduced-inspire');
+          if(reducedInspire)reducedInspire.scrollIntoView({behavior:'auto',block:'start'});
+          return;
+        }
+        var total=Math.max(1,story.offsetHeight-innerHeight);
+        scrollTo({top:story.offsetTop+total*.235,behavior:'smooth'});
+      });
+    }
+    if(reduce){showChapter({phase:0,local:0},false);setCopyPhase(0);return;}
+    var queued=false;
+    function render(){
+      queued=false;
+      var rect=story.getBoundingClientRect();
+      var total=Math.max(1,story.offsetHeight-innerHeight);
+      var p=clamp(-rect.top/total);
+      var phoneIn=clamp((p-.07)/.13);
+      var moment=storyMoment(clamp((p-.18)/.72));
+      var night=moment.phase===1?1:0;
+      var bg=[
+        Math.round(248+(7-248)*night),
+        Math.round(244+(17-244)*night),
+        Math.round(237+(31-237)*night)
+      ];
+      var mobile=innerWidth<900;
+      var phoneX=((mobile?0:-150)*phoneIn-(mobile?0:8)*moment.energy).toFixed(1);
+      /* Keep the real phone peeking into the first frame, then let it rise into
+         the exact same object used by the Inspire chapter. This gives the hero
+         an immediate product cue without introducing a second device. */
+      var phoneStart=mobile?.57:.64;
+      var phoneY=((1-phoneIn)*innerHeight*phoneStart).toFixed(1);
+      var phoneTilt=(-(mobile?0:3)*phoneIn-(mobile?1.2:5)*moment.energy).toFixed(2);
+      var phoneRoll=(-(mobile?0:.35)*phoneIn-(mobile?.08:.45)*moment.energy).toFixed(2);
+
+      stage.style.backgroundColor='rgb('+bg.join(',')+')';
+      stage.classList.toggle('night',night>.5);
+      photo.style.opacity=String(1-clamp((p-.09)/.1));
+      scrim.style.opacity=String(1-clamp((p-.02)/.1));
+      hero.style.opacity=String(1-clamp((p-.025)/.055));
+      hero.style.transform='translateY('+(-18*clamp((p-.025)/.055)).toFixed(1)+'px)';
+      hero.style.pointerEvents=p<.07?'auto':'none';
+      phone.style.transform='perspective(1300px) translate3d('+phoneX+'px,'+phoneY+'px,0) rotateY('+phoneTilt+'deg) rotateZ('+phoneRoll+'deg)';
+      motionCopy.style.opacity=String(clamp((p-.12)/.08));
+      prototypeLabel.style.opacity=String(clamp((p-.15)/.08));
+      var stageRect=stage.getBoundingClientRect();
+      var storyVisible=stageRect.bottom>0&&stageRect.top<innerHeight;
+      showChapter(moment,storyVisible&&p>=.18);
+      setCopyPhase(moment.phase);
+    }
+    function queue(){if(!queued){queued=true;requestAnimationFrame(render);}}
+    addEventListener('scroll',queue,{passive:true});
+    addEventListener('resize',queue);
+    videos.forEach(function(video,index){
+      video.addEventListener('loadedmetadata',function(){
+        if(index===activeVideo){
+          try{video.currentTime=0;}catch(e){}
+          schedulePlay(video,index);
+        }
+      });
+      video.addEventListener('canplay',function(){if(index===activeVideo&&video.paused&&!video.ended)schedulePlay(video,index);});
+      video.addEventListener('play',function(){video.classList.remove('video-waiting');});
+      video.addEventListener('error',function(){video.classList.add('video-failed');});
+    });
+    addEventListener('visibilitychange',function(){
+      if(document.hidden)pauseAll();
+      else if(activeVideo>=0&&videos[activeVideo]&&!videos[activeVideo].ended)schedulePlay(videos[activeVideo],activeVideo,0);
+    });
+    /* Browsers can pause backgrounded media without a matching source event.
+       Recheck only while the sticky stage is visible so returning to the page
+       resumes the current real recording without a click. */
+    setInterval(function(){
+      if(activeVideo<0||document.hidden)return;
+      var rect=stage.getBoundingClientRect();
+      var video=videos[activeVideo];
+      if(rect.bottom>0&&rect.top<innerHeight&&video.paused&&!video.ended){
+        schedulePlay(video,activeVideo,0);
+      }
+    },800);
+    hydrate(videos[0]);
+    render();
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(render);
+    setTimeout(render,250);
+  })();
+  </script>
 </body>
 </html>
