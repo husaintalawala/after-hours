@@ -803,7 +803,7 @@
 
   /* ============ LIVE-USE MOTION PROTOTYPE ============
      Every chapter is a trimmed recording of the current iOS app. */
-  .motion-prototype .story{height:460vh;background:#f8f4ed}
+  .motion-prototype .story{height:560vh;background:#f8f4ed}
   .motion-prototype .stage{background:#f8f4ed}
   .motion-prototype .chatsec,.motion-prototype .bento,.motion-prototype .relivec{display:none}
   .motion-prototype .stage-phone{z-index:5}
@@ -829,7 +829,7 @@
   .prototype-label{position:absolute;z-index:7;right:24px;bottom:22px;padding:6px 9px;border:1px solid rgba(12,22,38,.13);border-radius:999px;background:rgba(255,255,255,.72);color:#53606e;font-size:9px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(12px)}
   .motion-reduced{display:none}
   @media(max-width:899px){
-    .motion-prototype .story{height:440vh}
+    .motion-prototype .story{height:560vh}
     .motion-prototype .stage-phone{margin-top:205px}
     .motion-prototype .stage-phone .phone{--pw:min(292px,76vw,calc((100svh - 218px)/2.1643));padding:4px;border-radius:43px}
     .motion-prototype .stage-phone .scr{border-radius:39px}
@@ -987,13 +987,13 @@
     <div class="stage-phone" id="stagePhone">
       <div class="phone motion-phone"><div class="scr stage-screens" id="screens">
         <div class="s trip-sequence on" id="tripSequence" data-i="0">
-          <video class="native-video" muted playsinline preload="none" poster="assets/native/inspire-japan-guide.webp" aria-label="A recorded Drift session searching Inspire and opening a Japan guide"><source src="assets/native/drift-inspire.mp4?v=20260920b" type="video/mp4"></video>
-          <video class="native-video" muted playsinline preload="none" poster="assets/native/chat-tokyo-response.webp" aria-label="A recorded Ask Drift conversation planning a golden-hour evening around Shibuya Sky"><source src="assets/native/drift-chat.mp4?v=20260920b" type="video/mp4"></video>
-          <video class="native-video" muted playsinline preload="none" poster="assets/native/discover-shibuya-saved.webp" aria-label="A recorded Drift Discover session opening and saving Shibuya Sky"><source src="assets/native/drift-discover.mp4?v=20260920b" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/inspire-start.webp" aria-label="A recorded Drift session searching Inspire and opening a Japan guide"><source src="assets/native/drift-inspire.mp4?v=20260920d" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/chat-start.webp" aria-label="A recorded Ask Drift conversation planning a golden-hour evening around Shibuya Sky"><source src="assets/native/drift-chat.mp4?v=20260920d" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/discover-start.webp" aria-label="A recorded Drift Discover session opening and saving Shibuya Sky"><source src="assets/native/drift-discover.mp4?v=20260920d" type="video/mp4"></video>
         </div>
       </div></div>
     </div>
-    <div class="prototype-label">Scroll for chapters · videos play automatically</div>
+    <div class="prototype-label">Scroll controls every action</div>
   </div>
 </section>
 
@@ -1376,8 +1376,8 @@
   })();
   </script>
   <script>
-  /* Real recordings from the live iOS app. Scroll chooses the chapter; the
-     active recording then plays at its native pace while the visitor watches. */
+  /* Real recordings from the live iOS app. Scroll controls their exact frame:
+     stop to freeze an action, or reverse to move coherently back through it. */
   (function(){
     var story=document.getElementById('story');
     var stage=document.getElementById('stage');
@@ -1418,26 +1418,25 @@
         video.load();
       }).catch(function(){video.classList.add('video-failed');});
     }
-    var activeVideo=-1,playTimer=0;
+    var activeVideo=-1;
     function pauseAll(){
-      clearTimeout(playTimer);
-      videos.forEach(function(video){video.pause();delete video.dataset.playScheduled;});
+      videos.forEach(function(video){video.pause();});
     }
-    function schedulePlay(video,index,delay){
-      if(index!==activeVideo||video.dataset.playScheduled)return;
-      video.dataset.playScheduled='1';
-      clearTimeout(playTimer);
-      playTimer=setTimeout(function(){
-        delete video.dataset.playScheduled;
-        if(index!==activeVideo||document.hidden)return;
-        video.muted=true;
-        video.playsInline=true;
-        video.play().catch(function(){
-          video.classList.add('video-waiting');
-        });
-      },delay==null?120:delay);
+    function applySeek(video){
+      if(video.readyState<1||video.seeking||!video.dataset.targetTime)return;
+      var target=Number(video.dataset.targetTime);
+      if(!isFinite(target)||Math.abs(video.currentTime-target)<.025)return;
+      try{video.currentTime=target;}catch(e){}
     }
-    function showChapter(moment,playActive){
+    function seekTo(video,time){
+      /* The recordings are encoded at 10 fps with every frame as a keyframe.
+         Snapping to that cadence makes rapid forward/reverse scrolls exact and
+         lets the seeked handler coalesce wheel events onto the latest target. */
+      var target=Math.max(0,Math.round(time*10)/10);
+      video.dataset.targetTime=String(target);
+      applySeek(video);
+    }
+    function showChapter(moment,seekActive){
       videos.forEach(function(video,i){
         var active=i===moment.phase;
         video.style.opacity=active?'1':'0';
@@ -1445,7 +1444,7 @@
       });
       var video=videos[moment.phase];
       hydrate(video);
-      if(!playActive){
+      if(!seekActive){
         if(activeVideo!==-1)pauseAll();
         activeVideo=-1;
         if(moment.phase===0&&video.readyState>=1&&video.currentTime>.05){
@@ -1456,13 +1455,13 @@
       if(activeVideo!==moment.phase){
         pauseAll();
         activeVideo=moment.phase;
-        try{video.currentTime=0;}catch(e){}
-        schedulePlay(video,moment.phase);
-      }else if(video.paused&&!video.ended){
-        schedulePlay(video,moment.phase);
       }
+      video.pause();
+      var knownDurations=[14.218333,16.998333,9.463333];
+      var duration=isFinite(video.duration)?video.duration:knownDurations[moment.phase];
+      seekTo(video,Math.min(Math.max(0,duration-1/15),moment.local*duration));
       var next=videos[moment.phase+1];
-      if(next)hydrate(next);
+      if(next&&moment.local>.55)hydrate(next);
     }
     function setCopyPhase(phase){
       phases.forEach(function(el,i){
@@ -1480,10 +1479,10 @@
           return;
         }
         var total=Math.max(1,story.offsetHeight-innerHeight);
-        scrollTo({top:story.offsetTop+total*.235,behavior:'smooth'});
+        scrollTo({top:story.offsetTop+total*.20,behavior:'smooth'});
       });
     }
-    if(reduce){showChapter({phase:0,local:0},false);setCopyPhase(0);return;}
+    if(reduce){setCopyPhase(0);return;}
     var queued=false;
     function render(){
       queued=false;
@@ -1528,30 +1527,17 @@
     addEventListener('resize',queue);
     videos.forEach(function(video,index){
       video.addEventListener('loadedmetadata',function(){
-        if(index===activeVideo){
-          try{video.currentTime=0;}catch(e){}
-          schedulePlay(video,index);
-        }
+        video.pause();
+        if(index===activeVideo)applySeek(video);
       });
-      video.addEventListener('canplay',function(){if(index===activeVideo&&video.paused&&!video.ended)schedulePlay(video,index);});
-      video.addEventListener('play',function(){video.classList.remove('video-waiting');});
+      video.addEventListener('seeked',function(){
+        if(video.requestVideoFrameCallback){
+          video.requestVideoFrameCallback(function(now,meta){video.dataset.displayedTime=meta.mediaTime.toFixed(3);});
+        }else video.dataset.displayedTime=video.currentTime.toFixed(3);
+        if(index===activeVideo)applySeek(video);
+      });
       video.addEventListener('error',function(){video.classList.add('video-failed');});
     });
-    addEventListener('visibilitychange',function(){
-      if(document.hidden)pauseAll();
-      else if(activeVideo>=0&&videos[activeVideo]&&!videos[activeVideo].ended)schedulePlay(videos[activeVideo],activeVideo,0);
-    });
-    /* Browsers can pause backgrounded media without a matching source event.
-       Recheck only while the sticky stage is visible so returning to the page
-       resumes the current real recording without a click. */
-    setInterval(function(){
-      if(activeVideo<0||document.hidden)return;
-      var rect=stage.getBoundingClientRect();
-      var video=videos[activeVideo];
-      if(rect.bottom>0&&rect.top<innerHeight&&video.paused&&!video.ended){
-        schedulePlay(video,activeVideo,0);
-      }
-    },800);
     hydrate(videos[0]);
     render();
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(render);
