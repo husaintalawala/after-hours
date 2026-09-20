@@ -86,9 +86,10 @@ export default function ItineraryCard({
   onOpenTrip?: () => void
   /** Tune / swap / add-day / walk-through. Only the latest plan gets them. */
   planTools?: PlanTools
-  /** Look up photos/pins on mount. Off for older plans reloaded from history,
-   *  so reopening a long thread does not re-bill a lookup per place it ever
-   *  suggested — only the latest two plans resolve. Read once, at mount. */
+  /** Look up photos/pins for the plan's places. Off for older plans reloaded
+   *  from history, so reopening a long thread does not re-bill a lookup per
+   *  place it ever suggested — only the latest two plans resolve. Each place
+   *  is looked up at most once, however often this card redraws. */
   resolvePhotos?: boolean
 }) {
   const router = useRouter()
@@ -115,7 +116,9 @@ export default function ItineraryCard({
   const bulkBusy = allBusy || dayBusy !== null
 
   const places = itin.days.flatMap((d) => d.places)
-  const hydratedRef = useRef(false)
+  /** Every place a lookup has been STARTED for — see the effect below. */
+  const requestedRef = useRef<Set<string>>(new Set())
+  const placeKey = places.map((p) => p.name).join("|")
 
   /**
    * Photo + coordinates per place, AFTER paint and never blocking it.
@@ -129,29 +132,36 @@ export default function ItineraryCard({
    * Capped, because an itinerary can carry fifteen places and each one is a
    * billable call; the first twelve cover every plan the model actually
    * produces under its own 3–5 day, 3–4 place instruction.
+   *
+   * A PLAN CAN GROW UNDER THIS CARD. A trip chat streams its days one at a
+   * time and hands us a longer `itin` each time, so the lookup runs again for
+   * whatever is new — the day that just landed gets its photographs like any
+   * other, and the cap still counts the whole plan, not each pass.
    */
   useEffect(() => {
-    if (hydratedRef.current || !resolvePhotos) return
-    hydratedRef.current = true
+    if (!resolvePhotos) return
+    const targets = itin.days
+      .flatMap((d) => d.places.map((p) => ({ p, where: d.destinationRef || itin.destination })))
+      .slice(0, 12)
+      .filter(({ p }) => !requestedRef.current.has(p.name))
+    if (!targets.length) return
+    for (const { p } of targets) requestedRef.current.add(p.name)
     // NO `alive` FLAG, deliberately, and this cost an hour to see. The ref
-    // above already guarantees one run — but React's dev double-mount runs
-    // mount → cleanup → mount, so a cleanup that set `alive = false` discarded
-    // every result of the first (and only) run, while the second was turned
-    // away by the ref. Eleven lookups returned 200 and not one reached the
-    // screen. A setState on an unmounted component is a harmless no-op in
-    // React 18; a dropped result is not.
+    // above already guarantees one lookup per place — but React's dev
+    // double-mount runs mount → cleanup → mount, so a cleanup that set
+    // `alive = false` discarded every result of the first (and only) run,
+    // while the second was turned away by the ref. Eleven lookups returned 200
+    // and not one reached the screen. A setState on an unmounted component is
+    // a harmless no-op in React 18; a dropped result is not.
     void Promise.all(
-      itin.days
-        .flatMap((d) => d.places.map((p) => ({ p, where: d.destinationRef || itin.destination })))
-        .slice(0, 12)
-        .map(async ({ p, where }) => {
-          const cand = await resolvePlace(p.query || p.name, where, itin.country ?? undefined)
-          if (!cand) return
-          setResolved((r) => (r[p.name] ? r : { ...r, [p.name]: cand }))
-        })
+      targets.map(async ({ p, where }) => {
+        const cand = await resolvePlace(p.query || p.name, where, itin.country ?? undefined)
+        if (!cand) return
+        setResolved((r) => (r[p.name] ? r : { ...r, [p.name]: cand }))
+      })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [placeKey, resolvePhotos])
 
   /** Where a row's Add button stands. Taking back outranks an add in flight,
    *  which outranks having landed — a row is never offered an action it is

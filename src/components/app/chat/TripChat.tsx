@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   askDrift,
+  orderedStreamedDays,
   resolvePlace,
   placePhotoUrl,
+  type AskItineraryDay,
   type ChatAnswer,
   type ChatCard,
   type PlaceCandidate,
@@ -113,6 +115,11 @@ export default function TripChat({
   // it cannot read `streaming` directly and see the newest delta.
   const streamingRef = useRef<string | null>(null)
   streamingRef.current = streaming
+  // The turn's own message once its plan has started arriving — see onDay. Read
+  // by `stop`, which has to persist a turn that is already on screen.
+  const pendingIdRef = useRef<string | null>(null)
+  const messagesRef = useRef<Msg[]>([])
+  messagesRef.current = messages
   const [status, setStatus] = useState<string | null>(null)
   const [input, setInput] = useState("")
   // Attached photo (downscaled base64 data URL) for a vision question —
@@ -329,6 +336,21 @@ export default function TripChat({
     let streamBuf = ""
     setStreaming("")
 
+    // A plan is ~75% of a long turn's wall clock and every day of it is written
+    // long before the payload can be parsed, so the days stream in one frame at
+    // a time. They land in the turn's OWN message, which the payload then
+    // finishes in place: one card, growing, rather than a card that is thrown
+    // away and redrawn (which would re-look-up every photo and lose any Add
+    // already made on a row).
+    const dayBuf: Record<number, AskItineraryDay> = {}
+    let pendingId: string | null = null
+    const planOf = (itin: { title: string; days: AskItineraryDay[] }) =>
+      toCardItinerary(itin, {
+        tripTitle,
+        country: country ?? null,
+        fallbackDestination: destinations[0]?.label ?? null,
+      })
+
     const controller = new AbortController()
     abortRef.current = controller
 
@@ -343,29 +365,52 @@ export default function TripChat({
           streamBuf += d
           setStreaming(streamBuf)
         },
+        onDay: (index, day) => {
+          dayBuf[index] = day
+          const days = orderedStreamedDays(dayBuf)
+          if (!days.length) return
+          // The plan's own title only arrives with the payload; until then the
+          // card wears the same fallback it would have worn anyway.
+          const plan = planOf({ title: "", days })
+          if (pendingId) {
+            const id = pendingId
+            setMessages((m) => m.map((x) => (x.id === id ? { ...x, itinerary: plan } : x)))
+            return
+          }
+          // The prose is FINISHED by the time the first day lands — the answer
+          // schema writes `itinerary` last — so the streaming block has nothing
+          // left to say. Commit it as this turn's message and let the plan grow
+          // inside it; the payload fills in the rest of the same message.
+          const id = nextId()
+          pendingId = id
+          pendingIdRef.current = id
+          setMessages((m) => [...m, { id, role: "assistant", text: streamBuf, itinerary: plan }])
+          setStreaming(null)
+          setStatus(null)
+        },
         onPayload: (answer: ChatAnswer) => {
           finishActivity("succeeded")
-          const id = nextId()
+          const id = pendingId ?? nextId()
           const finalText = answer.assistant_text || streamBuf
-          const plan = answer.itinerary
-            ? toCardItinerary(answer.itinerary, {
-                tripTitle,
-                country: country ?? null,
-                fallbackDestination: destinations[0]?.label ?? null,
-              })
-            : null
-          setMessages((m) => [
-            ...m,
-            {
-              id,
-              role: "assistant",
-              text: finalText,
-              cards: answer.cards as HydratedCard[],
-              followups: answer.followups,
-              replyChips: answer.reply_chips,
-              itinerary: plan,
-            },
-          ])
+          // The payload stays authoritative: its plan REPLACES the streamed
+          // days rather than joining them, so a day the stream missed, or an
+          // answer that arrived a different way (the blocking retry), leaves
+          // exactly what the server sent on screen.
+          const plan = answer.itinerary ? planOf(answer.itinerary) : null
+          const turn = {
+            id,
+            role: "assistant" as const,
+            text: finalText,
+            cards: answer.cards as HydratedCard[],
+            followups: answer.followups,
+            replyChips: answer.reply_chips,
+            itinerary: plan,
+          }
+          setMessages((m) =>
+            pendingId ? m.map((x) => (x.id === id ? { ...x, ...turn } : x)) : [...m, turn]
+          )
+          pendingId = null
+          pendingIdRef.current = null
           setStreaming(null)
           setStatus(null)
           if (sessionRef.current)
@@ -374,6 +419,11 @@ export default function TripChat({
         },
         onError: (msg) => {
           finishActivity("failed")
+          // Whatever streamed KEEPS its place, the way a stopped turn does: the
+          // days already on screen are real, and a row someone has added is
+          // theirs to take back. Only this turn's claim on the message ends.
+          pendingId = null
+          pendingIdRef.current = null
           setStreaming(null)
           setStatus(null)
           setError(msg)
@@ -385,6 +435,7 @@ export default function TripChat({
     // success rate is not dragged down by answers nobody waited for.
     if (!outcomeRecorded) finishActivity("failed", stoppedRef.current ? "cancelled" : undefined)
     if (abortRef.current === controller) abortRef.current = null
+    pendingIdRef.current = null
     setBusy(false)
   }
 
@@ -402,11 +453,20 @@ export default function TripChat({
     stoppedRef.current = true
     controller.abort()
     const partial = streamingRef.current
+    const pendingId = pendingIdRef.current
     if (partial && partial.trim()) {
       const id = nextId()
       setMessages((m) => [...m, { id, role: "assistant", text: partial }])
       if (sessionRef.current) void saveMessage(sessionRef.current, tripId, "assistant", partial)
+    } else if (pendingId) {
+      // Stopped while the plan was still arriving. The turn is already on
+      // screen with the days that made it — keep those too, so a stopped plan
+      // is still there after a reload.
+      const turn = messagesRef.current.find((m) => m.id === pendingId)
+      if (turn && sessionRef.current)
+        void saveMessage(sessionRef.current, tripId, "assistant", turn.text, turn.itinerary ?? null)
     }
+    pendingIdRef.current = null
     setStreaming(null)
     setStatus(null)
     setError(null)

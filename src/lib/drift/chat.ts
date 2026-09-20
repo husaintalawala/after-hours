@@ -77,6 +77,43 @@ const ITINERARY_TYPES = new Set(["spot", "activity", "food", "stay"])
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "")
 
 /**
+ * One day of a plan, shaped into something renderable or null.
+ *
+ * Shared by the final payload's `itinerary.days` and the `day` frames that
+ * stream ahead of it — the same day must read identically whichever way it
+ * arrived, and one reader is how that stays true.
+ */
+export function normalizeItineraryDay(raw: unknown): AskItineraryDay | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+  const d = raw as Record<string, unknown>
+  const places: AskItineraryPlace[] = (Array.isArray(d.places) ? d.places : []).flatMap((rp) => {
+    if (!rp || typeof rp !== "object") return []
+    const p = rp as Record<string, unknown>
+    const name = str(p.name)
+    if (!name) return []
+    const type = str(p.type)
+    const time = str(p.time)
+    return [
+      {
+        name,
+        why: str(p.why),
+        place_query: str(p.place_query) || name,
+        type: (ITINERARY_TYPES.has(type) ? type : "spot") as AskItineraryPlace["type"],
+        time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : null,
+      },
+    ]
+  })
+  if (!places.length) return null
+  const date = str(d.date)
+  return {
+    title: str(d.title),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    destination_ref: str(d.destination_ref) || null,
+    places,
+  }
+}
+
+/**
  * The `itinerary` field, shaped into something renderable or null.
  *
  * TOLERANT, like coerceItinerary in generalChat.ts: this is model output that
@@ -89,38 +126,43 @@ export function normalizeItinerary(raw: unknown): AskItinerary | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
   const o = raw as Record<string, unknown>
   const days: AskItineraryDay[] = (Array.isArray(o.days) ? o.days : []).flatMap((rd) => {
-    if (!rd || typeof rd !== "object") return []
-    const d = rd as Record<string, unknown>
-    const places: AskItineraryPlace[] = (Array.isArray(d.places) ? d.places : []).flatMap((rp) => {
-      if (!rp || typeof rp !== "object") return []
-      const p = rp as Record<string, unknown>
-      const name = str(p.name)
-      if (!name) return []
-      const type = str(p.type)
-      const time = str(p.time)
-      return [
-        {
-          name,
-          why: str(p.why),
-          place_query: str(p.place_query) || name,
-          type: (ITINERARY_TYPES.has(type) ? type : "spot") as AskItineraryPlace["type"],
-          time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : null,
-        },
-      ]
-    })
-    if (!places.length) return []
-    const date = str(d.date)
-    return [
-      {
-        title: str(d.title),
-        date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
-        destination_ref: str(d.destination_ref) || null,
-        places,
-      },
-    ]
+    const day = normalizeItineraryDay(rd)
+    return day ? [day] : []
   })
   if (!days.length) return null
   return { title: str(o.title), days }
+}
+
+/** One `day` frame: a finished day and where it sits in the final plan. */
+export interface StreamedDay {
+  /** 0-based position in the final payload's `itinerary.days`. */
+  index: number
+  day: AskItineraryDay
+}
+
+/** A `day` frame's data, or null when there is nothing to draw from it. */
+export function normalizeStreamedDay(raw: unknown): StreamedDay | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+  const o = raw as Record<string, unknown>
+  const index = o.index
+  if (typeof index !== "number" || !Number.isInteger(index) || index < 0) return null
+  const day = normalizeItineraryDay(o.day)
+  return day ? { index, day } : null
+}
+
+/**
+ * The days that can be drawn so far: the run from 0 with no gap in it.
+ *
+ * A day is drawn under the number of its POSITION ("Day 3" is the third row),
+ * so a day held back by a lost frame would renumber every day after it and
+ * then renumber them again when the payload landed. Waiting for the gap to
+ * fill costs nothing — the frames arrive in order — and never prints a day
+ * under the wrong number.
+ */
+export function orderedStreamedDays(byIndex: Record<number, AskItineraryDay>): AskItineraryDay[] {
+  const days: AskItineraryDay[] = []
+  for (let i = 0; byIndex[i]; i++) days.push(byIndex[i])
+  return days
 }
 
 /** Arrays where the renderer expects arrays, and `itinerary` normalized. */
@@ -150,6 +192,11 @@ export interface AskRequestBody {
 export interface AskHandlers {
   onStatus?: (state: string) => void
   onDelta?: (delta: string) => void
+  /** One finished itinerary day, streamed ahead of the payload it will also
+   *  arrive in. Always after the prose (the answer schema puts `itinerary`
+   *  last), and never on the blocking path — a caller that leaves this out
+   *  simply waits for the payload, as every build in the field does. */
+  onDay?: (index: number, day: AskItineraryDay) => void
   onPayload?: (answer: ChatAnswer) => void
   onError?: (message: string) => void
 }
@@ -318,6 +365,14 @@ function handleFrame(frame: string, handlers: AskHandlers): boolean {
           handlers.onDelta?.(obj.delta)
           return true
         }
+        break
+      }
+      case "day": {
+        // NOT a first-token mark: the payload is still what finishes the turn,
+        // and a stream that produced days but no prose is as hollow as one that
+        // produced neither.
+        const d = normalizeStreamedDay(JSON.parse(dataStr))
+        if (d) handlers.onDay?.(d.index, d.day)
         break
       }
       case "payload": {
