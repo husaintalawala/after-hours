@@ -100,6 +100,11 @@ describe("bannerReducer", () => {
     // A run in flight owns the banner and filters its own receipt.
     const w = run({ type: "working", tripId: "jp", tripTitle: "Japan", total: 2 })!
     assert.equal(bannerReducer(w, { type: "removed", tripId: "jp", name: "A" }), w)
+    // The next add to that trip starts its own banner rather than joining a
+    // removal, which has no places to count.
+    const next = bannerReducer(r, add("jp", "C", "s3"))!
+    assert.equal(next.title, "Added to Japan with a Little One")
+    assert.deepEqual(next.stepIds, ["s3"])
   })
 
   test("namesDetail", () => {

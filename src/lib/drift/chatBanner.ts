@@ -73,8 +73,10 @@ export function bannerReducer(state: Banner | null, a: BannerAction): Banner | n
       if (state?.kind !== "working") return state
       return { ...state, done: a.done, ...workingText(state.tripTitle, a.done, state.total) }
     case "success": {
-      // Another add to the SAME trip while its success banner is up joins it.
-      if (state?.kind === "success" && state.tripId && state.tripId === a.tripId) {
+      // Another add to the SAME trip while its success banner is up joins it —
+      // an ADD banner. A "Removed …" names no places and is not a count to
+      // join: the next add starts its own.
+      if (state?.kind === "success" && state.names.length > 0 && state.tripId && state.tripId === a.tripId) {
         const names = [...state.names, ...a.names]
         const stepIds = [...state.stepIds, ...a.stepIds]
         return {
