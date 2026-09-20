@@ -599,8 +599,9 @@ export default function TripChat({
    * "Added" on a plan row, tapped: take that place back off the trip.
    *
    * Down the SAME path the banner's Undo takes, so the trip, the banner and the
-   * card cannot disagree — and the banner still offering to undo this step
-   * steps aside, since its Undo would now fail on a step already gone.
+   * card cannot disagree — and it reports through the banner like every other
+   * write here, which also retires the one still offering to undo this step,
+   * since that Undo would now fail on a step already gone.
    */
   async function undoItineraryPlace(msgId: string, place: ItineraryPlace, dayIndex: number) {
     const stepId = addedRef.current[`${msgId}|${itineraryRowKey(dayIndex, place.name)}`]
@@ -612,7 +613,7 @@ export default function TripChat({
       )
       return
     }
-    banner.forget([stepId])
+    banner.removed({ tripId, tripTitle, name: place.name })
   }
 
   /** "Add day": that day's places only, as one run with one Undo — Add all

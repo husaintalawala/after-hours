@@ -31,8 +31,9 @@ export function useChatBanner() {
         dispatch({ type: "failure", ...p })
       },
       dismiss: () => dispatch({ type: "dismiss" }),
-      /** These steps were taken back from the plan card itself. */
-      forget: (stepIds: string[]) => dispatch({ type: "forget", stepIds }),
+      /** A place taken back off the trip from the plan card itself. */
+      removed: (p: Omit<Extract<BannerAction, { type: "removed" }>, "type">) =>
+        dispatch({ type: "removed", ...p }),
     }),
     [state]
   )

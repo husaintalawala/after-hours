@@ -103,9 +103,11 @@ export default function GeneralChat({
   /**
    * "Added" on a plan row, tapped: take that place back off the trip it joined.
    *
-   * Down the SAME path the banner's Undo takes. A place that STARTED a trip is
-   * not a step to remove, so `canUndo` leaves those rows inert rather than
-   * offering an action that would have to fail.
+   * Down the SAME path the banner's Undo takes, and reported the same way: the
+   * banner names the place that came off and the trip it left, since a pill
+   * changing its label is not a receipt. A place that STARTED a trip is not a
+   * step to remove, so `canUndo` leaves those rows inert rather than offering
+   * an action that would have to fail.
    */
   async function undoFromPlan(msgId: string, place: ItineraryPlace, dayIndex: number) {
     const key = `${msgId}|${itineraryRowKey(dayIndex, place.name)}`
@@ -119,7 +121,8 @@ export default function GeneralChat({
       )
       return
     }
-    banner.forget([stepId])
+    const trip = [...trips, ...createdTripsRef.current].find((t) => t.id === tripId)
+    banner.removed({ tripId, tripTitle: trip?.title, name: place.name })
   }
 
   /**

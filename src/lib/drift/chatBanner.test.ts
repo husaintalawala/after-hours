@@ -85,17 +85,21 @@ describe("bannerReducer", () => {
     assert.deepEqual(b.stepIds, [])
   })
 
-  test("a place undone from its own card takes the banner offering it with it", () => {
+  test("a place taken back from its own card says so, and offers View not Undo", () => {
     const b = run(add("jp", "A", "s1"), add("jp", "B", "s2"))!
     assert.deepEqual(b.stepIds, ["s1", "s2"])
-    // Undone from the card: the banner's count and its Undo both describe an
-    // add that no longer stands, so it goes rather than shrinking.
-    assert.equal(bannerReducer(b, { type: "forget", stepIds: ["s2"] }), null)
-    // A banner about other steps is left alone, and so is a run in flight.
-    assert.equal(bannerReducer(b, { type: "forget", stepIds: ["s9"] }), b)
+    const r = bannerReducer(b, { type: "removed", tripId: "jp", tripTitle: "Japan", name: "B" })!
+    assert.equal(r.kind, "success")
+    assert.equal(r.title, "Removed B")
+    assert.equal(r.detail, "Japan")
+    // It REPLACES the add's banner rather than merging into it: no names to
+    // count, and no steps, so there is nothing left to offer Undo on.
+    assert.deepEqual(r.names, [])
+    assert.deepEqual(r.stepIds, [])
+    assert.ok(r.seq > b.seq)
+    // A run in flight owns the banner and filters its own receipt.
     const w = run({ type: "working", tripId: "jp", tripTitle: "Japan", total: 2 })!
-    assert.equal(bannerReducer(w, { type: "forget", stepIds: ["s1"] }), w)
-    assert.equal(bannerReducer(null, { type: "forget", stepIds: ["s1"] }), null)
+    assert.equal(bannerReducer(w, { type: "removed", tripId: "jp", name: "A" }), w)
   })
 
   test("namesDetail", () => {
