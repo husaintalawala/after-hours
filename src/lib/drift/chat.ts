@@ -9,6 +9,7 @@
 // a forbidden header in browser fetch; the proxy sets it upstream instead.)
 
 import type { PlanningMode } from "./chatPlanning"
+import type { ChatItinerary } from "./generalChat"
 
 export interface Turn {
   role: string
@@ -163,6 +164,56 @@ export function orderedStreamedDays(byIndex: Record<number, AskItineraryDay>): A
   const days: AskItineraryDay[] = []
   for (let i = 0; byIndex[i]; i++) days.push(byIndex[i])
   return days
+}
+
+/**
+ * ask-drift-chat's plan, in the shape ItineraryCard draws.
+ *
+ * `destination` is the card's place-resolution bias: a place on a day that
+ * names no city is looked up against it, so what it says decides which Kyoto
+ * the photo comes from. It is read off the first day that names one, and a
+ * streamed plan is handed to this a prefix at a time — which is the right way
+ * round, and the reason is worth writing down, because it looks wrong.
+ *
+ * THE PREFIX ANSWERS WHAT THE WHOLE PLAN WOULD, THE MOMENT IT CAN. The first
+ * day naming a city among the days that have landed IS the first one in the
+ * finished plan — days arrive in order — so every day that lands after a city
+ * has been named resolves against exactly what the payload will say. Only the
+ * days ahead of the first named city fall back, and for those the answer is
+ * not yet in the plan at all: no reading of a partial plan can produce it.
+ *
+ * So do NOT "pin" this to the fallback while the plan grows to stop it moving.
+ * It does not spare those early days — they take the fallback either way — and
+ * it throws away the answer for every later day that does not name its own
+ * city, biasing them to the trip instead of to the city the plan just named.
+ * See the pinning tests in chatStreamedDays.test.ts.
+ */
+export function toCardItinerary(
+  itin: AskItinerary,
+  opts: { tripTitle: string; country: string | null; fallbackDestination: string | null }
+): ChatItinerary {
+  const destination =
+    itin.days.find((d) => d.destination_ref)?.destination_ref ??
+    opts.fallbackDestination ??
+    opts.tripTitle
+  return {
+    destination,
+    country: opts.country,
+    title: itin.title || `${opts.tripTitle} plan`,
+    startDate: itin.days[0]?.date ?? null,
+    days: itin.days.map((d) => ({
+      title: d.title,
+      date: d.date,
+      destinationRef: d.destination_ref,
+      places: d.places.map((p) => ({
+        name: p.name,
+        why: p.why,
+        query: p.place_query,
+        type: p.type,
+        time: p.time,
+      })),
+    })),
+  }
 }
 
 /** Arrays where the renderer expects arrays, and `itinerary` normalized. */

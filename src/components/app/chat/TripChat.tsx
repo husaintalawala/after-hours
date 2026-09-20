@@ -8,6 +8,7 @@ import {
   orderedStreamedDays,
   resolvePlace,
   placePhotoUrl,
+  toCardItinerary,
   type AskItineraryDay,
   type ChatAnswer,
   type ChatCard,
@@ -31,7 +32,6 @@ import {
   type PlanningMode,
 } from "@/lib/drift/chatPlanning"
 import { PlanningModePicker, ReplyChips } from "@/components/app/chat/PlanningControls"
-import type { AskItinerary } from "@/lib/drift/chat"
 import type { ChatItinerary, ItineraryPlace } from "@/lib/drift/generalChat"
 import { dayDateFor, lastDestinationDay, pickDestinationId } from "@/lib/drift/itineraryPlacement"
 import { ensureDestination } from "@/lib/drift/createTripFromItinerary"
@@ -344,6 +344,11 @@ export default function TripChat({
     // already made on a row).
     const dayBuf: Record<number, AskItineraryDay> = {}
     let pendingId: string | null = null
+    // What that message holds, kept beside it: the turn has to be WRITTEN if it
+    // ends any way but a payload, and a `day` frame and an `error` frame can
+    // arrive in the same chunk — `messagesRef` would not have rendered yet.
+    let pendingText = ""
+    let pendingPlan: ChatItinerary | null = null
     const planOf = (itin: { title: string; days: AskItineraryDay[] }) =>
       toCardItinerary(itin, {
         tripTitle,
@@ -372,6 +377,7 @@ export default function TripChat({
           // The plan's own title only arrives with the payload; until then the
           // card wears the same fallback it would have worn anyway.
           const plan = planOf({ title: "", days })
+          pendingPlan = plan
           if (pendingId) {
             const id = pendingId
             setMessages((m) => m.map((x) => (x.id === id ? { ...x, itinerary: plan } : x)))
@@ -384,6 +390,7 @@ export default function TripChat({
           const id = nextId()
           pendingId = id
           pendingIdRef.current = id
+          pendingText = streamBuf
           setMessages((m) => [...m, { id, role: "assistant", text: streamBuf, itinerary: plan }])
           setStreaming(null)
           setStatus(null)
@@ -422,6 +429,14 @@ export default function TripChat({
           // Whatever streamed KEEPS its place, the way a stopped turn does: the
           // days already on screen are real, and a row someone has added is
           // theirs to take back. Only this turn's claim on the message ends.
+          //
+          // Keeping it means WRITING it. Only onPayload saves, so a plan that
+          // ended in an error was a card someone could read and add from until
+          // the next reload took it away — the same hole `stop` was given a
+          // branch for. What the screen shows and what the thread holds are the
+          // same thing now, on every way out of a turn.
+          if (pendingId && sessionRef.current)
+            void saveMessage(sessionRef.current, tripId, "assistant", pendingText, pendingPlan)
           pendingId = null
           pendingIdRef.current = null
           setStreaming(null)
@@ -1196,33 +1211,6 @@ function resolvedPlaceFor(cand: PlaceCandidate | null | undefined, fallbackName:
         place_id: !cand.source || cand.source === "google" ? cand.id : null,
       }
     : { name: fallbackName }
-}
-
-/** ask-drift-chat's plan, in the shape ItineraryCard draws. */
-function toCardItinerary(
-  itin: AskItinerary,
-  opts: { tripTitle: string; country: string | null; fallbackDestination: string | null }
-): ChatItinerary {
-  const destination =
-    itin.days.find((d) => d.destination_ref)?.destination_ref ?? opts.fallbackDestination ?? opts.tripTitle
-  return {
-    destination,
-    country: opts.country,
-    title: itin.title || `${opts.tripTitle} plan`,
-    startDate: itin.days[0]?.date ?? null,
-    days: itin.days.map((d) => ({
-      title: d.title,
-      date: d.date,
-      destinationRef: d.destination_ref,
-      places: d.places.map((p) => ({
-        name: p.name,
-        why: p.why,
-        query: p.place_query,
-        type: p.type,
-        time: p.time,
-      })),
-    })),
-  }
 }
 
 // renderRich (assistant markdown + [label](places:…) links → tappable chips) is
