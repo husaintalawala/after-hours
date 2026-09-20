@@ -5,6 +5,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import ActivityPreference from "./ActivityPreference"
 import GoogleConnection from "@/components/app/settings/GoogleConnection"
+import PasskeySection from "@/components/app/settings/PasskeySection"
 import EmailPreferencesSection from "@/components/app/settings/EmailPreferencesSection"
 import { signOutAndForget } from "@/lib/drift/signOut"
 // isCityish moved to lib/drift/chat.ts — the first-run flow asks the same
@@ -139,6 +140,7 @@ export default function SettingsShell({ profile }: { profile: SettingsProfile })
       {/* Account */}
       <SectionLabel>Account</SectionLabel>
       <GoogleConnection />
+      <PasskeySection />
 
       {/* Download your data — its own page (/app/settings/export-data), for the
           same reason deletion is: what the file holds, and what it deliberately

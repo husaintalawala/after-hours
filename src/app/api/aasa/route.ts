@@ -29,6 +29,16 @@ import { NextResponse } from "next/server"
 // claim every path on this host, so the marketing site and the whole /app area
 // would try to open in the app for anyone who has it installed.
 
+// `webcredentials` is the OTHER half of an associated domain, and it is scoped
+// by host rather than by path — there are no `components` here, and adding any
+// would be ignored. It is what lets the app and this site share credentials:
+// today that is password autofill, and it is the precondition for passkeys,
+// whose relying-party id would be this same host. The app must carry the
+// matching `webcredentials:drift.after-hours.app` entitlement or this half does
+// nothing; the entitlement without this file does nothing either.
+//
+// Same appID as applinks, and the same warning applies to getting it wrong.
+
 const AASA = {
   applinks: {
     details: [
@@ -39,6 +49,9 @@ const AASA = {
         ],
       },
     ],
+  },
+  webcredentials: {
+    apps: ["KFXBP6CAM9.husaintalawala.Drift"],
   },
 }
 

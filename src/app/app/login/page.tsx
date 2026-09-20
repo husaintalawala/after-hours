@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
+import { passkeysOffered, passkeyCancelled } from "@/lib/passkeys"
 
 // Login card in the Aurora identity — matches the logged-in app (Deep Midnight
 // ground, teal action accent), NOT the old amber/coral marketing palette. Cool
@@ -42,6 +43,13 @@ export default function LoginPage() {
   const [resending, setResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [offerPasskey, setOfferPasskey] = useState(false)
+  // Separate from `busy`: the submit button's label is driven by `busy`, and a
+  // shared flag would make it read "Sending…" for the length of a passkey
+  // ceremony when nothing is being emailed.
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  // Not an error, so not the red line — see signInWithPasskey below.
+  const [passkeyNote, setPasskeyNote] = useState<string | null>(null)
   const turnstileRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
 
@@ -106,6 +114,12 @@ export default function LoginPage() {
     if (e) setError(decodeURIComponent(e))
   }, [])
 
+  // In an effect, not the render body: passkeysOffered() reads window, and a
+  // window read during render is a hydration mismatch on this SSR'd page.
+  useEffect(() => {
+    setOfferPasskey(passkeysOffered())
+  }, [])
+
   // IMPORTANT: no query params on redirectTo — Supabase matches redirect
   // URLs against the allow-list and a `?next=` variant can fail the match,
   // silently falling back to the Site URL (the "stuck" Google login).
@@ -135,7 +149,7 @@ export default function LoginPage() {
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim() || busy) return
+    if (!email.trim() || busy || passkeyBusy) return
     // Demo accounts use a password, not a magic link: first submit reveals the
     // field, second submit signs in. Real users never hit this branch.
     if (isDemoEmail(email)) {
@@ -182,6 +196,45 @@ export default function LoginPage() {
       return
     }
     window.location.assign("/app")
+  }
+
+  // Passkey sign-in. Captcha-gated like every other auth call here: the SDK
+  // spends the token on the authentication-options request BEFORE the system
+  // prompt appears, so it can't go stale while you hold a finger on a sensor —
+  // but it is still single-use, which is what the finally is for. Offered only
+  // when offerPasskey is true; see lib/passkeys.ts for why that is false today.
+  async function signInWithPasskey() {
+    if (busy || passkeyBusy) return
+    if (missingCaptcha()) return
+    setPasskeyBusy(true)
+    setError(null)
+    setPasskeyNote(null)
+    capture(AnalyticsEvent.LoginAttempt, { method: "passkey" })
+    try {
+      const { error } = await supabase.auth.signInWithPasskey({
+        options: { captchaToken: captchaToken ?? undefined },
+      })
+      // The browser returns NotAllowedError for "you cancelled", "nothing here
+      // matched" and "it timed out" alike, and we can't tell them apart. Red
+      // text would be wrong for the first; saying nothing at all leaves the
+      // second as a button that visibly does nothing. So: a calm line.
+      if (passkeyCancelled(error)) {
+        setPasskeyNote("No passkey was used — you can sign in with your email above.")
+        return
+      }
+      if (error) {
+        setError(error.message)
+        return
+      }
+      window.location.assign("/app")
+    } catch {
+      // signInWithPasskey rejects rather than resolving for anything that isn't
+      // an AuthError, and throws outright if the experimental flag is missing.
+      setError("Something went wrong with that passkey. Try your email instead.")
+    } finally {
+      resetCaptcha() // spent on the options request, whichever way this ended
+      setPasskeyBusy(false)
+    }
   }
 
   async function resend() {
@@ -326,7 +379,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={busy}
+                disabled={busy || passkeyBusy}
                 className="mt-4 h-[52px] w-full rounded-full text-[17px] font-semibold text-aurora-teal-ink disabled:opacity-60"
                 style={{
                   background: `linear-gradient(135deg, ${TEAL}, ${TEAL_END})`,
@@ -340,6 +393,29 @@ export default function LoginPage() {
                     ? "Sending…"
                     : "Continue"}
               </button>
+
+              {/* type="button" — inside the form for placement, but it must
+                  never submit the magic-link form. Hidden on the demo-account
+                  password path, which is a deliberate operator flow and
+                  shouldn't grow a second option halfway through. */}
+              {offerPasskey && !showPassword && (
+                <>
+                  <button
+                    type="button"
+                    onClick={signInWithPasskey}
+                    disabled={busy || passkeyBusy}
+                    className="mt-3 h-[52px] w-full rounded-full border text-[15px] font-semibold disabled:opacity-60"
+                    style={{ borderColor: "rgba(55,214,196,0.35)", color: TEAL }}
+                  >
+                    {passkeyBusy ? "Waiting for your device…" : "Sign in with a passkey"}
+                  </button>
+                  {passkeyNote && (
+                    <p className="mt-2 text-[12px]" style={{ color: SUBTITLE }}>
+                      {passkeyNote}
+                    </p>
+                  )}
+                </>
+              )}
             </form>
 
             <div className="my-6 flex items-center gap-3">
