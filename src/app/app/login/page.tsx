@@ -346,8 +346,8 @@ export default function LoginPage() {
               drift
             </p>
 
-            <p className="mt-5 text-center text-[18px] font-semibold">
-              Log in or sign up
+            <p className="mt-5 text-center font-drift-display text-[26px] leading-tight">
+              Where to next?
             </p>
 
             <form onSubmit={sendMagicLink} className="mt-6">
@@ -405,16 +405,6 @@ export default function LoginPage() {
                 </p>
               )}
 
-              {/* What Continue actually does. Without it the magic-link model
-                  is unexplained: you press a button and land in your inbox,
-                  and signInWithOtp has quietly made you an account. */}
-              {!showPassword && (
-                <p className="mt-3 text-[12px] leading-snug" style={{ color: SUBTITLE }}>
-                  We&apos;ll email you a link to sign in — no password. If you&apos;re new,
-                  it makes your account.
-                </p>
-              )}
-
               <button
                 type="submit"
                 disabled={busy || passkeyBusy}
@@ -432,13 +422,19 @@ export default function LoginPage() {
                     : "Continue"}
               </button>
 
+              {/* What Continue does, under the button that does it. Without a
+                  line here the magic-link model is unexplained: you press a
+                  button, land in your inbox, and signInWithOtp has quietly made
+                  you an account. */}
+              {!showPassword && (
+                <p className="mt-3 text-center text-[12px]" style={{ color: SUBTITLE }}>
+                  We&apos;ll email a link. No password.
+                </p>
+              )}
+
             </form>
 
-            <div className="my-6 flex items-center gap-3">
-              <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.15)" }} />
-              <span className="text-[12px] text-aurora-ink3">or continue with</span>
-              <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.15)" }} />
-            </div>
+            <div className="my-6" />
 
             {/* Social squares — cream, like iOS */}
             <div className="grid grid-cols-3 gap-3">
