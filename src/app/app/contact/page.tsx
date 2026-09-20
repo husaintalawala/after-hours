@@ -41,6 +41,10 @@ export default async function ContactPage() {
           </Link>
 
           <ContactForm accountEmail={accountEmail} />
+
+          <p className="mt-10 text-center text-[12px] text-aurora-ink3">
+            Drift is operated by After Hours Ventures LLC.
+          </p>
         </div>
       </main>
     </>
