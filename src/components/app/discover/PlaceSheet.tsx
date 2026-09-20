@@ -21,12 +21,20 @@ export default function PlaceSheet({
   distanceLabel,
   onClose,
   onAdd,
+  addState = "add",
+  showSave = true,
   saveAnchor = null,
   saveCategory = "spot",
 }: {
   poi: DiscoverResult
   distanceLabel: string | null
   onClose: () => void
+  /** Where the Add button stands. "added" is a live control — the caller
+   *  decides whether a tap adds or takes it back. */
+  addState?: "add" | "adding" | "added" | "removing"
+  /** Off where the opener keeps no saved list of its own — a chat plan's
+   *  places belong to the plan, not to the back pocket. */
+  showSave?: boolean
   /** Where the reader was looking when they opened this, so a save records the
    *  destination the phone's rows carry. Null where the caller has no anchor. */
   saveAnchor?: DiscoverAnchor | null
@@ -61,8 +69,14 @@ export default function PlaceSheet({
 
   // ----- lazy rich details (Google POIs) -----
   const [details, setDetails] = useState<PlaceDetailsLite | null>(null)
+  // `plan:` is a place a chat plan named that resolve-place has not matched to
+  // a Google id yet — there is nothing to look up, so the sheet shows the
+  // plan's own words rather than spinning on "Loading details…" forever.
   const isGoogle =
-    poi.source === "google" && !poi.id.startsWith("osm:") && !poi.id.startsWith("geonames:")
+    poi.source === "google" &&
+    !poi.id.startsWith("osm:") &&
+    !poi.id.startsWith("geonames:") &&
+    !poi.id.startsWith("plan:")
   useEffect(() => {
     if (!isGoogle) return
     let alive = true
@@ -171,16 +185,29 @@ export default function PlaceSheet({
         <path d="M12 2l4 8-4-2-4 2z" />
         <path d="M12 8v14" />
       </ActionBtn>
-      <ActionBtn
-        label={saved ? "Saved" : "Save"}
-        onClick={() => { void toggle(poi, saveAnchor, saveCategory) }}
-        active={saved}
-      >
-        <path d="M12 21s-7-4.6-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z" />
-      </ActionBtn>
+      {showSave && (
+        <ActionBtn
+          label={saved ? "Saved" : "Save"}
+          onClick={() => { void toggle(poi, saveAnchor, saveCategory) }}
+          active={saved}
+        >
+          <path d="M12 21s-7-4.6-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9z" />
+        </ActionBtn>
+      )}
       {onAdd && (
-        <ActionBtn label="Add" onClick={onAdd}>
-          <path d="M12 5v14M5 12h14" />
+        <ActionBtn
+          label={
+            addState === "adding" ? "Adding…" : addState === "removing" ? "Removing…" : addState === "added" ? "Added" : "Add"
+          }
+          onClick={onAdd}
+          active={addState === "added" || addState === "removing"}
+          disabled={addState === "adding" || addState === "removing"}
+        >
+          {addState === "added" || addState === "removing" ? (
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          ) : (
+            <path d="M12 5v14M5 12h14" />
+          )}
         </ActionBtn>
       )}
       <ActionBtn label="Ask Drift" href={askUrl}>
@@ -328,6 +355,7 @@ function ActionBtn({
   onClick,
   primary,
   active,
+  disabled,
   children,
 }: {
   label: string
@@ -335,6 +363,7 @@ function ActionBtn({
   onClick?: () => void
   primary?: boolean
   active?: boolean
+  disabled?: boolean
   children: React.ReactNode
 }) {
   const ring = primary
@@ -365,7 +394,7 @@ function ActionBtn({
       {inner}
     </a>
   ) : (
-    <button onClick={onClick} className="flex-1">
+    <button onClick={onClick} disabled={disabled} className="flex-1 disabled:opacity-60">
       {inner}
     </button>
   )

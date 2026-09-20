@@ -6,6 +6,7 @@
 import { createClient } from "@/lib/supabase/client"
 import type { Json } from "@/lib/database.types"
 import { itineraryMetadata, readStoredItinerary, type ChatItinerary } from "@/lib/drift/generalChat"
+import type { PlanningMode } from "@/lib/drift/chatPlanning"
 
 // A plain typed client. This used to be `(): any` because the generated
 // generics collapsed every write to `never` under @supabase/ssr 0.5 — fixed by
@@ -20,6 +21,18 @@ export interface StoredMessage {
   /** The plan stored in `metadata.itinerary` — null for every other row,
    *  including rows whose metadata is some other shape or malformed. */
   itinerary?: ChatItinerary | null
+  /** How the chat was planning when this turn was written
+   *  (`metadata.planning_mode`, user turns only). A reopened chat takes the
+   *  mode of the viewer's OWN latest turn — a shared trip thread carries
+   *  everyone's. Null on every turn written before the field existed. */
+  planningMode?: PlanningMode | null
+}
+
+/** `metadata.planning_mode`, defensively: anything else reads as no mode. */
+function readStoredPlanningMode(metadata: unknown): PlanningMode | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null
+  const raw = (metadata as Record<string, unknown>).planning_mode
+  return raw === "guided" || raw === "quick" ? raw : null
 }
 
 /** Signed-in user id, for deciding which turns are the viewer's own. */
@@ -157,6 +170,7 @@ export async function loadSessionMessages(sessionId: string): Promise<StoredMess
         text: m.text,
         userId: m.user_id ?? null,
         itinerary: readStoredItinerary(m.metadata),
+        planningMode: readStoredPlanningMode(m.metadata),
       }))
   } catch {
     return []
@@ -191,6 +205,7 @@ export async function loadTripMessages(tripId: string): Promise<StoredMessage[]>
         text: m.text,
         userId: m.user_id ?? null,
         itinerary: readStoredItinerary(m.metadata),
+        planningMode: readStoredPlanningMode(m.metadata),
       }))
   } catch {
     return []
@@ -204,7 +219,11 @@ export async function saveMessage(
   text: string,
   /** An assistant turn's plan, stored as `metadata.itinerary` (the key iOS
    *  ChatMessageMetadata uses) so a reopened thread draws the card again. */
-  itinerary?: ChatItinerary | null
+  itinerary?: ChatItinerary | null,
+  /** How the chat was planning on a USER turn, stored beside it as
+   *  `metadata.planning_mode` — the key iOS writes, and the one a reopened
+   *  chat reads its mode back from. */
+  planningMode?: PlanningMode | null
 ): Promise<void> {
   try {
     const supabase = db()
@@ -212,14 +231,17 @@ export async function saveMessage(
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) return
-    const metadata = itineraryMetadata(itinerary)
+    const metadata = {
+      ...(itineraryMetadata(itinerary) ?? {}),
+      ...(planningMode ? { planning_mode: planningMode } : {}),
+    }
     await supabase.from("trip_chat_messages").insert({
       session_id: sessionId,
       trip_id: tripId,
       user_id: user.id,
       role,
       text,
-      ...(metadata ? { metadata: metadata as unknown as Json } : {}),
+      ...(Object.keys(metadata).length ? { metadata: metadata as unknown as Json } : {}),
     }).throwOnError()
     const patch: { last_message_at: string; title?: string } = {
       last_message_at: new Date().toISOString(),

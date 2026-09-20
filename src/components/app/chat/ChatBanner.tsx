@@ -31,6 +31,8 @@ export function useChatBanner() {
         dispatch({ type: "failure", ...p })
       },
       dismiss: () => dispatch({ type: "dismiss" }),
+      /** These steps were taken back from the plan card itself. */
+      forget: (stepIds: string[]) => dispatch({ type: "forget", stepIds }),
     }),
     [state]
   )

@@ -8,11 +8,37 @@ import { createTripFromItinerary, type ResolvedPlace } from "@/lib/drift/createT
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import { activityScope } from "@/lib/activity"
 import { shortDate } from "@/lib/drift/itineraryPlacement"
+import { MUST_SEE_PREFILL, TUNES, WALK_THROUGH, dayHeading, swapPrompt, type PlanningMode } from "@/lib/drift/chatPlanning"
+import PlaceSheet from "@/components/app/discover/PlaceSheet"
+import type { DiscoverResult } from "@/lib/drift/discover"
 
 /** The row identity `isAdded` is asked about — unique within one plan. */
 export function itineraryRowKey(dayIndex: number, name: string): string {
   return `${dayIndex}:${name}`
 }
+
+/**
+ * What the LATEST plan offers beyond Add: tune it, swap a day, add a day, or —
+ * in a quick chat — be walked through it instead. The chat owns every action;
+ * the card only reports the tap. An older plan gets none of these: it is a
+ * record, not a second control panel.
+ */
+export interface PlanTools {
+  mode: PlanningMode
+  /** Sends a re-draft prompt as the next message. */
+  onTune: (prompt: string) => void
+  /** Quick → guided: ask the plan's questions after all. */
+  onWalkThrough: () => void
+  /** Puts MUST_SEE_PREFILL in the composer for the person to finish. */
+  onAddMustSee: () => void
+  /** Adds one day's places to the trip. Absent outside a trip chat, where the
+   *  plan's own button is what starts a trip. */
+  onAddDay?: (dayIndex: number) => Promise<void>
+}
+
+/** A row's Add control, in the order a tap resolves: taking back outranks an
+ *  add in flight, which outranks having landed. */
+type AddPhase = "add" | "adding" | "added" | "removing"
 
 /**
  * A plan the assistant laid out, drawn as days rather than printed as JSON.
@@ -30,20 +56,31 @@ export function itineraryRowKey(dayIndex: number, name: string): string {
 export default function ItineraryCard({
   itin,
   onAdd,
+  onUndo,
   isAdded,
   onAddAll,
   addAllTo,
+  onOpenTrip,
+  planTools,
   resolvePhotos = true,
 }: {
   itin: ChatItinerary
   /** Per-place Add. Absent = no Add buttons. */
   onAdd?: (place: ItineraryPlace, dayIndex: number, candidate: PlaceCandidate | null) => Promise<void>
+  /** Take an added place back off the trip. Absent leaves "Added" inert: there
+   *  is nothing to undo it with. */
+  onUndo?: (place: ItineraryPlace, dayIndex: number) => Promise<void>
   /** Whether the row `itineraryRowKey(day, name)` is already added. */
   isAdded?: (rowKey: string) => boolean
   /** Add every place not yet added, given whatever photos/coords resolved. */
   onAddAll?: (resolved: Record<string, PlaceCandidate>) => Promise<void>
   /** Trip name — shows "Add all to <name>" in place of "Create this trip". */
   addAllTo?: string
+  /** Open the trip this plan adds to — where the button goes once every place
+   *  is on it and there is nothing left to add. */
+  onOpenTrip?: () => void
+  /** Tune / swap / add-day / walk-through. Only the latest plan gets them. */
+  planTools?: PlanTools
   /** Look up photos/pins on mount. Off for older plans reloaded from history,
    *  so reopening a long thread does not re-bill a lookup per place it ever
    *  suggested — only the latest two plans resolve. Read once, at mount. */
@@ -54,7 +91,12 @@ export default function ItineraryCard({
   const [error, setError] = useState<string | null>(null)
   const [resolved, setResolved] = useState<Record<string, PlaceCandidate>>({})
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({})
+  const [rowUndoing, setRowUndoing] = useState<Record<string, boolean>>({})
   const [allBusy, setAllBusy] = useState(false)
+  const [dayBusy, setDayBusy] = useState<number | null>(null)
+  /** The row whose place details are open, by day and name so the sheet picks
+   *  up the photo and pin the moment the lookup lands under it. */
+  const [openRow, setOpenRow] = useState<{ dayIndex: number; name: string } | null>(null)
 
   const places = itin.days.flatMap((d) => d.places)
   const hydratedRef = useRef(false)
@@ -95,6 +137,16 @@ export default function ItineraryCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /** Where a row's Add button stands. Taking back outranks an add in flight,
+   *  which outranks having landed — a row is never offered an action it is
+   *  already in the middle of. */
+  function phaseOf(dayIndex: number, name: string): AddPhase {
+    const key = itineraryRowKey(dayIndex, name)
+    if (rowUndoing[key]) return "removing"
+    if (rowBusy[key]) return "adding"
+    return isAdded?.(key) ? "added" : "add"
+  }
+
   async function addOne(dayIndex: number, p: ItineraryPlace) {
     const key = itineraryRowKey(dayIndex, p.name)
     if (!onAdd || rowBusy[key] || isAdded?.(key)) return
@@ -104,6 +156,30 @@ export default function ItineraryCard({
     } finally {
       setRowBusy((r) => ({ ...r, [key]: false }))
     }
+  }
+
+  /**
+   * TAKE IT BACK FROM THE CARD. The banner is gone in six seconds; the card is
+   * where anyone looks for it afterwards, so "Added" is a live control down the
+   * same path the banner's Undo takes — one place to remove a step means the
+   * trip, the banner and the card cannot disagree.
+   */
+  async function undoOne(dayIndex: number, p: ItineraryPlace) {
+    const key = itineraryRowKey(dayIndex, p.name)
+    if (!onUndo || rowUndoing[key] || rowBusy[key] || !isAdded?.(key)) return
+    setRowUndoing((r) => ({ ...r, [key]: true }))
+    try {
+      await onUndo(p, dayIndex)
+    } finally {
+      setRowUndoing((r) => ({ ...r, [key]: false }))
+    }
+  }
+
+  /** One tap on a row's pill: add it, or take it back. */
+  function toggleOne(dayIndex: number, p: ItineraryPlace) {
+    const phase = phaseOf(dayIndex, p.name)
+    if (phase === "add") return void addOne(dayIndex, p)
+    if (phase === "added") return void undoOne(dayIndex, p)
   }
 
   async function addAll() {
@@ -116,8 +192,32 @@ export default function ItineraryCard({
     }
   }
 
-  const allAdded =
-    !!isAdded && itin.days.every((d, i) => d.places.every((p) => isAdded(itineraryRowKey(i, p.name))))
+  /** "Add day": this day's places only, as one run with one Undo. */
+  async function addDay(dayIndex: number) {
+    if (!planTools?.onAddDay || dayBusy !== null) return
+    setDayBusy(dayIndex)
+    try {
+      await planTools.onAddDay(dayIndex)
+    } finally {
+      setDayBusy(null)
+    }
+  }
+
+  const rows = itin.days.flatMap((d, i) => d.places.map((p) => ({ p, i })))
+  const addedCount = isAdded ? rows.filter(({ p, i }) => isAdded(itineraryRowKey(i, p.name))).length : 0
+  const allAdded = !!isAdded && rows.length > 0 && addedCount === rows.length
+
+  // The open row's place, rebuilt every render rather than captured on the tap,
+  // so the sheet picks up the photo, the pin and the Added state under it.
+  const openPlace = openRow ? itin.days[openRow.dayIndex]?.places.find((p) => p.name === openRow.name) : null
+  const open = openRow && openPlace
+    ? {
+        dayIndex: openRow.dayIndex,
+        place: openPlace,
+        poi: planPoi(openPlace, resolved[openPlace.name]),
+        phase: phaseOf(openRow.dayIndex, openPlace.name),
+      }
+    : null
 
   async function create() {
     if (busy) return
@@ -164,73 +264,103 @@ export default function ItineraryCard({
       </header>
 
       <ol className="divide-y divide-aurora-border">
-        {itin.days.map((day, i) => (
-          <li key={`${day.title}-${i}`} className="px-4 py-3.5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-aurora-teal">
-              Day {i + 1}
-              {day.date ? ` · ${shortDate(day.date)}` : ""}
-              {day.title ? ` · ${day.title}` : ""}
-            </p>
-            <ul className="mt-2.5 space-y-2.5">
-              {day.places.map((p) => {
-                const cand = resolved[p.name]
-                const photo = cand ? placePhotoUrl(cand) : null
-                const key = itineraryRowKey(i, p.name)
-                const added = !!isAdded?.(key)
-                const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                  p.query || [p.name, day.destinationRef || itin.destination].filter(Boolean).join(" ")
-                )}`
-                return (
-                  <li key={p.name} className="flex items-start gap-3">
-                    {/* The thumbnail is its own element whether or not a photo
-                        landed, so a row does not reflow when one arrives. */}
-                    <span className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-aurora-border bg-aurora-glass2">
-                      {photo && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={photo}
-                          alt=""
-                          aria-hidden
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13.5px] font-semibold leading-snug text-aurora-ink">
-                        {p.time ? <span className="mr-1.5 font-mono text-[11px] text-aurora-ink3">{p.time}</span> : null}
-                        {p.name}
-                      </span>
-                      {p.why && (
-                        <span className="mt-0.5 block text-[12px] leading-snug text-aurora-ink3">
-                          {p.why}
+        {itin.days.map((day, i) => {
+          const heading = dayHeading(day.title ?? "", i + 1)
+          const dayAdded = !!isAdded && day.places.length > 0 && day.places.every((p) => isAdded(itineraryRowKey(i, p.name)))
+          return (
+            <li key={`${day.title}-${i}`} className="px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                {/* "Day 2 · Historic Taipei" as a title would print the day
+                    twice — the chip on the left already says it. */}
+                <p className="min-w-0 flex-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-aurora-teal">
+                  Day {i + 1}
+                  {day.date ? ` · ${shortDate(day.date)}` : ""}
+                  {heading ? ` · ${heading}` : ""}
+                </p>
+                {planTools && (
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {planTools.onAddDay && (
+                      <button
+                        type="button"
+                        onClick={() => void addDay(i)}
+                        disabled={dayAdded || dayBusy !== null || allBusy}
+                        aria-label={dayAdded ? `Day ${i + 1} added` : `Add day ${i + 1} to the trip`}
+                        className="rounded-full border border-drift-coral/60 px-2.5 py-1 text-[11px] font-semibold text-drift-coral disabled:opacity-50"
+                      >
+                        {dayAdded ? "✓ Added" : dayBusy === i ? "Adding…" : "+ Add day"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => planTools.onTune(swapPrompt(i + 1, heading))}
+                      aria-label={`Swap the stops on day ${i + 1}`}
+                      className="rounded-full border border-drift-coral/60 px-2.5 py-1 text-[11px] font-semibold text-drift-coral"
+                    >
+                      Swap
+                    </button>
+                  </span>
+                )}
+              </div>
+              <ul className="mt-2.5 space-y-2.5">
+                {day.places.map((p) => {
+                  const cand = resolved[p.name]
+                  const photo = cand ? placePhotoUrl(cand) : null
+                  const phase = phaseOf(i, p.name)
+                  const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    p.query || [p.name, day.destinationRef || itin.destination].filter(Boolean).join(" ")
+                  )}`
+                  return (
+                    <li key={p.name}>
+                      {/* The photo, the name and the blurb open the place —
+                          same details screen Discover uses, with this plan's
+                          own Add inside it. */}
+                      <button
+                        type="button"
+                        onClick={() => setOpenRow({ dayIndex: i, name: p.name })}
+                        aria-label={`About ${p.name}`}
+                        className="flex w-full items-start gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-aurora-teal/40"
+                      >
+                        {/* The thumbnail is its own element whether or not a photo
+                            landed, so a row does not reflow when one arrives. */}
+                        <span className="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-aurora-border bg-aurora-glass2">
+                          {photo && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={photo}
+                              alt=""
+                              aria-hidden
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          )}
                         </span>
-                      )}
-                      {typeof cand?.rating === "number" && (
-                        <span className="mt-1 block font-mono text-[10px] text-aurora-teal">
-                          ★ {cand.rating.toFixed(1)}
-                        </span>
-                      )}
-                      <span className="mt-2 flex flex-wrap items-center gap-2">
-                        {onAdd &&
-                          (added ? (
-                            <span
-                              aria-label={`${p.name} added`}
-                              className="rounded-full border border-aurora-teal/40 px-3 py-1 text-[12px] font-semibold text-aurora-teal"
-                            >
-                              ✓ Added
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13.5px] font-semibold leading-snug text-aurora-ink">
+                            {p.time ? <span className="mr-1.5 font-mono text-[11px] text-aurora-ink3">{p.time}</span> : null}
+                            {p.name}
+                          </span>
+                          {p.why && (
+                            <span className="mt-0.5 block text-[12px] leading-snug text-aurora-ink3">
+                              {p.why}
                             </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => void addOne(i, p)}
-                              disabled={!!rowBusy[key] || allBusy}
-                              aria-label={`Add ${p.name}`}
-                              className="rounded-full bg-aurora-teal px-3 py-1 text-[12px] font-bold text-aurora-teal-ink disabled:opacity-50"
-                            >
-                              {rowBusy[key] ? "Adding…" : "Add"}
-                            </button>
-                          ))}
+                          )}
+                          {typeof cand?.rating === "number" && (
+                            <span className="mt-1 block font-mono text-[10px] text-aurora-teal">
+                              ★ {cand.rating.toFixed(1)}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 pl-14">
+                        {onAdd && (
+                          <AddPill
+                            phase={phase}
+                            place={p.name}
+                            canUndo={!!onUndo}
+                            disabled={allBusy || dayBusy !== null}
+                            onClick={() => toggleOne(i, p)}
+                          />
+                        )}
                         <a
                           href={mapHref}
                           target="_blank"
@@ -240,39 +370,169 @@ export default function ItineraryCard({
                         >
                           Map
                         </a>
-                      </span>
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          </li>
-        ))}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </li>
+          )
+        })}
       </ol>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-aurora-border px-4 py-3.5">
-        {addAllTo && onAddAll ? (
-          <button
-            type="button"
-            onClick={() => void addAll()}
-            disabled={allBusy || allAdded}
-            className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-          >
-            {allAdded ? "✓ All added" : allBusy ? "Adding…" : `Add all to ${addAllTo}`}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => void create()}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
-          >
-            {busy ? "Creating…" : `Create ${itin.destination} trip`}
-            {!busy && <span aria-hidden="true">&rarr;</span>}
-          </button>
+      <div className="border-t border-aurora-border px-4 py-3.5">
+        <div className="flex flex-wrap items-center gap-3">
+          {addAllTo && onAddAll ? (
+            // Once every place is on the trip it stops offering to add them and
+            // opens the trip instead — each row's own "Added" is where one
+            // comes back off.
+            allAdded && onOpenTrip ? (
+              <button
+                type="button"
+                onClick={onOpenTrip}
+                className="inline-flex items-center gap-2 rounded-full border border-drift-coral/50 bg-drift-coral/15 px-4 py-2 font-drift-display text-[13.5px] font-bold text-drift-coral outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-drift-coral/50"
+              >
+                ✓ All added to {addAllTo}
+                <span aria-hidden="true">&rarr;</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void addAll()}
+                disabled={allBusy || allAdded}
+                className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+              >
+                {allAdded
+                  ? "✓ All added"
+                  : allBusy
+                    ? "Adding…"
+                    : addedCount > 0
+                      ? `Add the rest to ${addAllTo}`
+                      : `Add all to ${addAllTo}`}
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              onClick={() => void create()}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
+            >
+              {busy ? "Creating…" : `Create ${itin.destination} trip`}
+              {!busy && <span aria-hidden="true">&rarr;</span>}
+            </button>
+          )}
+          {error && <span className="text-[12.5px] text-aurora-ink3">{error}</span>}
+        </div>
+
+        {/* "Tune it": one tap re-drafts the plan slower, fuller, cheaper… A
+            quick chat leads with the switch to being asked instead. */}
+        {planTools && (
+          <div className="-mx-1 mt-3 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span className="shrink-0 text-[12.5px] font-semibold text-aurora-ink3">Tune it</span>
+            {planTools.mode === "quick" && (
+              <TuneChip accent label={WALK_THROUGH} onClick={planTools.onWalkThrough} />
+            )}
+            {TUNES.map((t) => (
+              <TuneChip key={t.label} label={t.label} onClick={() => planTools.onTune(t.prompt)} />
+            ))}
+            <TuneChip label="+ Add a must-see" onClick={planTools.onAddMustSee} />
+          </div>
         )}
-        {error && <span className="text-[12.5px] text-aurora-ink3">{error}</span>}
       </div>
+
+      {open && (
+        <PlaceSheet
+          poi={open.poi}
+          distanceLabel={null}
+          showSave={false}
+          addState={open.phase}
+          onAdd={() => toggleOne(open.dayIndex, open.place)}
+          onClose={() => setOpenRow(null)}
+        />
+      )}
     </section>
   )
+}
+
+/** Add · Adding… · Added · Removing… — one control, four states, and "Added"
+ *  is a live one: tapping it takes the place back off the trip. */
+function AddPill({
+  phase,
+  place,
+  canUndo,
+  disabled,
+  onClick,
+}: {
+  phase: AddPhase
+  place: string
+  canUndo: boolean
+  disabled: boolean
+  onClick: () => void
+}) {
+  const landed = phase === "added" || phase === "removing"
+  const label =
+    phase === "adding" ? "Adding…" : phase === "removing" ? "Removing…" : phase === "added" ? "✓ Added" : "Add"
+  const busy = phase === "adding" || phase === "removing"
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || busy || (phase === "added" && !canUndo)}
+      aria-label={phase === "added" ? `Undo ${place}` : phase === "add" ? `Add ${place}` : `${place} ${label}`}
+      title={phase === "added" && canUndo ? `Undo ${place}` : undefined}
+      className={
+        landed
+          ? "rounded-full border border-drift-coral/50 bg-drift-coral/15 px-3 py-1 text-[12px] font-semibold text-drift-coral disabled:opacity-50"
+          : "rounded-full bg-aurora-teal px-3 py-1 text-[12px] font-bold text-aurora-teal-ink disabled:opacity-50"
+      }
+    >
+      {label}
+    </button>
+  )
+}
+
+function TuneChip({ label, accent, onClick }: { label: string; accent?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${
+        accent
+          ? "border border-drift-coral/60 bg-drift-coral/12 text-drift-coral"
+          : "border border-aurora-border bg-aurora-glass2 text-aurora-ink2"
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+/**
+ * The plan's own place, in the shape the Discover sheet reads.
+ *
+ * Built from whatever has landed: with a resolved candidate it is the real
+ * Google place, so the sheet hydrates photos, hours and reviews; without one it
+ * is still the card's name and blurb, shown at once rather than after a lookup.
+ * The `plan:` id is what tells the sheet there is nothing to hydrate yet.
+ */
+function planPoi(place: ItineraryPlace, cand: PlaceCandidate | null | undefined): DiscoverResult {
+  const google = !!cand && (!cand.source || cand.source === "google")
+  return {
+    id: google && cand?.id ? cand.id : `plan:${place.name}`,
+    name: cand?.name || place.name,
+    photo: cand ? placePhotoUrl(cand, 900) : null,
+    rating: cand?.rating ?? null,
+    reviewCount: cand?.reviewCount ?? null,
+    priceLabel: null,
+    subtitle: cand?.primaryType ?? null,
+    address: cand?.address ?? null,
+    // The card's own line about why this place is here — the plan's reason for
+    // it is the thing worth reading first, before any Google prose.
+    description: place.why || cand?.editorialSummary || null,
+    lat: cand?.latitude ?? null,
+    lng: cand?.longitude ?? null,
+    bookingUrl: null,
+    source: "google",
+  }
 }

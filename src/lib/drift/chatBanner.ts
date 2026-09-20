@@ -39,6 +39,8 @@ export type BannerAction =
   | { type: "failure"; tripId: string | null; tripTitle?: string; title: string; detail?: string }
   | { type: "dismiss" }
   | { type: "expire"; seq: number }
+  /** These steps are gone — undone from the plan card itself. */
+  | { type: "forget"; stepIds: string[] }
 
 /** "Omoide Yokocho, Shinjuku +1" — the latest two names, newest first. */
 export function namesDetail(names: string[]): string {
@@ -112,6 +114,16 @@ export function bannerReducer(state: Banner | null, a: BannerAction): Banner | n
       }
     case "dismiss":
       return null
+    case "forget":
+      // A place taken back from its own card while the banner still offers to
+      // undo it. The banner GOES rather than shrinking: its count and its
+      // Undo both describe an add that no longer stands, and a second Undo on
+      // an already-removed step is the "couldn't undo that" the card just
+      // made impossible. A run still in flight ends by filtering its own
+      // receipt, so only a finished one is answered here.
+      return state?.kind === "success" && state.stepIds.some((id) => a.stepIds.includes(id))
+        ? null
+        : state
     case "expire":
       // Only the banner the timer was set for, and never one still working.
       return state && state.seq === a.seq && state.kind !== "working" ? null : state

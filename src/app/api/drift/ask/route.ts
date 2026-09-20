@@ -57,6 +57,10 @@ export async function POST(request: Request) {
     conversation: Array.isArray(body.conversation) ? body.conversation : [],
     image: body.image ?? undefined,
     stream: stream || undefined,
+    // Quick or guided. The function treats anything that is not "guided" as
+    // quick, so forwarding it blind is safe — and a deployment that predates
+    // the field ignores it and drafts as it always did.
+    planning_mode: body.planningMode === "guided" ? "guided" : "quick",
   })
   if (stream) {
     headers["Accept"] = "text/event-stream"

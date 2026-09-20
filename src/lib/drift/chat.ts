@@ -8,6 +8,8 @@
 // there's no CORS dependency on the edge function. (Accept-Encoding: identity is
 // a forbidden header in browser fetch; the proxy sets it upstream instead.)
 
+import type { PlanningMode } from "./chatPlanning"
+
 export interface Turn {
   role: string
   text: string
@@ -139,6 +141,10 @@ export interface AskRequestBody {
   message: string
   conversation: Turn[]
   image?: string | null
+  /** How this chat plans. The function reads it as `planning_mode`; anything
+   *  that is not "guided" — including a missing field — is quick, so an older
+   *  deployment simply drafts as it always did. */
+  planningMode?: PlanningMode
 }
 
 export interface AskHandlers {
