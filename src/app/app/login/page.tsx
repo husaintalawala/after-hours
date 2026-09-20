@@ -43,6 +43,11 @@ export default function LoginPage() {
   const [resending, setResending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // The widget is invisible now (appearance: "interaction-only" below), so a
+  // blocked or 403'd challenge has no visible symptom at all. These two carry
+  // what the box used to show: whether it is broken, and whether it is asking.
+  const [captchaBlocked, setCaptchaBlocked] = useState(false)
+  const [captchaChallenge, setCaptchaChallenge] = useState(false)
   const [offerPasskey, setOfferPasskey] = useState(false)
   // Separate from `busy`: the submit button's label is driven by `busy`, and a
   // shared flag would make it read "Sending…" for the length of a passkey
@@ -70,9 +75,28 @@ export default function LoginPage() {
       widgetIdRef.current = w.render(turnstileRef.current, {
         sitekey: TURNSTILE_SITE_KEY,
         theme: "dark",
-        callback: (t: string) => setCaptchaToken(t),
+        // Presentation only. The challenge still runs on render and `callback`
+        // still hands back a token on a silent pass — this just stops the
+        // ~300x65 box drawing itself when Cloudflare has nothing to ask. The
+        // widget id, turnstile.reset() and the single-use token flow below are
+        // all unchanged; only the pixels go.
+        appearance: "interaction-only",
+        callback: (t: string) => {
+          setCaptchaToken(t)
+          setCaptchaBlocked(false)
+          setCaptchaChallenge(false)
+        },
+        // Fires only when a real challenge is about to be shown — the one case
+        // where the widget occupies space. Everything that depends on the
+        // widget being visible hangs off this, rather than off `:empty`, which
+        // stops matching as soon as Turnstile injects its iframe.
+        "before-interactive-callback": () => setCaptchaChallenge(true),
+        "after-interactive-callback": () => setCaptchaChallenge(false),
         "expired-callback": () => setCaptchaToken(null),
-        "error-callback": () => setCaptchaToken(null),
+        "error-callback": () => {
+          setCaptchaToken(null)
+          setCaptchaBlocked(true)
+        },
       })
     }
     if ((window as { turnstile?: any }).turnstile) { render(); return }
@@ -102,7 +126,11 @@ export default function LoginPage() {
   /// protection that means nothing to the person reading it.
   function missingCaptcha() {
     if (captchaToken) return false
-    setError("Still verifying you're human — give it a second and try again.")
+    setError(
+      captchaBlocked
+        ? "We can't run the security check on this browser — an ad blocker or network filter is usually why. Turn it off for this page, or tell us what happened below."
+        : "Still verifying you're human — give it a second and try again.",
+    )
     return true
   }
 
@@ -318,7 +346,7 @@ export default function LoginPage() {
               drift
             </p>
 
-            <p className="mt-5 text-center text-[22px] font-semibold">
+            <p className="mt-5 text-center text-[18px] font-semibold">
               Log in or sign up
             </p>
 
@@ -377,6 +405,16 @@ export default function LoginPage() {
                 </p>
               )}
 
+              {/* What Continue actually does. Without it the magic-link model
+                  is unexplained: you press a button and land in your inbox,
+                  and signInWithOtp has quietly made you an account. */}
+              {!showPassword && (
+                <p className="mt-3 text-[12px] leading-snug" style={{ color: SUBTITLE }}>
+                  We&apos;ll email you a link to sign in — no password. If you&apos;re new,
+                  it makes your account.
+                </p>
+              )}
+
               <button
                 type="submit"
                 disabled={busy || passkeyBusy}
@@ -394,38 +432,11 @@ export default function LoginPage() {
                     : "Continue"}
               </button>
 
-              {/* type="button" — inside the form for placement, but it must
-                  never submit the magic-link form. Hidden on the demo-account
-                  password path, which is a deliberate operator flow and
-                  shouldn't grow a second option halfway through. */}
-              {offerPasskey && !showPassword && (
-                <>
-                  <button
-                    type="button"
-                    onClick={signInWithPasskey}
-                    disabled={busy || passkeyBusy}
-                    className="mt-3 h-[52px] w-full rounded-full border text-[15px] font-semibold disabled:opacity-60"
-                    style={{ borderColor: "rgba(55,214,196,0.35)", color: TEAL }}
-                  >
-                    {passkeyBusy ? "Waiting for your device…" : "Sign in with a passkey"}
-                  </button>
-                  {passkeyNote && (
-                    <p className="mt-2 text-[12px]" style={{ color: SUBTITLE }}>
-                      {passkeyNote}
-                    </p>
-                  )}
-                </>
-              )}
             </form>
 
             <div className="my-6 flex items-center gap-3">
               <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.15)" }} />
-              <span
-                className="text-[11px] font-medium uppercase tracking-wide"
-                style={{ color: SUBTITLE }}
-              >
-                or continue with
-              </span>
+              <span className="text-[12px] text-aurora-ink3">or continue with</span>
               <span className="h-px flex-1" style={{ background: "rgba(255,255,255,0.15)" }} />
             </div>
 
@@ -447,6 +458,32 @@ export default function LoginPage() {
               </SocialButton>
             </div>
 
+            {/* Another way in, not a second primary. Passkeys went live
+                yesterday, so almost nobody has one yet, and for everyone else
+                this control answers "No passkey was used" — it cannot be the
+                thing sitting next to Continue. It stays on the page because
+                Settings (PasskeySection) still enrols them, and an enrolled
+                passkey with no way to use it is a worse dead end than this.
+                Grouped with the other alternate routes; type="button" and
+                outside the form, so it can never submit it. */}
+            {offerPasskey && !showPassword && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={signInWithPasskey}
+                  disabled={busy || passkeyBusy}
+                  className="inline-flex h-11 items-center justify-center px-3 text-[14px] font-medium text-aurora-teal transition-colors hover:text-aurora-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-aurora-teal disabled:opacity-60"
+                >
+                  {passkeyBusy ? "Waiting for your device…" : "Sign in with a passkey"}
+                </button>
+                {passkeyNote && (
+                  <p className="mt-1 text-[12px]" style={{ color: SUBTITLE }}>
+                    {passkeyNote}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* The only way to reach us for someone who can't get in — the
                 rest of the app is behind this screen. Mirrors iOS AuthView. */}
             <div className="mt-6 text-center">
@@ -466,7 +503,21 @@ export default function LoginPage() {
             and Resend then had no widget and no token, which Supabase now
             rejects outright. Keeping it mounted in both states means the
             reset after a send always produces a fresh token to resend with. */}
-        <div ref={turnstileRef} className="mt-4 flex justify-center empty:mt-0" />
+        {/* Only on the rare load where Turnstile actually asks. A widget
+            appearing out of nothing reads as a glitch without a line saying
+            what it is. */}
+        {captchaChallenge && (
+          <p className="mt-5 text-center text-[12px]" style={{ color: SUBTITLE }}>
+            One quick check that you&apos;re human, then we&apos;ll send your link.
+          </p>
+        )}
+        {/* The margin is conditional, not `empty:mt-0`: interaction-only still
+            injects an iframe, so this div is never :empty and that variant
+            would leave a permanent gap under the card. */}
+        <div
+          ref={turnstileRef}
+          className={captchaChallenge ? "mt-3 flex justify-center" : "flex justify-center"}
+        />
       </div>
     </main>
   )
