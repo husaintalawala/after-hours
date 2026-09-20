@@ -8,7 +8,7 @@ import { createTripFromItinerary, type ResolvedPlace } from "@/lib/drift/createT
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import { activityScope } from "@/lib/activity"
 import { shortDate } from "@/lib/drift/itineraryPlacement"
-import { MUST_SEE_PREFILL, TUNES, WALK_THROUGH, dayHeading, swapPrompt, type PlanningMode } from "@/lib/drift/chatPlanning"
+import { TUNES, WALK_THROUGH, dayHeading, swapPrompt, type PlanningMode } from "@/lib/drift/chatPlanning"
 import PlaceSheet from "@/components/app/discover/PlaceSheet"
 import type { DiscoverResult } from "@/lib/drift/discover"
 
@@ -29,7 +29,7 @@ export interface PlanTools {
   onTune: (prompt: string) => void
   /** Quick → guided: ask the plan's questions after all. */
   onWalkThrough: () => void
-  /** Puts MUST_SEE_PREFILL in the composer for the person to finish. */
+  /** Puts the must-see prefill in the composer for the person to finish. */
   onAddMustSee: () => void
   /** Adds one day's places to the trip, given whatever photos/coords resolved.
    *  Absent outside a trip chat, where the plan's own button starts a trip. */
@@ -362,7 +362,12 @@ export default function ItineraryCard({
                             phase={phase}
                             place={p.name}
                             canUndo={!!onUndo && (canUndo?.(itineraryRowKey(i, p.name)) ?? true)}
-                            disabled={allBusy || dayBusy !== null}
+                            /* A bulk run holds back further ADDS, not the
+                               undo of one that has already landed: a place
+                               can be taken back while the rest are still
+                               going, and the run leaves it out of its
+                               receipt. */
+                            disabled={phase === "add" && (allBusy || dayBusy !== null)}
                             onClick={() => toggleOne(i, p)}
                           />
                         )}
@@ -452,7 +457,10 @@ export default function ItineraryCard({
           distanceLabel={null}
           showSave={false}
           addState={open.phase}
-          onAdd={() => toggleOne(open.dayIndex, open.place)}
+          /* Same control as the row underneath, reading the same state — and
+             absent where the row has no Add either, since a button with
+             nowhere to put the place is a lie. */
+          onAdd={onAdd ? () => toggleOne(open.dayIndex, open.place) : undefined}
           onClose={() => setOpenRow(null)}
         />
       )}
