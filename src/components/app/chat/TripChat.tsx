@@ -19,8 +19,16 @@ import { ensureTripSession, loadTripMessages, saveMessage, getCurrentUserId, loa
 from "@/lib/drift/chatStore"
 import { AnalyticsEvent, capture } from "@/lib/analytics"
 import { checkTripActivated } from "@/lib/drift/activation"
-import ItineraryCard, { itineraryRowKey } from "@/components/app/chat/ItineraryCard"
+import ItineraryCard, { itineraryRowKey, type PlanTools } from "@/components/app/chat/ItineraryCard"
 import ChatBanner, { useChatBanner } from "@/components/app/chat/ChatBanner"
+import {
+  MUST_SEE_PREFILL,
+  WALK_THROUGH,
+  chipsForQuestion,
+  modeSwitch,
+  type PlanningMode,
+} from "@/lib/drift/chatPlanning"
+import { PlanningModePicker, ReplyChips } from "@/components/app/chat/PlanningControls"
 import type { AskItinerary } from "@/lib/drift/chat"
 import type { ChatItinerary, ItineraryPlace } from "@/lib/drift/generalChat"
 import { dayDateFor, lastDestinationDay, pickDestinationId } from "@/lib/drift/itineraryPlacement"
@@ -199,6 +207,17 @@ export default function TripChat({
         itinerary: h.itinerary ?? null,
         stalePlan: !!h.itinerary && !freshPlans.has(i),
       }))
+      // The chat plans the way its reader last chose — their OWN turn, since a
+      // shared trip thread carries everyone's. And a planning question left
+      // open gets its answers back: chips are not stored with the message.
+      const mine = history.filter((h) => h.role !== "assistant" && (!h.userId || h.userId === me))
+      const lastMode = mine.reverse().find((h) => h.planningMode)?.planningMode
+      if (lastMode) setPlanningMode(lastMode)
+      const tail = hydrated[hydrated.length - 1]
+      if (tail?.role === "assistant") {
+        const chips = chipsForQuestion(tail.text, null)
+        if (chips) tail.replyChips = chips
+      }
       // Merge history UNDER whatever is already on screen rather than bailing
       // when the list is non-empty. On the mobile dock path TripDockComposer
       // mounts this with a non-null initialSend, which pushes a message
@@ -220,6 +239,10 @@ export default function TripChat({
   // the transcript. `added` maps "<msgId>|<row>" → the step it wrote, so an
   // Undo from the banner flips exactly those Add buttons back.
   const banner = useChatBanner()
+  // How this chat plans — quick (draft at once, the default) or guided (ask
+  // first). Chosen in the opener, switched by the chips, and restored from the
+  // reader's OWN latest turn when the thread reopens.
+  const [planningMode, setPlanningMode] = useState<PlanningMode>("quick")
   const addedRef = useRef<Record<string, string>>({})
   const [added, setAdded] = useState<Record<string, string>>({})
   const markAdded = (key: string, stepId: string) => {
@@ -294,10 +317,14 @@ export default function TripChat({
     setAttached(null)
     setBusy(true)
     setStatus(null)
+    // "Walk me through it" / "Just draft it", tapped or typed, switch the mode
+    // this turn — and the chat — plans in.
+    const mode = modeSwitch(text) ?? planningMode
+    if (mode !== planningMode) setPlanningMode(mode)
 
     const history = messages
     setMessages((m) => [...m, { id: nextId(), role: "user", text, image: img ?? undefined }])
-    if (sessionRef.current) void saveMessage(sessionRef.current, tripId, "user", text)
+    if (sessionRef.current) void saveMessage(sessionRef.current, tripId, "user", text, null, mode)
     const conversation: Turn[] = history.map((m) => ({ role: m.role, text: m.text }))
     let streamBuf = ""
     setStreaming("")
@@ -306,7 +333,10 @@ export default function TripChat({
     abortRef.current = controller
 
     await askDrift(
-      { tripId, message: text, conversation, image: img },
+      // The mode rides along: in guided the function asks the plan's questions
+      // itself, one per turn, before it drafts. A deployment that predates the
+      // field ignores it and drafts as it always did.
+      { tripId, message: text, conversation, image: img, planningMode: mode },
       {
         onStatus: (s) => setStatus(s === "searching" ? "Searching…" : "Thinking…"),
         onDelta: (d) => {
@@ -528,38 +558,91 @@ export default function TripChat({
       .filter(({ p, i }) => !addedRef.current[`${msgId}|${itineraryRowKey(i, p.name)}`])
     if (!pending.length) return
     banner.working(tripId, tripTitle, pending.length)
-    const names: string[] = []
-    const stepIds: string[] = []
-    const days = new Set<number>()
+    const landed: Array<{ id: string; name: string; day: number }> = []
     let failed = 0
     for (const [n, { p, i }] of pending.entries()) {
       const res = await writeItineraryPlace(itin, p, i, resolved[p.name] ?? null)
       if (res) {
         markAdded(`${msgId}|${itineraryRowKey(i, p.name)}`, res.stepId)
-        names.push(p.name)
-        stepIds.push(res.stepId)
-        days.add(i)
+        landed.push({ id: res.stepId, name: p.name, day: i })
       } else {
         failed++
       }
       banner.progress(n + 1)
     }
-    if (!stepIds.length) {
+    if (!landed.length) {
       banner.fail({ tripId, tripTitle, title: `Couldn’t add the plan to ${tripTitle} — try again` }, () =>
         void addAllItinerary(msgId, itin, resolved)
       )
       return
     }
+    // A place taken back from its own card WHILE the run was going is not in
+    // the receipt: leaving it in would offer Undo on a step already removed and
+    // count a place that is no longer on the trip.
+    const live = new Set(Object.values(addedRef.current))
+    const kept = landed.filter((l) => live.has(l.id))
+    if (!kept.length) return
+    const days = new Set(kept.map((k) => k.day))
     banner.succeed({
       tripId,
       tripTitle,
-      names,
-      stepIds,
+      names: kept.map((k) => k.name),
+      stepIds: kept.map((k) => k.id),
       title: `Added to ${tripTitle}`,
       detail:
-        `${names.length} ${names.length === 1 ? "place" : "places"} across ${days.size} ${days.size === 1 ? "day" : "days"}` +
+        `${kept.length} ${kept.length === 1 ? "place" : "places"} across ${days.size} ${days.size === 1 ? "day" : "days"}` +
         (failed ? ` · ${failed} couldn’t be added` : ""),
     })
+  }
+
+  /**
+   * "Added" on a plan row, tapped: take that place back off the trip.
+   *
+   * Down the SAME path the banner's Undo takes, so the trip, the banner and the
+   * card cannot disagree — and the banner still offering to undo this step
+   * steps aside, since its Undo would now fail on a step already gone.
+   */
+  async function undoItineraryPlace(msgId: string, place: ItineraryPlace, dayIndex: number) {
+    const stepId = addedRef.current[`${msgId}|${itineraryRowKey(dayIndex, place.name)}`]
+    if (!stepId) return
+    const failedIds = await undoSteps(tripId, [stepId])
+    if (failedIds.length) {
+      banner.fail({ tripId, tripTitle, title: `Couldn’t undo ${place.name} — try again` }, () =>
+        void undoItineraryPlace(msgId, place, dayIndex)
+      )
+      return
+    }
+    banner.forget([stepId])
+  }
+
+  /** "Add day": that day's places only, as one run with one Undo — Add all
+   *  with the plan's other days emptied, so the day keeps its index and date. */
+  async function addDayOfItinerary(
+    msgId: string,
+    itin: ChatItinerary,
+    dayIndex: number,
+    resolved: Record<string, PlaceCandidate>
+  ) {
+    const one: ChatItinerary = {
+      ...itin,
+      days: itin.days.map((d, i) => (i === dayIndex ? d : { ...d, places: [] })),
+    }
+    await addAllItinerary(msgId, one, resolved)
+  }
+
+  /**
+   * The latest plan's tools. Tune and Swap re-draft through the chat, Add day
+   * lands one day on this trip, and "Walk me through it" turns the chat guided
+   * (send() reads the switch from the words) and asks the plan's questions.
+   */
+  function planTools(m: Msg): PlanTools {
+    return {
+      mode: planningMode,
+      onTune: (prompt) => void send(prompt),
+      onWalkThrough: () => void send(WALK_THROUGH),
+      onAddMustSee: () => setInput(MUST_SEE_PREFILL),
+      onAddDay: (dayIndex, resolved) => addDayOfItinerary(m.id, m.itinerary!, dayIndex, resolved),
+    }
   }
 
   /** Banner Undo: remove the steps, flip their Add buttons back. Resolves to
@@ -577,6 +660,9 @@ export default function TripChat({
     scheduleRefresh()
     return failed
   }
+
+  // Tune / Swap / Add day belong to the plan being worked on — the latest one.
+  const latestPlanId = [...messages].reverse().find((m) => m.itinerary)?.id ?? null
 
   return (
     <section
@@ -639,6 +725,7 @@ export default function TripChat({
             <p className="text-sm text-drift-text-tertiary">
               Ask about the trip, or add a place to a day.
             </p>
+            <PlanningModePicker mode={planningMode} onChange={setPlanningMode} />
             {prompts && prompts.length > 0 && (
               <div className="flex flex-col items-start gap-2">
                 {prompts.map((q) => (
@@ -703,9 +790,14 @@ export default function TripChat({
                     itin={m.itinerary}
                     resolvePhotos={!m.stalePlan}
                     addAllTo={tripTitle}
+                    onOpenTrip={() => router.push(`/app/trips/${tripId}`)}
                     isAdded={(key) => !!added[`${m.id}|${key}`]}
                     onAdd={(p, i, c) => addItineraryPlace(m.id, m.itinerary!, p, i, c)}
+                    onUndo={(p, i) => undoItineraryPlace(m.id, p, i)}
                     onAddAll={(resolved) => addAllItinerary(m.id, m.itinerary!, resolved)}
+                    /* Tools only under the LATEST plan: an older one is a
+                       record, not a second control panel. */
+                    planTools={m.id === latestPlanId ? planTools(m) : undefined}
                   />
                 )}
 
@@ -723,19 +815,12 @@ export default function TripChat({
                   </div>
                 )}
 
-                {/* Reply chips (interview answers) */}
-                {m.replyChips && m.replyChips.length > 0 && (
-                  <div className="mt-2.5 flex flex-wrap gap-2">
-                    {m.replyChips.map((chip) => (
-                      <button
-                        key={chip}
-                        onClick={() => send(chip)}
-                        className="rounded-full bg-drift-coral px-3 py-1.5 text-[13px] font-medium text-white"
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
+                {/* Reply chips (interview answers) — on the LATEST turn only,
+                    since an older question's chips would answer it out of
+                    order. The way out is not an answer, so it sits under them
+                    as a quiet link rather than as one more option. */}
+                {m.id === messages[messages.length - 1]?.id && m.replyChips && m.replyChips.length > 0 && (
+                  <ReplyChips chips={m.replyChips} onPick={(chip) => void send(chip)} />
                 )}
 
                 {/* "You might want to ask" followups */}

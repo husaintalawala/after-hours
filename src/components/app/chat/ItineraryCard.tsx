@@ -31,9 +31,9 @@ export interface PlanTools {
   onWalkThrough: () => void
   /** Puts MUST_SEE_PREFILL in the composer for the person to finish. */
   onAddMustSee: () => void
-  /** Adds one day's places to the trip. Absent outside a trip chat, where the
-   *  plan's own button is what starts a trip. */
-  onAddDay?: (dayIndex: number) => Promise<void>
+  /** Adds one day's places to the trip, given whatever photos/coords resolved.
+   *  Absent outside a trip chat, where the plan's own button starts a trip. */
+  onAddDay?: (dayIndex: number, resolved: Record<string, PlaceCandidate>) => Promise<void>
 }
 
 /** A row's Add control, in the order a tap resolves: taking back outranks an
@@ -57,6 +57,7 @@ export default function ItineraryCard({
   itin,
   onAdd,
   onUndo,
+  canUndo,
   isAdded,
   onAddAll,
   addAllTo,
@@ -70,6 +71,10 @@ export default function ItineraryCard({
   /** Take an added place back off the trip. Absent leaves "Added" inert: there
    *  is nothing to undo it with. */
   onUndo?: (place: ItineraryPlace, dayIndex: number) => Promise<void>
+  /** Rows this Undo can actually reach. Defaults to all of them; the general
+   *  chat uses it for a place that STARTED a trip rather than joining one,
+   *  which is not a step to remove. */
+  canUndo?: (rowKey: string) => boolean
   /** Whether the row `itineraryRowKey(day, name)` is already added. */
   isAdded?: (rowKey: string) => boolean
   /** Add every place not yet added, given whatever photos/coords resolved. */
@@ -166,7 +171,7 @@ export default function ItineraryCard({
    */
   async function undoOne(dayIndex: number, p: ItineraryPlace) {
     const key = itineraryRowKey(dayIndex, p.name)
-    if (!onUndo || rowUndoing[key] || rowBusy[key] || !isAdded?.(key)) return
+    if (!onUndo || !(canUndo?.(key) ?? true) || rowUndoing[key] || rowBusy[key] || !isAdded?.(key)) return
     setRowUndoing((r) => ({ ...r, [key]: true }))
     try {
       await onUndo(p, dayIndex)
@@ -197,7 +202,7 @@ export default function ItineraryCard({
     if (!planTools?.onAddDay || dayBusy !== null) return
     setDayBusy(dayIndex)
     try {
-      await planTools.onAddDay(dayIndex)
+      await planTools.onAddDay(dayIndex, resolved)
     } finally {
       setDayBusy(null)
     }
@@ -356,7 +361,7 @@ export default function ItineraryCard({
                           <AddPill
                             phase={phase}
                             place={p.name}
-                            canUndo={!!onUndo}
+                            canUndo={!!onUndo && (canUndo?.(itineraryRowKey(i, p.name)) ?? true)}
                             disabled={allBusy || dayBusy !== null}
                             onClick={() => toggleOne(i, p)}
                           />

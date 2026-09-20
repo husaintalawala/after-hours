@@ -3,8 +3,19 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { renderRich } from "@/lib/drift/richText"
-import ItineraryCard, { itineraryRowKey } from "@/components/app/chat/ItineraryCard"
+import ItineraryCard, { itineraryRowKey, type PlanTools } from "@/components/app/chat/ItineraryCard"
 import ChatBanner, { useChatBanner } from "@/components/app/chat/ChatBanner"
+import { PlanningModePicker, ReplyChips } from "@/components/app/chat/PlanningControls"
+import {
+  MUST_SEE_PREFILL,
+  WALK_THROUGH,
+  chipsForQuestion,
+  decide,
+  guidedModeRules,
+  modeSwitch,
+  splitChipsBlock,
+  type PlanningMode,
+} from "@/lib/drift/chatPlanning"
 import {
   askGeneral,
   chooseTripForItinerary,
@@ -67,6 +78,9 @@ export default function GeneralChat({
   const createdTripsRef = useRef<GeneralTrip[]>([])
   /** Destinations this thread had to create, by trip id. */
   const createdDestRef = useRef<Record<string, string>>({})
+  /** Which trip each written step went to — a general chat spreads a plan's
+   *  places across whichever trips fit, so an Undo has to know which one. */
+  const stepTripsRef = useRef<Record<string, string>>({})
   // Adds report through the banner; `added` maps "<msgId>|<row>" → step id
   // (or "trip:<id>" for a place that started a trip) so Undo flips rows back.
   const banner = useChatBanner()
@@ -84,6 +98,28 @@ export default function GeneralChat({
     const gone = new Set(stepIds.filter((id) => !failed.includes(id)))
     setAdded((a) => Object.fromEntries(Object.entries(a).filter(([, s]) => !gone.has(s))))
     return failed
+  }
+
+  /**
+   * "Added" on a plan row, tapped: take that place back off the trip it joined.
+   *
+   * Down the SAME path the banner's Undo takes. A place that STARTED a trip is
+   * not a step to remove, so `canUndo` leaves those rows inert rather than
+   * offering an action that would have to fail.
+   */
+  async function undoFromPlan(msgId: string, place: ItineraryPlace, dayIndex: number) {
+    const key = `${msgId}|${itineraryRowKey(dayIndex, place.name)}`
+    const stepId = added[key]
+    const tripId = stepId ? stepTripsRef.current[stepId] : null
+    if (!stepId || !tripId) return
+    const failedIds = await undoSteps(tripId, [stepId])
+    if (failedIds.length) {
+      banner.fail({ tripId: null, title: `Couldn’t undo ${place.name} — try again` }, () =>
+        void undoFromPlan(msgId, place, dayIndex)
+      )
+      return
+    }
+    banner.forget([stepId])
   }
 
   /**
@@ -203,6 +239,7 @@ export default function GeneralChat({
       )
       capture(AnalyticsEvent.AddToItinerary, { source: "chat", step_type: type, has_day: !!date })
       void checkTripActivated(tripId)
+      stepTripsRef.current[step.id] = tripId
       setAdded((a) => ({ ...a, [rowKey]: step.id }))
       banner.succeed({
         tripId,
@@ -216,11 +253,21 @@ export default function GeneralChat({
     }
   }
   const [messages, setMessages] = useState<
-    Array<{ id: string; role: "user" | "assistant"; text: string; itinerary?: ChatItinerary | null }>
+    Array<{
+      id: string
+      role: "user" | "assistant"
+      text: string
+      itinerary?: ChatItinerary | null
+      /** Tappable answers to a question this turn asked. */
+      replyChips?: string[]
+    }>
   >([])
   const [input, setInput] = useState("")
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
+  // How this chat plans — quick (draft at once, the default) or guided (ask
+  // first). claude-complete has no trip, so the interview runs here.
+  const [planningMode, setPlanningMode] = useState<PlanningMode>("quick")
 
   const sessionRef = useRef<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -237,6 +284,10 @@ export default function GeneralChat({
     setInput("")
     setBusy(true)
     setFailed(false)
+    // "Walk me through it" / "Just draft it", tapped or typed, switch the mode
+    // this turn — and the chat — plans in.
+    const mode = modeSwitch(text) ?? planningMode
+    if (mode !== planningMode) setPlanningMode(mode)
 
     const mine = { id: `${Date.now()}-u`, role: "user" as const, text }
     const history = [...messages, mine]
@@ -246,28 +297,51 @@ export default function GeneralChat({
     // spoke in is a row in the sidebar that says nothing.
     if (!sessionRef.current) sessionRef.current = await createGeneralSession()
     const sid = sessionRef.current
-    if (sid) void saveMessage(sid, null, "user", text)
+    if (sid) void saveMessage(sid, null, "user", text, null, mode)
 
-    const { text: answer, itinerary, error } = await askGeneral(
-      generalSystemPrompt({ trips, homeCity, prefs }),
-      flattenTurns(history)
+    // Quick or guided. There is no trip here, so the interview runs in the
+    // browser — ChatPlanning asks exactly what ask-drift-chat asks a trip chat,
+    // and instantly, with no model round trip.
+    const planning = decide(mode, text, messages, prefs)
+    if (planning.kind === "ask") {
+      setMessages((m) => [
+        ...m,
+        { id: `${Date.now()}-a`, role: "assistant", text: planning.text, replyChips: planning.chips },
+      ])
+      if (sid) void saveMessage(sid, null, "assistant", planning.text)
+      setBusy(false)
+      return
+    }
+
+    // A finished interview drafts from its brief: the request plus the choices
+    // made, which is what the model should plan from.
+    const turns =
+      planning.kind === "draft" ? [...messages, { ...mine, text: planning.brief }] : history
+    const { text: raw, itinerary, error } = await askGeneral(
+      generalSystemPrompt({ trips, homeCity, prefs }) + guidedModeRules(mode),
+      flattenTurns(turns)
     )
+    // A guided follow-up question carries its answers as a block.
+    const { text: answer, chips } = splitChipsBlock(raw)
 
     // A turn that is ONLY a plan is still a turn. When the model follows the
     // instruction to keep the intro short it sometimes emits nothing but the
     // block, and treating an empty prose half as a failure threw away the very
-    // itinerary the reader asked for.
-    if (!answer && !itinerary) {
+    // itinerary the reader asked for. A guided follow-up's chips count the same
+    // way — answers with no question above them are still an answer.
+    if (!answer && !itinerary && !chips.length) {
       setFailed(true)
       setBusy(false)
       return
     }
     const shown =
       answer ||
-      "Here's a day-by-day plan — create the trip to save it, or ask me to change a day."
+      (itinerary
+        ? "Here's a day-by-day plan — create the trip to save it, or ask me to change a day."
+        : "Which one sounds right?")
     setMessages((m) => [
       ...m,
-      { id: `${Date.now()}-a`, role: "assistant", text: shown, itinerary },
+      { id: `${Date.now()}-a`, role: "assistant", text: shown, itinerary, replyChips: chips },
     ])
     if (sid) void saveMessage(sid, null, "assistant", shown, itinerary)
     setBusy(false)
@@ -293,12 +367,19 @@ export default function GeneralChat({
     void (async () => {
       const rows = await loadSessionMessages(sid)
       if (!alive || !rows.length) return
+      // The chat plans the way it last did, and a question left open gets its
+      // answers back: chips are not stored with the message.
+      const lastMode = [...rows].reverse().find((r) => r.planningMode)?.planningMode
+      if (lastMode) setPlanningMode(lastMode)
+      const last = rows.length - 1
       setMessages(
         rows.map((r, i) => ({
           id: `${i}-${r.role}`,
           role: r.role === "assistant" ? "assistant" : "user",
           text: r.text,
           itinerary: r.itinerary ?? null,
+          replyChips:
+            i === last && r.role === "assistant" ? chipsForQuestion(r.text, prefs) ?? undefined : undefined,
         }))
       )
     })()
@@ -308,6 +389,16 @@ export default function GeneralChat({
   }, [])
 
   const empty = messages.length === 0 && !busy
+  // Tune / Swap belong to the plan being worked on — the latest one. There is
+  // no "Add day" here: without one trip to land it on, the plan's own button is
+  // what starts a trip.
+  const latestPlanId = [...messages].reverse().find((m) => m.itinerary)?.id ?? null
+  const planTools: PlanTools = {
+    mode: planningMode,
+    onTune: (prompt) => void send(prompt),
+    onWalkThrough: () => void send(WALK_THROUGH),
+    onAddMustSee: () => setInput(MUST_SEE_PREFILL),
+  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -322,6 +413,9 @@ export default function GeneralChat({
               <p className="mt-1 text-[14px] text-aurora-ink3">
                 No trip needed. It already knows the ones you have.
               </p>
+              <div className="mt-4">
+                <PlanningModePicker mode={planningMode} onChange={setPlanningMode} />
+              </div>
               {prompts.length > 0 && (
                 <ul className="mt-5 space-y-2.5">
                   {prompts.map((q) => (
@@ -366,7 +460,18 @@ export default function GeneralChat({
                     itin={m.itinerary}
                     isAdded={(key) => !!added[`${m.id}|${key}`]}
                     onAdd={(p, i, c) => addFromPlan(m.id, m.itinerary!, p, i, c)}
+                    onUndo={(p, i) => undoFromPlan(m.id, p, i)}
+                    /* A place that STARTED a trip is not a step to remove. */
+                    canUndo={(key) => !added[`${m.id}|${key}`]?.startsWith("trip:")}
+                    /* Tools only under the LATEST plan: an older one is a
+                       record, not a second control panel. */
+                    planTools={m.id === latestPlanId ? planTools : undefined}
                   />
+                )}
+                {/* Answer chips on the LATEST turn only — an older question's
+                    chips would answer it out of order. */}
+                {m.id === messages[messages.length - 1]?.id && m.replyChips && m.replyChips.length > 0 && (
+                  <ReplyChips chips={m.replyChips} onPick={(chip) => void send(chip)} />
                 )}
               </div>
             </div>
