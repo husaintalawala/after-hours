@@ -22,6 +22,7 @@ export default function PlaceSheet({
   onClose,
   onAdd,
   addState = "add",
+  addDisabled = false,
   showSave = true,
   saveAnchor = null,
   saveCategory = "spot",
@@ -32,6 +33,10 @@ export default function PlaceSheet({
   /** Where the Add button stands. "added" is a live control — the caller
    *  decides whether a tap adds or takes it back. */
   addState?: "add" | "adding" | "added" | "removing"
+  /** The caller is holding this Add back — a bulk run of its own is writing,
+   *  or this place is not one it can take back. Shown, and inert, rather than
+   *  live and doing nothing when tapped. */
+  addDisabled?: boolean
   /** Off where the opener keeps no saved list of its own — a chat plan's
    *  places belong to the plan, not to the back pocket. */
   showSave?: boolean
@@ -201,7 +206,7 @@ export default function PlaceSheet({
           }
           onClick={onAdd}
           active={addState === "added" || addState === "removing"}
-          disabled={addState === "adding" || addState === "removing"}
+          disabled={addDisabled || addState === "adding" || addState === "removing"}
         >
           {addState === "added" || addState === "removing" ? (
             <path d="m5 12.5 4.5 4.5L19 7.5" />

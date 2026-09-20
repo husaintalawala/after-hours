@@ -103,6 +103,17 @@ export default function ItineraryCard({
    *  up the photo and pin the moment the lookup lands under it. */
   const [openRow, setOpenRow] = useState<{ dayIndex: number; name: string } | null>(null)
 
+  /**
+   * ONE FLAG FOR EVERY BULK RUN, the way iOS has one `creatingTrip`.
+   *
+   * "Add all" and "+ Add day" both end up in the same routine, which reads the
+   * places still missing ONCE at the top — so a second run started while the
+   * first is writing lists the places the first is in the middle of adding, and
+   * the trip gets them twice with only the later step id remembered. Neither
+   * entry point may open while the other is going.
+   */
+  const bulkBusy = allBusy || dayBusy !== null
+
   const places = itin.days.flatMap((d) => d.places)
   const hydratedRef = useRef(false)
 
@@ -154,7 +165,9 @@ export default function ItineraryCard({
 
   async function addOne(dayIndex: number, p: ItineraryPlace) {
     const key = itineraryRowKey(dayIndex, p.name)
-    if (!onAdd || rowBusy[key] || isAdded?.(key)) return
+    // The bulk gate lives WITH the write, not only on the row's pill: the
+    // place-details sheet offers the same Add a second way in.
+    if (!onAdd || bulkBusy || rowBusy[key] || isAdded?.(key)) return
     setRowBusy((r) => ({ ...r, [key]: true }))
     try {
       await onAdd(p, dayIndex, resolved[p.name] ?? null)
@@ -188,7 +201,7 @@ export default function ItineraryCard({
   }
 
   async function addAll() {
-    if (!onAddAll || allBusy) return
+    if (!onAddAll || bulkBusy) return
     setAllBusy(true)
     try {
       await onAddAll(resolved)
@@ -199,7 +212,7 @@ export default function ItineraryCard({
 
   /** "Add day": this day's places only, as one run with one Undo. */
   async function addDay(dayIndex: number) {
-    if (!planTools?.onAddDay || dayBusy !== null) return
+    if (!planTools?.onAddDay || bulkBusy) return
     setDayBusy(dayIndex)
     try {
       await planTools.onAddDay(dayIndex, resolved)
@@ -215,12 +228,21 @@ export default function ItineraryCard({
   // The open row's place, rebuilt every render rather than captured on the tap,
   // so the sheet picks up the photo, the pin and the Added state under it.
   const openPlace = openRow ? itin.days[openRow.dayIndex]?.places.find((p) => p.name === openRow.name) : null
-  const open = openRow && openPlace
+  const openPhase = openRow && openPlace ? phaseOf(openRow.dayIndex, openPlace.name) : null
+  const open = openRow && openPlace && openPhase
     ? {
         dayIndex: openRow.dayIndex,
         place: openPlace,
         poi: planPoi(openPlace, resolved[openPlace.name]),
-        phase: phaseOf(openRow.dayIndex, openPlace.name),
+        phase: openPhase,
+        // EXACTLY the row's own gate. The sheet is a second way into the same
+        // Add, so a bulk run holds it back here too, and a place that started a
+        // trip — not a step to remove — shows the same dead-but-honest "Added"
+        // rather than a live control whose tap does nothing.
+        disabled:
+          (openPhase === "add" && bulkBusy) ||
+          (openPhase === "added" &&
+            !(!!onUndo && (canUndo?.(itineraryRowKey(openRow.dayIndex, openPlace.name)) ?? true))),
       }
     : null
 
@@ -282,15 +304,18 @@ export default function ItineraryCard({
                   {day.date ? ` · ${shortDate(day.date)}` : ""}
                   {heading ? ` · ${heading}` : ""}
                 </p>
+                {/* Padded and spaced rather than minimal: these two were the
+                    smallest targets on the chat surface and sat a few points
+                    apart, so a low tap at "+ Add day" re-drafted the day. */}
                 {planTools && (
-                  <span className="flex shrink-0 items-center gap-1.5">
+                  <span className="flex shrink-0 items-center gap-2.5">
                     {planTools.onAddDay && (
                       <button
                         type="button"
                         onClick={() => void addDay(i)}
-                        disabled={dayAdded || dayBusy !== null || allBusy}
+                        disabled={dayAdded || bulkBusy}
                         aria-label={dayAdded ? `Day ${i + 1} added` : `Add day ${i + 1} to the trip`}
-                        className="rounded-full border border-drift-coral/60 px-2.5 py-1 text-[11px] font-semibold text-drift-coral disabled:opacity-50"
+                        className="rounded-full border border-drift-coral/60 px-3 py-2 text-[11px] font-semibold text-drift-coral disabled:opacity-50"
                       >
                         {dayAdded ? "✓ Added" : dayBusy === i ? "Adding…" : "+ Add day"}
                       </button>
@@ -299,7 +324,7 @@ export default function ItineraryCard({
                       type="button"
                       onClick={() => planTools.onTune(swapPrompt(i + 1, heading))}
                       aria-label={`Swap the stops on day ${i + 1}`}
-                      className="rounded-full border border-drift-coral/60 px-2.5 py-1 text-[11px] font-semibold text-drift-coral"
+                      className="rounded-full border border-drift-coral/60 px-3 py-2 text-[11px] font-semibold text-drift-coral"
                     >
                       Swap
                     </button>
@@ -367,7 +392,7 @@ export default function ItineraryCard({
                                can be taken back while the rest are still
                                going, and the run leaves it out of its
                                receipt. */
-                            disabled={phase === "add" && (allBusy || dayBusy !== null)}
+                            disabled={phase === "add" && bulkBusy}
                             onClick={() => toggleOne(i, p)}
                           />
                         )}
@@ -409,7 +434,7 @@ export default function ItineraryCard({
               <button
                 type="button"
                 onClick={() => void addAll()}
-                disabled={allBusy || allAdded}
+                disabled={bulkBusy || allAdded}
                 className="inline-flex items-center gap-2 rounded-full bg-aurora-teal px-4 py-2 font-drift-display text-[13.5px] font-bold text-aurora-teal-ink outline-none transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-aurora-teal/50"
               >
                 {allAdded
@@ -457,6 +482,7 @@ export default function ItineraryCard({
           distanceLabel={null}
           showSave={false}
           addState={open.phase}
+          addDisabled={open.disabled}
           /* Same control as the row underneath, reading the same state — and
              absent where the row has no Add either, since a button with
              nowhere to put the place is a lie. */
