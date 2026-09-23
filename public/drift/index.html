@@ -826,17 +826,37 @@
   /* Same band the phone lives in, so the two centre on one axis. */
   .motion-copy{position:absolute;z-index:4;inset:var(--navsafe,0) 0;color:#0c1626;pointer-events:none;scroll-margin-top:100px;transition:color .45s ease}
   .motion-copy article{position:absolute;top:50%;width:340px;opacity:0;transition:opacity .5s var(--e),transform .65s var(--e);pointer-events:none}
+  .motion-copy article.on{opacity:1;transform:translateY(-50%) translateX(0)}
   /* Right · left · right. Every act used to sit at left:calc(50% + 135px) with
      the phone 150px to its left, so three acts wore one arrangement and only
-     the words told you anything had changed. */
-  .motion-copy article[data-side="right"]{left:calc(50% + 148px)}
-  .motion-copy article[data-side="left"]{right:calc(50% + 148px);text-align:right}
-  .motion-copy article[data-side="left"] p{margin-left:auto}
-  .motion-copy article[data-side="right"].future{transform:translateY(-50%) translateX(72px)}
-  .motion-copy article[data-side="right"].past{transform:translateY(-50%) translateX(-140px)}
-  .motion-copy article[data-side="left"].future{transform:translateY(-50%) translateX(-72px)}
-  .motion-copy article[data-side="left"].past{transform:translateY(-50%) translateX(140px)}
-  .motion-copy article.on{opacity:1;transform:translateY(-50%) translateX(0)}
+     the words told you anything had changed.
+     
+     DESKTOP ONLY, by construction rather than by hope. An attribute selector
+     adds specificity and a media query does not, so `.motion-copy
+     article[data-side="right"]` (0,2,1) beat the mobile override
+     `.motion-copy article` (0,1,1) at EVERY width — the phone kept the desktop
+     side offset, picked up the mobile edge inset, and the copy column came out
+     29px wide on a 390px screen with a 111px heading inside it. The old rule
+     was `.motion-copy article{left:...}`, the same specificity as the
+     override, so source order used to settle it. Wrapping these keeps the
+     alternation off the mobile cascade permanently.
+     
+     The gap and the width are fluid because they are not free: a fixed 340px
+     column at a fixed 148px offset needs 450+148+340 = 938px of half-viewport
+     and `.stage` clips at `overflow:hidden`, so it was cutting the copy for
+     the whole 900–950px band. */
+  @media(min-width:900px){
+    .motion-copy{--copy-gap:clamp(116px,11vw,148px)}
+    .motion-copy article{width:min(340px,32vw)}
+    .motion-copy article[data-side="right"]{left:calc(50% + var(--copy-gap))}
+    .motion-copy article[data-side="left"]{right:calc(50% + var(--copy-gap));text-align:right}
+    .motion-copy article[data-side="left"] p{margin-left:auto}
+    .motion-copy article[data-side="right"].future{transform:translateY(-50%) translateX(72px)}
+    .motion-copy article[data-side="right"].past{transform:translateY(-50%) translateX(-140px)}
+    .motion-copy article[data-side="left"].future{transform:translateY(-50%) translateX(-72px)}
+    .motion-copy article[data-side="left"].past{transform:translateY(-50%) translateX(140px)}
+    .motion-copy article.on{transform:translateY(-50%) translateX(0)}
+  }
   .motion-copy .eyebrow{font-size:20px}
   .motion-copy h2{font-size:clamp(38px,4.6vw,58px);margin-top:10px;line-height:.98}
   .motion-copy h2 em{font-style:italic;color:#0e8c7e}
@@ -1490,7 +1510,9 @@
        transition — the device travels through the middle while one act's words
        leave and the next arrive from the far side. */
     var SIDE=[-1,1,-1];
-    var TRAVEL=148;
+    /* Matches --copy-gap in the CSS so the device and the words stay
+       symmetrical about centre as the viewport narrows. */
+    function travel(){return Math.min(148,Math.max(116,innerWidth*0.11));}
     /* Fallbacks only; the real durations arrive with the metadata. Scroll is
        apportioned by film LENGTH rather than evenly, because the chat act is
        nearly twice the discover act and an even split made one feel padded and
@@ -1575,19 +1597,37 @@
       video.playbackRate=(now<target-0.15)?Math.min(MAX_RATE,1+1.8*(target-now)):1;
       /* `now >= d - 0.05` means the film has run out: leave it holding its last
          frame rather than looping or restarting it under the reader. */
-      if(video.paused&&now<d-0.05){
+      if(video.dataset.cantPlay){
+        /* Autoplay refused — iOS Low Power Mode, Safari's "Auto-Play: Never",
+           a managed-device policy. play() rejects WITHOUT clearing `paused`,
+           so retrying it every animation frame is 60 rejected promises a
+           second behind a poster that never moves. Latch it once and fall
+           back to following the scroll, which is what this stage used to do
+           for everyone and still beats a still frame. */
+        seek(video,target);
+      }else if(video.paused&&now<d-0.05){
         var played=video.play();
-        if(played&&played.catch)played.catch(function(){});
+        if(played&&played.catch)played.catch(function(err){
+          if(err&&(err.name==='NotAllowedError'||err.name==='NotSupportedError')){
+            video.dataset.cantPlay='1';
+          }
+        });
       }
       var next=videos[moment.phase+1];
       if(next&&moment.local>0.45)ensureLoading(next);
     }
 
-    function setCopyPhase(phase){
+    function setCopyPhase(phase,cross){
       phases.forEach(function(el,i){
         el.classList.toggle('on',i===phase);
         el.classList.toggle('past',i<phase);
         el.classList.toggle('future',i>phase);
+        /* The phone travels ACROSS the words it is leaving — .stage-phone is
+           z-index 5 and .motion-copy is 4 — so for the whole crossing the
+           device slid over a headline still at full opacity, about 127px of
+           overlap at 1440x900. The outgoing act now fades on the same ramp
+           that carries the phone, so the words are gone before it arrives. */
+        el.style.opacity=(i===phase&&cross>0)?String(1-cross):'';
       });
     }
 
@@ -1607,7 +1647,7 @@
     function render(){
       if(reduced()){
         videos.forEach(function(v){if(!v.paused)v.pause();});
-        setCopyPhase(0);
+        setCopyPhase(0,0);
         live=false;
         return;
       }
@@ -1633,7 +1673,7 @@
       var to=SIDE[Math.min(SIDE.length-1,moment.phase+1)];
       var side=from+(to-from)*cross;
       var lift=1-Math.abs(side);
-      var phoneX=((mobile?0:TRAVEL)*side*phoneIn).toFixed(1);
+      var phoneX=((mobile?0:travel())*side*phoneIn).toFixed(1);
       /* Keep the real phone peeking into the first frame, then let it rise into
          the exact same object used by the Inspire chapter. This gives the hero
          an immediate product cue without introducing a second device. */
@@ -1669,7 +1709,7 @@
         activeVideo=-1;
       }
       drive(moment,live);
-      setCopyPhase(moment.phase);
+      setCopyPhase(moment.phase,cross);
 
     }
     /* The loop runs only while there is a film to keep moving — a scrubber
