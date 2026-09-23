@@ -328,13 +328,32 @@
     .chap p{margin-left:0;margin-right:0}
   }
   /* tab indicator */
-  .tabs{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:10px;align-items:center}
-  .tab{font-family:var(--hand);font-weight:700;font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a8;padding:5px 14px;border-radius:11px;transition:all .4s var(--e);cursor:pointer;transform:rotate(0)}
-  .stage.night .tab{color:rgba(255,255,255,.4)}
+  /* The chapter rail. It used to live inside .stage and vanished with the
+     stage rewrite, leaving these rules styling nothing. It belongs to the
+     PAGE, not to one section: its job is "where am I and how much is left",
+     which is the job the removed "Scroll controls every action" badge was
+     trying to do with an instruction instead of a map. */
+  .tabs{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(140%);z-index:60;
+    display:flex;gap:6px;align-items:center;padding:5px;border-radius:16px;
+    background:rgba(255,255,255,.62);backdrop-filter:blur(16px) saturate(1.1);
+    box-shadow:0 12px 34px -18px rgba(6,12,20,.5);
+    transition:transform .45s var(--e),opacity .35s var(--e),background .4s var(--e);opacity:0}
+  .tabs.up{transform:translateX(-50%) translateY(0);opacity:1}
+  .tabs.on-night{background:rgba(10,22,34,.62);box-shadow:0 12px 34px -18px rgba(0,0,0,.7)}
+  .tab{font-family:var(--hand);font-weight:700;font-size:20px;letter-spacing:.06em;text-transform:uppercase;
+    color:#6b7583;padding:5px 14px;border-radius:11px;border:0;background:transparent;
+    transition:all .4s var(--e);cursor:pointer;transform:rotate(0)}
+  .tabs.on-night .tab{color:rgba(255,255,255,.52)}
   .tab.on{color:#fff;transform:rotate(-2.2deg)}
-  .tab.on.plan{background:var(--greenDeep)}
-  .tab.on.split{background:var(--coral)}
+  .tab.on.plan{background:var(--coralDeep)}
+  .tab.on.ask{background:var(--greenDeep)}
   .tab.on.relive{background:var(--green)}
+  .tab:focus-visible{outline:2px solid var(--coral);outline-offset:3px}
+  @media(max-width:899px){
+    .tabs{bottom:12px;gap:3px;padding:4px}
+    .tab{font-size:16px;padding:4px 10px}
+  }
+  @media(prefers-reduced-motion:reduce){.tabs{display:none}}
 
   /* ============ CHAT (Ask Drift) ============ */
   .chatsec{position:relative;background:var(--paper)}
@@ -811,7 +830,6 @@
      viewport under 820px. The stage now reserves the pill's band at both ends
      so the centring axis sits below it. */
   .motion-prototype .stage{background:#f8f4ed;--navsafe:88px;padding-top:var(--navsafe);padding-bottom:var(--navsafe)}
-  .motion-prototype .chatsec,.motion-prototype .bento,.motion-prototype .relivec{display:none}
   .motion-prototype .stage-phone{z-index:5}
   /* Derived from the height that is actually free, the way the phone rule one
      media query down already did. The old `clamp(270px,40vh,292px)` had a 270px
@@ -1156,7 +1174,7 @@
 </section>
 
 <!-- ============ RELIVE COLLAGE ============ -->
-<section class="relivec">
+<section class="relivec" id="relive">
   <div class="head"><span class="eyebrow" data-r>A recap of your trip</span><h2 data-ghost>Relive every <em>moment.</em></h2></div>
   <div class="rc-stage" data-r>
     <div class="rc-card a"><img loading="lazy" decoding="async" src="assets/photo/paris.webp" alt="Paris"><div class="c"><div class="d">DAY 2</div><div class="p">Paris</div><div class="mt">France · 24°</div></div></div>
@@ -1176,6 +1194,16 @@
 </section>
 
 <!-- ============ OUTRO ============ -->
+<!-- Chapter rail. Plan · Ask · Relive are the three sections a reader
+     actually passes through; the original labels were Plan · Split · Relive,
+     but nothing on the page is about splitting costs any more, and a rail
+     that points at a chapter which is not there is worse than no rail. -->
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <button class="tab plan on" type="button" data-to="story">Plan</button>
+  <button class="tab ask" type="button" data-to="ask">Ask</button>
+  <button class="tab relive" type="button" data-to="relive">Relive</button>
+</nav>
+
 <section class="outro" id="beta">
   <div class="bg" data-px="0.12"><picture><source type="image/webp" srcset="assets/photo/hero-aurora.webp"><img decoding="async" src="assets/photo/hero-aurora.webp" alt="" width="2000" height="1333" style="object-position:center 46%"></picture></div>
   <div class="in">
@@ -1335,6 +1363,12 @@
     stagePhone.style.transform='perspective(1300px) translate3d('+(tx*tilt).toFixed(1)+'px,'+ty+'px,0) rotateY('+(ry*tilt).toFixed(1)+'deg) rotateZ('+(rz*tilt).toFixed(1)+'deg)'+(PHONE_SCALE<1?' scale('+PHONE_SCALE.toFixed(3)+')':'');
   }
   function onStory(){
+    /* The prototype engine owns the stage: background, the night class, the
+       hero photo, the scrim and the hero copy are all written by it, every
+       animation frame. This handler writes the same six properties from its
+       own ticker, so with both live the last writer of each frame won.
+       `phoneTransform` above already steps aside for the same reason. */
+    if(document.body.classList.contains('motion-prototype'))return;
     var r=story.getBoundingClientRect();
     var p=clamp01(-r.top/(TOTAL||1));
     var bg=bgAt(p);stage.style.backgroundColor=bg;story.style.backgroundColor=bg;
@@ -1395,6 +1429,45 @@
   var lastW=innerWidth;
   addEventListener('resize',function(){ if(innerWidth!==lastW || Math.abs(innerHeight-VH)>140){ lastW=innerWidth; measure(); onStory(); } });
   onStory();
+
+  /* ---- chapter rail ---- */
+  (function(){
+    var rail=document.getElementById('tabs');
+    if(!rail)return;
+    var tabs=[].slice.call(rail.querySelectorAll('.tab'));
+    var targets=tabs.map(function(t){return document.getElementById(t.dataset.to);});
+    var outro=document.getElementById('beta');
+    tabs.forEach(function(t,i){
+      t.addEventListener('click',function(){
+        var el=targets[i];
+        if(el)scrollTo({top:el.offsetTop+2,behavior:'smooth'});
+      });
+    });
+    function paint(){
+      /* The chapter you are IN is the last one whose top has passed the middle
+         of the screen — the same rule a reader uses. */
+      var mid=innerHeight*0.5, idx=0;
+      targets.forEach(function(el,i){
+        if(el&&el.getBoundingClientRect().top<=mid)idx=i;
+      });
+      tabs.forEach(function(t,i){t.classList.toggle('on',i===idx);});
+      /* Show it once the hero is behind you, and get out of the way of the
+         sign-up at the end — a chapter rail over the last CTA is just chrome. */
+      var firstEl=targets[0];
+      var started=firstEl?firstEl.getBoundingClientRect().top<innerHeight*0.35:false;
+      /* 0.35, not 0.75: at three-quarters the rail ducked out while Relive was
+         still the chapter you were reading, so its own label never got to be
+         lit on screen. */
+      var atOutro=outro?outro.getBoundingClientRect().top<innerHeight*0.35:false;
+      rail.classList.toggle('up',started&&!atOutro);
+      var stageEl=document.getElementById('stage');
+      rail.classList.toggle('on-night',!!stageEl&&stageEl.classList.contains('night')
+        &&stageEl.getBoundingClientRect().bottom>innerHeight-90);
+    }
+    scrollCbs.push(paint);
+    addEventListener('resize',paint);
+    paint();
+  })();
 
   /* ---- outro word-by-word ---- */
   var h2=document.getElementById('outroH2');
