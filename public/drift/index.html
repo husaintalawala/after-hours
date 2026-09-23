@@ -889,7 +889,12 @@
        screen. */
     .motion-prototype .stage{padding-top:0;padding-bottom:0}
     .motion-prototype .stage-phone{margin-top:205px}
-    .motion-prototype .stage-phone .phone{--pw:min(292px,76vw,calc((100svh - 218px)/2.1643));padding:4px;border-radius:43px}
+    /* 244, not 218: the provenance line and the pause control need a band of
+       their own down here, and at 218 the phone ran under both of them. */
+    .motion-prototype .stage-phone .phone{--pw:min(292px,76vw,calc((100svh - 244px)/2.1643));padding:4px;border-radius:43px}
+    .stage-provenance{bottom:8px;font-size:10px}
+    .film-pause{width:34px;height:34px;right:12px;bottom:4px}
+    .film-pause svg{width:15px;height:15px}
     .motion-prototype .stage-phone .scr{border-radius:39px}
     .motion-copy{inset:0;text-align:center}
     .motion-copy article{left:18px;right:18px;top:74px;width:auto}
