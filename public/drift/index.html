@@ -899,35 +899,64 @@
   .motion-reduced{display:none}
   @media(max-width:899px){
     .motion-prototype .story{height:560vh}
-    /* The nav-safe padding above is a DESKTOP fix: there the stage centres the
-       phone, so the band has to be reserved at both ends. Here the stage is
-       top-anchored and the phone's own 205px margin already clears the pill —
-       and the `100svh - 218px` budget below is sized against exactly that, so
-       88px of extra padding pushed the phone 66px off the bottom of a 700px
-       screen. */
-    .motion-prototype .stage{padding-top:0;padding-bottom:0}
-    .motion-prototype .stage-phone{margin-top:205px}
-    /* 244, not 218: the provenance line and the pause control need a band of
-       their own down here, and at 218 the phone ran under both of them. */
-    .motion-prototype .stage-phone .phone{--pw:min(292px,76vw,calc((100svh - 244px)/2.1643));padding:4px;border-radius:43px}
-    .stage-provenance{bottom:8px;font-size:10px}
-    .film-pause{width:34px;height:34px;right:12px;bottom:4px}
-    .film-pause svg{width:15px;height:15px}
-    .motion-prototype .stage-phone .scr{border-radius:39px}
-    .motion-copy{inset:0;text-align:center}
-    .motion-copy article{left:18px;right:18px;top:74px;width:auto}
+    /* CENTRED, not top-anchored. The phone used to be pushed down by a fixed
+       margin with the copy squeezed into whatever was left above it — and
+       that margin could be overridden to 10px by JS meant for a DIFFERENT,
+       older engine that happens to share the #tabs id (see measure(), now
+       gated). Both problems had the same fix: lay mobile out the way desktop
+       already is, rather than by separate rules of thumb. .stage is a flex
+       box; .stage-phone was already its only in-flow child, which is what
+       "centred" has meant on desktop all along. .motion-copy joins it as a
+       second flow child here (it is still the desktop overlay too, via the
+       position swap below), so the copy band and the phone centre as ONE
+       group — which is what a reader actually reads as a unit. */
+    .motion-prototype .stage{flex-direction:column;align-items:center;justify-content:center;gap:16px;
+      --copyband:clamp(150px,25vh,210px)}
+    /* flex-shrink:0 on BOTH group members, and not by habit. Measured: with
+       the default flex-shrink:1, .motion-copy's height collapsed to 0 even
+       though the group had well over 200px of slack in the container — no
+       genuine overflow, nothing forcing a shrink. Chrome 154 headless
+       reproduces it reliably with `height:var(--copyband)` on a flex item
+       that has no in-flow content of its own (every article inside is
+       position:absolute, so the box's own content-based minimum is zero,
+       and that appears to be what the shrink target was locking onto).
+       Neither item should ever shrink below its intended size regardless —
+       on a viewport that is genuinely too short, a little overflow reads
+       far better than the copy silently vanishing did. */
+    .motion-prototype .motion-copy{position:relative;inset:auto;flex-shrink:0;
+      width:min(92vw,420px);height:var(--copyband);text-align:center}
+    /* Cancels the base (non-motion-prototype) mobile rule `.stage-phone
+       {margin-top:36vh}` a few lines up — that belongs to the OLDER
+       composed-chapter engine and is unscoped, so it still applied here
+       once the .motion-prototype override that used to cancel it (the old
+       205px push-down) was removed. Flex + gap does the spacing now; any
+       margin on top of that just pushes the group off-centre. */
+    .motion-prototype .stage-phone{flex-shrink:0;margin-top:0}
+    .motion-prototype .motion-copy article{position:absolute;inset:0;
+      display:flex;flex-direction:column;align-items:center;justify-content:center}
     .motion-copy article.future{transform:translateY(12px)}
     .motion-copy article.past{transform:translateY(-12px)}
     .motion-copy article.on{transform:none}
     .motion-copy h2{font-size:30px;margin-top:5px}
     .motion-copy p{font-size:12.5px;margin:8px auto 0;max-width:46ch}
     .motion-copy .eyebrow{font-size:16px}
-    .motion-copy .fixture-note{margin-top:9px;font-size:8px;padding:5px 8px}
+    /* The phone's budget is what centring actually leaves — the nav-safe
+       padding (paid top AND bottom now, same token desktop uses), the copy
+       band, and the gap between them — not a constant somebody measured on
+       one device and hoped held. */
+    .motion-prototype .stage-phone .phone{--pw:min(292px,76vw,calc((100svh - 2*var(--navsafe) - var(--copyband) - 16px)/2.1643));padding:4px;border-radius:43px}
+    .stage-provenance{bottom:8px;font-size:10px}
+    .film-pause{width:34px;height:34px;right:12px;bottom:4px}
+    .film-pause svg{width:15px;height:15px}
+    .motion-prototype .stage-phone .scr{border-radius:39px}
   }
   @media(max-width:899px) and (max-height:650px){
-    .motion-copy .fixture-note{display:none}
-    .motion-prototype .stage-phone{margin-top:220px}
-    .motion-prototype .stage-phone .phone{--pw:min(250px,68vw,calc((100svh - 234px)/2.1643))}
+    /* Shorter phones get a tighter copy band, not a smaller nav-safe zone —
+       the nav pill itself does not shrink — so the saved height goes to the
+       phone, which is what the reader scrolled here to see. */
+    .motion-prototype .stage{--copyband:clamp(120px,22vh,170px)}
+    .motion-copy h2{font-size:25px}
+    .motion-copy p{font-size:11.5px}
   }
   @media(prefers-reduced-motion:reduce){
     .motion-prototype .story{height:100svh;background:#f8f4ed}
@@ -1319,8 +1348,19 @@
     // chapter block and the tabs. Fixed vh offsets raced fixed px heights and
     // lost on short Safari viewports (tabs rendered ON the phone); deriving
     // the budget means the tabs sit below the bezel on every device.
+    //
+    // NONE of this runs for motion-prototype. It targets #chapters .chap and
+    // #tabs .tab — the older composed-chapter engine's own elements — but the
+    // chapter RAIL now shares the id "tabs" with that engine, so
+    // getElementById('tabs') started resolving here too. cb stayed 0 (no
+    // .chap exists on this page), so `top` was always exactly 10 and this
+    // wrote `stagePhone.style.marginTop='10px'` as an INLINE style — which
+    // beats the CSS on specificity and put the phone almost flush under the
+    // nav pill, overlapping the copy above it. motion-prototype's mobile
+    // layout is CSS-only now (a flex column on .stage), so it must never be
+    // touched by this.
     PHONE_SCALE=1;
-    if(innerWidth<900&&stagePhone){
+    if(innerWidth<900&&stagePhone&&!document.body.classList.contains('motion-prototype')){
       var phoneEl=stagePhone.querySelector('.phone');
       var tabsEl=document.getElementById('tabs');
       if(phoneEl&&tabsEl){
