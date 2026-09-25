@@ -804,6 +804,7 @@ async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string
         tripStart={trip.start_date ?? null}
         country={trip.countries?.[0] ?? null}
         destinations={chatDestinations}
+        canEdit={meId === trip.user_id || buddyIds.includes(meId)}
       />
     </main>
   )

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import TripChat from "@/components/app/chat/TripChat"
+import TripQuickAdd from "@/components/app/trip/TripQuickAdd"
 
 interface DestinationLite {
   id: string
@@ -20,12 +21,14 @@ export default function TripDockComposer({
   tripStart,
   country,
   destinations,
+  canEdit,
 }: {
   tripId: string
   tripTitle: string
   tripStart: string | null
   country: string | null
   destinations: DestinationLite[]
+  canEdit: boolean
 }) {
   const [input, setInput] = useState("")
   const [open, setOpen] = useState(false)
@@ -44,34 +47,30 @@ export default function TripDockComposer({
         // Docked flush above the attached bottom nav (56px) — one integrated
         // bottom unit, matching iOS (no floating gap).
         <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-drift-divider bg-aurora-glass/95 px-3 py-2.5 backdrop-blur-xl lg:hidden">
-          <div className="flex items-center gap-2 rounded-full border border-aurora-border bg-aurora-midnight2/60 px-2.5 py-1.5">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[15px] text-white"
-              style={{ background: "linear-gradient(135deg,#37D6C4,#6B5CFF)" }}
-              aria-hidden
-            >
-              ✦
-            </span>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  submit()
-                }
-              }}
-              placeholder={`Ask Drift about ${tripTitle}…`}
-              aria-label={`Ask Drift about ${tripTitle}`}
-              className="h-8 min-w-0 flex-1 bg-transparent px-1 text-[14px] text-drift-ink outline-none placeholder:text-drift-text-tertiary"
-            />
-            <button
-              onClick={submit}
-              aria-label="Ask Drift"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-drift-coral text-[16px] text-white"
-            >
-              ↑
-            </button>
+          <div className="flex items-center gap-2">
+            {canEdit && <TripQuickAdd tripId={tripId} tripStart={tripStart} destinations={destinations} />}
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-aurora-border bg-aurora-midnight2/60 px-2.5 py-1.5">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    submit()
+                  }
+                }}
+                placeholder={`Ask Drift about ${tripTitle}…`}
+                aria-label={`Ask Drift about ${tripTitle}`}
+                className="h-8 min-w-0 flex-1 bg-transparent px-1 text-[14px] text-drift-ink outline-none placeholder:text-drift-text-tertiary"
+              />
+              <button
+                onClick={submit}
+                aria-label="Ask Drift"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-drift-coral text-[16px] text-white"
+              >
+                ↑
+              </button>
+            </div>
           </div>
         </div>
       )}
