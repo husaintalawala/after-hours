@@ -14,6 +14,20 @@ export function staticMapUrl(
   return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${pin}/${lng},${lat},${zoom}/${width}x${height}@2x?access_token=${token}&logo=false&attribution=false`
 }
 
+/** A quiet dark map used behind frosted place-pickers. */
+export function staticPlacePickerMapUrl(
+  lat: number,
+  lng: number,
+  width = 900,
+  height = 700,
+  zoom = 10.2
+): string | null {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  if (!token) return null
+  const pin = `pin-s+37D6C4(${lng},${lat})`
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${pin}/${lng},${lat},${zoom}/${width}x${height}@2x?access_token=${token}&logo=false&attribution=false`
+}
+
 /// A whole trip's route on one static frame — every stop pinned, auto-fitted.
 ///
 /// Deliberately the STATIC images API and not the GL map. Mapbox GL is ~705kB

@@ -8,6 +8,8 @@ export interface QuickAddDestination {
   date: string
   nights: number
   label: string
+  lat?: number | null
+  lng?: number | null
 }
 
 interface QuickAddInput {

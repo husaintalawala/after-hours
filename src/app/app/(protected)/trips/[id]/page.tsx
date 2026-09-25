@@ -37,6 +37,7 @@ import { balances, minimalTransfers } from "@/lib/drift/balances"
 import type { StayGap } from "@/components/app/trip/CompleteYourTrip"
 import TripChat from "@/components/app/chat/TripChat"
 import TripDockComposer from "@/components/app/trip/TripDockComposer"
+import TripQuickAdd from "@/components/app/trip/TripQuickAdd"
 
 // Trip workspace — web port of TripStepScrollView: title header, 4-tab strip
 // (Plan · Kit · Expenses · Track), DestinationDaysView-style Plan tab (hero +
@@ -728,6 +729,8 @@ async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string
       date: src?.date ?? trip.start_date ?? "",
       nights: d.nights,
       label: d.label,
+      lat: d.lat,
+      lng: d.lng,
     }
   })
 
@@ -806,6 +809,11 @@ async function TripDetailContent({ tripId, ask }: { tripId: string; ask?: string
         destinations={chatDestinations}
         canEdit={meId === trip.user_id || buddyIds.includes(meId)}
       />
+      {(meId === trip.user_id || buddyIds.includes(meId)) && (
+        <div className="fixed bottom-7 right-7 z-50 hidden lg:block">
+          <TripQuickAdd tripId={trip.id} tripStart={trip.start_date ?? null} destinations={chatDestinations} />
+        </div>
+      )}
     </main>
   )
 }
