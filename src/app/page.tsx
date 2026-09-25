@@ -26,7 +26,7 @@ export default function Home() {
           </a>
           <nav className={styles.nav} aria-label="Main navigation">
             <a href="https://usedrift.ai/">Drift <span aria-hidden="true">↗</span></a>
-            <a href="https://rashu.after-hours.app/">Side quest <span aria-hidden="true">↗</span></a>
+            <a href="/side-quest">Side quest <span aria-hidden="true">↗</span></a>
           </nav>
         </header>
 
@@ -57,7 +57,7 @@ export default function Home() {
         <section className={styles.afterword} aria-label="Our side quest">
           <div className={styles.afterwordNumber}>AFTER HOURS / PERSONAL ARCHIVE</div>
           <p>Before we built the travel app, we took the trip.</p>
-          <a href="https://rashu.after-hours.app/">Our 89-day side quest <span aria-hidden="true">↗</span></a>
+          <a href="/side-quest">Our 89-day side quest <span aria-hidden="true">↗</span></a>
         </section>
 
         <footer className={styles.footer}>
