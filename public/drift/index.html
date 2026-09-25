@@ -1433,8 +1433,17 @@
       tabs.forEach(function(t,i){t.classList.toggle('on',i===idx);});
       /* Show it once the hero is behind you, and get out of the way of the
          sign-up at the end — a chapter rail over the last CTA is just chrome. */
+      /* Not "the story is near the top of the screen" — that is true the
+         moment the page loads, so the rail sat over the hero, where the phone
+         is still low and the two ran into each other. The rail belongs to the
+         ACTS, so it waits until the hero has actually been scrolled past. */
       var firstEl=targets[0];
-      var started=firstEl?firstEl.getBoundingClientRect().top<innerHeight*0.35:false;
+      var started=false;
+      if(firstEl){
+        var r=firstEl.getBoundingClientRect();
+        var span=Math.max(1,firstEl.offsetHeight-innerHeight);
+        started=(-r.top/span)>0.16;
+      }
       /* 0.35, not 0.75: at three-quarters the rail ducked out while Relive was
          still the chapter you were reading, so its own label never got to be
          lit on screen. */
@@ -1500,6 +1509,20 @@
 
 })();
 </script>
+  <script>
+  /* Load choreography trigger: html.lit starts the hero intro (see heroSet/heroBreath).
+     Fires when the hero photo has decoded so the fade reveals a real frame, never a
+     half-loaded one; falls back after 1.2s, and skips straight to settled when the
+     page is restored mid-scroll. */
+  (function(){
+    var el=document.documentElement, done=false;
+    function lit(){ if(!done){ done=true; el.classList.add('lit'); } }
+    if (scrollY > 60) { lit(); return; }
+    var im = document.querySelector('#ephoto img');
+    if (im && im.decode) { im.decode().then(lit, lit); } else { lit(); }
+    setTimeout(lit, 1200);
+  })();
+  </script>
   <script>
   /* Real recordings from the live iOS app.
    *
