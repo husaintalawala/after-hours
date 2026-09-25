@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-// Serve the Drift marketing site (static files in /public/drift) on the
-// drift.after-hours.app subdomain, while after-hours.app itself is untouched.
+// Serve the preserved Side Quest homepage on rashu.after-hours.app and the
+// Drift marketing site (static files in /public/drift) on drift.after-hours.app.
 // Clean URLs: "/" -> /drift/index.html, "/privacy" -> /drift/privacy.html,
 // "/styles.css" -> /drift/styles.css.
 
@@ -116,7 +116,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // --- Marketing landing (owned by the marketing workstream) — unchanged ---
+  // Keep the original sabbatical page and all of its assets in this project.
+  // The public hostname changes; the old page's implementation does not.
+  if (host === "rashu.after-hours.app" && pathname === "/") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/side-quest";
+    return NextResponse.rewrite(url);
+  }
+
+  // --- Legacy Drift marketing landing ---
   if (host !== "drift.after-hours.app") return NextResponse.next();
 
   const url = req.nextUrl.clone();

@@ -1,82 +1,70 @@
-"use client"
+import type { Metadata } from "next"
+import styles from "./page.module.css"
 
-import { useEffect, useState, useCallback } from "react"
-import dynamic from "next/dynamic"
-import { journey } from "@/data/journey"
-import ChapterCard from "@/components/ChapterCard"
-import CityReveal from "@/components/CityReveal"
-import TimelineScrubber from "@/components/TimelineScrubber"
-import { useActiveChapter } from "@/hooks/useScrollProgress"
-
-const Handwrite = dynamic(() => import("@/components/Handwrite"), { ssr: false })
-const Globe = dynamic(() => import("@/components/Globe"), {
-  ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 bg-black flex items-center justify-center">
-      <div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">loading</div>
-    </div>
-  ),
-})
+export const metadata: Metadata = {
+  title: "After Hours Ventures — Good ideas keep odd hours",
+  description: "After Hours Ventures is an independent home for ideas that become useful products. Meet Drift, our travel-planning app, and read our side quest.",
+  alternates: { canonical: "https://after-hours.app/" },
+  openGraph: {
+    title: "After Hours Ventures",
+    description: "Good ideas keep odd hours. Meet Drift, the first thing we made.",
+    url: "https://after-hours.app/",
+    siteName: "After Hours Ventures",
+    type: "website",
+  },
+}
 
 export default function Home() {
-  const { progress, activeIndex, seekToChapter } = useActiveChapter(journey.chapters.length)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
-  const handleSeek = useCallback((index: number) => { seekToChapter(index) }, [seekToChapter])
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-black flex items-center justify-center"><div className="text-[#86868b] font-mono text-sm tracking-wider animate-pulse">loading</div></div>
-  }
-
   return (
-    <main className="relative">
-      <Globe scrollProgress={progress} activeIndex={Math.max(activeIndex, 0)} />
+    <main className={styles.page}>
+      <div className={styles.grain} aria-hidden="true" />
+      <div className={styles.shell}>
+        <header className={styles.topbar}>
+          <a className={styles.wordmark} href="/" aria-label="After Hours Ventures home">
+            <span className={styles.symbol} aria-hidden="true"><span /></span>
+            <span>AFTER HOURS<span className={styles.wordmarkSub}>VENTURES LLC</span></span>
+          </a>
+          <nav className={styles.nav} aria-label="Main navigation">
+            <a href="https://usedrift.ai/">Drift <span aria-hidden="true">↗</span></a>
+            <a href="/side-quest">Side quest <span aria-hidden="true">↗</span></a>
+          </nav>
+        </header>
 
-      <div className="fixed top-0 left-0 right-0 h-px bg-white/5 z-50">
-        <div className="h-full bg-[#424245] transition-all duration-150" style={{ width: progress * 100 + "%" }} />
-      </div>
-
-      <div className="relative z-10">
-
-                                                        <section className="h-screen relative overflow-hidden flex items-center justify-center">
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-            <Handwrite />
+        <section className={styles.hero} aria-labelledby="hero-title">
+          <div className={styles.intro}>
+            <div className={styles.kicker}><span className={styles.liveDot} /> AN INDEPENDENT MAKER, STILL AWAKE</div>
+            <h1 id="hero-title">Good ideas<br />keep <em>odd hours.</em></h1>
+            <p className={styles.introCopy}>After Hours Ventures is a small home for useful things born from curiosity. We make them because we want them to exist.</p>
+            <a className={styles.primaryLink} href="https://usedrift.ai/">See what we&apos;re making <span aria-hidden="true">↗</span></a>
+            <p className={styles.marginNote}>The lights are on. Come in.</p>
           </div>
+
+          <article className={styles.product} aria-label="Featured product: Drift">
+            <div className={styles.productTop}><span>01 / CURRENTLY MAKING</span><span className={styles.productStatus}><span /> OUT IN THE WORLD</span></div>
+            <a className={styles.productImage} href="https://usedrift.ai/" aria-label="Explore Drift at usedrift.ai">
+              <img src="/drift/assets/photo/hero-aurora.webp" alt="Northern lights over a campsite" />
+              <span className={styles.photoShade} />
+              <span className={styles.driftBadge}><img src="/brand/drift-mark.png" alt="" /> drift</span>
+              <span className={styles.imageArrow} aria-hidden="true">↗</span>
+            </a>
+            <div className={styles.productBottom}>
+              <div><h2>Drift</h2><p>Discover the next trip. Plan it together. Go.</p></div>
+              <a href="https://usedrift.ai/" aria-label="Visit Drift"><span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
         </section>
 
-        {journey.chapters.map((chapter, index) => (
-          <div key={chapter.id}>
-            <CityReveal chapter={chapter} index={index} />
-
-            <section className="relative" data-chapter-section={index}>
-              <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-transparent via-black/70 to-black pointer-events-none z-10" />
-              <div className="absolute inset-0 bg-black" style={{ top: "12rem" }} />
-              <div className="relative z-10 pt-32">
-                <ChapterCard chapter={chapter} index={index} isActive={index === activeIndex} />
-              </div>
-            </section>
-          </div>
-        ))}
-
-        <section className="h-screen flex flex-col items-center justify-center px-6 text-center">
-          <p className="font-mono text-[11px] tracking-wider text-[#424245] leading-loose max-w-xl mb-12">
-            NYC → London → Kathmandu → EBC → Mumbai → HK → Tokyo → Kyoto → Bangkok → Phuket → KL → Bali → Madrid → Sevilla → Positano → Roma → London → NYC
-          </p>
-          <h2 className="text-6xl md:text-8xl font-display font-light italic text-[#f5f5f7]">home.</h2>
-          <div className="flex justify-center gap-10 mt-16">
-            {journey.stats.map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-[28px] font-display text-[#f5f5f7] tabular-nums">{stat.value}</div>
-                <div className="font-mono text-[9px] tracking-[0.1em] text-[#6e6e73] uppercase mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
+        <section className={styles.afterword} aria-label="Our side quest">
+          <div className={styles.afterwordNumber}>AFTER HOURS / PERSONAL ARCHIVE</div>
+          <p>Before we built the travel app, we took the trip.</p>
+          <a href="/side-quest">Our 89-day side quest <span aria-hidden="true">↗</span></a>
         </section>
 
-        <div className="h-20" />
+        <footer className={styles.footer}>
+          <span>© 2026 After Hours Ventures LLC</span>
+          <a href="mailto:hello@after-hours.app">Say hello ↗</a>
+        </footer>
       </div>
-
-      <TimelineScrubber progress={progress} activeIndex={Math.max(activeIndex, 0)} onSeek={handleSeek} />
     </main>
   )
 }
