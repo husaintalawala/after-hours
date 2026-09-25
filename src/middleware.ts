@@ -15,6 +15,26 @@ export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").split(":")[0].toLowerCase();
   const pathname = req.nextUrl.pathname;
 
+  // Keep the former Drift host as a compatibility entry point. A temporary
+  // redirect preserves invite tokens, guide slugs, deep paths and query strings
+  // while the new domain is verified. Do not change the After Hours apex.
+  // Native app association files must answer directly on the OLD host for
+  // already-shipped iOS/Android apps. Auth callbacks also stay here while
+  // outstanding OAuth PKCE and emailed sign-in links finish on their origin.
+  // POST routes are excluded so legacy invite and unsubscribe submissions are
+  // never replayed across hosts.
+  if (
+    host === "drift.after-hours.app" &&
+    (req.method === "GET" || req.method === "HEAD") &&
+    pathname !== "/.well-known/apple-app-site-association" &&
+    pathname !== "/.well-known/assetlinks.json" &&
+    pathname !== "/auth" &&
+    !pathname.startsWith("/auth/")
+  ) {
+    const destination = new URL(req.nextUrl.pathname + req.nextUrl.search, "https://usedrift.ai");
+    return NextResponse.redirect(destination, 307);
+  }
+
   // --- Drift logged-in web app (additive; owned by the app workstream) ---
   // /app and /auth are real Next.js routes behind a Supabase auth gate.
   // They must bypass the static /public/drift rewrite below. This runs on
