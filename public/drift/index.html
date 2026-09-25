@@ -1016,7 +1016,7 @@
   })();
 </script>
 </head>
-<body>
+<body class="motion-prototype">
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav"><div class="nav-in">
@@ -1043,104 +1043,57 @@
       <div class="cta"><a class="btn light" id="heroStoryCta" href="#trip-story">See Drift in action <span class="arrow" aria-hidden="true">↓</span></a></div>
     </div>
 
-    <!-- anchor for the hero CTA ("See Drift in action ↓"): lands the reader one
-         viewport into the sticky story so the montage is already in motion -->
-    <span id="trip-story" aria-hidden="true" style="position:absolute;top:115vh;left:0;width:1px;height:1px"></span>
+    <!-- Five recordings of the live iOS app on a real account — not mockups.
+         The montage these replace was hand-composed from an OLDER build, which
+         is the one thing a product film cannot afford to be. -->
+    <div class="motion-copy" id="trip-story" aria-live="polite">
+      <article class="on" data-motion-phase="0" data-side="right">
+        <div class="eyebrow">01 · Inspire</div>
+        <h2>Open a trip <em>worth stealing.</em></h2>
+        <p>A real session searches Patagonia and opens ten days in Chile — Puerto Natales, then seven nights under Torres del Paine.</p>
+      </article>
+      <article data-motion-phase="1" data-side="left">
+        <div class="eyebrow">02 · The guide</div>
+        <h2>Someone else already <em>did the work.</em></h2>
+        <p>Every stop carries its nights, its reason for being there, and the places worth the detour — written by the traveller who went.</p>
+      </article>
+      <article data-motion-phase="2" data-side="right">
+        <div class="eyebrow">03 · Discover</div>
+        <h2>Find it nearby. <em>Keep it.</em></h2>
+        <p>Open Sydney's live map, look at what is actually around you, and put the good ones in your back pocket.</p>
+      </article>
+      <article data-motion-phase="3" data-side="left">
+        <div class="eyebrow">04 · Split it</div>
+        <h2>Who paid, who owes, <em>settled.</em></h2>
+        <p>Bali came to $6,560 against a $7,028 plan. Every line says who paid and how it splits — no spreadsheet, no chasing.</p>
+      </article>
+      <article data-motion-phase="4" data-side="right">
+        <div class="eyebrow">05 · Relive</div>
+        <h2>Twenty trips, <em>one world.</em></h2>
+        <p>Everywhere you have been, on a globe you can spin — and every trip still there to open.</p>
+      </article>
+    </div>
 
-    <!-- pinned phone — rises from the bottom; screens evolve as you scroll.
-         Beats are DIVERSE Inspire demo trips (Patagonia first). Every frame is
-         sourced from the ~90 curated inspire_trips + cinematic real photos —
-         no live/owner account, no real imported reservations or user photos. -->
     <div class="stage-phone" id="stagePhone">
-      <div class="phone"><div class="scr stage-screens" id="screens">
-        <!-- 0 · DISCOVER — Patagonia / Torres del Paine (opens on awe) -->
-        <div class="s appscr aur ap-disc on" data-i="0">
-          <div class="dmap" style="background-image:url(assets/photo/pat-towers.webp);background-position:center 42%">
-            <span class="dpin amber p2" style="left:38%;top:39%"></span>
-            <span class="dpin p3" style="left:64%;top:44%"></span>
-            <span class="dpin amber p4" style="left:57%;top:65%"></span>
-            <span class="dpin p5" style="left:33%;top:62%"></span>
-            <span class="dpin sel p1" style="left:49%;top:53%"></span>
-            <span class="dlabel" style="left:49%;top:44%">◎ Base of the Towers</span>
-          </div>
-          <div class="dmap-top"><span class="dchip"><i></i>Torres del Paine · Patagonia</span></div>
-          <div class="dcar">
-            <div class="dc c1"><span class="im" style="background-image:url(assets/photo/pat-towers.webp)"></span><div class="cc"><div class="nn">Base of the Towers</div><div class="mt"><span class="st">★</span> 4.9 · Sunrise hike</div></div></div>
-            <div class="dc c2"><span class="im" style="background-image:url(assets/photo/pat-grey.webp)"></span><div class="cc"><div class="nn">Grey Glacier</div><div class="mt"><span class="st">★</span> 4.8 · Glacier</div></div></div>
-            <div class="dc c3"><span class="im" style="background-image:url(assets/photo/pat-french.webp)"></span><div class="cc"><div class="nn">French Valley</div><div class="mt"><span class="st">★</span> 4.8 · W-trek</div></div></div>
-          </div>
+      <div class="phone motion-phone"><div class="scr stage-screens" id="screens">
+        <div class="s trip-sequence on" id="tripSequence" data-i="0">
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/beat-inspire.jpg" aria-label="Inspire in the Drift app"><source src="assets/native/beat-inspire.mp4?v=20260925" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/beat-guide.jpg" aria-label="The guide in the Drift app"><source src="assets/native/beat-guide.mp4?v=20260925" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/beat-discover.jpg" aria-label="Discover in the Drift app"><source src="assets/native/beat-discover.mp4?v=20260925" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/beat-costs.jpg" aria-label="Split it in the Drift app"><source src="assets/native/beat-costs.mp4?v=20260925" type="video/mp4"></video>
+          <video class="native-video" muted playsinline preload="none" poster="assets/native/beat-globe.jpg" aria-label="Relive in the Drift app"><source src="assets/native/beat-globe.mp4?v=20260925" type="video/mp4"></video>
         </div>
-        <!-- 1 · PLAN — Amalfi Coast, a couple's shared plan building itself -->
-        <div class="s appscr aur ap-plan" data-i="1">
-          <div class="ascr-top">
-            <div class="tt">Amalfi Coast</div>
-            <div class="mt"><span class="crew"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i><i style="background-image:url(assets/photo/swing.jpg)"></i></span>Jun 12–19 · just us two</div>
-          </div>
-          <div class="ap-body">
-            <div class="ap-day k1">DAY 1 · POSITANO</div>
-            <div class="ap-card glass k1"><span class="th" style="background-image:url(assets/photo/am-positano.webp)"></span><div class="cc"><div class="nn">Sunset at Franco's Bar</div><div class="ww"><i style="background-image:url(assets/photo/swing.jpg)"></i>Sofia added this</div></div><span class="tag">6:30p</span></div>
-            <div class="ap-card glass k2"><span class="th" style="background-image:url(assets/photo/am-ravello.webp)"></span><div class="cc"><div class="nn">Villa Cimbrone gardens</div><div class="ww"><i style="background-image:url(assets/photo/friends-bali.jpg)"></i>Leo added this</div></div><span class="tag">Day 2</span></div>
-            <div class="ap-day k3">DAY 3 · CAPRI</div>
-            <div class="ap-card glass k3"><span class="th" style="background-image:url(assets/photo/am-boat.webp)"></span><div class="cc"><div class="nn">Private boat: Li Galli &amp; grottos</div><div class="ww"><i style="background-image:url(assets/photo/swing.jpg)"></i>Sofia added this</div></div><span class="tag">11:00a</span></div>
-          </div>
-          <div class="ap-live k4"><span class="pl-dot"></span>Leo is adding a stop…</div>
-        </div>
-        <!-- 2 · INSPIRE — 90 ready-made trips, copy one and make it yours -->
-        <div class="s appscr aur ap-insp" data-i="2">
-          <div class="in-head"><div class="tt">Trips worth stealing</div><div class="mt">90 itineraries, built day by day</div></div>
-          <div class="in-grid">
-            <div class="ic i1"><span class="im" style="background-image:url(assets/photo/shelf-serengeti.webp)"></span><span class="sc"></span><span class="mine">Make it mine</span><div class="cc"><div class="nn">Serengeti &amp; Zanzibar</div><div class="mt">Safari · 15 days</div></div></div>
-            <div class="ic i2"><span class="im" style="background-image:url(assets/photo/shelf-kyoto.webp)"></span><span class="sc"></span><span class="mine">Make it mine</span><div class="cc"><div class="nn">Japan: Tokyo &amp; Kyoto</div><div class="mt">Culture · 13 days</div></div></div>
-            <div class="ic i3"><span class="im" style="background-image:url(assets/photo/shelf-marrakech.webp)"></span><span class="sc"></span><span class="mine">Make it mine</span><div class="cc"><div class="nn">Marrakech &amp; the Atlas</div><div class="mt">Souks · 9 days</div></div></div>
-            <div class="ic i4"><span class="im" style="background-image:url(assets/photo/shelf-maldives.webp)"></span><span class="sc"></span><span class="mine">Make it mine</span><div class="cc"><div class="nn">Maldives: Baa Atoll</div><div class="mt">Islands · 7 days</div></div></div>
-          </div>
-        </div>
-        <!-- 3 · RESERVATIONS — Japan with a Little One, its OWN curated steps -->
-        <div class="s appscr aur ap-res" data-i="3">
-          <div class="ascr-top"><div class="tt">Your reservations</div><div class="mt"><span class="pl-dot"></span>Japan with a Little One</div></div>
-          <div class="ap-body">
-            <div class="rz glass d1"><span class="ic fl"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3a1.5 1.5 0 00-3 0v5.5l-8 5v2l8-2.6V19l-2 1.4V22l3.5-1 3.5 1v-1.6L11 19v-6.1l10 2.6z"/></svg></span><div class="cc"><div class="dd">FLIGHT · DAY 1</div><div class="nn">YVR → HND</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
-            <div class="rz glass d2"><span class="ic st"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a2 2 0 012-2h14a2 2 0 012 2v6M3 18v2M21 18v2M6 10V7a2 2 0 012-2h3a2 2 0 012 2v3"/></svg></span><div class="cc"><div class="dd">STAY · DAYS 1–4</div><div class="nn">MIMARU Tokyo Ueno East</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
-            <div class="rz glass d3"><span class="ic ac"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 012-2h12a2 2 0 012 2 2 2 0 000 4 2 2 0 000 4 2 2 0 01-2 2H6a2 2 0 01-2-2 2 2 0 000-4 2 2 0 000-4z"/></svg></span><div class="cc"><div class="dd">TICKETS · DAY 3</div><div class="nn">teamLab Planets Tokyo</div></div><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
-          </div>
-          <div class="ap-live d4"><span class="pl-dot"></span>3 added to your itinerary</div>
-        </div>
-        <!-- 4 · RELIVE — your world fills in, photos pinned to a living globe -->
-        <div class="s appscr aur ap-globe" data-i="4">
-          <img loading="lazy" decoding="async" class="gl-bg" src="assets/app/onboard-globe-anim.webp" alt="A living globe of your trips, rotating">
-          <div class="gl-head"><div class="tt">Your world</div><div class="mt">Everywhere you've been, together</div></div>
-          <div class="gl-card">
-            <div class="big">14<em>countries</em></div>
-            <div class="grow"><div><b>36</b><span>Cities</span></div><div><b>1,204</b><span>Photos</span></div><div><b>5</b><span>Trips</span></div></div>
-          </div>
-        </div>
-        <!-- 5 · SPLIT — Bali group trip, costs settled -->
-        <div class="s appscr aur ap-split" data-i="5">
-          <div class="ascr-top"><div class="tt">Trip expenses</div><div class="mt">Bali · 5 friends</div></div>
-          <div class="ap-body">
-            <div class="xrow glass r1"><span class="xi" style="background-image:url(assets/photo/friends-bali.jpg)"></span><div class="cc"><div class="nn">Bisma Eight villa</div><div class="dd">Maya paid · split 5</div></div><span class="xp">$1,150</span></div>
-            <div class="xrow glass r2"><span class="xi" style="background-image:url(assets/photo/friends-kl.jpg)"></span><div class="cc"><div class="nn">Nusa Penida boat day</div><div class="dd">Jon paid · split 5</div></div><span class="xp">$260</span></div>
-            <div class="xrow glass r3"><span class="xi" style="background-image:url(assets/photo/swing.jpg)"></span><div class="cc"><div class="nn">Paon cooking class</div><div class="dd">Ana paid · split 5</div></div><span class="xp">$180</span></div>
-          </div>
-          <div class="settle">
-            <div class="sl">YOU OWE ANA</div>
-            <div class="samt"><em>$</em><span class="count" data-to="52">52</span></div>
-            <div class="sbar"><i></i></div>
-            <div class="ss">Drift did the math<b>Settle up</b></div>
-          </div>
-        </div>
-        <div class="hero-globe" id="heroGlobe"><img loading="lazy" decoding="async" src="assets/app/onboard-globe-anim.webp" alt="Your living globe, filling with every trip"></div>
       </div></div>
     </div>
-    <!-- chapter text blocks (match beat order) -->
-    <div class="chapters" id="chapters">
-      <div class="chap on left" data-i="0"><div class="eyebrow">Discover</div><h2>Find it. <em>Keep</em> it.</h2><p>Open any place from the live map, see what makes it worth the trip, and save it in a tap.</p></div>
-      <div class="chap right" data-i="1"><div class="eyebrow">Plan together</div><h2>Plan it <em>together.</em></h2><p>Everyone adds stops to one shared itinerary — the plan builds itself as your crew chimes in.</p></div>
-      <div class="chap left" data-i="2"><div class="eyebrow">Start from a real trip</div><h2>90 trips,<br><em>ready</em> to go.</h2><p>A Mara safari. Kyoto in blossom. Marrakech to the Atlas. Copy any one and make it your own.</p></div>
-      <div class="chap right" data-i="3"><div class="eyebrow">Find my reservations</div><h2>Your bookings,<br><em>sorted</em> for you.</h2><p>Every flight, stay and ticket lands on the right day — automatically, no copy-paste.</p></div>
-      <div class="chap left" data-i="4"><div class="eyebrow">Relive it</div><h2>Watch your world<br><em>fill in.</em></h2><p>Every place you went and every photo you took, pinned to a living globe — and everyone you went with.</p></div>
-      <div class="chap right" data-i="5"><div class="eyebrow">Split every cost</div><h2>Split it.<br><em>Settle</em> in a tap.</h2><p>Log what everyone pays and Drift does the math — the trip ends square, no spreadsheet.</p></div>
-    </div>
+
+    <p class="stage-provenance">Recorded in the live Drift app.</p>
+
+    <button class="film-pause" id="filmPause" type="button" aria-label="Pause the recordings">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <g class="fp-pause"><rect x="8" y="6" width="3.2" height="12" rx="1.2"/><rect x="12.8" y="6" width="3.2" height="12" rx="1.2"/></g>
+        <path class="fp-play" d="M9 6.5l8 5.5-8 5.5z"/>
+      </svg>
+    </button>
   </div>
 </section>
 
@@ -1548,17 +1501,269 @@
 })();
 </script>
   <script>
-  /* Load choreography trigger: html.lit starts the hero intro (see heroSet/heroBreath).
-     Fires when the hero photo has decoded so the fade reveals a real frame, never a
-     half-loaded one; falls back after 1.2s, and skips straight to settled when the
-     page is restored mid-scroll. */
+  /* Real recordings from the live iOS app.
+   *
+   * SCROLL PICKS THE SCENE; THE FILM PLAYS ITSELF.
+   *
+   * This used to be a scrubber: `video.currentTime = local * duration`, snapped
+   * to the 10 fps grid the recordings were encoded on. It was exact, and exact
+   * was the wrong goal. The three acts share 72% of a 560vh story, which is
+   * 331vh of scroll for 40.7s of footage — about 60px of scroll per second of
+   * film on a laptop. One wheel notch is 100-120px, so a notch skipped ~1.7s,
+   * or roughly every seventeenth frame. Nobody ever saw motion; they saw a
+   * contact sheet. And stopping froze it, which no film does.
+   *
+   * So scroll now says WHICH act and WHEN it starts, and the film walks to
+   * where scroll is pointing at its own pace:
+   *
+   *   behind the scroll  -> up to 2.4x until it catches up
+   *   level with it      -> 1x
+   *   you stop           -> keeps playing, then holds its last frame
+   *   you scroll back    -> rewinds to where you are and resumes
+   *
+   * What this gives up is frame-exact reversibility — you can no longer park on
+   * an arbitrary frame by not moving. That was the property the on-screen
+   * "Scroll controls every action" label was advertising, and it is the one
+   * worth trading: nobody scrolls a landing page to inspect frame 87.
+   */
   (function(){
-    var el=document.documentElement, done=false;
-    function lit(){ if(!done){ done=true; el.classList.add('lit'); } }
-    if (scrollY > 60) { lit(); return; }
-    var im = document.querySelector('#ephoto img');
-    if (im && im.decode) { im.decode().then(lit, lit); } else { lit(); }
-    setTimeout(lit, 1200);
+    var story=document.getElementById('story');
+    var stage=document.getElementById('stage');
+    var phone=document.getElementById('stagePhone');
+    var photo=document.getElementById('ephoto');
+    var scrim=document.getElementById('escrim');
+    var hero=document.getElementById('ehero');
+    var sequence=document.getElementById('tripSequence');
+    var videos=[].slice.call(sequence.querySelectorAll('.native-video'));
+    var motionCopy=document.getElementById('trip-story');
+    var provenance=document.querySelector('.stage-provenance');
+    var filmPause=document.getElementById('filmPause');
+    var phases=[].slice.call(document.querySelectorAll('[data-motion-phase]'));
+    var heroStoryCta=document.getElementById('heroStoryCta');
+    /* LIVE, not a snapshot. Read once at script run, a reader who turned
+       Reduce Motion on mid-visit kept getting autoplaying video behind the
+       static layout the CSS had already swapped in — the stylesheet reacts to
+       the media query and the engine did not. */
+    var motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
+    var forceReduce=new URLSearchParams(location.search).has('reduce');
+    function reduced(){return forceReduce||motionQuery.matches;}
+    var filmsPaused=false;
+
+    /* Which side of centre the phone sits on, per act: right, left, right for
+       the copy, so the phone takes the opposite. The crossing IS the
+       transition — the device travels through the middle while one act's words
+       leave and the next arrive from the far side. */
+    var SIDE=[-1,1,-1,1,-1];
+    var TRAVEL=148;
+    /* Fallbacks only; the real durations arrive with the metadata. Scroll is
+       apportioned by film LENGTH rather than evenly, because the chat act is
+       nearly twice the discover act and an even split made one feel padded and
+       the other feel skipped. */
+    /* Measured off the cut files, not guessed. */
+    var LEN=[5.8,4.4,7.0,6.0,7.6];
+    var EDGE=[0];
+    (function(){var total=0,i;for(i=0;i<LEN.length;i++)total+=LEN[i];
+      var acc=0;for(i=0;i<LEN.length;i++){acc+=LEN[i]/total;EDGE.push(acc);}})();
+    var MAX_RATE=2.4;
+
+    function clamp(v){return Math.max(0,Math.min(1,v));}
+    function smooth(v){return v*v*(3-2*v);}
+
+    function storyMoment(progress){
+      var last=LEN.length-1;
+      if(progress>=1)return{phase:last,local:1};
+      for(var i=0;i<=last;i++){
+        if(progress<EDGE[i+1])return{phase:i,local:clamp((progress-EDGE[i])/(EDGE[i+1]-EDGE[i]))};
+      }
+      return{phase:last,local:1};
+    }
+
+    function duration(video,i){
+      return (isFinite(video.duration)&&video.duration>0)?video.duration:LEN[i];
+    }
+    /* preload="none" until you are nearly there, then the browser streams it.
+       The readyState guard matters: load() restarts a video from scratch, so it
+       may only be called on one that has not begun. The first act ships with
+       preload="auto" and will already be past 0 by the time it is asked. */
+    function ensureLoading(video){
+      if(video.dataset.warm)return;
+      video.dataset.warm='1';
+      video.preload='auto';
+      if(video.readyState===0){try{video.load();}catch(e){}}
+    }
+    function seek(video,time){
+      var d=isFinite(video.duration)&&video.duration>0?video.duration:null;
+      var t=Math.max(0,d?Math.min(time,d-0.03):time);
+      try{video.currentTime=t;}catch(e){}
+    }
+
+    var activeVideo=-1;
+    /* Where scroll was pointing on the previous frame, per act. The rewind has
+       to key off THIS moving backwards, not off the film being ahead of it —
+       the film being ahead of the scroll is the whole point of "keeps playing
+       when you stop", and treating it as drift to correct made a parked reader
+       watch the same 0.6s sawtooth forever. */
+    var lastTarget=[0,0,0];
+    function drive(moment,live){
+      videos.forEach(function(video,i){
+        var on=i===moment.phase;
+        video.style.opacity=on?'1':'0';
+        video.style.transform=on?'scale(1)':'scale(.99)';
+        if(!on&&!video.paused)video.pause();
+      });
+      var video=videos[moment.phase];
+      ensureLoading(video);
+      if(!live||filmsPaused){
+        /* Pause, but KEEP activeVideo. Going not-live is a tab switch or a
+           single jittery frame at the edge of the band, and neither is a
+           rewind — clearing it here made the next live frame read
+           `activeVideo !== phase` and restart the act from zero under a reader
+           who had not moved. Leaving the band upward is handled in render(),
+           where the difference between "away" and "above" is actually known. */
+        if(!video.paused)video.pause();
+        return;
+      }
+      if(activeVideo!==moment.phase){
+        var backwards=activeVideo>moment.phase;
+        activeVideo=moment.phase;
+        /* Entering forward starts the act at the top; arriving from below drops
+           the film where the scroll is already pointing, so scrolling up
+           through the page does not replay everything from zero. */
+        seek(video,backwards?moment.local*duration(video,moment.phase):0);
+        lastTarget[moment.phase]=moment.local*duration(video,moment.phase);
+      }
+      var d=duration(video,moment.phase);
+      var target=moment.local*d;
+      var now=video.currentTime;
+      if(target<lastTarget[moment.phase]-0.02&&target<now-0.6)seek(video,target);
+      lastTarget[moment.phase]=target;
+      video.playbackRate=(now<target-0.15)?Math.min(MAX_RATE,1+1.8*(target-now)):1;
+      /* `now >= d - 0.05` means the film has run out: leave it holding its last
+         frame rather than looping or restarting it under the reader. */
+      if(video.paused&&now<d-0.05){
+        var played=video.play();
+        if(played&&played.catch)played.catch(function(){});
+      }
+      var next=videos[moment.phase+1];
+      if(next&&moment.local>0.45)ensureLoading(next);
+    }
+
+    function setCopyPhase(phase){
+      phases.forEach(function(el,i){
+        el.classList.toggle('on',i===phase);
+        el.classList.toggle('past',i<phase);
+        el.classList.toggle('future',i>phase);
+      });
+    }
+
+    if(heroStoryCta){
+      heroStoryCta.addEventListener('click',function(event){
+        event.preventDefault();
+        if(reduced()){
+          var reducedInspire=document.getElementById('reduced-inspire');
+          if(reducedInspire)reducedInspire.scrollIntoView({behavior:'auto',block:'start'});
+          return;
+        }
+        var total=Math.max(1,story.offsetHeight-innerHeight);
+        scrollTo({top:story.offsetTop+total*.20,behavior:'smooth'});
+      });
+    }
+    var rafId=0,live=false;
+    function render(){
+      if(reduced()){
+        videos.forEach(function(v){if(!v.paused)v.pause();});
+        setCopyPhase(0);
+        live=false;
+        return;
+      }
+      ensureLoading(videos[0]);
+      var rect=story.getBoundingClientRect();
+      var total=Math.max(1,story.offsetHeight-innerHeight);
+      var p=clamp(-rect.top/total);
+      var phoneIn=clamp((p-.07)/.13);
+      var moment=storyMoment(clamp((p-.18)/.72));
+      var night=moment.phase===1?1:0;
+      var bg=[
+        Math.round(248+(7-248)*night),
+        Math.round(244+(17-244)*night),
+        Math.round(237+(31-237)*night)
+      ];
+      var mobile=innerWidth<900;
+
+      /* The last 18% of an act carries the phone to the next act's side. `lift`
+         is 0 at rest and 1 mid-crossing, so the tilt and the shrink that used
+         to key off a chapter-edge pulse now key off the travel itself. */
+      var cross=smooth(clamp((moment.local-.82)/.18));
+      var from=SIDE[moment.phase];
+      var to=SIDE[Math.min(SIDE.length-1,moment.phase+1)];
+      var side=from+(to-from)*cross;
+      var lift=1-Math.abs(side);
+      var phoneX=((mobile?0:TRAVEL)*side*phoneIn).toFixed(1);
+      /* Keep the real phone peeking into the first frame, then let it rise into
+         the exact same object used by the Inspire chapter. This gives the hero
+         an immediate product cue without introducing a second device. */
+      var phoneStart=mobile?.57:.64;
+      var phoneY=((1-phoneIn)*innerHeight*phoneStart).toFixed(1);
+      var phoneTilt=(-(mobile?0:3)*phoneIn-(mobile?1.2:5)*lift).toFixed(2);
+      var phoneRoll=(-(mobile?0:.35)*phoneIn-(mobile?.08:.45)*lift).toFixed(2);
+
+      stage.style.backgroundColor='rgb('+bg.join(',')+')';
+      stage.classList.toggle('night',night>.5);
+      photo.style.opacity=String(1-clamp((p-.09)/.1));
+      scrim.style.opacity=String(1-clamp((p-.02)/.1));
+      hero.style.opacity=String(1-clamp((p-.025)/.055));
+      hero.style.transform='translateY('+(-18*clamp((p-.025)/.055)).toFixed(1)+'px)';
+      hero.style.pointerEvents=p<.07?'auto':'none';
+      phone.style.transform='perspective(1300px) translate3d('+phoneX+'px,'+phoneY+'px,0) rotateY('+phoneTilt+'deg) rotateZ('+phoneRoll+'deg)';
+      motionCopy.style.opacity=String(clamp((p-.12)/.08));
+      var chrome=clamp((p-.15)/.08);
+      provenance.style.opacity=String(chrome);
+      filmPause.style.opacity=String(chrome);
+      filmPause.style.pointerEvents=chrome>.5?'auto':'none';
+
+      var stageRect=stage.getBoundingClientRect();
+      var onscreen=stageRect.bottom>0&&stageRect.top<innerHeight&&!document.hidden;
+      live=onscreen&&p>=.18;
+      /* ABOVE the acts band is the one place a rewind is meant: the reader has
+         scrolled back up to the hero, so the first act should be waiting at its
+         first frame when they come down again. Anywhere else, not-live just
+         means "not now" and the film keeps its place. */
+      if(p<.18&&activeVideo!==-1){
+        videos.forEach(function(v){v.pause();});
+        seek(videos[0],0);
+        activeVideo=-1;
+      }
+      drive(moment,live);
+      setCopyPhase(moment.phase);
+
+    }
+    /* The loop runs only while there is a film to keep moving — a scrubber
+       needed a frame per scroll event, a player needs one per animation frame,
+       but only while the stage is actually on screen. */
+    function tick(){rafId=0;render();if(live)rafId=requestAnimationFrame(tick);}
+    function queue(){if(!rafId)rafId=requestAnimationFrame(tick);}
+    filmPause.setAttribute('aria-pressed','false');
+    filmPause.addEventListener('click',function(){
+      filmsPaused=!filmsPaused;
+      filmPause.setAttribute('aria-pressed',String(filmsPaused));
+      filmPause.setAttribute('aria-label',filmsPaused?'Play the recordings':'Pause the recordings');
+      queue();
+    });
+    if(motionQuery.addEventListener)motionQuery.addEventListener('change',queue);
+    else if(motionQuery.addListener)motionQuery.addListener(queue);
+    addEventListener('scroll',queue,{passive:true});
+    addEventListener('resize',queue);
+    addEventListener('visibilitychange',function(){
+      if(document.hidden)videos.forEach(function(v){v.pause();});
+      queue();
+    });
+    videos.forEach(function(video){
+      video.addEventListener('loadedmetadata',queue);
+      video.addEventListener('error',function(){video.classList.add('video-failed');});
+    });
+    queue();
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(queue);
+    setTimeout(queue,250);
   })();
   </script>
 </body>
